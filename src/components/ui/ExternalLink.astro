@@ -1,0 +1,21 @@
+---
+interface Props {
+  href: string;
+  site: 'formalml' | 'formalcalculus' | 'formalstatistics';
+  topic: string;
+}
+
+const { href, site, topic } = Astro.props;
+
+const badgeClass = `${site}-badge`;
+const labels: Record<Props['site'], string> = {
+  formalml: 'formalML',
+  formalcalculus: 'formalCalculus',
+  formalstatistics: 'formalStatistics',
+};
+const label = labels[site];
+---
+
+<a href={href} class={badgeClass} target="_blank" rel="noopener noreferrer">
+  {label}: {topic}
+</a>

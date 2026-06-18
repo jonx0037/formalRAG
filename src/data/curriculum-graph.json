@@ -1,0 +1,642 @@
+{
+  "nodes": [
+    {
+      "id": "the-retrieval-problem",
+      "label": "The Retrieval Problem: Relevance, Similarity, and the Geometry of Scores",
+      "status": "draft",
+      "domain": "retrieval-foundations"
+    },
+    {
+      "id": "mips-hardness-and-sublinearity-limits",
+      "label": "MIPS Hardness and the Limits of Exact Nearest-Neighbor Search",
+      "status": "planned",
+      "domain": "retrieval-foundations"
+    },
+    {
+      "id": "high-dimensional-geometry",
+      "label": "High-Dimensional Geometry and the Concentration of Distances",
+      "status": "planned",
+      "domain": "embedding-geometry"
+    },
+    {
+      "id": "hypersphere-vmf-geometry",
+      "label": "Normalization, the Hypersphere, and von Mises-Fisher Geometry",
+      "status": "planned",
+      "domain": "embedding-geometry"
+    },
+    {
+      "id": "pca-dimensionality-reduction",
+      "label": "PCA as Optimal Linear Dimensionality Reduction for Embeddings",
+      "status": "planned",
+      "domain": "embedding-geometry"
+    },
+    {
+      "id": "matryoshka-nested-representations",
+      "label": "Matryoshka Representations: Jointly Trained Nested Subspaces",
+      "status": "planned",
+      "domain": "embedding-geometry"
+    },
+    {
+      "id": "johnson-lindenstrauss",
+      "label": "Random Projections and the Johnson-Lindenstrauss Lemma",
+      "status": "planned",
+      "domain": "embedding-geometry"
+    },
+    {
+      "id": "chunking-as-segmentation",
+      "label": "Chunking as a Segmentation and Optimization Problem",
+      "status": "planned",
+      "domain": "embedding-geometry"
+    },
+    {
+      "id": "vector-space-model-tfidf",
+      "label": "The Vector Space Model and TF-IDF",
+      "status": "draft",
+      "domain": "probabilistic-ir"
+    },
+    {
+      "id": "inverted-index-dynamic-pruning",
+      "label": "The Inverted Index and Safe Dynamic Pruning (WAND, BlockMax-WAND)",
+      "status": "draft",
+      "domain": "probabilistic-ir"
+    },
+    {
+      "id": "probability-ranking-principle",
+      "label": "The Probability Ranking Principle",
+      "status": "draft",
+      "domain": "probabilistic-ir"
+    },
+    {
+      "id": "bm25-binary-independence-model",
+      "label": "BM25 and the Binary Independence Model",
+      "status": "published",
+      "domain": "probabilistic-ir"
+    },
+    {
+      "id": "query-likelihood-language-models",
+      "label": "Query-Likelihood Language Models and Smoothing",
+      "status": "draft",
+      "domain": "probabilistic-ir"
+    },
+    {
+      "id": "pseudo-relevance-feedback",
+      "label": "Relevance Feedback and Query Expansion: Rocchio and RM3",
+      "status": "planned",
+      "domain": "probabilistic-ir"
+    },
+    {
+      "id": "ivf-voronoi-partitioning",
+      "label": "Voronoi Partitioning and the IVF Index",
+      "status": "planned",
+      "domain": "ann-indexing"
+    },
+    {
+      "id": "locality-sensitive-hashing",
+      "label": "Locality-Sensitive Hashing: Collision Probability and the rho Exponent",
+      "status": "planned",
+      "domain": "ann-indexing"
+    },
+    {
+      "id": "navigable-small-world-graphs",
+      "label": "Navigable Small-World Graphs and the Mathematics of Greedy Routing",
+      "status": "planned",
+      "domain": "ann-indexing"
+    },
+    {
+      "id": "hnsw",
+      "label": "HNSW: Hierarchical Navigable Small-World Construction and Search",
+      "status": "planned",
+      "domain": "ann-indexing"
+    },
+    {
+      "id": "filtered-incremental-ann",
+      "label": "Filtered and Incremental ANN: Predicate Search, Deletion, and Graph Connectivity",
+      "status": "planned",
+      "domain": "ann-indexing"
+    },
+    {
+      "id": "vector-quantization-lloyd-max",
+      "label": "Vector Quantization and the Lloyd-Max Optimality Conditions",
+      "status": "planned",
+      "domain": "vector-quantization"
+    },
+    {
+      "id": "product-quantization",
+      "label": "Product Quantization and Asymmetric Distance Computation",
+      "status": "planned",
+      "domain": "vector-quantization"
+    },
+    {
+      "id": "optimized-product-quantization",
+      "label": "Optimized PQ and Score-Aware Quantization (OPQ, ScaNN)",
+      "status": "planned",
+      "domain": "vector-quantization"
+    },
+    {
+      "id": "infonce-contrastive-objective",
+      "label": "Contrastive Learning for Retrieval: InfoNCE, Temperature, and Negative Sampling",
+      "status": "planned",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "negative-sampling-hard-negatives",
+      "label": "Hard-Negative Mining and Debiased Contrastive Training (ANCE)",
+      "status": "planned",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "dense-retrieval-dual-encoders",
+      "label": "Dense Retrieval and Dual Encoders (DPR)",
+      "status": "planned",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "embedding-dimension-lower-bounds",
+      "label": "How Many Dimensions Does Relevance Need? Sign-Rank and Margin Complexity",
+      "status": "planned",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "late-interaction-learned-sparse",
+      "label": "Late Interaction and Learned Sparse Retrieval: ColBERT and SPLADE",
+      "status": "draft",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "multi-vector-ann-retrieval",
+      "label": "Multi-Vector ANN: Indexing and Pruning MaxSim at Scale (PLAID)",
+      "status": "planned",
+      "domain": "ann-indexing"
+    },
+    {
+      "id": "cross-encoders-reranking",
+      "label": "Cross-Encoders and the Reranking Cascade",
+      "status": "planned",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "retrieval-distillation",
+      "label": "Knowledge Distillation for Retrieval: Teacher-Student Transfer (MarginMSE)",
+      "status": "planned",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "cross-modal-alignment",
+      "label": "Cross-Modal Contrastive Alignment and the Modality Gap",
+      "status": "planned",
+      "domain": "neural-retrieval"
+    },
+    {
+      "id": "learning-to-rank-pairwise",
+      "label": "Learning to Rank: Pointwise, Pairwise, and RankNet",
+      "status": "planned",
+      "domain": "ranking-fusion"
+    },
+    {
+      "id": "lambdarank-lambdamart-listwise",
+      "label": "LambdaRank, LambdaMART, and Listwise Objectives",
+      "status": "planned",
+      "domain": "ranking-fusion"
+    },
+    {
+      "id": "rank-fusion-rrf",
+      "label": "Rank Fusion: Reciprocal Rank Fusion and the Geometry of Rank Aggregation",
+      "status": "draft",
+      "domain": "ranking-fusion"
+    },
+    {
+      "id": "llm-listwise-rerankers",
+      "label": "LLM Rerankers: Listwise Permutation Objectives and RankGPT",
+      "status": "planned",
+      "domain": "ranking-fusion"
+    },
+    {
+      "id": "set-metrics-precision-recall-map-mrr",
+      "label": "Set Metrics: Precision, Recall, MAP, and MRR as Estimators",
+      "status": "planned",
+      "domain": "retrieval-evaluation"
+    },
+    {
+      "id": "ndcg-discount-geometry",
+      "label": "NDCG: Graded Relevance and Discount Geometry",
+      "status": "planned",
+      "domain": "retrieval-evaluation"
+    },
+    {
+      "id": "significance-testing-calibration",
+      "label": "Score Calibration, Drift Detection, and Significance Testing for Retrieval",
+      "status": "planned",
+      "domain": "retrieval-evaluation"
+    },
+    {
+      "id": "llm-as-judge-ragas",
+      "label": "LLM-as-Judge and Faithfulness: RAGAS as a Family of Estimators",
+      "status": "planned",
+      "domain": "retrieval-evaluation"
+    },
+    {
+      "id": "conformal-factuality",
+      "label": "Conformal Factuality: Distribution-Free Correctness Guarantees for Generation",
+      "status": "planned",
+      "domain": "retrieval-evaluation"
+    },
+    {
+      "id": "retrieval-vs-long-context",
+      "label": "Retrieval versus Long Context: Attention Complexity and Positional Bias",
+      "status": "planned",
+      "domain": "generation-grounding"
+    },
+    {
+      "id": "query-transformation-hyde",
+      "label": "Query Transformation and HyDE: Correcting Distribution Shift in Embedding Space",
+      "status": "planned",
+      "domain": "generation-grounding"
+    },
+    {
+      "id": "pmi-retrieval-value",
+      "label": "Pointwise Mutual Information: What Retrieval Adds to Generation, in Bits",
+      "status": "planned",
+      "domain": "rag-information-theory"
+    },
+    {
+      "id": "faithfulness-groundedness",
+      "label": "Faithfulness and Groundedness as Measurable Quantities",
+      "status": "planned",
+      "domain": "generation-grounding"
+    },
+    {
+      "id": "selective-generation-abstention",
+      "label": "Selective Generation: When a RAG System Should Abstain",
+      "status": "planned",
+      "domain": "generation-grounding"
+    },
+    {
+      "id": "retriever-as-noisy-channel",
+      "label": "The Retriever as a Noisy Channel: Recall, Precision, and Information Limits",
+      "status": "planned",
+      "domain": "rag-information-theory"
+    },
+    {
+      "id": "context-selection-submodular-dpp",
+      "label": "Context Selection: Submodular Coverage, MMR, and Determinantal Point Processes",
+      "status": "planned",
+      "domain": "rag-information-theory"
+    },
+    {
+      "id": "multi-hop-iterative-retrieval",
+      "label": "Multi-Hop and Iterative Retrieval as Search over an Evidence Space",
+      "status": "planned",
+      "domain": "rag-information-theory"
+    },
+    {
+      "id": "graphrag-community-detection",
+      "label": "GraphRAG: Community Detection and the Modularity of Knowledge",
+      "status": "planned",
+      "domain": "rag-information-theory"
+    },
+    {
+      "id": "capstone-multimodal-financial-rag",
+      "label": "Capstone: Architecture and Mathematics of a Production Multimodal Financial RAG System",
+      "status": "planned",
+      "domain": "rag-information-theory"
+    }
+  ],
+  "edges": [
+    {
+      "source": "the-retrieval-problem",
+      "target": "mips-hardness-and-sublinearity-limits"
+    },
+    {
+      "source": "the-retrieval-problem",
+      "target": "high-dimensional-geometry"
+    },
+    {
+      "source": "high-dimensional-geometry",
+      "target": "hypersphere-vmf-geometry"
+    },
+    {
+      "source": "high-dimensional-geometry",
+      "target": "pca-dimensionality-reduction"
+    },
+    {
+      "source": "pca-dimensionality-reduction",
+      "target": "matryoshka-nested-representations"
+    },
+    {
+      "source": "infonce-contrastive-objective",
+      "target": "matryoshka-nested-representations"
+    },
+    {
+      "source": "pca-dimensionality-reduction",
+      "target": "johnson-lindenstrauss"
+    },
+    {
+      "source": "hypersphere-vmf-geometry",
+      "target": "chunking-as-segmentation"
+    },
+    {
+      "source": "the-retrieval-problem",
+      "target": "vector-space-model-tfidf"
+    },
+    {
+      "source": "vector-space-model-tfidf",
+      "target": "inverted-index-dynamic-pruning"
+    },
+    {
+      "source": "vector-space-model-tfidf",
+      "target": "probability-ranking-principle"
+    },
+    {
+      "source": "probability-ranking-principle",
+      "target": "bm25-binary-independence-model"
+    },
+    {
+      "source": "vector-space-model-tfidf",
+      "target": "query-likelihood-language-models"
+    },
+    {
+      "source": "bm25-binary-independence-model",
+      "target": "pseudo-relevance-feedback"
+    },
+    {
+      "source": "query-likelihood-language-models",
+      "target": "pseudo-relevance-feedback"
+    },
+    {
+      "source": "high-dimensional-geometry",
+      "target": "ivf-voronoi-partitioning"
+    },
+    {
+      "source": "vector-quantization-lloyd-max",
+      "target": "ivf-voronoi-partitioning"
+    },
+    {
+      "source": "johnson-lindenstrauss",
+      "target": "locality-sensitive-hashing"
+    },
+    {
+      "source": "high-dimensional-geometry",
+      "target": "locality-sensitive-hashing"
+    },
+    {
+      "source": "high-dimensional-geometry",
+      "target": "navigable-small-world-graphs"
+    },
+    {
+      "source": "navigable-small-world-graphs",
+      "target": "hnsw"
+    },
+    {
+      "source": "ivf-voronoi-partitioning",
+      "target": "hnsw"
+    },
+    {
+      "source": "hnsw",
+      "target": "filtered-incremental-ann"
+    },
+    {
+      "source": "high-dimensional-geometry",
+      "target": "vector-quantization-lloyd-max"
+    },
+    {
+      "source": "vector-quantization-lloyd-max",
+      "target": "product-quantization"
+    },
+    {
+      "source": "product-quantization",
+      "target": "optimized-product-quantization"
+    },
+    {
+      "source": "pca-dimensionality-reduction",
+      "target": "optimized-product-quantization"
+    },
+    {
+      "source": "hypersphere-vmf-geometry",
+      "target": "optimized-product-quantization"
+    },
+    {
+      "source": "the-retrieval-problem",
+      "target": "infonce-contrastive-objective"
+    },
+    {
+      "source": "hypersphere-vmf-geometry",
+      "target": "infonce-contrastive-objective"
+    },
+    {
+      "source": "infonce-contrastive-objective",
+      "target": "negative-sampling-hard-negatives"
+    },
+    {
+      "source": "infonce-contrastive-objective",
+      "target": "dense-retrieval-dual-encoders"
+    },
+    {
+      "source": "vector-space-model-tfidf",
+      "target": "dense-retrieval-dual-encoders"
+    },
+    {
+      "source": "dense-retrieval-dual-encoders",
+      "target": "embedding-dimension-lower-bounds"
+    },
+    {
+      "source": "dense-retrieval-dual-encoders",
+      "target": "late-interaction-learned-sparse"
+    },
+    {
+      "source": "bm25-binary-independence-model",
+      "target": "late-interaction-learned-sparse"
+    },
+    {
+      "source": "embedding-dimension-lower-bounds",
+      "target": "late-interaction-learned-sparse"
+    },
+    {
+      "source": "late-interaction-learned-sparse",
+      "target": "multi-vector-ann-retrieval"
+    },
+    {
+      "source": "product-quantization",
+      "target": "multi-vector-ann-retrieval"
+    },
+    {
+      "source": "ivf-voronoi-partitioning",
+      "target": "multi-vector-ann-retrieval"
+    },
+    {
+      "source": "dense-retrieval-dual-encoders",
+      "target": "cross-encoders-reranking"
+    },
+    {
+      "source": "cross-encoders-reranking",
+      "target": "retrieval-distillation"
+    },
+    {
+      "source": "negative-sampling-hard-negatives",
+      "target": "retrieval-distillation"
+    },
+    {
+      "source": "infonce-contrastive-objective",
+      "target": "cross-modal-alignment"
+    },
+    {
+      "source": "dense-retrieval-dual-encoders",
+      "target": "cross-modal-alignment"
+    },
+    {
+      "source": "probability-ranking-principle",
+      "target": "learning-to-rank-pairwise"
+    },
+    {
+      "source": "set-metrics-precision-recall-map-mrr",
+      "target": "learning-to-rank-pairwise"
+    },
+    {
+      "source": "learning-to-rank-pairwise",
+      "target": "lambdarank-lambdamart-listwise"
+    },
+    {
+      "source": "ndcg-discount-geometry",
+      "target": "lambdarank-lambdamart-listwise"
+    },
+    {
+      "source": "bm25-binary-independence-model",
+      "target": "rank-fusion-rrf"
+    },
+    {
+      "source": "lambdarank-lambdamart-listwise",
+      "target": "llm-listwise-rerankers"
+    },
+    {
+      "source": "cross-encoders-reranking",
+      "target": "llm-listwise-rerankers"
+    },
+    {
+      "source": "the-retrieval-problem",
+      "target": "set-metrics-precision-recall-map-mrr"
+    },
+    {
+      "source": "set-metrics-precision-recall-map-mrr",
+      "target": "ndcg-discount-geometry"
+    },
+    {
+      "source": "ndcg-discount-geometry",
+      "target": "significance-testing-calibration"
+    },
+    {
+      "source": "cross-encoders-reranking",
+      "target": "significance-testing-calibration"
+    },
+    {
+      "source": "high-dimensional-geometry",
+      "target": "significance-testing-calibration"
+    },
+    {
+      "source": "set-metrics-precision-recall-map-mrr",
+      "target": "llm-as-judge-ragas"
+    },
+    {
+      "source": "llm-as-judge-ragas",
+      "target": "conformal-factuality"
+    },
+    {
+      "source": "significance-testing-calibration",
+      "target": "conformal-factuality"
+    },
+    {
+      "source": "the-retrieval-problem",
+      "target": "retrieval-vs-long-context"
+    },
+    {
+      "source": "dense-retrieval-dual-encoders",
+      "target": "query-transformation-hyde"
+    },
+    {
+      "source": "pseudo-relevance-feedback",
+      "target": "query-transformation-hyde"
+    },
+    {
+      "source": "dense-retrieval-dual-encoders",
+      "target": "pmi-retrieval-value"
+    },
+    {
+      "source": "set-metrics-precision-recall-map-mrr",
+      "target": "pmi-retrieval-value"
+    },
+    {
+      "source": "query-transformation-hyde",
+      "target": "faithfulness-groundedness"
+    },
+    {
+      "source": "pmi-retrieval-value",
+      "target": "faithfulness-groundedness"
+    },
+    {
+      "source": "faithfulness-groundedness",
+      "target": "selective-generation-abstention"
+    },
+    {
+      "source": "significance-testing-calibration",
+      "target": "selective-generation-abstention"
+    },
+    {
+      "source": "pmi-retrieval-value",
+      "target": "retriever-as-noisy-channel"
+    },
+    {
+      "source": "retriever-as-noisy-channel",
+      "target": "context-selection-submodular-dpp"
+    },
+    {
+      "source": "chunking-as-segmentation",
+      "target": "context-selection-submodular-dpp"
+    },
+    {
+      "source": "retrieval-vs-long-context",
+      "target": "context-selection-submodular-dpp"
+    },
+    {
+      "source": "context-selection-submodular-dpp",
+      "target": "multi-hop-iterative-retrieval"
+    },
+    {
+      "source": "multi-hop-iterative-retrieval",
+      "target": "graphrag-community-detection"
+    },
+    {
+      "source": "graphrag-community-detection",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "rank-fusion-rrf",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "optimized-product-quantization",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "conformal-factuality",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "context-selection-submodular-dpp",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "hnsw",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "cross-modal-alignment",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "retrieval-distillation",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "filtered-incremental-ann",
+      "target": "capstone-multimodal-financial-rag"
+    }
+  ]
+}

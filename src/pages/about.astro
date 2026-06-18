@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="About" description="About formalRAG and its author">
+  <article class="mx-auto max-w-3xl px-6 py-12">
+    <h1 class="text-3xl font-semibold font-[family-name:var(--font-sans)] mb-8">About</h1>
+
+    <div class="prose">
+      <h2>Mission</h2>
+      <p>
+        formalRAG treats retrieval-augmented generation as a mathematical subject. The web is
+        saturated with tutorials on how to <em>build</em> a RAG application; almost none treat the
+        <em>mathematics</em> of retrieval with rigor. This site fills that gap. Every topic receives
+        the three-pillar treatment shared across the formal series: rigorous mathematical exposition,
+        interactive visual intuition, and working code you can run immediately.
+      </p>
+      <p>
+        RAG is half mathematics and half systems engineering. We formalize the genuine mathematics —
+        the geometry of embedding spaces, the algorithms behind approximate nearest-neighbor search,
+        probabilistic information retrieval, ranking theory, the statistics of evaluation, and the
+        information theory of what retrieval adds to generation — and we treat the systems layer
+        wherever it has real mathematical content. Where a celebrated method's guarantees are
+        heuristic rather than proven, we say so plainly.
+      </p>
+
+      <h2>The formal series</h2>
+      <p>
+        formalRAG is the fourth site in a family of mathematics-heavy explainers. Its prerequisites
+        often live on its sibling sites:
+        <a href="https://formalml.com" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">formalML</a>
+        (representation learning, information theory, the foundations of ML),
+        <a href="https://formalstatistics.com" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">formalStatistics</a>
+        (estimation, hypothesis testing, calibration), and
+        <a href="https://formalcalculus.com" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">formalCalculus</a>
+        (linear algebra, optimization, analysis). Topics link directly to the foundations they rely on.
+      </p>
+
+      <h2>Author</h2>
+      <p>
+        <strong>Jonathan Rocha</strong> is a data scientist and researcher specializing in financial
+        NLP and the mathematical foundations of machine learning. He holds an MS in Data Science from
+        SMU, an MA in English from Texas A&M University, and a BA in History from Texas A&M. He is the
+        author of <em>Applied NLP for Finance</em> and builds production retrieval-augmented
+        generation systems, including a multimodal financial RAG system that indexes earnings-call
+        audio, SEC filings, financial charts, and news under unified embeddings — the running case
+        study that threads this site and anchors its capstone.
+      </p>
+
+      <h2>DataSalt</h2>
+      <p>
+        formalrag.com is an independent educational project by the founder of
+        <a href="https://datasalt.ai" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">DataSalt LLC</a>.
+      </p>
+
+      <h2>Links</h2>
+      <ul>
+        <li><a href="https://github.com/jonx0037" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">GitHub (@jonx0037)</a></li>
+        <li><a href="https://datasalt.ai" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">DataSalt</a></li>
+        <li><a href="https://github.com/jonx0037/formalRAG" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">formalRAG Repository</a></li>
+      </ul>
+    </div>
+  </article>
+</BaseLayout>

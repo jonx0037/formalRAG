@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+/* === Design System Tokens ===
+   Series accent: formalML is emerald, formalCalculus/Statistics their own.
+   formalRAG takes an indigo (primary) + violet (secondary) pair so it reads as
+   a distinct member of the family. To rebrand, change the four --color-accent*
+   lines below (light + dark) — everything else derives from them. */
+@theme {
+  --color-bg: #FAFAF8;
+  --color-text: #1A1A1A;
+  --color-text-secondary: #6B6B6B;
+  --color-accent: #3538CD;
+  --color-accent-secondary: #7C3AED;
+  --color-surface: #FFFFFF;
+  --color-border: #E5E5E0;
+  --color-code-bg: #F5F5F0;
+  --color-muted-bg: #F5F5F0;
+  --color-muted-border: #D1D1CC;
+  --color-definition-bg: #E8E9FB;
+  --color-definition-border: #3538CD;
+  --color-theorem-bg: #F1E9FE;
+  --color-theorem-border: #7C3AED;
+  --color-badge-green-bg: #DCFCE7;
+  --color-badge-green-text: #166534;
+  --color-badge-amber-bg: #FEF3C7;
+  --color-badge-amber-text: #92400E;
+  --color-badge-red-bg: #FEE2E2;
+  --color-badge-red-text: #991B1B;
+  --color-badge-blue-bg: #DBEAFE;
+  --color-badge-blue-text: #1D4ED8;
+  --color-disabled-text: #9CA3AF;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Source Serif 4', 'Charter', 'Georgia', ui-serif, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+/* === Dark theme overrides === */
+[data-theme="dark"] {
+  --color-bg: #171715;
+  --color-text: #E5E5E1;
+  --color-text-secondary: #9E9E98;
+  --color-accent: #818CF8;
+  --color-accent-secondary: #A78BFA;
+  --color-surface: #1F1F1D;
+  --color-border: #2E2E2C;
+  --color-code-bg: #222220;
+  --color-muted-bg: #222220;
+  --color-muted-border: #3A3A38;
+  --color-definition-bg: #1E1F45;
+  --color-definition-border: #818CF8;
+  --color-theorem-bg: #2A1F45;
+  --color-theorem-border: #A78BFA;
+  --color-badge-green-bg: #14532D;
+  --color-badge-green-text: #86EFAC;
+  --color-badge-amber-bg: #451A03;
+  --color-badge-amber-text: #FCD34D;
+  --color-badge-red-bg: #450A0A;
+  --color-badge-red-text: #FCA5A5;
+  --color-badge-blue-bg: #1E3A8A;
+  --color-badge-blue-text: #93C5FD;
+  --color-disabled-text: #6B7280;
+}
+
+/* === Base typography === */
+html {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+html.theme-transitioning, html.theme-transitioning * {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* === Prose styling === */
+.prose {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  line-height: 1.7;
+  max-width: 45rem; /* 720px */
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+/* === KaTeX overrides === */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
+/* === Code block styling === */
+pre {
+  background-color: var(--color-code-bg) !important;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+}
+
+code {
+  font-family: var(--font-mono);
+}
+
+/* Shiki dual-theme syntax tokens. Astro sets the light-theme `color:` inline on
+   every token (so light mode just works) and exposes the dark variant as the
+   `--shiki-dark` CSS variable. We override `color` to that variable in dark
+   mode — `!important` is required to beat Astro's inline color attribute. */
+[data-theme="dark"] .astro-code,
+[data-theme="dark"] .astro-code code,
+[data-theme="dark"] .astro-code span {
+  color: var(--shiki-dark) !important;
+}
+
+/* Inline code (not inside `<pre>`): subtle tinted background so it is visually
+   distinguishable from prose in both light and dark themes. */
+:not(pre) > code {
+  background-color: var(--color-code-bg);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+/* === MDX images === */
+.prose img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 2rem auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+.prose figure {
+  margin: 2rem 0;
+}
+
+.prose figure img {
+  margin: 0 auto;
+}
+
+.prose figcaption {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-top: 0.75rem;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+/* === Mobile prose scale === */
+@media (max-width: 640px) {
+  .prose {
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+}
+
+/* === Sister-site badges (used by ExternalLink component) ===
+   formalRAG links UP into formalML (green) and DOWN into the calculus (amber)
+   and statistics (blue) foundations. */
+.formalml-badge,
+.formalcalculus-badge,
+.formalstatistics-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.formalml-badge:hover,
+.formalcalculus-badge:hover,
+.formalstatistics-badge:hover {
+  opacity: 1;
+  text-decoration: none;
+}
+
+.formalml-badge::before,
+.formalcalculus-badge::before,
+.formalstatistics-badge::before {
+  content: '\2197'; /* ↗ — these point OUT to a sister site */
+}
+
+.formalml-badge {
+  color: var(--color-badge-green-text);
+  background-color: var(--color-badge-green-bg);
+  border: 1px solid var(--color-badge-green-text);
+}
+
+.formalcalculus-badge {
+  color: var(--color-badge-amber-text);
+  background-color: var(--color-badge-amber-bg);
+  border: 1px solid var(--color-badge-amber-text);
+}
+
+.formalstatistics-badge {
+  color: var(--color-badge-blue-text);
+  background-color: var(--color-badge-blue-bg);
+  border: 1px solid var(--color-badge-blue-text);
+}
+
+/* === D3 visualization text/axis theming === */
+svg text {
+  fill: var(--color-text);
+}
+svg .domain, svg .tick line {
+  stroke: var(--color-muted-border);
+}
+
+/* === Dark mode: KaTeX color inheritance === */
+[data-theme="dark"] .katex {
+  color: var(--color-text);
+}
+
+/* === Dark mode: Pagefind UI overrides === */
+[data-theme="dark"] .pagefind-ui {
+  --pagefind-ui-background: var(--color-surface);
+  --pagefind-ui-text: var(--color-text);
+  --pagefind-ui-border: var(--color-border);
+}

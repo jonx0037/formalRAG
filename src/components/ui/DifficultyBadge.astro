@@ -1,0 +1,17 @@
+---
+interface Props {
+  difficulty: 'foundational' | 'intermediate' | 'advanced';
+}
+
+const { difficulty } = Astro.props;
+
+const styles: Record<string, string> = {
+  foundational: 'bg-[var(--color-badge-green-bg)] text-[var(--color-badge-green-text)]',
+  intermediate: 'bg-[var(--color-badge-amber-bg)] text-[var(--color-badge-amber-text)]',
+  advanced: 'bg-[var(--color-badge-red-bg)] text-[var(--color-badge-red-text)]',
+};
+---
+
+<span class:list={['inline-block rounded-full px-3 py-0.5 text-xs font-medium font-[family-name:var(--font-sans)] capitalize', styles[difficulty]]}>
+  {difficulty}
+</span>

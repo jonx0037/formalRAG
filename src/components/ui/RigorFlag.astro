@@ -1,0 +1,19 @@
+---
+// Honesty annotation box — surfaces a topic's `rigorFlag`: a celebrated method
+// whose guarantees are heuristic rather than proven. Core to formalRAG's
+// rigor-first, honest positioning. Pass the caveat text via the default slot,
+// or as the `note` prop.
+interface Props {
+  note?: string;
+}
+const { note } = Astro.props;
+---
+
+<aside class="my-6 rounded-r-lg border-l-4 border-l-[var(--color-badge-amber-text)] bg-[var(--color-badge-amber-bg)] px-6 py-4">
+  <p class="mb-1 font-[family-name:var(--font-sans)] font-semibold text-[var(--color-badge-amber-text)]">
+    ⚠ Rigor flag
+  </p>
+  <div class="prose text-[var(--color-badge-amber-text)]">
+    {note ? <p>{note}</p> : <slot />}
+  </div>
+</aside>

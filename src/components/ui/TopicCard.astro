@@ -1,0 +1,45 @@
+---
+import DifficultyBadge from './DifficultyBadge.astro';
+
+interface Props {
+  id: string;
+  title: string;
+  subtitle?: string;
+  abstract: string;
+  difficulty: 'foundational' | 'intermediate' | 'advanced';
+  domain: string;
+  prerequisiteCount: number;
+  showStartHere?: boolean;
+}
+
+const { id, title, subtitle, abstract, difficulty, domain, prerequisiteCount, showStartHere } = Astro.props;
+---
+
+<a
+  href={`/topics/${id}`}
+  class="group block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 transition-all hover:border-[var(--color-accent)]/30 hover:shadow-sm"
+>
+  <div class="mb-3 flex items-center gap-2">
+    <DifficultyBadge difficulty={difficulty} />
+    <span class="text-xs uppercase tracking-wider text-[var(--color-text-secondary)]">{domain}</span>
+  </div>
+  <h3 class="text-lg font-semibold font-[family-name:var(--font-sans)] group-hover:text-[var(--color-accent)] transition-colors">
+    {title}
+  </h3>
+  {subtitle && <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{subtitle}</p>}
+  <p class="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)] line-clamp-3">
+    {abstract}
+  </p>
+  <div class="mt-3 flex items-center gap-2">
+    {showStartHere && (
+      <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20">
+        Start here
+      </span>
+    )}
+    {prerequisiteCount > 0 && (
+      <span class="text-xs text-[var(--color-text-secondary)]">
+        {prerequisiteCount} prerequisite{prerequisiteCount > 1 ? 's' : ''}
+      </span>
+    )}
+  </div>
+</a>

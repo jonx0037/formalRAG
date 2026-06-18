@@ -1,0 +1,26 @@
+---
+// The recurring finance case-study callout. Renders the modality tags a study
+// touches (the four modalities of the author's production multimodal financial
+// RAG system) and the case-study prose via the default slot.
+interface Props {
+  title?: string;
+  modality?: Array<'text' | 'pdf' | 'audio' | 'chart' | 'news'>;
+}
+const { title = 'Finance case study', modality = [] } = Astro.props;
+---
+
+<aside class="my-6 rounded-r-lg border-l-4 border-l-[var(--color-accent)] bg-[var(--color-definition-bg)] px-6 py-4">
+  <div class="mb-2 flex flex-wrap items-center gap-2">
+    <span class="font-[family-name:var(--font-sans)] font-semibold text-[var(--color-accent)]">
+      § {title}
+    </span>
+    {modality.map((m) => (
+      <span class="rounded-full border border-[var(--color-accent)] px-2 py-0.5 text-xs font-[family-name:var(--font-sans)] text-[var(--color-accent)] uppercase tracking-wide">
+        {m}
+      </span>
+    ))}
+  </div>
+  <div class="prose">
+    <slot />
+  </div>
+</aside>

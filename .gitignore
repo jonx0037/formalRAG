@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.astro/
+
+# vercel
+.vercel/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# logs & env
+*.log
+.env
+.env.*
+!.env.example
+
+# os / editor
+.DS_Store
+
+# local Claude Code state
+.claude/settings.local.json
