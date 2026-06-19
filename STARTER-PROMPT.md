@@ -74,7 +74,12 @@ source of truth that the later pillars are checked against.
     ties can break a naive order-equality (the RRF→Borda limit holds only when the Borda totals are strict).
   - `notebooks/<slug>/01_<slug_underscored>.ipynb` — narrative notebook that imports the `.py` and
     walks the topic section by section, so claims render as executed output. Model it on
-    `notebooks/bm25/01_bm25.ipynb`. A hand-written `.ipynb` lacks cell `id` fields, so after writing
+    `notebooks/bm25/01_bm25.ipynb`. For LaTeX-dense notebooks, **generate the `.ipynb`
+    programmatically** rather than hand-writing JSON: build cells with
+    `nbformat.v4.new_markdown_cell`/`new_code_cell` (raw triple-quoted Python strings, so KaTeX
+    backslashes need no JSON escaping), then `nbformat.validator.normalize`, clear code outputs, and
+    `nbformat.write` — this subsumes the normalize one-liner below and avoids escaping bugs. If you do
+    hand-write the `.ipynb`, it lacks cell `id` fields, so after writing
     it **normalize** (add ids, clear outputs) or `jupyter execute` warns (a future hard error):
     `uv run --with nbformat python -c "import nbformat; p='notebooks/<slug>/01_<slug_underscored>.ipynb'; nb=nbformat.read(p,as_version=4); _,nb=nbformat.validator.normalize(nb); [c.update(outputs=[],execution_count=None) for c in nb.cells if c.cell_type=='code']; nbformat.write(nb,p)"`.
     Commit without stored outputs.
@@ -145,7 +150,9 @@ The notebook is now immutable and is the source of truth. Build the page against
 `CLAUDE.md` → `docs/plans/formalrag-<slug>-brief.md` → `notebooks/<slug>/01_<slug_underscored>.ipynb`. Then
 study the BM25 topic as the structural exemplar: `src/content/topics/bm25-binary-independence-model.mdx`
 (frontmatter anatomy, `TheoremBlock`/`NamedSection`/`RigorFlag`/`FinanceCaseStudy` usage, the
-`<Viz client:visible />` embed) and `src/components/viz/BM25ScoringLaboratory.tsx`.
+`<Viz client:visible />` embed) and `src/components/viz/BM25ScoringLaboratory.tsx`. For tri-site
+cross-links and a concentration/geometry viz, also study `high-dimensional-geometry`
+(`src/content/topics/high-dimensional-geometry.mdx` + `src/components/viz/ConcentrationLaboratory.tsx`).
 
 ### B2. Build order
 
@@ -172,8 +179,11 @@ pnpm dev                   # then open the topic page
 `.katex-error` spans and the build still exits 0. **Open the page and verify the DOM with
 `browser_evaluate`, not screenshots** (screenshots drift to `/` on this setup). Assert: zero
 `.katex-error` spans, the expected `.katex` count, and that each viz mounted (slider/ranking
-present). Re-run the notebook one final time; confirm the page's worked-example numbers equal the
-notebook's printed output.
+present). The viz embeds with `client:visible`, so the SSR DOM (KaTeX counts, baked readouts) is
+there immediately, but to exercise *interactivity* (switch a panel, drag a slider) first
+`scrollIntoView` the component and wait ~0.5–1 s for hydration — a raw `.click()` against
+un-hydrated markup silently no-ops. Re-run the notebook one final time; confirm the page's
+worked-example numbers equal the notebook's printed output.
 
 **`audit:cross-site` writes generated files — never commit them.** It regenerates
 `docs/plans/audit-output/`, `docs/plans/cross-site-audit-report.md`, and

@@ -61,8 +61,14 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
   `.katex-error` spans and the build still exits 0. Always open the topic page and check.
 - **Verify with `browser_evaluate`, not screenshots.** Playwright/Preview MCP screenshots drift to
-  `/` on this setup; instead assert DOM state (`.katex` count, slider/ranking presence).
+  `/` on this setup; instead assert DOM state (`.katex` count, slider/ranking presence). Viz uses
+  `client:visible`, so the SSR DOM (KaTeX counts, baked readouts) is present on load, but to test
+  *interactivity* (toggling a panel, dragging a slider) you must `scrollIntoView` the component and
+  wait ~0.5–1 s for hydration first — otherwise clicks no-op against un-hydrated markup.
 - Pagefind UI assets 404 in `astro dev` (generated only by `postbuild`) — expected, harmless.
+- `pnpm dev` may not land on **4321** — with other `formal*` servers up it picks 4322/4323/…; read
+  the dev log for the actual port (a `curl :4321` can hit a *different* project and falsely report
+  ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
 - `astro check` reports ~12 pre-existing type errors in the copied viz components
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
 - **Viz ↔ Python invariant:** `BM25ScoringLaboratory.tsx`'s corpus mirrors `notebooks/bm25/bm25.py`
