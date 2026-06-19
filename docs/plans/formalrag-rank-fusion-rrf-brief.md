@@ -144,6 +144,28 @@ these. What is real:
    cosine; self-contained, CPU-only, no model download.
 5. **Cross-site: verified** (see the Cross-site section) — `rank-tests` on formalML; no LTR slug.
 
-## Confirm at authoring
-- A URL for the optional hybrid-search `documentation` reference (the four core refs are verified).
-- Whether `order-statistics-and-quantiles` earns a cross-link or is dropped as too thin.
+## Resolved at authoring (2026-06-19)
+- **Hybrid-search `documentation` reference: INCLUDE.** Elasticsearch's RRF reference (the
+  canonical industry implementation; popularized the `k=60` default). Verify the live URL when
+  writing the MDX references.
+- **`order-statistics-and-quantiles` cross-link: INCLUDE.** §5 is written to lean on the
+  order-statistic representation of a ranking (the rank vector as a deterministic function of the
+  order statistics), so the formalStatistics up-link is substantive rather than thin.
+
+## Realized notebook design (verified — `notebooks/rank-fusion-rrf/`)
+
+The corpus was engineered so each leg buries one qrel-3 prize at #3 and RRF recovers the ideal
+order; the canonical numbers the MDX prose and `FusionLaboratory.tsx` must mirror to the decimal:
+
+- Query `interest rate exposure`, N = 6. `interest` is the rare term (df 2, high IDF); `rate`/`exposure` common.
+- **Lexical (BM25):** `filing-onpoint, filing-hedging, transcript-rate, filing-fx, news-macro, transcript-ops`
+- **Dense (cosine):** `transcript-rate, filing-hedging, filing-onpoint, filing-fx, news-macro, transcript-ops`
+- **Fused (RRF, k=60):** `filing-onpoint, transcript-rate, filing-hedging, filing-fx, news-macro, transcript-ops`
+- **NDCG@10:** lexical 0.980, dense 0.980, **RRF 1.000** (hybrid beats both).
+- **Kemeny consensus:** `filing-hedging` (every leg's #2) is lifted to #1 — RRF ranks it #3. A
+  verified, concrete instance of *RRF ≠ the optimal consensus* for the `rigorFlag`/§6 contrast.
+- **Kendall-τ(lexical, dense) = 3** discordant pairs; footrule aggregate matches the lexical order here.
+- **Honest note (toy dense leg):** the seeded random-projection cosine leg is a self-contained
+  stand-in for a trained bi-encoder, not a genuine semantic model (by Johnson–Lindenstrauss it is a
+  length-normalized lexical-cosine ranking with no IDF). The rank-aggregation mathematics is
+  independent of how the second list is produced — say so plainly in the prose; do not oversell "semantic."

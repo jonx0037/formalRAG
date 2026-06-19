@@ -106,7 +106,6 @@ export const tracks = [
     planned: [
       'Learning to Rank: Pointwise, Pairwise, and RankNet',
       'LambdaRank, LambdaMART, and Listwise Objectives',
-      'Rank Fusion: Reciprocal Rank Fusion and the Geometry of Rank Aggregation',
       'LLM Rerankers: Listwise Permutation Objectives and RankGPT',
     ],
     dependsOnFormalML: false,

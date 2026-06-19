@@ -1,26 +1,343 @@
 ---
 title: "Rank Fusion: Reciprocal Rank Fusion and the Geometry of Rank Aggregation"
-status: "draft"
-difficulty: "intermediate"
+subtitle: "Why combining ranked lists by position beats combining them by score — and how close a cheap heuristic gets to the optimal consensus"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "bm25-binary-independence-model"
 tags:
   - "rank-fusion"
   - "rrf"
+  - "reciprocal-rank-fusion"
+  - "rank-aggregation"
+  - "kendall-tau"
+  - "kemeny-consensus"
+  - "borda-count"
   - "hybrid-retrieval"
 domain: "ranking-fusion"
-financeCaseStudy: false
-abstract: "Combining ranked lists from independent retrievers; Reciprocal Rank Fusion and its social-choice / Kemeny grounding — the hybrid step that fuses BM25 with dense retrieval."
+pipelineStage: "fuse"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "audio"
+rigorFlag: "RRF's k = 60 is an empirically chosen constant (Cormack et al. 2009), not derived from any optimality criterion, and RRF carries no approximation guarantee to the Kemeny-optimal consensus — which is itself NP-hard to compute. The rigorous results here are about the Kendall-τ / footrule geometry of permutations and the footrule 2-approximation of Kemeny, not about RRF's optimality; RRF's effectiveness is empirical. The dense leg in the companion code is a deterministic toy embedding, a self-contained stand-in for a trained bi-encoder, not a genuine semantic model."
+videoId: null
+notebookPath: "notebooks/rank-fusion-rrf/01_rank_fusion_rrf.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/rank-fusion-rrf.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 45
+abstract: "Hybrid retrieval runs two retrievers — a lexical one like BM25 and a dense one — and must combine their rankings. The two live on incompatible score scales, so adding scores (CombSUM) lets one swamp the other; Reciprocal Rank Fusion (RRF) instead combines by position, reading only each document's rank in each list. We show that this makes RRF invariant to any strictly monotone rescaling of either retriever's scores, that as its constant k grows the RRF order converges to the Borda count, and that rank fusion opens onto the real mathematics of rank aggregation: permutations as points in a metric space under the Kendall-τ distance, the Spearman footrule, the Diaconis–Graham inequality relating them, the Kemeny consensus as the median permutation, and the footrule-optimal aggregate as a polynomial-time 2-approximation of the NP-hard Kemeny optimum. An interactive Fusion Laboratory and a from-scratch implementation whose tests verify every claim accompany the derivation, with a worked finance example fusing a BM25 ranking over 10-K text with a dense ranking over earnings-call passages."
+connections:
+  - topic: "bm25-binary-independence-model"
+    relationship: "BM25 is the lexical leg whose ranking RRF fuses with a dense retriever; this topic picks up exactly where BM25's finance case study leaves off"
+  - topic: "late-interaction-learned-sparse"
+    relationship: "learned sparse and late-interaction retrievers supply additional ranked lists that the same positional fusion combines, with no rescaling needed across the heterogeneous scorers"
+references:
+  - type: "paper"
+    title: "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods"
+    authors: "Cormack, Clarke & Büttcher"
+    year: 2009
+    url: "https://doi.org/10.1145/1571941.1572114"
+    note: "The origin of RRF and the k = 60 constant"
+  - type: "paper"
+    title: "Combination of Multiple Searches"
+    authors: "Fox & Shaw"
+    year: 1994
+    url: "https://trec.nist.gov/pubs/trec2/papers/txt/23.txt"
+    note: "CombSUM and CombMNZ score-fusion baselines"
+  - type: "paper"
+    title: "Rank Aggregation Methods for the Web"
+    authors: "Dwork, Kumar, Naor & Sivakumar"
+    year: 2001
+    url: "https://doi.org/10.1145/371920.372165"
+    note: "Kemeny optimization, NP-hardness, the footrule 2-approximation via min-cost matching"
+  - type: "paper"
+    title: "Spearman's Footrule as a Measure of Disarray"
+    authors: "Diaconis & Graham"
+    year: 1977
+    url: "https://doi.org/10.1111/j.2517-6161.1977.tb01624.x"
+    note: "The K ≤ F ≤ 2K inequality between Kendall-τ and the Spearman footrule"
+  - type: "documentation"
+    title: "Reciprocal rank fusion — Elasticsearch Reference"
+    url: "https://www.elastic.co/docs/reference/elasticsearch/rest-apis/reciprocal-rank-fusion"
+    note: "Production RRF: the rank_constant parameter defaulting to 60"
+formalmlPrereqs:
+  - topic: "rank-tests"
+    site: "formalml"
+    relationship: "the Kendall-τ distance that grounds the geometry of rank aggregation counts concordant and discordant pairs — the same combinatorial machinery as the Mann–Whitney U and Wilcoxon rank statistics, of which Kendall's τ is itself a U-statistic"
+formalstatisticsPrereqs:
+  - topic: "order-statistics-and-quantiles"
+    site: "formalstatistics"
+    relationship: "a ranking is the rank vector of a sample — a deterministic function of its order statistics — so the permutation space rank fusion operates over is exactly the space of orderings that order statistics induce"
 ---
 
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
 import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import FusionLaboratory from '../../components/viz/FusionLaboratory.tsx';
 
-<NamedSection id="status" title="On the roadmap">
+## Overview & motivation
 
-This topic is part of the formalRAG curriculum and is **not yet published** — it is
-currently a stub so that links from neighboring topics resolve. See the
-[curriculum roadmap](/paths) for where it sits in the dependency graph.
+[BM25](/topics/bm25-binary-independence-model) gives us a *lexical* ranking: it scores a document by the exact query terms it contains, weighted by how rare and how saturated those terms are. A dense dual-encoder gives us a *semantic* ranking: it embeds query and document into a shared vector space and scores by cosine similarity, so a passage that paraphrases the query without sharing its words can still rank highly. Each catches what the other misses — BM25 nails the literal ticker, CUSIP, and line-item match that a paraphrase-trained embedding smears into near-synonyms; the dense leg recovers the relevant passage that shares no surface tokens with the query at all. Production *hybrid retrieval* runs both and must **combine** their rankings into one.
 
-In the meantime, the published pilot topic
-[BM25 and the Binary Independence Model](/topics/bm25-binary-independence-model)
-demonstrates the three-pillar treatment this topic will receive.
+The obstacle is that the two scores are not commensurable. BM25 is an unbounded sum of per-term weights; cosine similarity lives in $[-1, 1]$. The naive fix — add the two scores per document — lets whichever list has the wider numeric range dictate the result, so the combination depends on an accident of scale rather than on agreement between the retrievers. The method that dominates in practice sidesteps this entirely by throwing the scores away and keeping only the **positions**: it reads off each document's *rank* in each list and fuses those. That method is **Reciprocal Rank Fusion** (RRF), and it is the doorway to a genuinely rich piece of mathematics — the theory of **rank aggregation**, where rankings are points in a metric space, the "best combination" is a median permutation, and the cheap heuristic everyone ships sits at a measurable distance from the optimum it does not even try to reach.
 
-</NamedSection>
+Before any algebra, drag the fusion constant and switch between methods to watch positions beat scores:
+
+<FusionLaboratory client:visible />
+
+The corpus in the laboratory is the same finance setup we will analyze throughout: a query, *interest rate exposure*, run against a small mix of 10-K filing text and earnings-call passages. The lexical leg (BM25) ranks a concise, interest-heavy disclosure first; the dense leg ranks a term-dense call passage first; and each leg *buries* the other leg's favorite. The fused column reconciles them. Switch the method to CombSUM and scale the lexical scores up, and watch the fused order collapse onto the lexical list — the failure RRF is built to avoid.
+
+### What we cover
+
+1. Score fusion (CombSUM/CombMNZ) and exactly why incompatible scales break it.
+2. Reciprocal Rank Fusion: the definition, the reciprocal-rank decay $1/(k+r)$, and what the constant $k$ controls.
+3. RRF as a positional voting rule, and the Borda count it converges to as $k \to \infty$.
+4. The geometry of rankings: permutations as points, the Kendall-τ distance and Spearman footrule, and the Diaconis–Graham inequality tying them together.
+5. The Kemeny consensus — the median permutation — and why computing it is NP-hard.
+6. The footrule-optimal aggregate as a polynomial-time 2-approximation of Kemeny.
+7. Evaluation over the finance corpus, a finance case study, and the honest caveats.
+
+---
+
+## Score fusion, and why it breaks
+
+The earliest combination methods fuse *scores*. Given retrievers $\ell = 1, \dots, L$ each assigning document $d$ a score $s_\ell(d)$, **CombSUM** ranks by the sum $\sum_\ell s_\ell(d)$, and **CombMNZ** multiplies that sum by the number of lists in which $d$ appears, rewarding documents many retrievers agree on (Fox and Shaw, 1994). Both are reasonable when the scores are commensurable — several runs of the *same* retriever, say. They fail when the scores are not.
+
+Make the failure concrete. Suppose BM25 scores a relevant filing at $1.9$ and a strong dense match at cosine $0.68$. CombSUM adds them. Now imagine we re-express BM25 in millibels, or simply tune a different saturation constant, so every BM25 score is multiplied by a thousand: the filing now scores $1900$. Nothing about the *ranking* BM25 produces has changed — the documents are in the same order — yet CombSUM's output flips entirely, because the BM25 term now dwarfs every cosine value and the sum is, to three significant figures, the BM25 score alone. The combination was never reading agreement between the retrievers; it was reading their units. A practitioner can paper over this with per-list normalization — min–max or $z$-scoring each list before summing — but normalization is brittle in its own way: it is sensitive to outliers and to the score *distribution*, and a single anomalously high score compresses everything else toward zero. We want a combination rule that cannot be fooled by scale at all. The way to get one is to discard the scores and keep only what survives any rescaling: the order itself.
+
+---
+
+## Reciprocal Rank Fusion
+
+Write $r_\ell(d)$ for the **rank** of document $d$ in list $\ell$ — its 1-based position, so the top document has rank $1$. RRF scores a document by summing a decaying function of its rank across the lists.
+
+<TheoremBlock type="definition" number={1} title="Reciprocal Rank Fusion">
+
+Given ranked lists $\ell = 1, \dots, L$, the **RRF score** of document $d$ is
+
+$$
+\mathrm{RRF}(d) \;=\; \sum_{\ell=1}^{L} \frac{1}{k + r_\ell(d)},
+$$
+
+where $r_\ell(d)$ is the 1-based rank of $d$ in list $\ell$ (with a convention, e.g. $r_\ell(d) = \infty$, for documents absent from a list, contributing $0$), and $k > 0$ is a fixed constant. Documents are ranked by decreasing $\mathrm{RRF}(d)$. The standard choice is $k = 60$ (Cormack, Clarke, and Büttcher, 2009).
+
+</TheoremBlock>
+
+Two design choices are doing the work. First, the contribution from a list depends only on the document's **rank** there, never on its score — this is the whole point, and the next section makes its consequence precise. Second, the contribution **decays reciprocally** in rank: the gap between rank $1$ and rank $2$ is $\frac1{k+1} - \frac1{k+2}$, far larger than the gap between rank $50$ and rank $51$. RRF is therefore *top-heavy* — being first in a list matters much more than the difference between fortieth and forty-first — which matches what we want from retrieval, where only the head of each list is trustworthy.
+
+The constant $k$ tunes exactly how top-heavy the rule is. Because the reciprocal $1/(k+r)$ is steepest when $k$ is small, a small $k$ exaggerates the advantage of the top ranks: at $k \to 0$ the score is dominated by any list that places $d$ first. A large $k$ flattens the decay toward a straight line in rank, so every position contributes almost equally and only the *sum of ranks* matters. The celebrated default $k = 60$ is a single empirically chosen number — and, as the rigor flag insists, that is all it is. Drag the $k$ slider in the laboratory and watch the fused order shift as the rule slides between these two regimes; hover any document to see its $1/(k+r)$ contribution from each list, the same decomposition the formula sums.
+
+<TheoremBlock type="proposition" number={1} title="Scale invariance of RRF">
+
+Let $g_\ell$ be any strictly increasing function applied to list $\ell$'s scores. Then the RRF ranking computed from the rescaled scores $\{g_\ell(s_\ell(d))\}$ is identical to the RRF ranking from $\{s_\ell(d)\}$. CombSUM has no such property.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+A strictly increasing $g_\ell$ preserves order: $s_\ell(d) > s_\ell(d')$ if and only if $g_\ell(s_\ell(d)) > g_\ell(s_\ell(d'))$. So list $\ell$ sorted by $g_\ell(s_\ell(\cdot))$ is the *same ordering* as list $\ell$ sorted by $s_\ell(\cdot)$, which means every rank $r_\ell(d)$ is unchanged. The RRF score $\sum_\ell 1/(k + r_\ell(d))$ is a function of those ranks alone, so it — and the order it induces — is unchanged. CombSUM, by contrast, ranks by $\sum_\ell g_\ell(s_\ell(d))$, which depends on the score *values*: taking $g_\ell(s) = 1000\,s$ for the lexical list multiplies that list's contribution by $1000$, so for a large enough multiplier the lexical scores dominate the sum and CombSUM returns the lexical order regardless of the dense scores. The companion harness asserts exactly this — RRF stable under a $\times 1000$ rescaling while CombSUM's order collapses onto the rescaled list. $\blacksquare$
+
+</TheoremBlock>
+
+Scale invariance is the precise statement of why position beats score. It also explains why RRF fuses *heterogeneous* retrievers so gracefully: a BM25 list, a cosine list, and a learned-sparse list need no shared calibration, because their numeric ranges never enter the computation. Only their orderings do.
+
+---
+
+## RRF as a positional voting rule: the Borda limit
+
+Reading only positions places RRF inside **social choice theory**: each retriever is a "voter" submitting a ranked ballot over the "candidate" documents, and RRF is a *positional scoring rule* — it awards each candidate points that depend only on the positions it receives, then sorts by total points. The most classical positional rule is the **Borda count**, in which a candidate ranked $r$ (1-based) out of $n$ on a ballot earns $n - r$ points. RRF is a different positional rule, with reciprocal weights $1/(k+r)$ in place of Borda's linear $n - r$ — but the two coincide in a limit.
+
+<TheoremBlock type="proposition" number={2} title="The Borda limit of RRF">
+
+Let $B(d) = \sum_{\ell=1}^{L} \bigl(n - r_\ell(d)\bigr)$ be the Borda total of $d$ over $L$ lists of $n$ documents. As $k \to \infty$, the RRF ranking converges to the Borda ranking, provided the Borda totals are distinct.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Expand the reciprocal weight for large $k$:
+
+$$
+\frac{1}{k + r} = \frac{1}{k}\cdot\frac{1}{1 + r/k} = \frac{1}{k}\left(1 - \frac{r}{k} + O\!\left(\tfrac{1}{k^2}\right)\right).
+$$
+
+Summing over the $L$ lists,
+
+$$
+\mathrm{RRF}_k(d) = \frac{L}{k} - \frac{1}{k^2}\sum_{\ell} r_\ell(d) + O\!\left(\tfrac{1}{k^3}\right).
+$$
+
+Now $\sum_\ell r_\ell(d) = Ln - B(d)$, so $\mathrm{RRF}_k(d) = \left(\tfrac{L}{k} - \tfrac{Ln}{k^2}\right) + \tfrac{1}{k^2}B(d) + O\!\left(\tfrac{1}{k^3}\right)$. The bracketed quantity is the same for every document; the only document-dependent leading term is $B(d)/k^2$. Hence for two documents with $B(d) > B(d')$,
+
+$$
+\mathrm{RRF}_k(d) - \mathrm{RRF}_k(d') = \frac{B(d) - B(d')}{k^2} + O\!\left(\tfrac{1}{k^3}\right) > 0
+$$
+
+once $k$ is large enough. When all Borda totals are distinct, there is a threshold beyond which every pairwise comparison agrees with Borda, so the RRF order *is* the Borda order. $\blacksquare$
+
+</TheoremBlock>
+
+The distinctness caveat is not a technicality to wave away — it is visible in our finance instance, where the two prize disclosures and the consensus filing all share the same Borda total, a three-way tie. There the limit order is decided not by Borda but by the *next* term in the expansion, the curvature of $1/(k+r)$, which is exactly why the companion harness verifies the Borda limit on strict random instances rather than on the tied finance one. The lesson is the useful one: at the large-$k$ end RRF *is* a Borda count, and at the small-$k$ end it is winner-take-the-top; the shipped $k = 60$ interpolates between these, closer to the top-heavy end.
+
+---
+
+## The geometry of rankings
+
+To say what the *best* combination of ballots is, we need to measure how far two rankings are from each other. A ranking of $n$ documents is a permutation $\sigma$ — equivalently, the **rank vector** $(\sigma(1), \dots, \sigma(n))$ recording each document's position — and the set of all $n!$ permutations becomes a metric space once we choose a distance. A permutation is itself a familiar object from statistics: the rank vector of a sample is a deterministic function of its [order statistics](https://formalstatistics.com/topics/order-statistics-and-quantiles), so the space rank fusion operates over is exactly the space of orderings that order statistics induce. Two distances matter here.
+
+<TheoremBlock type="definition" number={2} title="Kendall-τ distance and Spearman footrule">
+
+For permutations $\sigma, \tau$ of $\{1, \dots, n\}$, the **Kendall-τ distance** counts discordant (oppositely ordered) pairs,
+
+$$
+K(\sigma, \tau) = \#\bigl\{\, (i, j) : i < j, \ \operatorname{sign}\!\bigl(\sigma(i) - \sigma(j)\bigr) \neq \operatorname{sign}\!\bigl(\tau(i) - \tau(j)\bigr) \,\bigr\},
+$$
+
+and the **Spearman footrule** sums absolute displacements,
+
+$$
+F(\sigma, \tau) = \sum_{i=1}^{n} \bigl|\sigma(i) - \tau(i)\bigr|.
+$$
+
+</TheoremBlock>
+
+The Kendall distance is the number of **adjacent transpositions** needed to turn one ranking into the other — the bubble-sort count, the smallest number of swaps of neighboring items that reconciles them. It is the natural notion of disagreement for rankings: each discordant pair is one "this should be above that, but the other ballot says otherwise." Counting concordant and discordant pairs is the *same* machinery that defines the rank statistics of nonparametric testing — Kendall's τ is a [U-statistic](https://formalml.com/topics/rank-tests), and the Mann–Whitney U is built from the identical pair count — so the geometry here and the inference there share a combinatorial core. The footrule, by contrast, asks how far each item had to *move*. These two ways of measuring disarray are not independent; they are pinned to each other within a factor of two.
+
+<TheoremBlock type="theorem" number={1} title="Diaconis–Graham inequality">
+
+For all permutations $\sigma, \tau$ of $\{1, \dots, n\}$,
+
+$$
+K(\sigma, \tau) \;\le\; F(\sigma, \tau) \;\le\; 2\,K(\sigma, \tau).
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Relabel by $\tau^{-1}$ so that $\tau$ is the identity; the distances are invariant under this relabeling, and we write $K = K(\sigma, \mathrm{id})$, $F = F(\sigma, \mathrm{id})$. For each position $j$ set
+
+$$
+M_j = \#\{\, i < j : \sigma(i) > \sigma(j) \,\}, \qquad L_j = \#\{\, i > j : \sigma(i) < \sigma(j) \,\},
+$$
+
+the inversions in which $\sigma(j)$ is, respectively, the smaller element (a larger value sits to its left) and the larger element (a smaller value sits to its right). Every inversion is counted exactly once by the $M_j$ of its right endpoint and exactly once by the $L_j$ of its left endpoint, so
+
+$$
+K = \sum_j M_j = \sum_j L_j.
+$$
+
+A short count gives the key identity $\sigma(j) - j = L_j - M_j$: among the $\sigma(j) - 1$ values smaller than $\sigma(j)$, some sit left of $j$ and the rest — $L_j$ of them — sit right; among the $j - 1$ positions left of $j$, some hold smaller values and $M_j$ hold larger ones; subtracting $(\sigma(j) - 1) - (j - 1)$ leaves $L_j - M_j$.
+
+**Upper bound $F \le 2K$.** Since $L_j, M_j \ge 0$,
+
+$$
+F = \sum_j |\sigma(j) - j| = \sum_j |L_j - M_j| \;\le\; \sum_j (L_j + M_j) = \sum_j L_j + \sum_j M_j = K + K = 2K.
+$$
+
+**Lower bound $K \le F$.** This is the companion bound of Diaconis and Graham (1977); unlike the upper bound it does not fall out of the per-position identity (the local data $L_j, M_j$ are not enough — the bound needs the global structure of a genuine permutation), and we take it as established rather than reprove it here. Both directions are checked numerically in the companion harness, which asserts $K \le F \le 2K$ over thousands of random permutation pairs. $\blacksquare$
+
+</TheoremBlock>
+
+The inequality says the two measures of disarray are equivalent up to a constant: a ranking with many inversions has large displacement and vice versa, and neither can be small while the other is large. We are about to spend that equivalence. The "right" notion of consensus is defined through the Kendall distance, but the Kendall distance is hard to optimize; the footrule is easy to optimize; and Diaconis–Graham is the bridge that lets a footrule answer stand in for a Kendall answer.
+
+---
+
+## The Kemeny consensus
+
+With a distance in hand, the best combination of ballots has a clean definition: the ranking that *disagrees least*, in total, with the input lists.
+
+<TheoremBlock type="definition" number={3} title="Kemeny consensus">
+
+Given input rankings $\ell = 1, \dots, L$, a **Kemeny consensus** is a permutation $\pi$ minimizing the total Kendall-τ distance to the inputs,
+
+$$
+\pi \in \arg\min_{\sigma} \sum_{\ell=1}^{L} K(\sigma, \ell).
+$$
+
+</TheoremBlock>
+
+The Kemeny consensus is the *median* permutation under the Kendall metric, and it has a strong optimality property: it satisfies the extended **Condorcet** criterion — if a majority of lists rank document $a$ above document $b$, then so does the consensus, whenever this is consistent. It is, in a precise sense, the ranking the retrievers "vote for." In our finance instance the Kemeny consensus does something RRF does not: it lifts the consensus filing — the disclosure ranked *second* by **both** legs — to the top, because being everyone's second is exactly what minimizes total disagreement. RRF, scoring that same document by $\frac1{62} + \frac1{62}$, leaves it third, just behind each leg's idiosyncratic leader. The gap between the two is small here but real, and it is the whole point of the rigor flag: RRF is a heuristic, and the consensus it approximates is something it never actually computes.
+
+The reason it never computes it is decisive.
+
+<TheoremBlock type="remark" title="Kemeny optimization is NP-hard">
+
+Finding a Kemeny consensus is NP-hard, even with only four input lists. The reduction is from the **minimum feedback arc set** problem on tournaments: build a directed graph whose vertices are documents and whose edge $a \to b$ is weighted by how many lists rank $a$ above $b$; a Kemeny-optimal ranking is exactly a vertex ordering minimizing the weight of "backward" edges, the minimum feedback arc set. We cite this hardness rather than prove it (Dwork, Kumar, Naor, and Sivakumar, 2001; Bartholdi, Tovey, and Trick, 1989).
+
+</TheoremBlock>
+
+For the six-document toy corpus we can find the Kemeny optimum by brute force over all $6! = 720$ permutations — the companion harness does — but $n!$ makes that hopeless at retrieval scale. We need a consensus we can actually compute, and Diaconis–Graham tells us where to find one.
+
+---
+
+## A computable surrogate: the footrule 2-approximation
+
+Swap the hard distance for the easy one. Define the **footrule-optimal aggregate** as the ranking minimizing total *footrule* distance to the inputs — and observe that, unlike Kemeny, this minimization is a polynomial-time problem.
+
+<TheoremBlock type="theorem" number={2} title="Footrule aggregation is a polynomial-time 2-approximation of Kemeny">
+
+The footrule-optimal aggregate $\sigma_F \in \arg\min_\sigma \sum_\ell F(\sigma, \ell)$ can be computed in polynomial time as a minimum-cost bipartite matching, and its total Kendall cost is within a factor of $2$ of the Kemeny optimum:
+
+$$
+\sum_\ell K(\sigma_F, \ell) \;\le\; 2 \min_{\sigma} \sum_\ell K(\sigma, \ell).
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+**Polynomial time.** Minimizing $\sum_\ell F(\sigma, \ell) = \sum_\ell \sum_d \bigl|\,\sigma(d) - r_\ell(d)\,\bigr|$ over permutations $\sigma$ is separable across documents once we view $\sigma$ as an assignment of documents to the $n$ target positions: the cost of placing document $d$ at position $p$ is $C[d, p] = \sum_\ell |\,r_\ell(d) - p\,|$, and we seek the assignment of documents to distinct positions of minimum total cost. That is precisely a minimum-cost perfect bipartite matching between documents and positions, solved by the Hungarian algorithm in $O(n^3)$.
+
+**The factor of two.** Let $\sigma_K$ be a Kemeny optimum. Apply the Diaconis–Graham inequality termwise:
+
+$$
+\sum_\ell K(\sigma_F, \ell)
+\;\overset{(K \le F)}{\le}\; \sum_\ell F(\sigma_F, \ell)
+\;\overset{(\sigma_F \text{ min})}{\le}\; \sum_\ell F(\sigma_K, \ell)
+\;\overset{(F \le 2K)}{\le}\; 2 \sum_\ell K(\sigma_K, \ell).
+$$
+
+The first step bounds Kendall by footrule on the aggregate, the second uses that $\sigma_F$ minimizes total footrule (so it cannot do worse than the Kemeny ranking does on footrule), and the third bounds footrule by twice Kendall on the optimum. The chain delivers $\sum_\ell K(\sigma_F, \ell) \le 2\sum_\ell K(\sigma_K, \ell)$ (Dwork, Kumar, Naor, and Sivakumar, 2001). $\blacksquare$
+
+</TheoremBlock>
+
+This is the payoff of the geometry. We cannot compute the median permutation, but we can compute the footrule median in cubic time, and the bridge inequality guarantees it lands within $2\times$ of the true optimum's disagreement. The companion harness checks the bound directly: across the finance instance and hundreds of random multi-list instances, the footrule aggregate's Kemeny cost never exceeds twice the brute-force optimum. Where does RRF sit in this picture? *Nowhere on the guarantee.* RRF is neither the Kemeny optimum nor the footrule 2-approximation; it is a positional heuristic with no proven bound on its distance to consensus. It is fast, it is scale-invariant, and it works extremely well empirically — but the rigorous statements above are about the Kendall–footrule geometry and the matching-based aggregate, not about RRF. Honesty about that distinction is the difference between explaining rank fusion and selling it.
+
+---
+
+## Evaluation: does fusion actually help?
+
+Geometry aside, the practical question is whether fusing two retrievers retrieves *better* than either alone. Against graded relevance judgments we measure [NDCG](/topics/bm25-binary-independence-model), the discounted cumulative gain normalized by its ideal. On the finance corpus the answer is clean and is asserted in the harness: each leg, by burying one of the two genuinely relevant disclosures down at rank three, scores NDCG@10 $= 0.980$; RRF, by interleaving the two leaders so both prize disclosures land in the top two, recovers the ideal ordering at NDCG@10 $= 1.000$, strictly beating both legs. The fusion wins not because it is cleverer than either retriever but because the two retrievers fail *differently* — the lexical leg misses the semantically phrased passage, the dense leg misses the term-exact filing — and a position-based combination keeps whatever either leg ranked highly while discarding the idiosyncratic mistakes neither leg corroborates.
+
+<FinanceCaseStudy modality={["text", "audio"]}>
+
+This is exactly where [BM25's finance case study](/topics/bm25-binary-independence-model) was heading. The production retriever fuses a **BM25 ranking over 10-K / 10-Q filing text** with a **dense ranking over earnings-call passages** (derived from call audio). For the query *interest rate exposure*, the lexical leg ranks first a concise filing sentence dense in the rare, high-IDF term *interest*; the dense leg ranks first a call passage saturated with the common terms *rate* and *exposure*, which BM25 discounts. Neither leg alone puts both disclosures up top — and a risk analyst wants both, the filing's precise statement and the call's color on it. RRF interleaves them; the optimal Kemeny consensus goes further and surfaces the hedging-policy filing that *both* legs rank second, the disclosure neither retriever ranks first. The lexical leg supplies exact-match precision on tickers, CUSIPs, and line-item names; the dense leg supplies semantic recall on paraphrase; fusion is how a financial RAG system gets both at once, with no shared score calibration between heterogeneous retrievers.
+
+</FinanceCaseStudy>
+
+A candid note on the companion code: its dense leg is a *deterministic toy embedding* — a seeded random projection of bag-of-words counts, scored by cosine — chosen so the notebook is self-contained, CPU-only, and reproducible to the decimal with no model download. By the Johnson–Lindenstrauss lemma a random projection approximately preserves cosine, so this stand-in is really a length-normalized lexical-cosine ranking that disagrees with BM25 because it carries no IDF weighting; it is **not** a trained semantic encoder, and we do not pretend it captures synonymy a real bi-encoder would. The rank-aggregation mathematics above is entirely indifferent to how the second list is produced — that independence is precisely why the geometry, not the encoder, is the rigorous content of this topic.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Three qualifications keep rank fusion honest:
+
+1. **RRF's $k = 60$ is an empirically chosen constant** (Cormack et al., 2009), not derived from any optimality criterion. It sets how top-heavy the rule is; nothing distinguishes it as correct.
+2. **RRF carries no approximation guarantee.** The proven results here — the Diaconis–Graham inequality and the footrule 2-approximation — are about the Kendall-τ / footrule geometry and the *matching-based* aggregate. RRF is a positional heuristic with no bound on its distance to the Kemeny consensus, which is itself NP-hard to compute. RRF's effectiveness is empirical.
+3. **The toy dense leg is a stand-in.** The companion code's dense ranking is a seeded random projection scored by cosine, not a trained bi-encoder; it exists to supply a second, scale-incompatible ranking, not to model semantics.
+
+That a rule this simple — sum the reciprocals of the ranks — beats elaborate learned fusion methods on many benchmarks is itself the thing worth sitting with.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) imports the BM25 lexical leg from the [BM25 topic](/topics/bm25-binary-independence-model), builds the deterministic toy dense leg, and implements RRF, Borda, CombSUM, the Kendall-τ and footrule distances, the footrule aggregate via `scipy`'s `linear_sum_assignment`, and an exact brute-force Kemeny consensus. Its verification harness asserts every claim the topic makes, each `assert` a pedagogical statement made executable: RRF's order is unchanged when the BM25 scores are scaled by a thousand while CombSUM's order collapses onto them (Proposition 1); $K \le F \le 2K$ holds across thousands of random permutation pairs (Theorem 1); the RRF order at large $k$ equals the Borda order on strict instances (Proposition 2); the footrule aggregate's Kemeny cost stays within twice the brute-force optimum across the finance instance and hundreds of random ones (Theorem 2); and NDCG@10 of the RRF fusion strictly exceeds that of either leg on the finance corpus. The `FusionLaboratory` component above mirrors that corpus, the two input rankings, and the $k = 60$ fused order to the decimal, so the three pillars — math, viz, and code — agree by construction.
