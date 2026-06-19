@@ -1,0 +1,340 @@
+---
+title: "Random Projections and the Johnson–Lindenstrauss Lemma"
+subtitle: "Reducing embedding dimension with a matrix that never saw the data — and the dimension-independent price of preserving every distance"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "pca-dimensionality-reduction"
+tags:
+  - "johnson-lindenstrauss"
+  - "random-projection"
+  - "dimensionality-reduction"
+  - "concentration-of-measure"
+  - "chi-squared"
+  - "sub-gaussian"
+  - "union-bound"
+  - "embedding-geometry"
+domain: "embedding-geometry"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The clean headline — a random matrix that never saw the data preserves every pairwise distance, in a target dimension that does not depend on the ambient d — is true, but several of its joints are softer than the lemma's statement suggests. First, the constant is worst-case and loose: for n=500 and epsilon=0.2 the guarantee demands k at least 1435, yet at a practical k=128 the typical pair distorts only about 9 percent — though the worst of the 124,750 pairs still distorts about 51 percent, so the union bound is doing real work, not bookkeeping. Second, Johnson-Lindenstrauss preserves Euclidean distances, hence inner products of the difference vectors; cosine similarity and angles inherit the same epsilon slack only after the metric translation, and the exact nearest-neighbor ranking is not preserved at all — recall@10 at k=128 is about 23 percent for a random projection versus about 96 percent for data-dependent PCA at the same width, the honest price of being data-oblivious. Third, the guarantee is for a fixed point set; a fresh query is covered only through the distributional bound on its own difference vectors, not the deterministic lemma. Fourth, the chi-squared law for the squared norm is exact only for the Gaussian map; the Rademacher and sparse Achlioptas variants match its first two moments and concentrate at the same rate (cited to Achlioptas, verified numerically, not re-proved here). Finally, the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in, not a trained encoder, and the recall and distortion numbers are measured on that synthetic cloud. The proved core — unbiasedness, the chi-squared concentration with the Dasgupta-Gupta constant, and the union-bound target dimension — holds exactly; the sharp two-sided tail is cited to Laurent-Massart and the optimality of the bound to Larsen-Nelson."
+videoId: null
+notebookPath: "notebooks/johnson-lindenstrauss/01_johnson_lindenstrauss.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/johnson-lindenstrauss.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 34
+abstract: "PCA reduces an embedding's dimension by reading the cloud's own covariance: data-dependent, variance-optimal, and it must see every vector first. Johnson-Lindenstrauss reduces it the opposite way — multiply by a random matrix that has never seen the data — and still preserves every pairwise distance to within a factor of one plus or minus epsilon. We prove the chain that makes this work: a random Gaussian map is unbiased on squared norm, the normalized squared norm follows a chi-squared law that concentrates at rate exp(-c k epsilon squared), and a union bound over the difference vectors of n points shows that a target dimension k on the order of epsilon-to-the-minus-two times log n suffices for all pairwise distances at once — a dimension that depends on log n and epsilon but not on the ambient d. We establish the database-friendly Rademacher and sparse variants, cite the Larsen-Nelson optimality of the bound, and then confront the honest catch: the constant is worst-case (the typical pair distorts far less than the worst), the lemma preserves distances rather than rankings, and being data-oblivious it sacrifices the retrieval recall that data-dependent PCA keeps. An interactive Random Projection Laboratory and a tested, scikit-learn-cross-checked implementation accompany the derivation, with a finance example projecting 1536-dimensional document embeddings and measuring what distortion and recall survive."
+connections:
+  - topic: "pca-dimensionality-reduction"
+    relationship: "PCA is the data-dependent counterpart to this topic's data-oblivious projection: it reads the covariance and spends each kept dimension where the cloud actually varies, so at the same width it preserves far more nearest-neighbor recall, while random projection asks nothing of the data and pays for that obliviousness in retrieval — the two are the variance-optimal and the distance-preserving answers to the same dimensionality-reduction question"
+  - topic: "high-dimensional-geometry"
+    relationship: "the concentration of measure proved there is exactly the engine here: Johnson-Lindenstrauss works because the squared norm of a random projection is a sum of many independent contributions that concentrates sharply about its mean, the same thin-shell phenomenon that topic develops, now turned from a curse into the guarantee that distances survive"
+references:
+  - type: "paper"
+    title: "Extensions of Lipschitz Mappings into a Hilbert Space"
+    authors: "Johnson & Lindenstrauss"
+    year: 1984
+    url: "https://doi.org/10.1090/conm/026/737400"
+    note: "The original lemma: any n points embed into O(epsilon^-2 log n) dimensions with (1 +/- epsilon) distance distortion"
+  - type: "paper"
+    title: "An Elementary Proof of a Theorem of Johnson and Lindenstrauss"
+    authors: "Dasgupta & Gupta"
+    year: 2003
+    url: "https://doi.org/10.1002/rsa.10073"
+    note: "The clean Gaussian-projection proof this topic follows, including the exp(-(k/2)(epsilon^2/2 - epsilon^3/3)) tail"
+  - type: "paper"
+    title: "Database-Friendly Random Projections: Johnson-Lindenstrauss with Binary Coins"
+    authors: "Achlioptas"
+    year: 2003
+    url: "https://doi.org/10.1016/S0022-0000(03)00025-4"
+    note: "The Rademacher and sparse (+1/0/-1) projection matrices — same guarantee, a fraction of the arithmetic"
+  - type: "paper"
+    title: "Adaptive Estimation of a Quadratic Functional by Model Selection"
+    authors: "Laurent & Massart"
+    year: 2000
+    url: "https://doi.org/10.1214/aos/1015957395"
+    note: "The sharp two-sided chi-squared tail bounds the concentration step cites for its exact constants"
+  - type: "paper"
+    title: "Optimality of the Johnson-Lindenstrauss Lemma"
+    authors: "Larsen & Nelson"
+    year: 2017
+    url: "https://doi.org/10.1109/FOCS.2017.64"
+    note: "The matching lower bound: k = Theta(epsilon^-2 log n) cannot be improved in general"
+  - type: "paper"
+    title: "Approximate Nearest Neighbors: Towards Removing the Curse of Dimensionality"
+    authors: "Indyk & Motwani"
+    year: 1998
+    url: "https://doi.org/10.1145/276698.276876"
+    note: "Random projection as the dimension-reduction step feeding locality-sensitive hashing — the forward link to approximate nearest neighbor search"
+  - type: "book"
+    title: "The Random Projection Method"
+    authors: "Vempala"
+    year: 2004
+    url: "https://doi.org/10.1090/dimacs/065"
+    note: "The standard monograph on random projection and its algorithmic uses"
+  - type: "paper"
+    title: "Random Projection in Dimensionality Reduction: Applications to Image and Text Data"
+    authors: "Bingham & Mannila"
+    year: 2001
+    url: "https://doi.org/10.1145/502512.502546"
+    note: "Data-oblivious random projection in practice — the contrast partner to PCA's data dependence"
+  - type: "paper"
+    title: "Very Sparse Random Projections"
+    authors: "Li, Hastie & Church"
+    year: 2006
+    url: "https://doi.org/10.1145/1150402.1150436"
+    note: "Pushing the sparsity of the projection matrix far past Achlioptas while keeping the guarantee"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the whole lemma is one concentration inequality applied to a random quadratic form: the sub-Gaussian and chi-squared tail bounds developed there are exactly what turn the unbiased squared norm into a guarantee that it rarely strays far from its mean, and the Chernoff / moment-generating-function method this topic uses to prove the chi-squared tail is the machinery built there"
+  - topic: "pca-low-rank"
+    site: "formalml"
+    relationship: "PCA and the optimal low-rank projection are the data-dependent foil to random projection: that topic finds the directions the data varies along by eigendecomposition, and the present topic contrasts it with a projection that ignores the data entirely, so the recall gap measured here is the price of giving up the low-rank structure PCA exploits"
+formalstatisticsPrereqs:
+  - topic: "continuous-distributions"
+    site: "formalstatistics"
+    relationship: "the squared norm of a Gaussian projection, normalized, is a sum of k independent squared standard normals — exactly the chi-squared distribution with k degrees of freedom developed there, whose mean k, variance 2k, and right tail are the facts this topic's concentration step turns into the Johnson-Lindenstrauss bound"
+formalcalculusPrereqs:
+  - topic: "probability-and-union-bound"
+    site: "formalcalculus"
+    relationship: "the step from preserving one vector's norm to preserving all C(n,2) pairwise distances at once is precisely Boole's inequality: the union bound developed there is what lets us add up the per-pair failure probabilities and conclude that a single random map works for the whole point set with positive probability"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import RandomProjectionLaboratory from '../../components/viz/RandomProjectionLaboratory.tsx';
+
+## Overview & motivation
+
+The [previous topic](/topics/pca-dimensionality-reduction) reduced an embedding cloud's dimension by reading the cloud's own covariance: principal component analysis finds the directions the data actually varies along and projects onto the top $k$ of them. It is variance-optimal, but it pays a price that is easy to overlook — it must *see* the data first, eigendecompose a $d \times d$ covariance, and recompute when the corpus changes. This topic asks a question that sounds too good to be true: can we shrink $d$ with a map that never looks at the data at all?
+
+The answer is the Johnson–Lindenstrauss lemma, and it is yes. Draw a random matrix $A \in \mathbb{R}^{k \times d}$ — Gaussian entries will do — and the map $f(x) = \tfrac{1}{\sqrt{k}} A x$ preserves *every* pairwise distance in a set of $n$ points to within a factor of $1 \pm \varepsilon$, provided $k$ is on the order of $\varepsilon^{-2}\log n$. The headline is the dimension that does *not* appear: the target $k$ depends on $\log n$ and the tolerance $\varepsilon$, but not on the ambient dimension $d$. A million points embed into the same target dimension whether they started in $\mathbb{R}^{768}$ or $\mathbb{R}^{100000}$.
+
+Before the algebra, drag the target-dimension slider and watch the distortion concentrate:
+
+<RandomProjectionLaboratory client:visible />
+
+The first panel is the histogram of pairwise distortions: at small $k$ the projected distances scatter wildly, and as $k$ grows they pull into the $\pm\varepsilon$ band around $1$ — the visual signature of the chi-squared law tightening. The second separates the *typical* pair from the *worst* pair, which is the difference between an average and a guarantee. The third shows that the dense Gaussian matrix is a luxury: Rademacher and sparse variants concentrate just as tightly. The fourth is the honest one — nearest-neighbor recall, random projection against PCA, where being data-oblivious finally costs us something.
+
+### What we cover
+
+1. The random map, and the unbiasedness that every Johnson–Lindenstrauss proof begins from.
+2. The chi-squared law of the squared norm, and the concentration that makes it useful.
+3. The lemma itself: a union bound over the difference vectors, and the dimension-independent target $k$.
+4. Why the bound is worst-case, and how far the typical pair beats it.
+5. Database-friendly projections: binary and sparse matrices with the same guarantee.
+6. Optimality, and the data-oblivious-versus-data-dependent contrast with PCA — distances are not rankings.
+7. A finance case study and the tested code.
+
+---
+
+## The random map, and why it preserves norm in expectation
+
+Fix a target dimension $k < d$ and draw $A \in \mathbb{R}^{k \times d}$ with independent standard-normal entries $A_{ij} \sim \mathcal{N}(0,1)$. The **random projection** of a vector $x \in \mathbb{R}^d$ is
+
+$$
+f(x) = \frac{1}{\sqrt{k}}\, A x \in \mathbb{R}^k .
+$$
+
+The scaling $1/\sqrt{k}$ is the only piece of design in the whole construction, and it is there to make the map preserve length on average. Write $a_i^{\top}$ for the $i$-th row of $A$, so the $i$-th coordinate of $Ax$ is the inner product $a_i \cdot x$.
+
+<TheoremBlock type="theorem" number={1} title="The random projection is unbiased, and its squared norm is chi-squared">
+
+For $x \neq 0$ and a Gaussian random matrix $A$,
+
+$$
+\mathbb{E}\,\lVert f(x)\rVert^2 = \lVert x\rVert^2,
+\qquad
+\frac{\lVert f(x)\rVert^2}{\lVert x\rVert^2} \sim \frac{\chi^2_k}{k},
+$$
+
+where $\chi^2_k$ is the chi-squared distribution with $k$ degrees of freedom. In particular the normalized squared norm has mean $1$ and variance $2/k$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Each row $a_i$ is a standard Gaussian vector in $\mathbb{R}^d$, so the inner product $a_i \cdot x = \sum_{j} A_{ij}\,x_j$ is a linear combination of independent normals and is therefore itself normal, with mean $0$ and variance $\sum_j x_j^2 = \lVert x\rVert^2$. Hence $a_i \cdot x \sim \mathcal{N}(0, \lVert x\rVert^2)$, and the standardized quantity $Z_i := (a_i \cdot x)/\lVert x\rVert \sim \mathcal{N}(0,1)$. Because the rows of $A$ are independent, the $Z_1, \dots, Z_k$ are independent. Now
+
+$$
+\frac{\lVert f(x)\rVert^2}{\lVert x\rVert^2} = \frac{\lVert A x\rVert^2}{k\,\lVert x\rVert^2} = \frac{1}{k}\sum_{i=1}^k \frac{(a_i \cdot x)^2}{\lVert x\rVert^2} = \frac{1}{k}\sum_{i=1}^k Z_i^2 ,
+$$
+
+and a sum of $k$ independent squared standard normals is by definition the [chi-squared distribution](https://formalstatistics.com/topics/continuous-distributions) with $k$ degrees of freedom. So $\lVert f(x)\rVert^2/\lVert x\rVert^2 = \chi^2_k / k$, which has mean $k/k = 1$ and variance $2k/k^2 = 2/k$. Multiplying through by $\lVert x\rVert^2$ gives $\mathbb{E}\lVert f(x)\rVert^2 = \lVert x\rVert^2$. $\blacksquare$
+
+</TheoremBlock>
+
+Two things are worth reading off this. The map is *unbiased* — on average it neither stretches nor shrinks — and its fluctuation, with variance $2/k$, shrinks as the target dimension grows. The standard deviation $\sqrt{2/k}$ is the single number the histogram panel is tracking: at $k = 64$ it is about $0.18$, at $k = 512$ about $0.06$. Unbiasedness alone is useless — a map can be right on average and wrong every time. What rescues the construction is that this fluctuation does not merely shrink, it concentrates *exponentially*.
+
+---
+
+## Concentration: the chi-squared tail
+
+The variance $2/k$ tells us the typical deviation, but the lemma needs a statement about *rare* deviations: how unlikely is it that a single vector's squared norm strays from $1$ by more than $\varepsilon$? The answer is the chi-squared tail, and it decays exponentially in $k\varepsilon^2$.
+
+<TheoremBlock type="theorem" number={2} title="Sub-exponential concentration of the squared norm">
+
+For the Gaussian random projection and any $\varepsilon \in (0,1)$,
+
+$$
+\Pr\!\left[\,\left|\frac{\lVert f(x)\rVert^2}{\lVert x\rVert^2} - 1\right| > \varepsilon \,\right] \;\le\; 2\,\exp\!\left(-\frac{k}{2}\left(\frac{\varepsilon^2}{2} - \frac{\varepsilon^3}{3}\right)\right).
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Write $Y = \lVert f(x)\rVert^2/\lVert x\rVert^2 = \tfrac1k\sum_i Z_i^2$ with $Z_i \sim \mathcal{N}(0,1)$ independent, so $kY \sim \chi^2_k$. We bound the upper tail $\Pr[Y \ge 1+\varepsilon]$ with the Chernoff / moment-generating-function method developed in [concentration inequalities](https://formalml.com/topics/concentration-inequalities). For any $t \in (0, \tfrac12)$, the moment generating function of a single $Z_i^2$ is $\mathbb{E}\,e^{tZ_i^2} = (1-2t)^{-1/2}$, so by independence $\mathbb{E}\,e^{t\,kY} = (1-2t)^{-k/2}$, and Markov's inequality applied to $e^{t\,kY}$ gives
+
+$$
+\Pr[\,kY \ge k(1+\varepsilon)\,] \;\le\; e^{-t k (1+\varepsilon)}\,(1-2t)^{-k/2}
+= \exp\!\Big(\!-k\big[t(1+\varepsilon) + \tfrac12\ln(1-2t)\big]\Big).
+$$
+
+The exponent is minimized at $t^\star = \tfrac{\varepsilon}{2(1+\varepsilon)}$, where $1 - 2t^\star = (1+\varepsilon)^{-1}$. Substituting collapses the bracket to $\tfrac12\big(\varepsilon - \ln(1+\varepsilon)\big)$, so
+
+$$
+\Pr[Y \ge 1+\varepsilon] \;\le\; \exp\!\left(-\frac{k}{2}\big(\varepsilon - \ln(1+\varepsilon)\big)\right) \;\le\; \exp\!\left(-\frac{k}{2}\left(\frac{\varepsilon^2}{2} - \frac{\varepsilon^3}{3}\right)\right),
+$$
+
+using the elementary inequality $\ln(1+\varepsilon) \le \varepsilon - \tfrac{\varepsilon^2}{2} + \tfrac{\varepsilon^3}{3}$ for $\varepsilon \ge 0$. The lower tail $\Pr[Y \le 1-\varepsilon]$ is bounded the same way with $t < 0$ and yields the same right-hand side (in fact a slightly smaller one); the sharp two-sided constants are [Laurent and Massart's](https://formalstatistics.com/topics/continuous-distributions) (2000). Adding the two tails gives the factor of $2$. $\blacksquare$
+
+</TheoremBlock>
+
+This is the load-bearing estimate. The probability that a fixed vector's length is mangled by more than $\varepsilon$ decays like $e^{-c k \varepsilon^2}$, so we can drive it as low as we like by spending dimensions: doubling $k$ squares the failure probability. The next step spends exactly enough of them to cover not one vector but every pairwise difference in a data set at once.
+
+---
+
+## The Johnson–Lindenstrauss lemma
+
+A distance is the norm of a difference: $\lVert x_a - x_b\rVert$. Because $f$ is linear, $f(x_a) - f(x_b) = f(x_a - x_b)$, so preserving the distance between two points is exactly preserving the norm of their difference vector. Theorem 2 controls one such vector; to control all of them we apply it to every difference and add up the failure probabilities — the [union bound](https://formalcalculus.com/topics/probability-and-union-bound).
+
+<TheoremBlock type="theorem" number={3} title="Johnson–Lindenstrauss (1984)">
+
+Let $x_1, \dots, x_n \in \mathbb{R}^d$ and $\varepsilon \in (0,1)$. If
+
+$$
+k \;\ge\; \frac{4\ln n}{\,\varepsilon^2/2 - \varepsilon^3/3\,},
+$$
+
+then a single Gaussian random projection $f : \mathbb{R}^d \to \mathbb{R}^k$ satisfies, with positive probability,
+
+$$
+(1-\varepsilon)\,\lVert x_a - x_b\rVert^2 \;\le\; \lVert f(x_a) - f(x_b)\rVert^2 \;\le\; (1+\varepsilon)\,\lVert x_a - x_b\rVert^2
+\qquad\text{for all pairs } a, b .
+$$
+
+In particular such an $f$ exists.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Apply Theorem 2 to each of the $\binom{n}{2}$ difference vectors $x_a - x_b$. The event that some pair is distorted by more than $\varepsilon$ is the union of the per-pair failure events, so by the union bound its probability is at most the sum of the per-pair probabilities:
+
+$$
+\Pr[\,\text{some pair fails}\,] \;\le\; \binom{n}{2}\cdot 2\exp\!\left(-\frac{k}{2}\left(\frac{\varepsilon^2}{2} - \frac{\varepsilon^3}{3}\right)\right) \;<\; n^2 \exp\!\left(-\frac{k}{2}\left(\frac{\varepsilon^2}{2} - \frac{\varepsilon^3}{3}\right)\right),
+$$
+
+using $\binom{n}{2} < n^2/2$. This is strictly below $1$ exactly when $\tfrac{k}{2}\big(\tfrac{\varepsilon^2}{2} - \tfrac{\varepsilon^3}{3}\big) > 2\ln n$, that is when $k > 4\ln n/(\varepsilon^2/2 - \varepsilon^3/3)$. When the failure probability is below $1$, the success probability is positive, so at least one realization of $A$ embeds every pair within tolerance — and a random draw succeeds with probability at least $1 - n^2\exp(\cdots)$, which we can push toward $1$ by taking $k$ a constant factor larger. $\blacksquare$
+
+</TheoremBlock>
+
+Look at what the target dimension depends on. The denominator is a function of $\varepsilon$ alone; the numerator is $\ln n$. The ambient dimension $d$ has vanished. This is the sense in which random projection beats the curse of dimensionality at its own game: the cost of preserving the geometry of $n$ points is set by *how many points there are*, not by how many coordinates they arrived with. The companion harness confirms the lemma directly — at the guaranteed $k$, a single Gaussian projection holds all $\binom{n}{2}$ pairs inside the band across every random seed it tries.
+
+---
+
+## The bound is worst-case: typical versus worst
+
+The lemma is a *guarantee*, and a guarantee must hold for the worst pair, not the average one — which is why its constant is pessimistic. Set $n = 500$ and $\varepsilon = 0.2$, the finance configuration: the formula demands
+
+$$
+k \;\ge\; \frac{4\ln 500}{0.2^2/2 - 0.2^3/3} \approx 1435 ,
+$$
+
+larger than many ambient dimensions one would actually project from. Yet project the same cloud to a practical $k = 128$ and the *typical* pair distorts by only about $9\%$. The gap is the difference between an average and a maximum: with $124{,}750$ pairs, the worst of them still distorts by about $51\%$ at $k = 128$, and pulling that worst pair inside $\pm\varepsilon$ is what the large guaranteed $k$ buys. The "Typical vs worst" panel makes this concrete — the $p_{01}$–$p_{99}$ band slips inside $\pm\varepsilon$ while the worst-pair envelope is still well outside it.
+
+Two honest consequences follow. The constant $4$ is loose, and in practice one uses a far smaller $k$ than the lemma demands, accepting that a handful of pairs are badly distorted — random projection is a tool for *approximate* geometry. And the dimension independence is a statement about the worst case over arbitrary point sets; a structured, near-low-rank cloud of real embeddings is far easier than the worst case, which is exactly the slack the next sections exploit and measure.
+
+---
+
+## Database-friendly projections
+
+The dense Gaussian matrix is expensive: projecting one vector costs $kd$ multiplications, and storing $A$ costs $kd$ floats. Achlioptas (2003) showed that neither the Gaussian entries nor the density is necessary. Replace $A_{ij}$ with random signs, or with a matrix that is mostly zero, and the guarantee survives.
+
+<TheoremBlock type="proposition" number={1} title="Rademacher and sparse projections are unbiased">
+
+Let the entries of $A$ be drawn independently as either Rademacher signs, $A_{ij} = \pm 1$ with equal probability, or the sparse Achlioptas values $A_{ij} = \sqrt{s}\cdot\{+1, 0, -1\}$ with probabilities $\{\tfrac{1}{2s}, 1-\tfrac1s, \tfrac{1}{2s}\}$. In both cases $\mathbb{E}[A_{ij}^2] = 1$, and the map $f(x) = \tfrac{1}{\sqrt{k}}Ax$ is unbiased: $\mathbb{E}\lVert f(x)\rVert^2 = \lVert x\rVert^2$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+For the Rademacher case $A_{ij}^2 = 1$ deterministically, so $\mathbb{E}[A_{ij}^2] = 1$. For the sparse case $\mathbb{E}[A_{ij}^2] = s \cdot (\tfrac{1}{2s} + \tfrac{1}{2s}) = s\cdot\tfrac1s = 1$; with $s = 3$ the matrix is two-thirds zeros. In either case the entries are independent with mean $0$ and second moment $1$, so
+
+$$
+\mathbb{E}\lVert Ax\rVert^2 = \sum_{i=1}^k \mathbb{E}\Big[\big(\textstyle\sum_j A_{ij}x_j\big)^2\Big] = \sum_{i=1}^k \sum_{j} \mathbb{E}[A_{ij}^2]\,x_j^2 = \sum_{i=1}^k \lVert x\rVert^2 = k\lVert x\rVert^2 ,
+$$
+
+the cross terms vanishing because $\mathbb{E}[A_{ij}A_{i\ell}] = 0$ for $j \neq \ell$. Dividing by $k$ gives $\mathbb{E}\lVert f(x)\rVert^2 = \lVert x\rVert^2$. $\blacksquare$
+
+</TheoremBlock>
+
+Unbiasedness is the easy half; what makes these *valid* Johnson–Lindenstrauss maps is that their squared norm concentrates at the same $\sqrt{2/k}$ rate as the Gaussian one. Both families are sub-Gaussian, and Achlioptas proves a tail of the same exponential form — we cite that result rather than re-prove it, and the harness verifies it numerically: at $k = 64$ the Gaussian, Rademacher, and sparse distortion spreads are $0.154$, $0.166$, and $0.162$, all hugging the predicted $\sqrt{2/64} \approx 0.177$. The "Projection families" panel shows the three side by side. The sparse map is the practical winner: it preserves distances for a third of the arithmetic, the property that makes random projection a cheap front end for large indexes.
+
+There is an honest footnote, which the code surfaces: on a *low-rank* cloud, where the signal lives in a few coordinates, the very sparse map has a heavier-tailed per-matrix fluctuation than the Gaussian one — zeroing two-thirds of the matrix occasionally under-samples the signal directions. The concentration *rate* is unchanged, but the constant is a little worse, which is the kind of trade the sparsity buys.
+
+---
+
+## Optimality, and data-oblivious versus data-dependent
+
+Could a cleverer map do better than $k = \Theta(\varepsilon^{-2}\log n)$? For a data-oblivious map asked to preserve *all* pairwise distances, no.
+
+<TheoremBlock type="proposition" number={2} title="The target dimension is optimal (Larsen–Nelson 2017)">
+
+For every $n$ and $\varepsilon$ in the relevant range there exist $n$ points in $\mathbb{R}^d$ such that any embedding into $\mathbb{R}^k$ preserving all pairwise distances to within $(1\pm\varepsilon)$ must have $k = \Omega(\varepsilon^{-2}\log n)$. The Johnson–Lindenstrauss bound is therefore tight up to the constant.
+
+</TheoremBlock>
+
+We cite this rather than prove it; the construction takes a near-orthogonal point set on which no projection can do better. The word *oblivious* is the catch, and it is where PCA re-enters. PCA is *data-dependent*: it reads the covariance and spends every kept dimension on a direction the cloud actually varies along, so on a structured corpus it preserves geometry that a random map, asking nothing of the data, cannot match per dimension. Optimality over the worst case does not mean optimality on *your* data.
+
+The sharpest form of the contrast is that Johnson–Lindenstrauss preserves *distances*, and retrieval cares about *rankings*. Preserving every distance to $\pm\varepsilon$ does not preserve the *order* of distances when the gaps between neighbors are smaller than $\varepsilon$ — and on a tightly clustered cloud, the tenth and eleventh nearest neighbors sit at almost equal distances, so a $\pm\varepsilon$ wobble reshuffles them. The "Recall after projection" panel measures the consequence: at $k = 128$ on the finance cloud, recall@10 is about $23\%$ for the random projection but about $96\%$ for the data-dependent PCA of the same width. Random projection keeps the *metric*; PCA keeps the *neighbors*. Random projection's redemption is that it needs no training, no covariance, and no recomputation when the corpus grows — which is exactly why it is the front end to locality-sensitive hashing — the forthcoming topic where an approximate, distance-preserving sketch is all the next stage needs.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+Take $500$ document embeddings in $\mathbb{R}^{1536}$ — a synthetic low-rank-plus-noise stand-in for the filings-and-transcripts cloud of a production financial retriever, not a trained encoder — and ask what a random projection buys.
+
+The Johnson–Lindenstrauss guarantee for $\varepsilon = 0.2$ across all $124{,}750$ pairs demands $k \ge 1435$: a worst-case number that depends on $\ln 500 \approx 6.2$ and *not* on the ambient $1536$. That is the dimension independence in one line — the same guarantee would hold for embeddings of width $15{,}360$.
+
+Project instead to a practical $k = 128$. The *typical* pair now distorts by only $9.2\%$, comfortably inside $\varepsilon$ — but the *worst* of the $124{,}750$ pairs distorts by $51.1\%$, so the metric is approximately, not uniformly, preserved. And the retrieval cost of obliviousness is stark: nearest-neighbor recall@10 retained at $128$ dimensions is $23.3\%$ for the random projection against $96.0\%$ for PCA at the same width. The reading is the honest one. A matrix that never saw the corpus preserves *most* distances cheaply and with no training — useful as an approximate sketch or an LSH front end — but if the application is exact top-$k$ retrieval on a structured cloud, the data-dependent projection earns its covariance.
+
+</FinanceCaseStudy>
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+- **The constant is worst-case and loose.** For $n = 500, \varepsilon = 0.2$ the guarantee needs $k \ge 1435$, yet the typical pair at $k = 128$ distorts only $\sim 9\%$. The bound is set by the *worst* of $\binom{n}{2}$ pairs — the union bound is real work, not bookkeeping — so in practice one uses a much smaller $k$ and tolerates a few badly distorted pairs.
+- **Distances, not rankings.** Johnson–Lindenstrauss preserves Euclidean distances (hence inner products of *difference* vectors); cosine and angles inherit the same $\varepsilon$ slack only after the metric translation, and exact nearest-neighbor order is *not* preserved — recall@10 is $\sim 23\%$ (random) vs $\sim 96\%$ (PCA) at $k = 128$.
+- **Fixed set, not arbitrary queries.** The deterministic lemma is for a *fixed* point set; a fresh query is covered only through the distributional bound on its own difference vectors.
+- **Exact only for the Gaussian map.** The $\chi^2_k/k$ law is exact for Gaussian entries; Rademacher and sparse variants match its first two moments and concentrate alike (Achlioptas 2003, cited and verified numerically, not re-proved). On a low-rank cloud the very sparse map's per-matrix fluctuation is heavier-tailed.
+- **The proved core versus the cited.** Unbiasedness, the chi-squared concentration with the Dasgupta–Gupta constant, and the union-bound target $k$ are proved here exactly; the sharp two-sided tail is cited to Laurent–Massart and the matching lower bound to Larsen–Nelson.
+- **Synthetic data.** The finance embeddings are a synthetic low-rank-plus-noise stand-in; the distortion and recall numbers are measured on that cloud.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion module [`johnson_lindenstrauss.py`](https://github.com/jonx0037/formalRAG/blob/main/notebooks/johnson-lindenstrauss/johnson_lindenstrauss.py) owns every number this page and the laboratory cite. It builds the three projection families through a single generator stream — a deliberate choice, since drawing each random matrix from a freshly seeded generator over consecutive integers leaves their opening values weakly correlated and inflates the sampled variance with $d$, a real and easily-missed NumPy pitfall. Its eight assertions encode the claims in order: unbiasedness for all three families; the chi-squared mean, variance, and Laurent–Massart tail; the lemma holding at the guaranteed $k$; dimension independence (a fixed vector's distortion spread is $\sqrt{2/k}$ for every $d$, while the worst pairwise distortion grows with $n$); the three families concentrating alike; the recall gap between oblivious and data-dependent projection; a cross-check of the target dimension and distortion against scikit-learn's `random_projection`; and the finance headline. The narrative notebook walks the same path section by section. Both run in about seven seconds and must exit cleanly before the topic ships.
