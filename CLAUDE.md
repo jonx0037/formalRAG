@@ -53,8 +53,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `notebooks/<slug>/<slug_underscored>.py` — the canonical, tested, importable reference that *owns
   the numbers* — plus `01_<slug_underscored>.ipynb`, a narrative notebook that imports the `.py` and walks the
   topic section by section. Both must exit 0 before shipping; commit the `.ipynb` without stored
-  outputs. `notebooks/bm25/` is the exemplar. The full per-topic workflow lives in
-  `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
+  outputs, and **normalize** a hand-written `.ipynb` (nbformat — add cell ids, clear outputs) or
+  `jupyter execute` warns (a future hard error). `notebooks/bm25/` is the exemplar. The full per-topic
+  workflow lives in `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
@@ -84,6 +85,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - Reverse links from the siblings into formalRAG are added per-sibling as the linked topics ship
   (check each sibling's git history); formalCalculus is deferred until a real
   formalRAG↔formalCalculus link exists.
+- `pnpm audit:cross-site` writes **gitignored** artifacts (`docs/plans/audit-output/`,
+  `cross-site-audit-report.md`, `deferred-reciprocals.md`) — never commit them. It exits 0 even with
+  warnings: a new topic's `formalml*/formalstatistics*` up-links surface as **missing reciprocals**
+  (and, since the audit treats this repo as the `formalml` slot, the up-link as `self-site`) — the
+  expected deferred state, not an error, once you've confirmed the target slugs exist on the siblings.
 
 ## Deploy
 

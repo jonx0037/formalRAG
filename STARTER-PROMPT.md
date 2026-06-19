@@ -56,7 +56,10 @@ source of truth that the later pillars are checked against.
 ### A1. The three-pillar contract
 
 - **Math (KaTeX):** definitions, theorems with *full* proofs (never "it can be shown"), and a
-  concrete motivating example before each definition.
+  concrete motivating example before each definition. When a full proof is genuinely hard, prove the
+  *load-bearing* direction and **cite** the rest to its source, backed by a harness assert — honest
+  attribution beats a hand-waved proof. (E.g. Diaconis–Graham $K \le F \le 2K$: prove $F \le 2K$, the
+  half the footrule 2-approximation leans on; cite $K \le F$; verify both over random pairs in the harness.)
 - **Viz (D3):** one or more interactive components; each shows a parameter the reader can
   manipulate and a thing they should learn from manipulating it.
 - **Python (notebook pillar):** the `notebooks/README.md` contract —
@@ -64,10 +67,17 @@ source of truth that the later pillars are checked against.
     declared in the module docstring as the `uv run --with … python …` line. A harness of
     `assert`-based tests encoding **every pedagogical claim the topic makes** (limit theorems,
     monotonicity, the worked-example flip, a cross-check against a reference library where one
-    exists). This file **owns every number the viz mirrors**.
+    exists). This file **owns every number the viz mirrors**. Expect to **engineer the worked-example
+    corpus iteratively** — run the `.py`, inspect the printed rankings, and tune the corpus/qrels
+    until every assert holds (e.g. a hybrid-beats-both-legs result needs the two legs to fail
+    *differently*). Test limit theorems on **strict/random instances**, not only the worked example:
+    ties can break a naive order-equality (the RRF→Borda limit holds only when the Borda totals are strict).
   - `notebooks/<slug>/01_<slug_underscored>.ipynb` — narrative notebook that imports the `.py` and
     walks the topic section by section, so claims render as executed output. Model it on
-    `notebooks/bm25/01_bm25.ipynb`. Commit without stored outputs.
+    `notebooks/bm25/01_bm25.ipynb`. A hand-written `.ipynb` lacks cell `id` fields, so after writing
+    it **normalize** (add ids, clear outputs) or `jupyter execute` warns (a future hard error):
+    `uv run --with nbformat python -c "import nbformat; p='notebooks/<slug>/01_<slug_underscored>.ipynb'; nb=nbformat.read(p,as_version=4); _,nb=nbformat.validator.normalize(nb); [c.update(outputs=[],execution_count=None) for c in nb.cells if c.cell_type=='code']; nbformat.write(nb,p)"`.
+    Commit without stored outputs.
   - Both exit 0:
     ```bash
     uv run --with <deps> python notebooks/<slug>/<slug_underscored>.py
@@ -164,6 +174,14 @@ pnpm dev                   # then open the topic page
 `.katex-error` spans, the expected `.katex` count, and that each viz mounted (slider/ranking
 present). Re-run the notebook one final time; confirm the page's worked-example numbers equal the
 notebook's printed output.
+
+**`audit:cross-site` writes generated files — never commit them.** It regenerates
+`docs/plans/audit-output/`, `docs/plans/cross-site-audit-report.md`, and
+`docs/plans/deferred-reciprocals.md` (all gitignored). It also exits 0 even with warnings: a new
+topic's `formalmlPrereqs`/`formalstatisticsPrereqs` up-links show up as **missing reciprocals** (and,
+because the audit treats the current repo as the `formalml` slot, the up-link itself as `self-site`).
+That is the **expected deferred state** — the siblings add the reverse links per-sibling (A4) — not an
+error. Confirm the named slugs exist on the live siblings (you already did in A4) and move on.
 
 ### B4. Ship
 
