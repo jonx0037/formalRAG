@@ -96,7 +96,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - Production: www.formalrag.com. Vercel project `formalrag`, team `jonathan-aaron-rocha`.
 - The Vercel CLI needs `--scope jonathan-aaron-rocha` (no default in non-interactive mode) and a
   lowercase project name (the dir `formalRAG` is rejected — link with `--project formalrag`).
-- Current production came from a CLI deploy; connect the GitHub repo in Vercel for push-to-deploy.
+- **Push-to-deploy is live** (GitHub↔Vercel connected): every push to `main` auto-deploys to
+  production; every PR/branch push gets a preview deployment (the Vercel bot comments the URL on the
+  PR). Just merge to `main` — no CLI deploy needed; use the CLI only for an out-of-band deploy.
 
 ## Do NOT
 
