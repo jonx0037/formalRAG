@@ -104,7 +104,9 @@ Before any algebra, drag the two governing parameters and watch both ideas at wo
 
 <BM25ScoringLaboratory client:visible />
 
-> ✍️ **Expand (narrative hook):** open with the length-hijack failure concretely — a 90-minute earnings call vs. a one-line 10-K disclosure — to motivate why raw counts fail, before stating what BM25 answers.
+Make the pathology concrete. A bank's quarterly earnings call runs ninety minutes; transcribed, it is a few hundred words of prepared remarks and Q&A in which an executive says *rate* and *interest* a dozen times each, mostly as conversational filler — "in this rate environment," "rates being what they are." A single line buried in the same company's 10-K states the fact a risk analyst actually wants: that its net interest margin is sensitive to rate moves — its real rate exposure. Ask raw term frequency which document is *about* interest-rate exposure and it answers with the transcript every time, not because the call is more relevant but because it is longer and so accumulates more chances to repeat the query words. The focused disclosure, which answers the question in one sentence, sinks beneath it.
+
+This is the length-hijack failure, and removing it is exactly what BM25 is for. Two ideas do the work, and the laboratory above lets you watch each in isolation: **saturation**, which caps the reward for repeating a term so the call's verbal tics stop paying off, and **length normalization**, which discounts a document's term counts in proportion to how far its length runs past the collection average. The two governing parameters are $k_1$, which sets how quickly repetition saturates, and $b$, which sets how aggressively length is penalized. Drag $k_1$ toward zero and the saturation curve in panel A collapses to a step; drag $b$ to zero and the padded transcript climbs back to the top of panel C — the very failure we just described, reconstructed on demand.
 
 ### What we cover
 
@@ -140,7 +142,19 @@ $$
 
 Dropping terms constant in $d$ (those with $x_t = 0$ for query-absent terms collapse into the document-independent baseline), the document-dependent score reduces to a sum over the query terms *present* in the document.
 
-> ✍️ **Expand:** show the algebra that isolates the present-term sum — this is the step where the "constant in d" claim earns its keep.
+To see why, regroup each per-term contribution from Definition 1 so the part that depends on the document separates cleanly from the part that does not. For a single term,
+
+$$
+x_t \log\frac{p_t}{u_t} + (1-x_t)\log\frac{1-p_t}{1-u_t} \;=\; x_t \underbrace{\log\frac{p_t\,(1-u_t)}{u_t\,(1-p_t)}}_{\text{depends on } x_t} \;+\; \underbrace{\log\frac{1-p_t}{1-u_t}}_{\text{constant in } d}.
+$$
+
+The rewrite is pure bookkeeping: expand the two logarithms, collect the coefficients of $x_t$, and what is left over is the $x_t$-free remainder $\log\frac{1-p_t}{1-u_t}$. Summed over all terms, that remainder depends only on the collection statistics $p_t, u_t$ — never on *which* document we are scoring — so under monotone ranking it is an additive constant we may discard. The first piece survives only when $x_t = 1$, that is, when the term is *present*. Finally, a term absent from the query carries no power to discriminate relevant from non-relevant, so we set $p_t = u_t$ there and its weight vanishes. What remains is one weight per query term present in $d$:
+
+$$
+\text{score}(d, q) \;\overset{\text{rank}}{=}\; \sum_{t \,\in\, q \,:\, x_t = 1} \log\frac{p_t\,(1-u_t)}{u_t\,(1-p_t)}.
+$$
+
+This is the dividend the independence assumption pays: a document's relevance score collapses to a *sum of independent per-term verdicts*, read off only the query terms it actually contains.
 
 ---
 
@@ -164,7 +178,27 @@ $$
 
 So **inverse document frequency is not a heuristic** — it is the RSJ weight of the Binary Independence Model under an uninformative prior. This is the cross-link into the [statistics of maximum-likelihood estimation](https://formalstatistics.com/topics/maximum-likelihood) and [prior selection](https://formalstatistics.com).
 
-> ✍️ **Expand:** spell out the Jeffreys-prior estimation of $p_t$ and $u_t$ step by step; this "IDF emerges from probability theory" moment is the intellectual climax of the first half.
+Let us earn that limit rather than assert it. Estimating $p_t$ and $u_t$ means counting how often term $t$ appears among relevant and non-relevant documents — but with no relevance judgments, both samples are empty, and a raw maximum-likelihood estimate of $0/0$ is undefined. The remedy is a prior. The **Jeffreys prior** for a Bernoulli probability is $\text{Beta}(\tfrac12, \tfrac12)$; using its posterior mean turns $a$ successes in $n$ trials into $\hat\theta = (a + \tfrac12)/(n + 1)$ — the $+\tfrac12$ continuity correction that keeps every estimate strictly inside $(0,1)$.
+
+Apply it twice. With no relevant documents observed ($a = 0$, $n = 0$), the relevance probability is pinned at the prior mean,
+
+$$
+\hat p_t = \frac{0 + \tfrac12}{0 + 1} = \tfrac12 .
+$$
+
+For the non-relevance probability, we lean on the fact that in a large collection almost every document is non-relevant to any one query, so the whole collection stands in for the non-relevant sample: term $t$ appears in $df_t$ of the $N$ documents, giving
+
+$$
+\hat u_t = \frac{df_t + \tfrac12}{N + 1} .
+$$
+
+Now substitute into the RSJ weight. Because $\hat p_t = \tfrac12$ makes $\hat p_t / (1 - \hat p_t) = 1$, the relevance half cancels and the weight is governed by non-relevance alone:
+
+$$
+w_t^{\text{RSJ}} = \log \frac{\hat p_t\,(1 - \hat u_t)}{\hat u_t\,(1 - \hat p_t)} = \log \frac{1 - \hat u_t}{\hat u_t} = \log \frac{N - df_t + 0.5}{df_t + 0.5} = \text{IDF}_t .
+$$
+
+So smoothed inverse document frequency is not a weighting trick bolted onto term counts after the fact — it is the exact relevance weight the Binary Independence Model assigns a term when we are honest about knowing nothing. A common term ($df_t$ near $N$) drives the ratio toward zero and the log toward $-\infty$; a rare one ($df_t$ small) sends it large and positive. One caveat for anyone matching this against a running system: Lucene and the companion implementation here add a $+1$ inside the logarithm, scoring $\log\!\left(\frac{N - df_t + 0.5}{df_t + 0.5} + 1\right)$, which floors the weight at zero so that a term appearing in more than half the collection can never contribute a *negative* score. That floor is an engineering choice for non-negativity, not a step in the derivation.
 
 ---
 
@@ -186,7 +220,7 @@ which is $0$ at $\text{tf}=0$, increasing, concave, and $\to 1$ as $\text{tf}\to
 
 This connects to the [statistics of discrete distributions](https://formalstatistics.com/topics/discrete-distributions) — the Poisson mixture is the generative story.
 
-> ✍️ **Expand:** sketch why a single Poisson cannot reproduce the observed heavy tail of term counts, motivating the mixture (this is the empirical hook for the model).
+Why a *mixture*, and not a single Poisson? Picture the histogram of how many times one content word — say *interest* — appears across every document in a collection. It has two features at once: a tall spike at zero and very small counts, because the vast majority of documents are not about interest at all, and a long right tail of documents that use the word many times because they genuinely are. A single Poisson cannot draw both shapes. Its mean and variance are forced to be equal, $\mathbb{E}[X] = \mathrm{Var}(X) = \lambda$, and its tail decays factorially fast, like $\lambda^k / k!$; tuned low enough to reproduce the pile of zeros, it makes high counts astronomically unlikely, and tuned high enough to admit the tail, it loses the zeros. Real term counts are *overdispersed* — their variance exceeds their mean — which a one-parameter Poisson structurally cannot be. The 2-Poisson model resolves this by positing a hidden binary cause: a document is either **elite** for the term, about its concept and drawing counts from a high-rate Poisson, or not, a low rate that is mostly zeros. The resulting mixture is overdispersed and bimodal by construction, and the quantity BM25 actually needs — the log-odds that a document is elite given the count it shows — is precisely the increasing, concave, saturating curve of Proposition 1. Eliteness is the latent variable the saturation transform is quietly estimating.
 
 ---
 
@@ -204,9 +238,15 @@ where $\text{dl}_d$ is the document length, $\text{avgdl}$ the mean document len
 
 </TheoremBlock>
 
-Each factor has a job: $\text{IDF}_t$ down-weights common terms (Section 3), the $(k_1+1)$ numerator scales the saturating transform to start at slope $1$, and the $\left(1 - b + b\,\text{dl}/\text{avgdl}\right)$ denominator term stretches the saturation point for long documents.
+Each factor has a job: $\text{IDF}_t$ down-weights common terms (Section 3), the $(k_1+1)$ numerator scales the saturating transform so a single occurrence contributes one full unit (at average document length), and the $\left(1 - b + b\,\text{dl}/\text{avgdl}\right)$ denominator term stretches the saturation point for long documents.
 
-> ✍️ **Expand:** one sentence per factor, tying each back to the geometric idea it implements; mention BM25F (field-weighted) for structured documents like MD&A vs. risk-factors sections.
+Take the three in turn, each tied to exactly one of the ideas we have built:
+
+- **$\text{IDF}_t$** is the relevance weight of Section 3 — a rare query term is strong evidence of aboutness and a near-ubiquitous one is almost none — so it scales every term's contribution by how surprising its presence is.
+- The numerator **$\text{tf}_{t,d}\,(k_1 + 1)$** carries saturation: the $(k_1 + 1)$ factor rescales the curve $\text{tf}/(\text{tf} + k_1)$ so it rises to the ceiling $k_1 + 1$ and, at average document length, a single occurrence contributes exactly one unit ($f(1) - f(0) = 1$) — the *first* occurrence of a term counts fully while the tenth barely moves the score.
+- The denominator term **$k_1\!\left(1 - b + b\,\text{dl}_d/\text{avgdl}\right)$** carries length normalization: the bracket stretches the saturation point in proportion to how far the document's length $\text{dl}_d$ runs past the average, so a long document must repeat a term more to earn the same credit, with $b$ dialing the effect from off ($b = 0$) to full ($b = 1$).
+
+For documents with internal structure, **BM25F** refines the length term. A 10-K is not a flat bag of words but a sequence of fields — item titles, the MD&A, the risk-factors section, financial-statement footnotes — that differ in length and in how much a match there should count. BM25F length-normalizes and field-weights each field's term frequencies *first*, sums them into a single combined count, and only *then* applies the saturation and IDF (Robertson, Zaragoza, and Taylor, 2004). Saturating after the sum rather than within each field is the decisive design choice: it lets a hit in a short, high-value field like the MD&A outweigh a long boilerplate section, instead of letting that boilerplate saturate on its own and dilute the signal.
 
 ---
 
@@ -227,7 +267,33 @@ Fix a document and term with frequency $\text{tf} > 0$.
 
 In the laboratory above, set $k_1$ near $0$ and watch panel A flatten to a step; push $k_1$ high and watch it straighten toward the dashed raw-tf line; drag $b$ to $0$ and watch the padded transcript hijack the top of panel C.
 
-> ✍️ **Expand (proof):** the four limits are short calculus exercises — include them in a `proof` block. Item 3 is the one worth stating carefully because it corrects a common misconception that BM25 is "TF-IDF with saturation."
+<TheoremBlock type="proof">
+
+Write the term factor as $f(\text{tf}) = \dfrac{\text{tf}\,(k_1 + 1)}{\text{tf} + k_1 B}$, where $B = 1 - b + b\,\text{dl}/\text{avgdl} > 0$ collects the length normalization into a single positive constant.
+
+**(1) Saturation ceiling.** Divide numerator and denominator by $\text{tf}$:
+
+$$
+f(\text{tf}) = \frac{k_1 + 1}{1 + k_1 B / \text{tf}} \;\longrightarrow\; \frac{k_1 + 1}{1} = k_1 + 1 \qquad (\text{tf} \to \infty).
+$$
+
+The factor is bounded above by $k_1 + 1$ no matter how often the term repeats — the analytic content of "diminishing returns."
+
+**(2) Binary limit.** As $k_1 \to 0$ the numerator $\to \text{tf}$ and the denominator $\to \text{tf}$, so $f \to 1$ for every $\text{tf} > 0$ (and $f = 0$ when $\text{tf} = 0$). Every present term contributes its $\text{IDF}_t$ exactly once and repetition is ignored: BM25 collapses to the presence/absence Binary Independence Model.
+
+**(3) Raw-tf limit.** Divide numerator and denominator by $k_1$ and let $k_1 \to \infty$:
+
+$$
+f(\text{tf}) = \frac{\text{tf}\,(1 + 1/k_1)}{\text{tf}/k_1 + B} \;\longrightarrow\; \frac{\text{tf}}{B} = \frac{\text{tf}}{1 - b + b\,\text{dl}/\text{avgdl}} \qquad (k_1 \to \infty).
+$$
+
+This is *length-normalized raw term frequency*, and it is worth pausing on what it is **not**: it is not cosine-normalized TF-IDF. Cosine normalization divides a document's term-weight vector by its Euclidean norm $\sqrt{\sum_t w_{t,d}^2}$, a quantity that depends on *every* term in the document. Here each term frequency is divided by the single scalar $B$, which depends only on the document's *length*, and $\text{IDF}_t$ enters separately as a multiplicative per-term weight. BM25 is not "TF-IDF with a saturation knob" — even in the limit where saturation is switched off, its normalization is structurally different.
+
+**(4) Length normalization.** At $b = 0$ we have $B = 1$, independent of $\text{dl}$, so document length drops out of the score entirely. At $b = 1$ we have $B = \text{dl}/\text{avgdl}$, the full ratio, so a document twice the average length needs twice the term count to reach the same factor. Intermediate $b$ interpolates linearly between the two.
+
+Each limit is checked numerically in the companion harness's `test_limits()`: it asserts $f \to 1$ as $k_1 \to 0$, $f \to \text{tf}/B$ as $k_1 \to \infty$, the ceiling $f \to k_1 + 1$ (e.g. $2.5$ at $k_1 = 1.5$), and the $b$-toggle of length dependence — the theorem and the code are two views of the same four facts.
+
+</TheoremBlock>
 
 ---
 
@@ -244,7 +310,9 @@ The worked query *"interest rate exposure"* over the toy corpus in the laborator
 
 </FinanceCaseStudy>
 
-> ✍️ **Expand:** connect to your production system specifically — which fields you run BM25F over, and where the lexical leg outperforms the dense leg in practice.
+In the production retriever this case study is drawn from, BM25 does not score documents as flat text; it runs as BM25F over the fields that filings and transcripts naturally expose. A 10-K or 10-Q is split into the item heading, the Management's Discussion and Analysis, the risk-factors section, and the financial-statement line items and footnotes; an earnings-call transcript is split into prepared remarks and Q&A, segmented by speaker turn. The heading and MD&A fields carry the highest field weights and the boilerplate legal language the lowest, so a one-line MD&A disclosure about rate sensitivity is not buried under a long risk-factors recital of the same words — the length-hijack fix from above, now applied at the granularity of fields rather than whole documents.
+
+The lexical leg earns its keep precisely where the dense leg is weakest: *exact* tokens. Tickers and CUSIP/ISIN identifiers, GAAP line-item names, defined terms from a filing's glossary, dollar and basis-point figures, and reporting dates are the strings a paraphrase-trained embedding tends to smear into near-synonyms — "AAPL," "Apple Inc.," and "the Company" collapse to nearly the same vector, and a query for one will cheerfully return the others. BM25 keeps them distinct because it matches the literal term. That complementarity is the reason the two legs are fused rather than chosen between: [reciprocal rank fusion](/topics/rank-fusion-rrf) combines their rankings so the dense leg supplies semantic recall while the lexical leg supplies exact-match precision on the identifiers a financial query most often hinges on.
 
 ---
 
@@ -268,4 +336,6 @@ That BM25 works as well as it does *despite* these is itself worth sitting with.
 
 The companion notebook (`notebookPath`) builds an inverted index, implements the RSJ-derived IDF alongside textbook $\log(N/df)$ so the Jeffreys smoothing is visible, scores from scratch, and — most importantly — includes a verification harness that asserts the four limit theorems above and cross-checks the ranking against `rank_bm25`. A grid sweep over $(k_1, b)$ reports the NDCG@10 surface, reproducing "tuning matters."
 
-> ✍️ **Expand:** walk through the verification harness output and the k₁/b NDCG surface; this is where the code pillar earns its place beside the math.
+Running the harness prints the topic's claims back as passing assertions. The four limit theorems check first — $f \to 1$ as $k_1 \to 0$, $f \to \text{tf}/B$ as $k_1 \to \infty$, the ceiling $f \to k_1 + 1$ (the printed $2.5$ at $k_1 = 1.5$), and the $b$-toggle — followed by monotonicity of the saturation curve, so nothing argued above is asserted that the code does not also confirm. Then comes the length-hijack flip on the toy corpus ($N = 6$ documents, $\text{avgdl} = 52.7$ tokens) for the query *"interest rate exposure"*: at $b = 0$ the padded transcript ranks first and NDCG@10 is $0.716$; at $b = 0.75$ the concise on-point filing surfaces to first and NDCG@10 rises to $0.963$. That ranking is then cross-checked against `rank_bm25`'s `BM25Okapi` under a matched IDF variant, so any divergence would flag a genuine scoring bug rather than a known formula difference.
+
+The closing grid sweep evaluates NDCG@10 across $k_1 \in \{0.5, 1, 1.5, 2\}$ and $b \in \{0, 0.25, 0.5, 0.75, 1\}$ and reports its best cell at $(k_1, b) = (1.5, 1.0)$ with NDCG@10 $= 0.977$ — only a hair above the $0.963$ at the canonical $b = 0.75$. That near-tie is the honest lesson, not a contradiction: on a six-document toy corpus the optimum drifts to full length normalization, whereas the $b \approx 0.75$ that ships in Lucene and Elasticsearch is the value that holds up across collections of TREC scale. The parameters are tuned, the rigor flag is right to say so, and the surface is flat enough near the optimum that switching length normalization *on* matters far more than pinning down its exact setting.
