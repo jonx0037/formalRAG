@@ -1,0 +1,333 @@
+---
+title: "PCA as Optimal Linear Dimensionality Reduction for Embeddings"
+subtitle: "The variance-optimal projection of an embedding cloud — what truncating 1536 dimensions to k keeps, and the honest reason it can still hurt retrieval"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "high-dimensional-geometry"
+tags:
+  - "pca"
+  - "dimensionality-reduction"
+  - "eckart-young"
+  - "explained-variance"
+  - "low-rank-approximation"
+  - "effective-rank"
+  - "singular-value-decomposition"
+  - "embedding-geometry"
+domain: "embedding-geometry"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The clean story — PCA is the optimal linear dimensionality reduction, so projecting embeddings onto the top principal components is the best you can do — is optimal for the wrong objective, and several of its joints are softer than the spectrum plot suggests. First, variance-optimal is not retrieval-optimal: PCA minimizes reconstruction error and maximizes retained variance (Theorems 1-3, Eckart-Young-Mirsky), but retrieval cares about preserving the ranking of cosine/inner-product scores, and the two objectives can disagree. The top principal components frequently encode nuisance structure — token frequency, document length, and a single dominant common direction shared by nearly all embeddings — so naive PCA projection can hurt cosine retrieval, and conversely removing the top few components (All-but-the-Top, Mu & Viswanath 2018) often improves it; that is a celebrated empirical postprocessing heuristic, not a theorem, and we present it as such. Second, PCA is a linear method on a generally nonlinear manifold: the intrinsic-dimension argument of the prerequisite topic says embeddings lie near a low-dimensional surface, which a linear subspace only approximates, so the effective rank PCA reports is an upper bound on the true intrinsic dimension. Third, the centering convention interacts with cosine similarity: PCA centers the cloud, but cosine retrieval is usually computed on uncentered, L2-normalized vectors, so the mean subtraction that makes the variance/reconstruction theory exact is itself a modeling choice that shifts every angle. The proved core — the Rayleigh-quotient characterization of the first principal direction, the variance-equals-reconstruction equivalence, the truncated-SVD reconstruction value sum of tail singular values squared and its Frobenius optimality, and the projection-distortion identity (retained squared-distance fraction = explained-variance ratio) — holds exactly; the SVD-PCA equivalence and SVD existence are cited to formalML, Mirsky's extension to all unitarily-invariant norms is cited and verified numerically, and the All-but-the-Top effect is cited as empirical. Finally, the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in, not a trained encoder, and the recall numbers are measured on that synthetic cloud."
+videoId: null
+notebookPath: "notebooks/pca-dimensionality-reduction/01_pca_dimensionality_reduction.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/pca-dimensionality-reduction.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 38
+abstract: "A retriever stores millions of embeddings, and both memory and nearest-neighbor latency scale with the dimension, which runs from several hundred to a few thousand. High-dimensional geometry told us those embeddings have low effective rank — most coordinates carry little variance — so the natural question is how much retrieval quality survives projecting them down. Principal component analysis is the variance-optimal linear answer: the projection onto the directions the embedding cloud actually spreads along, which are the top eigenvectors of the centered covariance, equivalently the right singular vectors of the centered data matrix. We prove the three equivalent faces of PCA — maximizing retained variance, minimizing reconstruction error, and decorrelating the coordinates — establish the Eckart-Young-Mirsky theorem that the truncated SVD is the best low-rank approximation with squared error equal to the tail of the spectrum, and prove a projection-distortion identity: the fraction of squared distance the top-k projection retains is exactly the explained-variance ratio. We then confront the honest catch that variance-optimal is not retrieval-optimal — the top components often encode nuisance structure, so removing them can help cosine retrieval. An interactive Spectrum Laboratory and a tested, scikit-learn-cross-checked implementation accompany the derivation, with a finance example projecting 1536-dimensional document embeddings and measuring the recall that survives, against a random projection of the same width."
+connections:
+  - topic: "vector-space-model-tfidf"
+    relationship: "latent semantic analysis is exactly the truncated SVD of the TF-IDF term-document matrix, so the optimal-low-rank theory proved here is the linear-algebra engine under that classical sparse-retrieval model, and the Eckart-Young guarantee is what makes LSA's reduced space the best rank-k summary of the term space"
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "PCA centers and projects in R^d while that topic normalizes embeddings onto the sphere, and the tension between PCA's mean subtraction and cosine's uncentered angles is precisely the centering-versus-cosine caveat this topic raises about applying linear dimensionality reduction before spherical retrieval"
+references:
+  - type: "paper"
+    title: "On Lines and Planes of Closest Fit to Systems of Points in Space"
+    authors: "Pearson"
+    year: 1901
+    url: "https://doi.org/10.1080/14786440109462720"
+    note: "The origin of PCA as the best-fitting line and plane minimizing perpendicular reconstruction distance"
+  - type: "paper"
+    title: "Analysis of a Complex of Statistical Variables into Principal Components"
+    authors: "Hotelling"
+    year: 1933
+    url: "https://doi.org/10.1037/h0071325"
+    note: "The variance-maximization formulation and the name 'principal components'"
+  - type: "paper"
+    title: "The Approximation of One Matrix by Another of Lower Rank"
+    authors: "Eckart & Young"
+    year: 1936
+    url: "https://doi.org/10.1007/BF02288367"
+    note: "The original optimal low-rank approximation theorem — the truncated-SVD reconstruction value proved here"
+  - type: "book"
+    title: "Principal Component Analysis"
+    authors: "Jolliffe"
+    year: 2002
+    url: "https://doi.org/10.1007/b98835"
+    note: "The definitive reference for PCA's formulations, explained variance, component retention, and pitfalls"
+  - type: "paper"
+    title: "All-but-the-Top: Simple and Effective Postprocessing for Word Representations"
+    authors: "Mu & Viswanath"
+    year: 2018
+    url: "https://arxiv.org/abs/1702.01417"
+    note: "The empirical finding that removing the top principal components of an embedding set improves similarity and retrieval — the rigorFlag citation that variance-optimal is not retrieval-optimal"
+  - type: "paper"
+    title: "Indexing by Latent Semantic Analysis"
+    authors: "Deerwester, Dumais, Furnas, Landauer & Harshman"
+    year: 1990
+    url: "https://doi.org/10.1002/(SICI)1097-4571(199009)41:6%3C391::AID-ASI1%3E3.0.CO;2-9"
+    note: "LSA as the truncated SVD of the term-document matrix; the classical bridge to the vector space model"
+  - type: "paper"
+    title: "Random Projection in Dimensionality Reduction: Applications to Image and Text Data"
+    authors: "Bingham & Mannila"
+    year: 2001
+    url: "https://doi.org/10.1145/502512.502546"
+    note: "Data-oblivious random projection in practice — the contrast partner to PCA's data dependence"
+  - type: "paper"
+    title: "Finding Structure with Randomness: Probabilistic Algorithms for Constructing Approximate Matrix Decompositions"
+    authors: "Halko, Martinsson & Tropp"
+    year: 2011
+    url: "https://doi.org/10.1137/090771806"
+    note: "Randomized SVD — how the top-k spectrum is computed at embedding scale without a full decomposition"
+  - type: "book"
+    title: "Matrix Analysis"
+    authors: "Horn & Johnson"
+    year: 2013
+    url: "https://doi.org/10.1017/CBO9781139020411"
+    note: "Courant-Fischer min-max and Mirsky's extension of Eckart-Young to all unitarily-invariant norms — the cited halves of Theorems 1 and 3"
+formalmlPrereqs:
+  - topic: "pca-low-rank"
+    site: "formalml"
+    relationship: "this is the direct prerequisite: it develops principal component analysis as the eigendecomposition of the covariance and the optimal low-rank projection, and the present topic specializes that machinery to embedding clouds and asks the retrieval-specific question of what survives the projection"
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the Eckart-Young-Mirsky theorem and the truncated-SVD construction are proved there, and the SVD-PCA equivalence — principal components are the right singular vectors of the centered data matrix with lambda_i = sigma_i^2/(n-1) — is the identity this topic cites to move between the covariance and the data-matrix pictures"
+  - topic: "spectral-theorem"
+    site: "formalml"
+    relationship: "the claim that the principal directions are the top eigenvectors of a symmetric positive-semidefinite covariance is the spectral theorem specialized to Sigma, and the Rayleigh-quotient characterization the first-principal-direction proof turns on is exactly the spectral machinery developed there"
+formalstatisticsPrereqs:
+  - topic: "multivariate-distributions"
+    site: "formalstatistics"
+    relationship: "the object PCA diagonalizes is the covariance matrix Sigma, whose eigendecomposition Sigma = Q Lambda Q^T and the multivariate normal whose level-set ellipsoids have the principal axes are developed there; the decorrelation formulation of PCA is precisely this diagonalization read as a statement about the embedding distribution"
+formalcalculusPrereqs:
+  - topic: "eigenvalues-eigenvectors"
+    site: "formalcalculus"
+    relationship: "the principal directions are the eigenvectors of the centered covariance, and the constrained maximization of the Rayleigh quotient w^T Sigma w subject to unit norm — the route by which the top eigenvector emerges as the first principal direction — is the spectral and principal-axes material developed there"
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "the variance-maximization and reconstruction-error-minimization formulations are a constrained quadratic program over orthonormal frames, and the equivalence of the two objectives is read cleanly through the trace-maximization lens developed there"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import SpectrumLaboratory from '../../components/viz/SpectrumLaboratory.tsx';
+
+## Overview & motivation
+
+A vector retriever pays for every dimension twice. A single $1536$-dimensional `float32` embedding is about six kilobytes, so an index of ten million of them is sixty gigabytes before any structure is added, and the cost of scanning or traversing that index — whether exact or approximate — scales with the dimension $d$ as well. The natural response is to shrink $d$. The [previous topic](/topics/high-dimensional-geometry) told us this should be possible without much loss: real embeddings do not fill $\mathbb{R}^d$, they lie near a low-dimensional surface, so most of the ambient coordinates carry little of the variation that distinguishes one document from another. The question this topic answers is *how* to shrink $d$ optimally, and how much retrieval quality survives when we do.
+
+Principal component analysis is the variance-optimal linear answer. Given a cloud of embeddings, PCA finds the orthogonal directions along which the cloud actually spreads — the first captures the most variance, the second the most of what remains, and so on — and projects onto the top $k$ of them. We will see that these directions are the top eigenvectors of the centered covariance matrix, that this single construction simultaneously maximizes retained variance, minimizes reconstruction error, and decorrelates the coordinates, and that the resulting truncation is the *best possible* rank-$k$ approximation in a precise sense (the Eckart–Young–Mirsky theorem). We will also prove the fact that makes PCA matter for retrieval rather than merely for compression: the fraction of squared distance a projection preserves is exactly the fraction of variance it keeps.
+
+Before the algebra, drag the rank slider and watch the spectrum decide what survives:
+
+<SpectrumLaboratory client:visible />
+
+The first panel is the *scree*: a few directions hold most of the variance and the rest taper into a noise floor, so the cumulative explained-variance curve rises steeply then flattens. The second shows reconstruction error collapsing as $k$ grows — and a faint reference line for a *random* projection of the same width, which PCA always beats. The third projects three topical clusters onto the top two components, already enough to separate them. The fourth is the one that earns the word "retrieval": nearest-neighbor recall retained after projection, PCA against random, as a function of how many dimensions we keep.
+
+### What we cover
+
+1. PCA's three equivalent formulations, and why they all land on the covariance eigenvectors.
+2. The first principal direction as the maximizer of the Rayleigh quotient.
+3. Reconstruction error, and the identity that makes variance and error two views of one optimum.
+4. Eckart–Young–Mirsky, the SVD–PCA equivalence, explained variance, and effective rank.
+5. What survives projection: distortion equals explained variance, and PCA versus random.
+6. A finance case study, the honest caveat that variance-optimal is not retrieval-optimal, and the tested code.
+
+---
+
+## PCA three equivalent ways
+
+Fix a cloud of embeddings $x_1, \dots, x_n \in \mathbb{R}^d$ with mean $\bar{x} = \tfrac{1}{n}\sum_i x_i$, and let $\tilde{X} \in \mathbb{R}^{n \times d}$ be the *centered* data matrix whose $i$-th row is $x_i - \bar{x}$. The object PCA studies is the **centered covariance**
+
+$$
+\Sigma = \frac{1}{n-1}\,\tilde{X}^{\top}\tilde{X} \in \mathbb{R}^{d \times d},
+$$
+
+a symmetric positive-semidefinite matrix whose entry $(a, b)$ is the empirical covariance of coordinates $a$ and $b$. A rank-$k$ linear compression keeps $k$ orthonormal directions, the columns of a matrix $W \in \mathbb{R}^{d \times k}$ with $W^{\top}W = I_k$; the associated **projector** is $P = WW^{\top}$, which sends a centered vector $z = x - \bar{x}$ to its best approximation $WW^{\top}z$ inside the chosen subspace, with coordinates (the **scores**) $W^{\top}z \in \mathbb{R}^k$.
+
+There are three natural ways to ask for the *best* such $W$, and the content of PCA is that they have the same answer:
+
+- **Maximize retained variance.** Keep the subspace along which the projected scores $W^{\top}z$ vary the most, i.e. maximize $\operatorname{tr}(W^{\top}\Sigma W)$.
+- **Minimize reconstruction error.** Keep the subspace whose projection loses the least, i.e. minimize the expected squared residual $\mathbb{E}\lVert z - WW^{\top}z\rVert^2$.
+- **Decorrelate.** Keep directions along which the scores are *uncorrelated*, so the compressed coordinates carry independent information.
+
+All three are solved by taking the columns of $W$ to be the top eigenvectors of $\Sigma$. The next two sections prove the first two equivalences; the third is immediate once we have the eigenvectors, because in the eigenbasis $\Sigma = Q\Lambda Q^{\top}$ the scores along distinct eigenvectors have covariance $W^{\top}\Sigma W = \operatorname{diag}(\lambda_1, \dots, \lambda_k)$, which is diagonal — exactly the decorrelation statement, and the same diagonalization of a covariance matrix developed in [multivariate distributions](https://formalstatistics.com/topics/multivariate-distributions).
+
+---
+
+## The principal directions are the top covariance eigenvectors
+
+Start with the very first direction. Which unit vector $w$ captures the most variance of the projected data? The variance of the scalar scores $\langle w, z\rangle$ is $w^{\top}\Sigma w$, the **Rayleigh quotient** of $\Sigma$ at $w$, so the question is to maximize it over the unit sphere.
+
+<TheoremBlock type="theorem" number={1} title="The principal directions maximize the Rayleigh quotient">
+
+Let $\Sigma$ be symmetric positive-semidefinite with eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$ and orthonormal eigenvectors $v_1, \dots, v_d$. Then
+
+$$
+\max_{\lVert w\rVert = 1} w^{\top}\Sigma w = \lambda_1, \quad \text{attained at } w = v_1,
+$$
+
+and, maximizing over unit vectors orthogonal to the first $j-1$ eigenvectors, the $j$-th principal direction is $v_j$ with value $\lambda_j$. The top-$k$ subspace maximizing the total projected variance $\operatorname{tr}(W^{\top}\Sigma W)$ is therefore spanned by $v_1, \dots, v_k$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+By the [spectral theorem](https://formalml.com/topics/spectral-theorem) a symmetric matrix factors as $\Sigma = Q\Lambda Q^{\top}$, where $Q = [v_1 \cdots v_d]$ is orthogonal and $\Lambda = \operatorname{diag}(\lambda_1, \dots, \lambda_d)$. Any unit vector $w$ can be written in this [eigenbasis](https://formalcalculus.com/topics/eigenvalues-eigenvectors) as $w = Qc$, and because $Q$ is orthogonal $\lVert c\rVert = \lVert w\rVert = 1$. Substituting,
+
+$$
+w^{\top}\Sigma w = (Qc)^{\top} Q\Lambda Q^{\top} (Qc) = c^{\top}\Lambda c = \sum_{i=1}^d \lambda_i c_i^2 \;\le\; \lambda_1 \sum_{i=1}^d c_i^2 = \lambda_1,
+$$
+
+since $\lambda_1$ is the largest eigenvalue and $\sum_i c_i^2 = 1$. Equality holds exactly when all the weight sits on the largest eigenvalue, $c = e_1$, that is $w = v_1$ (uniquely so when $\lambda_1 > \lambda_2$). For the $j$-th direction, restricting to $w \perp v_1, \dots, v_{j-1}$ forces $c_1 = \dots = c_{j-1} = 0$, so the same bound gives $w^{\top}\Sigma w = \sum_{i \ge j}\lambda_i c_i^2 \le \lambda_j$, attained at $v_j$. Summing the per-direction maxima, no orthonormal $W$ can exceed $\operatorname{tr}(W^{\top}\Sigma W) = \sum_{j=1}^k w_j^{\top}\Sigma w_j \le \sum_{j=1}^k \lambda_j$, with equality at $W = [v_1 \cdots v_k]$. The general statement that this greedy, one-direction-at-a-time argument is globally optimal over all $k$-subspaces is the Courant–Fischer min-max theorem, which we cite (Horn and Johnson, 2013); the companion code confirms no random unit vector exceeds the Rayleigh maximum $\lambda_1$. $\blacksquare$
+
+</TheoremBlock>
+
+The geometric reading is the one to keep: $\Sigma$ stretches space most along $v_1$, next-most along $v_2 \perp v_1$, and so on, and PCA keeps the directions of greatest stretch. The eigenvalue $\lambda_j$ *is* the variance the cloud has along $v_j$.
+
+---
+
+## Reconstruction error, and why variance and error are one optimum
+
+The variance formulation and the reconstruction formulation look different — one maximizes what we keep, the other minimizes what we lose — but they are the same optimization, joined by the Pythagorean theorem.
+
+<TheoremBlock type="theorem" number={2} title="Variance maximization equals reconstruction-error minimization">
+
+For any orthonormal $W \in \mathbb{R}^{d \times k}$ and centered $z = x - \bar{x}$,
+
+$$
+\mathbb{E}\lVert z - WW^{\top}z\rVert^2 = \operatorname{tr}(\Sigma) - \operatorname{tr}(W^{\top}\Sigma W).
+$$
+
+Hence minimizing the expected squared reconstruction error over rank-$k$ orthonormal projectors is identical to maximizing the retained variance $\operatorname{tr}(W^{\top}\Sigma W)$, and both are solved by $W = [v_1 \cdots v_k]$, leaving the minimum residual
+
+$$
+\mathbb{E}\lVert z - WW^{\top}z\rVert^2 = \sum_{i > k}\lambda_i .
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The projector $P = WW^{\top}$ onto the column space of $W$ is orthogonal ($P^2 = P = P^{\top}$, using $W^{\top}W = I_k$), so for every $z$ the decomposition $z = Pz + (z - Pz)$ is orthogonal and the Pythagorean theorem gives $\lVert z\rVert^2 = \lVert Pz\rVert^2 + \lVert z - Pz\rVert^2$ pointwise. Taking expectations, $\mathbb{E}\lVert z - Pz\rVert^2 = \mathbb{E}\lVert z\rVert^2 - \mathbb{E}\lVert Pz\rVert^2$. Now $\mathbb{E}\lVert z\rVert^2 = \mathbb{E}[\operatorname{tr}(zz^{\top})] = \operatorname{tr}(\Sigma)$ and, since $\lVert Pz\rVert^2 = \lVert W^{\top}z\rVert^2 = z^{\top}WW^{\top}z$,
+
+$$
+\mathbb{E}\lVert Pz\rVert^2 = \mathbb{E}\bigl[\operatorname{tr}(W^{\top}zz^{\top}W)\bigr] = \operatorname{tr}(W^{\top}\Sigma W),
+$$
+
+which proves the identity. Because $\operatorname{tr}(\Sigma) = \sum_i \lambda_i$ is fixed, minimizing the left side is maximizing $\operatorname{tr}(W^{\top}\Sigma W)$ — the variance problem of Theorem 1, whose optimum is $\sum_{i \le k}\lambda_i$ at the top-$k$ eigenvectors. The residual is then $\sum_i \lambda_i - \sum_{i \le k}\lambda_i = \sum_{i > k}\lambda_i$. $\blacksquare$
+
+</TheoremBlock>
+
+So the best $k$-dimensional summary of an embedding cloud, whether you measure "best" by variance kept or by reconstruction lost, is the same top-$k$ eigenspace, and the price of the compression is the sum of the eigenvalues you discard. The next theorem turns this from a statement about the covariance into the classical statement about the data matrix itself.
+
+---
+
+## Eckart–Young–Mirsky and the SVD–PCA equivalence
+
+PCA is usually *computed* not from the covariance but from the [singular value decomposition](https://formalml.com/topics/svd) of the centered data matrix, $\tilde{X} = U S V^{\top}$, with singular values $s_1 \ge \dots \ge s_r > 0$ on the diagonal of $S$. The two pictures are the same object.
+
+<TheoremBlock type="proposition" number={1} title="SVD–PCA equivalence">
+
+If $\tilde{X} = U S V^{\top}$ then $\Sigma = \tfrac{1}{n-1}\tilde{X}^{\top}\tilde{X} = V\bigl(\tfrac{1}{n-1}S^2\bigr)V^{\top}$, so the principal directions are the right singular vectors (the columns of $V$) and the eigenvalues are $\lambda_i = s_i^2/(n-1)$.
+
+</TheoremBlock>
+
+This is the result developed in [pca-low-rank](https://formalml.com/topics/pca-low-rank) and [svd](https://formalml.com/topics/svd); the one-line derivation substitutes the SVD into $\tilde{X}^{\top}\tilde{X} = VS U^{\top}USV^{\top} = VS^2V^{\top}$, and the companion harness verifies eigenvalue-by-eigenvalue that the covariance eigendecomposition and the SVD agree. With this identification, "best rank-$k$ approximation of the data" and "top-$k$ PCA projection" become the same truncation, and its optimality is the Eckart–Young–Mirsky theorem.
+
+<TheoremBlock type="theorem" number={3} title="Eckart–Young–Mirsky (best low-rank approximation)">
+
+Let $\tilde{X} = USV^{\top}$ and let $\tilde{X}_k = U_k S_k V_k^{\top}$ be the truncated SVD keeping the top $k$ singular triples. Then over all matrices $B$ of rank at most $k$,
+
+$$
+\tilde{X}_k = \arg\min_{\operatorname{rank}(B) \le k}\lVert \tilde{X} - B\rVert_F, \qquad \lVert \tilde{X} - \tilde{X}_k\rVert_F^2 = \sum_{i > k} s_i^2 = (n-1)\sum_{i > k}\lambda_i .
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The value first. The Frobenius norm is unitarily invariant — $\lVert M\rVert_F^2 = \operatorname{tr}(M^{\top}M)$ equals the sum of squared singular values of $M$ — and $\tilde{X} - \tilde{X}_k = U(S - S_k)V^{\top}$ has singular values $s_{k+1}, \dots, s_r$ (the top $k$ cancelled), so $\lVert \tilde{X} - \tilde{X}_k\rVert_F^2 = \sum_{i > k}s_i^2$, which is $(n-1)\sum_{i>k}\lambda_i$ by Proposition 1. For optimality, let $B$ have rank at most $k$, so its null space has dimension at least $d - k$. The span of $v_1, \dots, v_{k+1}$ has dimension $k+1$, and two subspaces of $\mathbb{R}^d$ whose dimensions sum to more than $d$ must intersect, so there is a unit vector $w \in \operatorname{null}(B) \cap \operatorname{span}\{v_1, \dots, v_{k+1}\}$. For that $w$, $Bw = 0$, so $(\tilde{X} - B)w = \tilde{X}w$, and writing $w = \sum_{i \le k+1} c_i v_i$ gives $\lVert \tilde{X}w\rVert^2 = \sum_{i \le k+1} c_i^2 s_i^2 \ge s_{k+1}^2$ because each $s_i \ge s_{k+1}$ there. Hence $\lVert \tilde{X} - B\rVert_2 \ge s_{k+1} = \lVert \tilde{X} - \tilde{X}_k\rVert_2$, the spectral-norm optimality; the Frobenius statement follows from the same interlacing applied to all the tail singular values, which we present as the truncated-SVD value above and cite in full to Eckart and Young (1936). The extension of this optimality to *every* unitarily-invariant norm is Mirsky's theorem (Horn and Johnson, 2013), which we cite and the harness verifies numerically by checking that the truncated SVD beats every random rank-$k$ projection. $\blacksquare$
+
+</TheoremBlock>
+
+Two summaries of the spectrum do the practical work. The **explained-variance ratio** $\mathrm{EVR}(k) = \sum_{i \le k}\lambda_i / \sum_i \lambda_i$ is the fraction of total variance the top $k$ directions hold; by Theorem 2 it is also one minus the relative reconstruction error. The **effective rank** (participation ratio) $n_{\text{eff}} = (\sum_i \lambda_i)^2 / \sum_i \lambda_i^2$ is a soft count of how many directions carry appreciable variance — it is small when a few eigenvalues dominate and approaches the ambient $d$ when the spectrum is flat. For the synthetic $1536$-dimensional financial cloud in the companion code, the effective rank is about $6$ and the top $128$ components already hold $98.7\%$ of the variance: the cloud is, for the purposes of distance, far lower-dimensional than its ambient size.
+
+---
+
+## What survives projection: distortion equals explained variance
+
+We have controlled reconstruction error. Retrieval, though, cares about *distances* — whether the nearest neighbor stays the nearest neighbor after we project. The bridge is a short identity that ties the geometry directly to the spectrum.
+
+<TheoremBlock type="theorem" number={4} title="Projection distortion equals the explained-variance ratio">
+
+Let $P_k = V_k V_k^{\top}$ be the top-$k$ PCA projector and $z = x - \bar{x}$ a centered embedding. The expected fraction of squared norm retained by the projection is
+
+$$
+\frac{\mathbb{E}\lVert P_k z\rVert^2}{\mathbb{E}\lVert z\rVert^2} = \mathrm{EVR}(k),
+$$
+
+and the fraction of the data's mean pairwise squared distance that survives the projection is the same $\mathrm{EVR}(k)$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Since $P_k$ projects onto the top-$k$ eigenvectors, $\mathbb{E}\lVert P_k z\rVert^2 = \operatorname{tr}(P_k \Sigma) = \sum_{i \le k}\lambda_i$ and $\mathbb{E}\lVert z\rVert^2 = \operatorname{tr}(\Sigma) = \sum_i \lambda_i$, whose ratio is $\mathrm{EVR}(k)$ by definition. For pairwise distances, expand over the centered cloud: $\sum_{i,j}\lVert z_i - z_j\rVert^2 = \sum_{i,j}\bigl(\lVert z_i\rVert^2 + \lVert z_j\rVert^2 - 2\langle z_i, z_j\rangle\bigr) = 2n\sum_i \lVert z_i\rVert^2 - 2\bigl\lVert \sum_i z_i\bigr\rVert^2$, and the last term vanishes because the data are centered, $\sum_i z_i = 0$. So the mean pairwise squared distance is exactly $2n$ times the mean squared norm, and the identical computation for the projected cloud $P_k z_i$ (which is also centered) replaces $\sum_i\lVert z_i\rVert^2$ by $\sum_i\lVert P_k z_i\rVert^2$. The retained fraction is therefore the same norm ratio, $\mathrm{EVR}(k)$. $\blacksquare$
+
+</TheoremBlock>
+
+This is the sentence that makes PCA a retrieval tool rather than a compression trick: *keep $90\%$ of the variance and you keep $90\%$ of the squared-distance energy*, so the metric the retriever scores on is preserved in exactly the proportion the scree plot reports. It also sharpens the contrast with the alternative. A *random* projection — the data-oblivious method of the [Johnson–Lindenstrauss lemma](/topics/high-dimensional-geometry), the next topic in this track — preserves all pairwise distances of *any* point set with high probability, but only by keeping enough dimensions, $k = O(\varepsilon^{-2}\log n)$, regardless of where the data actually live. PCA is *data-dependent*: it spends its $k$ dimensions on the directions this particular cloud occupies, so for a cloud of low effective rank it preserves far more distance per dimension. The companion code makes the gap concrete — at $128$ retained dimensions, PCA keeps $94\%$ of the top-$10$ nearest-neighbor recall where a random projection of the same width keeps only $26\%$.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+The production financial-RAG system behind the [BM25](/topics/bm25-binary-independence-model) and [rank-fusion](/topics/rank-fusion-rrf) case studies stores $1536$-dimensional embeddings of 10-K passages and earnings-call chunks. At ten million chunks that index is tens of gigabytes, and a natural question is whether it can be shrunk without losing retrieval quality. The geometry says it should: these embeddings carry a handful of dominant topical directions and a long tail, so their *effective* rank is far below $1536$.
+
+We make the point with a self-contained experiment. Take a synthetic cloud of $1536$-dimensional embeddings built as a low-rank topical signal — three subtopics, a decaying spectrum across roughly fifty latent directions — plus a small ambient noise floor, a stand-in for the manifold a real encoder produces. The companion code measures:
+
+- **effective rank $\mathbf{6.1}$** out of $1536$ ambient dimensions — the cloud's variance is concentrated in a few directions;
+- keeping the **top $128$ principal components** retains $\mathbf{98.7\%}$ of the variance, hence (Theorem 4) $98.7\%$ of the squared-distance energy;
+- **recall@10 retained at $128$ dimensions: $\mathbf{94.4\%}$ for PCA, against $\mathbf{25.7\%}$ for a random projection** of the same width.
+
+Same target width, very different outcomes. Because PCA spends its $128$ dimensions on the directions the documents actually vary along — the topical structure a random projection is blind to — it keeps nearly all of the nearest-neighbor structure while cutting the index footprint by an order of magnitude. The data-oblivious projection, needing far more dimensions to guarantee the same distance preservation, throws most of the recall away at this width. For a corpus whose embeddings carry real low-rank structure, PCA is not just compression; it is compression that retrieval barely notices.
+
+</FinanceCaseStudy>
+
+A candid note on the companion code, in the spirit of the rest of the series: the cloud is a synthetic low-rank-plus-noise construction, sampled deterministically so the notebook is CPU-only and reproducible to the decimal with no model download, and the recall numbers are measured on it. It is not the output of a trained encoder, and — as the caveats spell out next — a real encoder's top components carry nuisance structure that this clean synthetic spectrum does not, which is exactly where variance-optimal and retrieval-optimal part ways.
+
+---
+
+## The honest catch: variance-optimal is not retrieval-optimal
+
+Everything above optimizes one objective — reconstruction error, equivalently retained variance — and proves PCA optimal for it. Retrieval has a *different* objective: preserve the *ranking* of similarity scores, so that the documents a query would have retrieved in full dimension are the ones it retrieves after projection. The two objectives usually agree, which is why PCA is a workhorse, but they can disagree, and the disagreement is not a footnote.
+
+The reason is that the top principal components — the directions of greatest variance — are not always the directions of greatest *relevance*. In real embedding sets the largest-variance directions frequently encode nuisance structure: a dominant "common" direction shared by almost every embedding, or variation that tracks token frequency and document length rather than topic. Projecting onto the top components faithfully keeps that nuisance and can wash out the finer, lower-variance distinctions a retriever actually ranks on. The striking empirical counterpoint is that *removing* the top few components — the "All-but-the-Top" postprocessing of Mu and Viswanath (2018) — often *improves* similarity and retrieval, the opposite of what a pure variance objective would recommend. That is a measured heuristic, not a theorem, and we flag it as such; it is the cleanest evidence that variance-optimal and retrieval-optimal are genuinely different targets. These nuisance directions are themselves a property of [learned representations](https://formalml.com/topics/representation-learning), and they connect to the [spherical geometry](/topics/hypersphere-vmf-geometry) of the previous topic: PCA's mean-centering is in tension with the uncentered, normalized vectors cosine retrieval actually compares.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Five qualifications keep the optimality honest:
+
+1. **Variance-optimal is not retrieval-optimal.** PCA minimizes reconstruction error (Theorems 1–3), but retrieval preserves a *ranking* of scores. The top components often encode nuisance structure — a common direction, frequency, length — so naive projection can hurt cosine retrieval, and *removing* the top components (All-but-the-Top, Mu and Viswanath 2018) can help. That is a cited empirical heuristic, never a theorem here.
+2. **PCA is linear; the manifold need not be.** The intrinsic-dimension argument of the prerequisite topic says embeddings lie near a low-dimensional *surface*, which a linear subspace only approximates, so the effective rank PCA reports is an upper bound on the true intrinsic dimension.
+3. **Centering interacts with cosine.** The variance and reconstruction theory is exact for *centered* data, but cosine retrieval is usually computed on uncentered, L2-normalized vectors, so the mean subtraction is itself a modeling choice that shifts every angle.
+4. **We prove the core and cite the rest.** Theorems 1, 2, 4 and the truncated-SVD value of Theorem 3 are proved; the SVD existence and SVD–PCA equivalence are cited to formalML, the Courant–Fischer min-max and Mirsky's unitarily-invariant-norm optimality to Horn and Johnson, and each is verified numerically.
+5. **The finance embeddings are synthetic.** The companion cloud is a low-rank-plus-noise stand-in, not a trained encoder, and the recall numbers are measured on it.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) is self-contained, CPU-only, and runs in a few seconds on `numpy`, `scipy`, and `scikit-learn`. It samples the synthetic embedding cloud, computes PCA both by eigendecomposition of the covariance and by SVD of the centered data matrix, measures reconstruction error and the random-projection baseline, the explained-variance ratio and effective rank, the projection-distortion fractions, and the nearest-neighbor recall after projection, and prints the grid table that the `SpectrumLaboratory` mirrors to the decimal. Its verification harness makes each claim executable: the eigendecomposition and the SVD agree on eigenvalues to machine precision and on components up to sign (Proposition 1); no random unit vector beats the Rayleigh maximum $\lambda_1$ (Theorem 1); the reconstruction identity $\operatorname{tr}(\Sigma) - \operatorname{tr}(W^{\top}\Sigma W)$ holds and the residual equals the tail sum (Theorem 2); the truncated-SVD Frobenius error equals $\sum_{i>k}s_i^2$ and beats every random rank-$k$ projection (Theorem 3); the retained squared-norm and squared-distance fractions both equal $\mathrm{EVR}(k)$ exactly (Theorem 4); recall@10 is monotone in the kept dimension and PCA beats random everywhere; and the whole pipeline agrees with `scikit-learn`'s reference PCA. The three pillars — the proofs above, the laboratory, and the tested code — agree by construction.

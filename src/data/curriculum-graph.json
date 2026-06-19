@@ -27,7 +27,7 @@
     {
       "id": "pca-dimensionality-reduction",
       "label": "PCA as Optimal Linear Dimensionality Reduction for Embeddings",
-      "status": "planned",
+      "status": "published",
       "domain": "embedding-geometry"
     },
     {
