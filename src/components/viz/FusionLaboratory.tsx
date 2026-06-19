@@ -76,6 +76,43 @@ function Slider({ label, value, min, max, step, onChange }: {
   );
 }
 
+// A single ranked column. Defined at module scope (not inside FusionLaboratory)
+// so its component identity is stable across renders — otherwise every slider
+// drag or hover would unmount and remount all three columns instead of
+// reconciling them. hover/setHover are threaded in as props.
+function Column({ title, order, sub, hover, setHover }: {
+  title: string; order: string[]; sub: string;
+  hover: string | null; setHover: (v: string | null) => void;
+}) {
+  return (
+    <div style={{ flex: 1, minWidth: '190px' }}>
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.15rem' }}>{title}</div>
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginBottom: '0.4rem', minHeight: '1.5em' }}>{sub}</div>
+      <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+        {order.map((id, i) => {
+          const d = byId[id];
+          const active = hover === id;
+          return (
+            <li key={id}
+              onMouseEnter={() => setHover(id)} onMouseLeave={() => setHover(null)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.4rem',
+                fontFamily: 'var(--font-sans)', fontSize: '0.72rem', borderRadius: '0.4rem',
+                border: `1px solid ${active ? 'var(--color-accent)' : 'transparent'}`,
+                background: active ? 'var(--color-muted-bg)' : 'transparent',
+                transition: 'background 0.25s, border-color 0.25s',
+              }}>
+              <span style={{ minWidth: '1rem', color: 'var(--color-text-secondary)' }}>{i + 1}</span>
+              <span style={{ width: '0.5rem', height: '0.5rem', borderRadius: '999px', background: KIND_COLOR[d.kind], flexShrink: 0 }} />
+              <span style={{ flex: 1, fontWeight: d.qrel >= 2 ? 600 : 400 }}>{d.label}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 type Method = 'rrf' | 'borda' | 'combsum';
 
 export default function FusionLaboratory() {
@@ -121,34 +158,6 @@ export default function FusionLaboratory() {
     tauKem: kendallTau(fusedOrder, KEMENY),
   }), [lexOrder, denOrder, fusedOrder]);
 
-  const Column = ({ title, order, sub }: { title: string; order: string[]; sub: string }) => (
-    <div style={{ flex: 1, minWidth: '190px' }}>
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.15rem' }}>{title}</div>
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginBottom: '0.4rem', minHeight: '1.5em' }}>{sub}</div>
-      <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-        {order.map((id, i) => {
-          const d = byId[id];
-          const active = hover === id;
-          return (
-            <li key={id}
-              onMouseEnter={() => setHover(id)} onMouseLeave={() => setHover(null)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.4rem',
-                fontFamily: 'var(--font-sans)', fontSize: '0.72rem', borderRadius: '0.4rem',
-                border: `1px solid ${active ? 'var(--color-accent)' : 'transparent'}`,
-                background: active ? 'var(--color-muted-bg)' : 'transparent',
-                transition: 'background 0.25s, border-color 0.25s',
-              }}>
-              <span style={{ minWidth: '1rem', color: 'var(--color-text-secondary)' }}>{i + 1}</span>
-              <span style={{ width: '0.5rem', height: '0.5rem', borderRadius: '999px', background: KIND_COLOR[d.kind], flexShrink: 0 }} />
-              <span style={{ flex: 1, fontWeight: d.qrel >= 2 ? 600 : 400 }}>{d.label}</span>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-
   const hovered = hover ? byId[hover] : null;
 
   return (
@@ -183,12 +192,12 @@ export default function FusionLaboratory() {
 
       {/* three ranked columns */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-        <Column title="Lexical · BM25" order={lexOrder} sub="exact-term matches over 10-K text" />
-        <Column title="Dense · cosine" order={denOrder} sub="semantic matches over call passages" />
+        <Column title="Lexical · BM25" order={lexOrder} sub="exact-term matches over 10-K text" hover={hover} setHover={setHover} />
+        <Column title="Dense · cosine" order={denOrder} sub="semantic matches over call passages" hover={hover} setHover={setHover} />
         <Column
           title={`Fused · ${method === 'rrf' ? 'RRF' : method === 'borda' ? 'Borda' : 'CombSUM'}`}
           order={fusedOrder}
-          sub={`query “${QUERY}”`} />
+          sub={`query “${QUERY}”`} hover={hover} setHover={setHover} />
       </div>
 
       {/* hover detail: per-leg rank and the 1/(k+r) contributions */}
