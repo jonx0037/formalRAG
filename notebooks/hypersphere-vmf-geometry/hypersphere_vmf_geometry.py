@@ -102,7 +102,13 @@ def log_vmf_norm_const(d: int, kappa: float) -> float:
     if kappa <= 0.0:
         return -log_surface_area(d)
     nu = d / 2.0 - 1.0
-    log_iv = math.log(ive(nu, kappa)) + kappa
+    iv = ive(nu, kappa)
+    if iv > 0.0:
+        log_iv = math.log(iv) + kappa
+    else:
+        # ive underflows to 0 for large order / small argument (e.g. d = 1536 with
+        # small kappa); fall back to the leading small-argument term of log I_nu.
+        log_iv = nu * math.log(kappa / 2.0) - gammaln(nu + 1.0)
     return nu * math.log(kappa) - (d / 2.0) * math.log(2.0 * math.pi) - log_iv
 
 
@@ -156,6 +162,8 @@ def sample_vmf(n: int, mu: np.ndarray, kappa: float, seed: int = 0) -> np.ndarra
     rng = np.random.default_rng(seed)
     mu = normalize(np.asarray(mu, dtype=float).reshape(-1))
     d = mu.shape[0]
+    if d < 2:
+        raise ValueError("von Mises-Fisher sampling requires dimension d >= 2.")
     if kappa <= 0.0:
         return sample_uniform_sphere(n, d, seed)
     w = _wood_axis_component(n, d, kappa, rng)
@@ -197,6 +205,8 @@ def kappa_hat_exact(d: int, rbar: float) -> float:
     hi = max(1.0, kappa_hat_banerjee(d, rbar)) * 4.0 + 10.0
     while mean_resultant_length(d, hi) < rbar and hi < 1e12:
         hi *= 2.0
+    if mean_resultant_length(d, hi) < rbar:        # r_bar ~ 1: the MLE diverges; cap
+        return hi
     return float(brentq(lambda k: mean_resultant_length(d, k) - rbar, 1e-9, hi,
                         xtol=1e-10, rtol=1e-12))
 

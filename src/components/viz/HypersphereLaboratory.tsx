@@ -87,8 +87,9 @@ function densityPath(logf: (x: number) => number, xmin: number, xmax: number): s
   const plotH = PLOT_H - 2 * PAD;
   let path = '';
   for (let i = 0; i < npts; i++) {
-    let y = Number.isFinite(lg[i]) ? Math.exp(lg[i] - mx) : 0;
-    if (!Number.isFinite(y)) y = 1;
+    // +Infinity is a true pole (the d<3 equatorial law) -> pin to the top; -Infinity
+    // is a true zero (the density vanishes at the boundary) -> pin to the bottom.
+    let y = Number.isFinite(lg[i]) ? Math.exp(lg[i] - mx) : (lg[i] === Infinity ? 1 : 0);
     y = Math.min(1, Math.max(0, y));
     const px = PAD + (plotW * (xs[i] - xmin)) / (xmax - xmin);
     const py = PAD + plotH * (1 - y);
@@ -115,10 +116,12 @@ function valuePath(f: (x: number) => number, xmin: number, xmax: number, ymin: n
 
 // Closed-form log-densities (up to a constant). The vMF law is the uniform
 // coordinate marginal tilted by the exponential kappa*t; at kappa=0 they coincide.
+// Let the arithmetic carry the boundary sign: (d-3)/2 < 0 gives +Infinity (a pole,
+// d<3), > 0 gives -Infinity (a zero, d>3).
 const logUniformCoord = (d: number) => (t: number) =>
-  t <= -1 || t >= 1 ? -Infinity : ((d - 3) / 2) * Math.log(1 - t * t);
+  t <= -1 || t >= 1 ? ((d - 3) / 2) * -Infinity : ((d - 3) / 2) * Math.log(1 - t * t);
 const logVMF = (d: number, kappa: number) => (t: number) =>
-  t <= -1 || t >= 1 ? -Infinity : kappa * t + ((d - 3) / 2) * Math.log(1 - t * t);
+  t <= -1 || t >= 1 ? ((d - 3) / 2) * -Infinity : kappa * t + ((d - 3) / 2) * Math.log(1 - t * t);
 
 function Plot({ paths, xmin, xmax, ticks, markerX }: {
   paths: { d: string; color: string; width: number }[];
