@@ -78,8 +78,9 @@ function densityPath(logf: (x: number) => number, xmin: number, xmax: number): s
   const plotH = PLOT_H - 2 * PAD;
   let path = '';
   for (let i = 0; i < npts; i++) {
-    let y = Number.isFinite(lg[i]) ? Math.exp(lg[i] - mx) : 0;
-    if (!Number.isFinite(y)) y = 1; // a true pole (e.g. d=1 angle law) pins to the top
+    // +Infinity is a true pole (e.g. the d<3 angle law) -> pin to the top; -Infinity
+    // is a true zero (the density vanishes at the boundary) -> pin to the bottom.
+    let y = Number.isFinite(lg[i]) ? Math.exp(lg[i] - mx) : (lg[i] === Infinity ? 1 : 0);
     y = Math.min(1, Math.max(0, y));
     const px = PAD + (plotW * (xs[i] - xmin)) / (xmax - xmin);
     const py = PAD + plotH * (1 - y);
@@ -92,7 +93,9 @@ function densityPath(logf: (x: number) => number, xmin: number, xmax: number): s
 const logChiNormalized = (d: number) => (u: number) =>
   u <= 0 ? -Infinity : (d - 1) * Math.log(u) - (d * u * u) / 2; // ||x||/sqrt(d) and D/mean share this shape
 const logProjection = (d: number) => (t: number) =>
-  t <= -1 || t >= 1 ? Infinity : ((d - 3) / 2) * Math.log(1 - t * t); // <u, v> for v uniform on the sphere
+  // <u, v> for v uniform on the sphere; let the arithmetic carry the boundary sign —
+  // (d-3)/2 < 0 gives +Infinity (a pole, d<3), > 0 gives -Infinity (a zero, d>3).
+  t <= -1 || t >= 1 ? ((d - 3) / 2) * -Infinity : ((d - 3) / 2) * Math.log(1 - t * t);
 
 function Plot({ paths, xmin, xmax, ticks, markerX }: {
   paths: { d: string; color: string; width: number }[];

@@ -183,14 +183,20 @@ def twonn_intrinsic_dim(x: np.ndarray, discard_fraction: float = 0.1) -> float:
     dist = np.sqrt(np.partition(d2, 1, axis=1)[:, :2])
     dist.sort(axis=1)
     r1, r2 = dist[:, 0], dist[:, 1]
-    mu = r2 / r1
+    nonzero = r1 > 0.0                              # duplicate points give r1 = 0
+    mu = r2[nonzero] / r1[nonzero]
     mu = np.sort(mu[np.isfinite(mu) & (mu > 1.0)])
     m = len(mu)
+    if m == 0:
+        return 0.0
     f_emp = np.arange(1, m + 1) / m
     cut = int((1.0 - discard_fraction) * m)
+    if cut == 0:
+        return 0.0
     log_mu = np.log(mu[:cut])
     y = -np.log(1.0 - f_emp[:cut])
-    return float(np.sum(log_mu * y) / np.sum(log_mu * log_mu))  # slope through origin
+    denom = float(np.sum(log_mu * log_mu))
+    return float(np.sum(log_mu * y) / denom) if denom > 0.0 else 0.0  # slope through origin
 
 
 # --------------------------------------------------------------------------- #
