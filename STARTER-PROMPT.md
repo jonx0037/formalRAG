@@ -172,8 +172,11 @@ pnpm dev                   # then open the topic page
 `.katex-error` spans and the build still exits 0. **Open the page and verify the DOM with
 `browser_evaluate`, not screenshots** (screenshots drift to `/` on this setup). Assert: zero
 `.katex-error` spans, the expected `.katex` count, and that each viz mounted (slider/ranking
-present). Re-run the notebook one final time; confirm the page's worked-example numbers equal the
-notebook's printed output.
+present). The viz embeds with `client:visible`, so the SSR DOM (KaTeX counts, baked readouts) is
+there immediately, but to exercise *interactivity* (switch a panel, drag a slider) first
+`scrollIntoView` the component and wait ~0.5–1 s for hydration — a raw `.click()` against
+un-hydrated markup silently no-ops. Re-run the notebook one final time; confirm the page's
+worked-example numbers equal the notebook's printed output.
 
 **`audit:cross-site` writes generated files — never commit them.** It regenerates
 `docs/plans/audit-output/`, `docs/plans/cross-site-audit-report.md`, and
