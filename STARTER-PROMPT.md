@@ -150,7 +150,9 @@ The notebook is now immutable and is the source of truth. Build the page against
 `CLAUDE.md` → `docs/plans/formalrag-<slug>-brief.md` → `notebooks/<slug>/01_<slug_underscored>.ipynb`. Then
 study the BM25 topic as the structural exemplar: `src/content/topics/bm25-binary-independence-model.mdx`
 (frontmatter anatomy, `TheoremBlock`/`NamedSection`/`RigorFlag`/`FinanceCaseStudy` usage, the
-`<Viz client:visible />` embed) and `src/components/viz/BM25ScoringLaboratory.tsx`.
+`<Viz client:visible />` embed) and `src/components/viz/BM25ScoringLaboratory.tsx`. For tri-site
+cross-links and a concentration/geometry viz, also study `high-dimensional-geometry`
+(`src/content/topics/high-dimensional-geometry.mdx` + `src/components/viz/ConcentrationLaboratory.tsx`).
 
 ### B2. Build order
 
