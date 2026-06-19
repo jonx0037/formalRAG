@@ -49,6 +49,12 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 ## Content & verification conventions
 
 - Three pillars per topic: rigorous math (KaTeX) + interactive D3 viz + working Python.
+- **Notebook pillar contract** (`notebooks/README.md`): each topic ships
+  `notebooks/<slug>/<slug_underscored>.py` — the canonical, tested, importable reference that *owns
+  the numbers* — plus `01_<slug_underscored>.ipynb`, a narrative notebook that imports the `.py` and walks the
+  topic section by section. Both must exit 0 before shipping; commit the `.ipynb` without stored
+  outputs. `notebooks/bm25/` is the exemplar. The full per-topic workflow lives in
+  `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
