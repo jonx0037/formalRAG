@@ -26,7 +26,6 @@ export const tracks = [
     description:
       'Where embeddings live and what ANN must contend with: concentration of measure, hypersphere and von Mises–Fisher geometry, PCA and random projections, Johnson–Lindenstrauss, and chunking as segmentation.',
     planned: [
-      'Normalization, the Hypersphere, and von Mises–Fisher Geometry',
       'PCA as Optimal Linear Dimensionality Reduction for Embeddings',
       'Matryoshka Representations: Jointly Trained Nested Subspaces',
       'Random Projections and the Johnson–Lindenstrauss Lemma',

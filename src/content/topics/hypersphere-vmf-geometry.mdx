@@ -1,0 +1,392 @@
+---
+title: "Normalization, the Hypersphere, and von Mises–Fisher Geometry"
+subtitle: "Why retrieval lives on the unit sphere, and the distribution that models a topical cluster on it"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "high-dimensional-geometry"
+tags:
+  - "hypersphere"
+  - "von-mises-fisher"
+  - "cosine-similarity"
+  - "normalization"
+  - "directional-statistics"
+  - "concentration-parameter"
+  - "maximum-entropy"
+  - "mean-resultant-length"
+domain: "embedding-geometry"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The clean story — embeddings live on the sphere and a topical cluster is von Mises–Fisher — is a model, and three of its joints are softer than the equations suggest. First, vMF assumes the data are isotropic around the mean direction: equally spread in every tangent direction. Real embeddings are not — they exhibit anisotropy and the cone effect (representations occupy a narrow cone rather than spreading over the sphere), and cross-modal embeddings show a modality gap, two displaced clusters no single mean direction captures (Ethayarajh 2019; Liang et al. 2022), so on raw embeddings the vMF fit is misspecified and the concentration estimate is biased. Second, the headline estimator kappa-hat ≈ r-bar(d − r-bar^2)/(1 − r-bar^2) (Banerjee et al. 2005) is an approximation to the implicit Bessel-ratio root A_d(kappa) = r-bar, accurate over typical kappa but not the exact MLE; the companion code verifies its error against the numerically solved root rather than calling it exact. Third, the uniform-sphere equatorial concentration is asymptotic and in probability — the (1 − t^2)^((d−3)/2) law is exact, but 'mass crowds the equator' is a large-d statement with finite-d constants. Finally, cosine similarity is a calibrated geometry, not a calibrated probability: 0.8 is more similar than 0.4, but it is not an 80% chance of relevance. The proved core — the cosine–distance identity, the coordinate marginal and its 1/d variance, the reduction of the vMF normalizer to a Bessel integral, the maximum-entropy characterization, and the mu-hat/score-equation MLE — holds exactly; the Banerjee closed form and the Bessel integral representation are cited and verified numerically, and the finance clusters in the companion code are a synthetic vMF stand-in, not a trained encoder."
+videoId: null
+notebookPath: "notebooks/hypersphere-vmf-geometry/01_hypersphere_vmf_geometry.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/hypersphere-vmf-geometry.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 38
+abstract: "Dense retrievers L2-normalize their embeddings, so the space they actually search is not all of R^d but the unit hypersphere S^{d-1}, where cosine similarity is the inner product and ranking by cosine is ranking by Euclidean distance. We start from that identity, then ask what 'no information' looks like on the sphere — the uniform distribution, whose projection onto any axis has density proportional to (1 − t^2)^((d−3)/2) and variance exactly 1/d, the same 1/d that made random vectors near-orthogonal one topic ago, now read as a law that crowds all the mass onto the equator. A topical cluster of embeddings is not uniform; it concentrates around a mean direction, and the distribution that models it is the von Mises–Fisher law f(x) = C_d(kappa) exp(kappa mu·x). We derive its normalizing constant, showing it is a modified Bessel function precisely because the surface integral reduces to the equatorial slice; prove it is the maximum-entropy distribution on the sphere with a given mean direction; and derive the maximum-likelihood estimates of the mean direction mu and the concentration kappa, the parameter that measures how tight a cluster is. An interactive Hypersphere Laboratory and a tested implementation accompany the derivation, with a finance example modeling two topical clusters of 1536-dimensional document embeddings and showing that cluster tightness is a measurable quantity."
+connections:
+  - topic: "the-retrieval-problem"
+    relationship: "the retrieval score is a similarity functional on embedding vectors; once we normalize, that functional is cosine similarity, and this topic establishes exactly what cosine measures and why ranking by it is ranking by distance on the sphere"
+  - topic: "late-interaction-learned-sparse"
+    relationship: "ColBERT's MaxSim sums cosine similarities of L2-normalized token embeddings, so late interaction scores live in this same spherical geometry, and the concentration of a token's vMF cluster bounds what MaxSim can resolve"
+references:
+  - type: "book"
+    title: "Directional Statistics"
+    authors: "Mardia & Jupp"
+    year: 2000
+    url: "https://doi.org/10.1002/9780470316979"
+    note: "The definitive reference for the von Mises–Fisher distribution: density, the Bessel-function normalizing constant, mean resultant length, and maximum-likelihood estimation"
+  - type: "paper"
+    title: "Dispersion on a Sphere"
+    authors: "Fisher"
+    year: 1953
+    url: "https://doi.org/10.1098/rspa.1953.0064"
+    note: "The original directional distribution on the sphere that the von Mises–Fisher law generalizes to arbitrary dimension"
+  - type: "paper"
+    title: "Clustering on the Unit Hypersphere using von Mises-Fisher Distributions"
+    authors: "Banerjee, Dhillon, Ghosh & Sra"
+    year: 2005
+    url: "https://www.jmlr.org/papers/v6/banerjee05a.html"
+    note: "The closed-form concentration estimate kappa-hat ≈ r-bar(d − r-bar^2)/(1 − r-bar^2) and mixture-of-vMF clustering"
+  - type: "paper"
+    title: "A short note on parameter approximation for von Mises-Fisher distributions, and a fast implementation of I_s(x)"
+    authors: "Sra"
+    year: 2012
+    url: "https://doi.org/10.1007/s00180-011-0232-x"
+    note: "Refines the Banerjee concentration estimate and gives the stable Bessel-ratio computation the companion code relies on"
+  - type: "paper"
+    title: "Simulation of the von Mises Fisher Distribution"
+    authors: "Wood"
+    year: 1994
+    url: "https://doi.org/10.1080/03610919408813161"
+    note: "The rejection sampler the companion code uses to draw vMF samples in arbitrary dimension"
+  - type: "paper"
+    title: "Understanding Contrastive Representation Learning through Alignment and Uniformity on the Hypersphere"
+    authors: "Wang & Isola"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.10242"
+    note: "Frames contrastive learning directly as geometry on the sphere, where the temperature plays the role of an inverse concentration"
+  - type: "paper"
+    title: "How Contextual are Contextualized Word Representations? Comparing the Geometry of BERT, ELMo, and GPT-2 Embeddings"
+    authors: "Ethayarajh"
+    year: 2019
+    url: "https://doi.org/10.18653/v1/D19-1006"
+    note: "Evidence that contextual embeddings are anisotropic and occupy a narrow cone, the first way real data violate the vMF isotropy assumption"
+  - type: "paper"
+    title: "Mind the Gap: Understanding the Modality Gap in Multi-modal Contrastive Representation Learning"
+    authors: "Liang, Zhang, Kwon, Yeung & Zou"
+    year: 2022
+    url: "https://arxiv.org/abs/2203.02053"
+    note: "The modality gap: text and image embeddings occupy two displaced cones on the sphere, the second way real data break the single-mean-direction vMF model"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the equatorial concentration of the uniform sphere is a concentration-of-measure statement: the coordinate marginal's 1/d variance, fed through Chebyshev or the sharper sub-Gaussian bound, is what forces almost all of the surface area into a thin band about every equator"
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the claim that von Mises–Fisher is the natural distribution on the sphere is a maximum-entropy statement; the differential entropy it maximizes and the Gibbs inequality H(p) ≤ H(q) the proof turns on are exactly the entropy and relative-entropy machinery developed there"
+formalmlConnections:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "the cone effect and modality gap that break the vMF isotropy assumption are empirical properties of learned representations; this topic supplies the clean spherical-geometry baseline those phenomena are measured as departures from"
+formalstatisticsPrereqs:
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "von Mises–Fisher is the exponential family on the sphere with sufficient statistic x; its log-normalizer is the Bessel-function constant, its mean resultant is the gradient of that log-normalizer, and its MLE is the moment-matching equation A_d(kappa) = r-bar — every structural fact here is exponential-family theory specialized to the sphere"
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "the estimators mu-hat = R/||R|| and the score equation A_d(kappa-hat) = r-bar are maximum-likelihood estimates, and the moment-matching form of the kappa equation comes straight from the score-function machinery established there"
+  - topic: "multivariate-distributions"
+    site: "formalstatistics"
+    relationship: "vMF is the spherical analog of the isotropic multivariate normal, and the uniform-sphere construction — normalize a standard Gaussian — and its coordinate marginals are read directly off the multivariate normal's radial and angular decomposition"
+formalcalculusPrereqs:
+  - topic: "change-of-variables"
+    site: "formalcalculus"
+    relationship: "the equatorial slice that yields the (1 − t^2)^((d−3)/2) coordinate marginal, and the reduction of the vMF surface integral to a one-dimensional Bessel integral, are spherical changes of variables with the radial Jacobian, the calculus that turns an integral over S^{d-1} into a single integral in the projection t"
+  - topic: "surface-integrals"
+    site: "formalcalculus"
+    relationship: "the uniform measure on the sphere and the vMF normalizing constant C_d(kappa) are surface integrals over S^{d-1}; the surface-area element and its spherical parameterization are exactly the objects integrated to obtain the Bessel-function normalizer"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import HypersphereLaboratory from '../../components/viz/HypersphereLaboratory.tsx';
+
+## Overview & motivation
+
+The [previous topic](/topics/high-dimensional-geometry) left us with a paradox and its resolution: in $\mathbb{R}^d$ with $d$ in the hundreds or thousands, distances concentrate and random directions are nearly orthogonal, yet retrieval works because real embeddings live near a low-dimensional surface. This topic looks closely at the surface they actually live on. Almost every production embedding model ends its forward pass with an L2 normalization, and almost every vector index scores by cosine similarity, so the space we truly search is not all of $\mathbb{R}^d$ — it is the unit hypersphere $S^{d-1} = \{x \in \mathbb{R}^d : \lVert x\rVert = 1\}$, where $\lVert x \rVert = \bigl(\sum_{i=1}^d x_i^2\bigr)^{1/2}$ is the Euclidean norm. On that surface, cosine similarity *is* the geometry, and the question "how similar are two documents?" becomes a question about angles.
+
+We will establish three things. First, that ranking by cosine similarity and ranking by Euclidean distance are, on the sphere, the *same ranking* — so a model can train against one and a retriever search by the other with no inconsistency. Second, that the uniform distribution on the sphere, the natural picture of "no information," concentrates all of its mass near the equator of every axis, with a coordinate that has variance exactly $1/d$ — the same $1/d$ that made two random vectors nearly orthogonal one topic ago, now read as a probability law. Third, and at the center of the topic, that a *topical cluster* of embeddings — vectors that mean similar things and therefore point in similar directions — is modeled by the **von Mises–Fisher distribution**, the spherical cousin of the Gaussian, whose single concentration parameter $\kappa$ turns out to be a measurable statement about how tight a cluster is.
+
+Before the algebra, drag the sliders and watch the geometry. The dimension slider drives the uniform law; the concentration slider drives the von Mises–Fisher law:
+
+<HypersphereLaboratory client:visible />
+
+Switch between the panels: the equatorial band shows the uniform coordinate piling up at zero as $d$ grows; the von Mises–Fisher panel shows the density's peak sweeping out from the equator toward the mean direction as $\kappa$ grows; the cosine-versus-distance panel shows the monotone line that makes the two rankings identical; and the last panel is the finance view — two topical clusters at $d = 1536$, one tight and one loose.
+
+### What we cover
+
+1. Normalization and the cosine–distance identity: why retrieval lives on the sphere.
+2. The uniform distribution on the sphere, the equatorial band, and the return of $1/d$.
+3. The von Mises–Fisher distribution and its Bessel-function normalizing constant.
+4. Why von Mises–Fisher is the maximum-entropy law on the sphere.
+5. Estimating a cluster: the maximum-likelihood mean direction and concentration.
+6. What $\kappa$ buys retrieval, a finance case study, the honest caveats, and the tested code.
+
+---
+
+## Why normalize: cosine similarity is the geometry of the sphere
+
+A retriever receives raw encoder outputs, vectors of no particular length, and must turn them into comparable scores. The standard move is to divide each vector by its norm. We write the **L2 normalization** of a nonzero vector $x$ as $\hat{x} = x / \lVert x\rVert$, a point on $S^{d-1}$, and define the **cosine similarity** of two nonzero vectors as
+
+$$
+\cos(x, y) = \frac{\langle x, y\rangle}{\lVert x\rVert\,\lVert y\rVert} = \langle \hat{x}, \hat{y}\rangle,
+$$
+
+where $\langle x, y\rangle = \sum_{i=1}^d x_i y_i$ is the inner product. Cosine similarity is therefore nothing but the inner product *after* projecting both vectors onto the sphere; normalization is that projection. The reason this is the right scoring geometry, rather than one convention among many, is a one-line identity.
+
+<TheoremBlock type="proposition" number={1} title="Cosine similarity and distance induce the same ranking">
+
+For unit vectors $x, y \in S^{d-1}$ with angle $\theta$ between them,
+
+$$
+\lVert x - y\rVert^2 = 2 - 2\langle x, y\rangle = 2\,(1 - \cos\theta).
+$$
+
+Consequently, for a fixed query $\hat{q}$ and any set of candidates, ordering them by *decreasing* cosine similarity $\langle \hat{q}, \hat{y}\rangle$ is identical to ordering them by *increasing* Euclidean distance $\lVert \hat{q} - \hat{y}\rVert$:
+
+$$
+\arg\max_{y}\ \langle \hat{q}, \hat{y}\rangle = \arg\min_{y}\ \lVert \hat{q} - \hat{y}\rVert.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Expand the squared distance with the bilinearity of the inner product: $\lVert x - y\rVert^2 = \langle x - y, x - y\rangle = \lVert x\rVert^2 - 2\langle x, y\rangle + \lVert y\rVert^2$. For unit vectors $\lVert x\rVert = \lVert y\rVert = 1$, so this is $2 - 2\langle x, y\rangle$, and since $\langle x, y\rangle = \cos\theta$ for unit vectors, it equals $2(1 - \cos\theta)$. The map $t \mapsto 2 - 2t$ is strictly decreasing, so it reverses order without changing it: the candidate with the largest cosine similarity is exactly the one with the smallest squared distance, and squaring preserves the order of nonnegative distances. $\blacksquare$
+
+</TheoremBlock>
+
+This is why a dense retriever may be *trained* with a cosine objective and then *searched* with a Euclidean index, or the reverse, with no contradiction: on the sphere the two scores are affine images of each other. It is also the reason the rest of the topic studies distributions of the inner product $\langle u, v\rangle$ rather than of distance — they carry the same information, and the inner product is the more convenient coordinate.
+
+---
+
+## The uniform distribution on the sphere and the equatorial band
+
+To understand what *structure* on the sphere looks like, we first need a picture of its absence. The natural model of "no preferred direction" is the **uniform distribution** on $S^{d-1}$ — the rotationally invariant probability measure, which we can sample by drawing a standard Gaussian vector and normalizing it. Pick any axis $u$ and ask how a uniform random point projects onto it. The answer is the law that governs the entire sphere's geometry.
+
+<TheoremBlock type="theorem" number={1} title="The equatorial coordinate marginal">
+
+Let $v$ be uniform on $S^{d-1}$ with $d \ge 2$, and fix a unit vector $u$. The projection $t = \langle u, v\rangle$ has probability density
+
+$$
+p(t) = \frac{\Gamma\!\left(\tfrac{d}{2}\right)}{\sqrt{\pi}\,\Gamma\!\left(\tfrac{d-1}{2}\right)}\,\bigl(1 - t^2\bigr)^{(d-3)/2}, \qquad t \in [-1, 1],
+$$
+
+with
+
+$$
+\mathbb{E}[t] = 0, \qquad \operatorname{Var}(t) = \frac{1}{d}, \qquad \mathbb{E}[t^4] = \frac{3}{d(d+2)}.
+$$
+
+As $d$ grows, the mass concentrates at $t = 0$: almost all of the sphere's surface lies in a thin equatorial band around any great subsphere.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The mean is zero because the uniform measure is symmetric under $v \mapsto -v$, which sends $t \mapsto -t$. For the variance, use the defining constraint of the sphere: every point satisfies $\sum_{i=1}^d v_i^2 = 1$. Taking expectations, $\sum_{i=1}^d \mathbb{E}[v_i^2] = 1$, and by rotational symmetry every coordinate has the same second moment, so $\mathbb{E}[v_i^2] = 1/d$ for each $i$. Choosing $u = e_1$ (which we may, by rotating) gives $t = v_1$ and $\operatorname{Var}(t) = \mathbb{E}[v_1^2] = 1/d$. The density itself comes from slicing the sphere at height $t$: the set $\{v : \langle u, v\rangle = t\}$ is a sphere of one lower dimension and radius $\sqrt{1 - t^2}$, whose surface area scales as $(1 - t^2)^{(d-2)/2}$, and the spherical [change of variables](https://formalcalculus.com/topics/change-of-variables) contributes a further factor of $(1 - t^2)^{-1/2}$ from the arc-length element, leaving $(1 - t^2)^{(d-3)/2}$; the Gamma-function prefactor is the constant that integrates this to one, which we cite to the standard computation (Blum, Hopcroft, and Kannan, 2020). The fourth moment follows because $t^2 \sim \mathrm{Beta}(\tfrac12, \tfrac{d-1}{2})$, whose moments give $\mathbb{E}[t^4] = 3/(d(d+2))$; the companion code matches both moments to the grid. $\blacksquare$
+
+</TheoremBlock>
+
+The variance $1/d$ is not a coincidence and not a new fact. It is exactly the variance of $\langle u, v\rangle$ we computed for two random directions in [high-dimensional geometry](/topics/high-dimensional-geometry) — there read as a statement about a random *pair*, here read as the *density* of a single coordinate. The two statements are the same near-orthogonality, and they have the same consequence: as $d \to \infty$ the projection onto any axis collapses to zero, so a uniformly random embedding is nearly perpendicular to every fixed direction, and the surface area piles up in the equatorial band $\{|t| \le \varepsilon\}$. The laboratory's first panel shows the band filling in: by $d = 100$ roughly two-thirds of the sphere lies within $0.1$ of the equator, and by $d = 1536$ essentially all of it does. This is the backdrop against which a *concentrated* distribution — one that resists the pull to the equator and clusters around a direction — will stand out.
+
+---
+
+## The von Mises–Fisher distribution
+
+Document embeddings are not uniform. Passages about interest-rate risk point in similar directions; passages about supply-chain disruption point in a different cluster of directions. The distribution that models a cluster on the sphere — a "bump" of probability concentrated around a mean direction — is the **von Mises–Fisher (vMF)** distribution, the spherical analog of an isotropic Gaussian.
+
+<TheoremBlock type="definition" number={1} title="The von Mises–Fisher distribution">
+
+For a mean direction $\mu \in S^{d-1}$ and a concentration $\kappa \ge 0$, the von Mises–Fisher density on $S^{d-1}$, with respect to the uniform surface measure, is
+
+$$
+f(x;\, \mu, \kappa) = C_d(\kappa)\,\exp\!\bigl(\kappa\,\mu^{\top} x\bigr), \qquad x \in S^{d-1},
+$$
+
+where the normalizing constant is
+
+$$
+C_d(\kappa) = \frac{\kappa^{\,d/2 - 1}}{(2\pi)^{d/2}\, I_{d/2 - 1}(\kappa)},
+$$
+
+and $I_\nu$ is the modified Bessel function of the first kind of order $\nu$. At $\kappa = 0$ the density is constant — the uniform distribution — and as $\kappa \to \infty$ it collapses to a point mass at $\mu$.
+
+</TheoremBlock>
+
+The exponent $\kappa\,\mu^{\top}x = \kappa\cos\theta$ rewards alignment with $\mu$: points near the mean direction are exponentially more likely than points near the equator $\mu^{\top}x = 0$. The only thing standing between this clean form and a usable distribution is the constant $C_d(\kappa)$, and where it comes from is the heart of the topic.
+
+<TheoremBlock type="theorem" number={2} title="The normalizing constant is a Bessel function">
+
+The constant $C_d(\kappa)$ of Definition 1 is the unique value making $f$ integrate to one over $S^{d-1}$, and it is a modified Bessel function because the normalizing integral reduces to the equatorial slice of Theorem 1:
+
+$$
+\int_{S^{d-1}} \exp\!\bigl(\kappa\,\mu^{\top}x\bigr)\,dS(x) = S_{d-1}\!\int_{-1}^{1} e^{\kappa t}\,p(t)\,dt \;\propto\; \int_{-1}^{1} e^{\kappa t}\,\bigl(1 - t^2\bigr)^{(d-3)/2}\,dt,
+$$
+
+where $S_{d-1}$ is the surface area of the sphere. The right-hand integral is, up to the Gamma-function prefactors, the integral representation of $I_{d/2 - 1}(\kappa)$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The integrand $\exp(\kappa\,\mu^{\top}x)$ depends on $x$ only through the single coordinate $t = \mu^{\top}x$. Integrating any such function over the sphere is exactly an expectation of $e^{\kappa t}$ under the uniform measure, scaled by the total surface area $S_{d-1}$: this is the [surface integral](https://formalcalculus.com/topics/surface-integrals) sliced along $\mu$, with the slice density $p(t) \propto (1 - t^2)^{(d-3)/2}$ supplied by Theorem 1. So the normalizing integral is a constant times $\int_{-1}^{1} e^{\kappa t}(1 - t^2)^{(d-3)/2}\,dt$. We now cite the standard integral representation of the modified Bessel function,
+
+$$
+I_\nu(\kappa) = \frac{(\kappa/2)^\nu}{\sqrt{\pi}\,\Gamma\!\left(\nu + \tfrac12\right)} \int_{-1}^{1} e^{\kappa t}\,\bigl(1 - t^2\bigr)^{\nu - 1/2}\,dt,
+$$
+
+valid for $\nu = d/2 - 1$, where $\nu - \tfrac12 = (d-3)/2$ matches our exponent exactly (Mardia and Jupp, 2000). Substituting the surface area $S_{d-1} = 2\pi^{d/2}/\Gamma(d/2)$ and the slice prefactor and solving for the reciprocal of the integral yields $C_d(\kappa) = \kappa^{d/2-1} / \bigl((2\pi)^{d/2} I_{d/2-1}(\kappa)\bigr)$, as claimed. The companion code verifies, by direct numerical quadrature of the one-dimensional integral, that this $C_d(\kappa)$ integrates the density to one across a range of $d$ and $\kappa$. $\blacksquare$
+
+</TheoremBlock>
+
+The lesson is worth stating plainly: the von Mises–Fisher normalizer is a Bessel function not by analytical accident but *because the sphere concentrates on its equator*. The same $(1 - t^2)^{(d-3)/2}$ slice that emptied the uniform distribution onto the equator is the kernel of the Bessel integral. Concentration of measure and the special function are two faces of one computation. From the normalizer we read off the most useful summary of a cluster.
+
+<TheoremBlock type="proposition" number={2} title="Mean resultant length">
+
+If $x \sim \mathrm{vMF}(\mu, \kappa)$, then its expectation points along the mean direction with magnitude
+
+$$
+\mathbb{E}[x] = A_d(\kappa)\,\mu, \qquad A_d(\kappa) = \frac{I_{d/2}(\kappa)}{I_{d/2 - 1}(\kappa)} \in [0, 1).
+$$
+
+The scalar $\rho = A_d(\kappa) = \lVert \mathbb{E}[x]\rVert$ is the **mean resultant length**. It is strictly increasing in $\kappa$, with $A_d(0) = 0$ (uniform, no preferred direction) and $A_d(\kappa) \to 1$ as $\kappa \to \infty$ (a point mass).
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+By symmetry $\mathbb{E}[x]$ can only point along $\mu$, so $\mathbb{E}[x] = (\mathbb{E}[\mu^{\top}x])\,\mu$. The vMF density is an [exponential family](https://formalstatistics.com/topics/exponential-families) with natural parameter $\eta = \kappa\mu$ and sufficient statistic $x$, whose log-normalizer is $-\log C_d(\kappa)$; the standard identity that the mean of the sufficient statistic equals the gradient of the log-normalizer gives $\mathbb{E}[\mu^{\top}x] = \tfrac{d}{d\kappa}\bigl(-\log C_d(\kappa)\bigr)$. Differentiating $-\log C_d(\kappa)$ and using the Bessel recurrence $I_\nu'(\kappa) = I_{\nu-1}(\kappa) - (\nu/\kappa) I_\nu(\kappa)$ collapses the derivative to the ratio $I_{d/2}(\kappa)/I_{d/2-1}(\kappa) = A_d(\kappa)$. That this ratio increases from $0$ to $1$ is a standard monotonicity of Bessel-function ratios; the companion code computes it for arbitrary $d$ by the continued fraction $A_d(\kappa) = 1/\bigl(2(d/2)/\kappa + 1/(2(d/2+1)/\kappa + \cdots)\bigr)$, which is stable even at $d = 1536$ where $I_\nu(\kappa)$ itself overflows. $\blacksquare$
+
+</TheoremBlock>
+
+The mean resultant length is the bridge between the parameter $\kappa$, which we cannot observe, and the data, which we can: $\rho$ is just the length of the average of the unit vectors in a cluster. A loose cluster has vectors pointing every which way, their average is short, and $\rho$ is near $0$; a tight cluster has nearly-aligned vectors whose average is almost a unit vector, and $\rho$ is near $1$. The vMF panel of the laboratory marks $\rho$ as the location the density's peak sweeps toward as you raise $\kappa$.
+
+---
+
+## von Mises–Fisher is the maximum-entropy law on the sphere
+
+We have called vMF "the natural" distribution on the sphere, but naturalness should be earned, not asserted. The justification is a maximum-entropy characterization: among all distributions with a given mean direction, vMF is the one that assumes the least beyond it.
+
+<TheoremBlock type="theorem" number={3} title="Maximum entropy on the sphere">
+
+Fix a target mean $m = A_d(\kappa)\mu$ with $\lVert m\rVert < 1$. Among all probability densities $p$ on $S^{d-1}$ with $\mathbb{E}_p[x] = m$, the differential entropy $H(p) = -\int_{S^{d-1}} p \log p\, dS$ is maximized uniquely by the von Mises–Fisher density $q = \mathrm{vMF}(\mu, \kappa)$ whose mean is $m$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Let $q = \mathrm{vMF}(\mu, \kappa)$, so $\log q(x) = \log C_d(\kappa) + \kappa\,\mu^{\top}x$, and let $p$ be any density on the sphere with the same mean $\mathbb{E}_p[x] = m = \mathbb{E}_q[x]$. The [relative entropy](https://formalml.com/topics/shannon-entropy) is nonnegative:
+
+$$
+0 \le \mathrm{KL}(p \,\Vert\, q) = \int p \log p - \int p \log q = -H(p) - \int p\,\bigl(\log C_d(\kappa) + \kappa\,\mu^{\top}x\bigr)\,dS.
+$$
+
+The integral on the right is $\log C_d(\kappa) + \kappa\,\mu^{\top}\mathbb{E}_p[x] = \log C_d(\kappa) + \kappa\,\mu^{\top}m$, which depends on $p$ only through its mean — and the mean is fixed to $m$. The identical computation for $q$ in place of $p$ gives $\int q \log q = \log C_d(\kappa) + \kappa\,\mu^{\top}m = -H(q)$, because $q$ has the same mean. Substituting, $0 \le \mathrm{KL}(p\,\Vert\,q) = -H(p) + H(q)$, that is $H(p) \le H(q)$, with equality if and only if $p = q$ almost everywhere. So $q$ is the unique entropy maximizer. The existence of a concentration $\kappa$ realizing any achievable mean $m$ — that $A_d(\kappa)$ ranges over all of $[0,1)$ — follows from the monotonicity of Proposition 2; we cite the convexity of the log-normalizer for the general guarantee that the matching multiplier is unique (the [exponential-family](https://formalstatistics.com/topics/exponential-families) correspondence between mean and natural parameter). $\blacksquare$
+
+</TheoremBlock>
+
+The argument is the spherical instance of a pattern that recurs across the series: fix the moments you are willing to commit to — here, a mean direction — and the maximum-entropy distribution with those moments is the exponential family whose sufficient statistic is exactly those moments. On the line with a fixed mean and variance it is the Gaussian; on the sphere with a fixed mean direction it is von Mises–Fisher. Calling vMF "natural" means precisely this: it is the least-committed model of a cluster that has a center.
+
+---
+
+## Estimating the cluster: maximum likelihood for the mean direction and concentration
+
+A model earns its place only if we can fit it to data. Given embeddings $x_1, \dots, x_n$ believed to form a topical cluster, the maximum-likelihood estimates of $\mu$ and $\kappa$ are clean for the direction and implicit for the concentration.
+
+<TheoremBlock type="theorem" number={4} title="Maximum-likelihood estimates">
+
+Let $x_1, \dots, x_n$ be i.i.d. $\mathrm{vMF}(\mu, \kappa)$ samples, write the resultant vector $R = \sum_{i=1}^n x_i$, and let $\bar{r} = \lVert R\rVert / n$ be the mean resultant length of the sample. The maximum-likelihood estimates are
+
+$$
+\hat{\mu} = \frac{R}{\lVert R\rVert}, \qquad A_d(\hat{\kappa}) = \bar{r}.
+$$
+
+The concentration estimate solves an implicit Bessel-ratio equation; the Banerjee, Dhillon, Ghosh, and Sra (2005) closed form approximates it as
+
+$$
+\hat{\kappa} \approx \frac{\bar{r}\,(d - \bar{r}^2)}{1 - \bar{r}^2}.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The log-likelihood is $\ell(\mu, \kappa) = n \log C_d(\kappa) + \kappa\,\mu^{\top}R$, subject to $\lVert\mu\rVert = 1$. For fixed $\kappa > 0$, only the term $\kappa\,\mu^{\top}R$ depends on $\mu$, and by the [Cauchy–Schwarz inequality](https://formalcalculus.com/topics/change-of-variables) $\mu^{\top}R \le \lVert\mu\rVert\,\lVert R\rVert = \lVert R\rVert$ with equality exactly when $\mu$ aligns with $R$, so $\hat{\mu} = R/\lVert R\rVert$. Substituting $\hat\mu$ gives $\mu^{\top}R = \lVert R\rVert$, so $\ell$ as a function of $\kappa$ is $n\log C_d(\kappa) + \kappa\lVert R\rVert$. Differentiating and using $\tfrac{d}{d\kappa}\log C_d(\kappa) = -A_d(\kappa)$ from Proposition 2,
+
+$$
+\frac{\partial \ell}{\partial \kappa} = -n\,A_d(\kappa) + \lVert R\rVert = 0 \;\Longrightarrow\; A_d(\hat\kappa) = \frac{\lVert R\rVert}{n} = \bar{r}.
+$$
+
+This is the [maximum-likelihood](https://formalstatistics.com/topics/maximum-likelihood) moment-matching equation: the model's mean resultant must equal the sample's. It has no elementary closed-form solution because $A_d$ is a ratio of Bessel functions; the Banerjee et al. (2005) formula is an *approximation* to its root, obtained by a Taylor analysis of $A_d$, and we present it as such. The companion code solves the equation exactly by a one-dimensional root-find and reports the approximation's relative error against that exact root — under $1.6\%$ across the grid of $\kappa$ values the laboratory displays. $\blacksquare$
+
+</TheoremBlock>
+
+The estimator closes the loop. The mean resultant length $\bar{r}$ is a number we compute directly from a cluster of embeddings — average them, take the length — and $\hat{\kappa}$ turns that number into the concentration parameter, a single scalar that says how tight the cluster is. The next section is about what that scalar buys.
+
+---
+
+## What concentration buys retrieval
+
+Three consequences make this geometry more than a formal exercise. The first is that **cluster tightness becomes measurable**. A corpus subtopic — every passage your encoder maps about one theme — is, to a first approximation, a vMF cluster, and its $\hat{\kappa}$ (equivalently $\bar{r}$) quantifies how confidently a retriever can separate that theme from its neighbors. A high-$\kappa$ cluster is a crisp query target; a low-$\kappa$ cluster is a diffuse one whose members are easily confused with the background, a diagnosable property rather than a vague intuition.
+
+The second is the link to how these embeddings are *trained*. Contrastive objectives such as InfoNCE operate on L2-normalized vectors and pull positive pairs together while pushing negatives apart on the sphere; the temperature parameter that scales their similarity logits plays the role of an inverse concentration, $\tau \sim 1/\kappa$, so lowering the temperature trains tighter clusters in exactly the sense Proposition 2 makes precise. Wang and Isola (2020) analyze contrastive learning directly as a competition between *alignment* (positives concentrated, high $\kappa$) and *uniformity* (the whole embedding set spread toward the uniform sphere of Theorem 1). The same geometry surfaces downstream: [late-interaction retrieval](/topics/late-interaction-learned-sparse) scores normalized token embeddings by cosine, and score-aware quantization later in the curriculum exploits that the error which matters is the component along the query direction on the sphere — the $\mu$-aligned geometry vMF makes explicit.
+
+The third consequence is a warning, and it is the subject of the caveats. The whole clean picture assumes a cluster is *isotropic* around its mean direction — equally spread in every tangent direction. Real embeddings are not. Contextual representations are [anisotropic](https://formalml.com/topics/representation-learning) and occupy a narrow cone rather than spreading over the sphere (Ethayarajh, 2019), and multimodal encoders place text and images in two displaced cones — the modality gap (Liang et al., 2022). On such data the vMF fit is misspecified and $\hat{\kappa}$ is biased; the geometry is exact, but its fit to learned embeddings is an empirical question.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+The production financial-RAG system behind the [BM25](/topics/bm25-binary-independence-model) and [rank-fusion](/topics/rank-fusion-rrf) case studies embeds 10-K filing passages and earnings-call chunks into a $1536$-dimensional space and retrieves by cosine similarity. A practical question for that system is whether "this subtopic is tightly clustered" can be made quantitative — whether we can tell a crisp theme from a diffuse one before a single query is run.
+
+We answer it with a self-contained experiment. Take two topical clusters of $1536$-dimensional embeddings, each modeled as von Mises–Fisher around its own mean direction: a **tight** cluster (concentration $\kappa = 900$, a stand-in for a sharply defined theme like "interest-rate risk") and a **loose** cluster ($\kappa = 300$, a diffuse theme like "supply-chain disruption"). The companion code measures, at this ambient dimension:
+
+- **tight cluster:** mean resultant length $\bar{r} = \mathbf{0.461}$, recovered concentration $\hat{\kappa} = \mathbf{900}$, mean intra-cluster cosine similarity $\mathbf{0.212}$;
+- **loose cluster:** $\bar{r} = \mathbf{0.191}$, recovered $\hat{\kappa} = \mathbf{304}$, mean intra-cluster cosine similarity $\mathbf{0.035}$;
+- **between the clusters:** mean cosine similarity $\mathbf{-0.003}$.
+
+Two things stand out. First, the estimator works: feeding the sample mean resultant through the maximum-likelihood equation of Theorem 4 recovers the planted concentration of each cluster, so "how tight is this theme?" has a numerical answer. Second, the clusters separate cleanly — the tight cluster's members are far more similar to each other ($0.212$) than to the other cluster ($-0.003$), and the two mean directions are themselves nearly orthogonal, which is no accident: in $1536$ dimensions two independent directions are nearly perpendicular by the near-orthogonality of the [previous topic](/topics/high-dimensional-geometry). Cosine similarity at $1536$ dimensions is not noise; it is reading a genuine spherical geometry in which a well-defined subtopic is a concentrated vMF cluster, exactly as our low-dimensional intuition would hope.
+
+</FinanceCaseStudy>
+
+A candid note on the companion code, in the spirit of the rest of the series: the clusters are synthetic vMF draws, sampled by Wood's (1994) algorithm so the notebook is deterministic, CPU-only, and reproducible to the decimal with no model download. They are not the output of a trained encoder, and as the caveats spell out, a real encoder's clusters are anisotropic in ways a single $\kappa$ cannot capture. The mathematics being illustrated — that a cluster's tightness is a measurable mean resultant length, and that distinct subtopics occupy separable cones on the sphere — does not depend on how the clusters are produced.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Five qualifications keep the spherical model honest:
+
+1. **vMF is a model, and real embeddings violate its isotropy.** The distribution assumes a cluster is equally spread in every tangent direction around $\mu$. Trained embeddings are anisotropic — the cone effect — and multimodal embeddings show a modality gap of two displaced cones (Ethayarajh 2019; Liang et al. 2022), so on raw embeddings the vMF fit is misspecified and $\hat\kappa$ is biased. The geometry is exact; its fit to learned data is empirical.
+2. **The concentration estimate is an approximation.** The closed form $\hat\kappa \approx \bar{r}(d - \bar{r}^2)/(1 - \bar{r}^2)$ (Banerjee et al. 2005) approximates the implicit root of $A_d(\hat\kappa) = \bar{r}$; the companion code reports its error against the numerically solved root (under $1.6\%$ on the grid) rather than treating it as the exact MLE.
+3. **Sphere concentration is asymptotic.** The coordinate-marginal density (Theorem 1) is exact, but "mass crowds the equator" and "vMF $\to$ point mass as $\kappa \to \infty$" are large-$d$ and large-$\kappa$ limits whose finite-parameter behavior depends on the constants.
+4. **We prove the core and cite the rest.** Proposition 1, the $1/d$ variance of Theorem 1, Proposition 2, the Gibbs inequality of Theorem 3, and the $\hat\mu$/score equation of Theorem 4 are proved; the Gamma-ratio normalizer of the coordinate density, the Bessel integral representation (Theorem 2), the existence of the maximum-entropy multiplier (Theorem 3), and the Banerjee closed form (Theorem 4) are cited and verified numerically.
+5. **Cosine is a geometry, not a probability.** A higher cosine similarity means more similar, but it is not a calibrated relevance probability; turning a score into a probability is a separate, later problem.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) is self-contained, CPU-only, and runs in about a second on `numpy` and `scipy`. It samples the uniform sphere and the von Mises–Fisher distribution (the latter by Wood's 1994 rejection sampler), computes the coordinate marginal and its moments, the normalizing constant by numerical quadrature, the mean resultant length by a continued fraction stable at embedding dimensions, and the maximum-likelihood estimators, and prints the grid table that the `HypersphereLaboratory` mirrors to the decimal. Its verification harness makes each claim of the topic executable: the cosine–distance identity holds to machine precision and the two rankings coincide (Proposition 1); the coordinate variance matches $1/d$ and the fourth moment matches $3/(d(d+2))$, with the equatorial band filling to $99.99\%$ at $d = 1536$ (Theorem 1); the sampler produces unit vectors whose mean direction is $\mu$ and the closed-form $C_d(\kappa)$ integrates the density to one (Theorem 2); the mean resultant length matches $\lVert\mathbb{E}[x]\rVert$ across a $\kappa$-grid and stays finite at $d = 1536$ (Proposition 2); the von Mises law beats same-mean competitors in entropy on the circle (Theorem 3); the mean-direction estimator recovers $\mu$, the exact root inverts $A_d(\hat\kappa) = \bar{r}$, and the Banerjee approximation stays within $1.6\%$ of it (Theorem 4); and the tight finance cluster shows a higher mean resultant, a higher recovered $\hat\kappa$, and cleaner separation than the loose one (the finance case). The three pillars — the proofs above, the laboratory, and the tested code — agree by construction.
