@@ -5,11 +5,11 @@ viz. The pillar is two coupled artifacts per topic, living in `notebooks/<slug>/
 
 | File | Role | Rule |
 |---|---|---|
-| `<slug>.py` | **Canonical reference implementation.** Importable, deterministic, CPU-only, runs end-to-end in well under 60 s. | Owns every number the topic or the viz depends on. Carries a verification harness of `assert`-based tests that encode **each pedagogical claim the topic makes** (limit theorems, monotonicity, the worked-example flip, cross-checks against a reference library). Running it as a script *is* the regression test for the topic. |
-| `01_<slug_underscored>.ipynb` | **Narrative notebook.** Imports the `.py` and walks the topic section by section in markdown cells, running the harness so each claim renders as executed output. | Never redefines the math — it calls into `<slug>.py`. The topic's `notebookPath` frontmatter points here. Commit it **without** stored outputs (we execute to verify, not to snapshot). |
+| `<slug_underscored>.py` | **Canonical reference implementation.** Importable, deterministic, CPU-only, runs end-to-end in well under 60 s. | Owns every number the topic or the viz depends on. Carries a verification harness of `assert`-based tests that encode **each pedagogical claim the topic makes** (limit theorems, monotonicity, the worked-example flip, cross-checks against a reference library). Running it as a script *is* the regression test for the topic. |
+| `01_<slug_underscored>.ipynb` | **Narrative notebook.** Imports the `.py` and walks the topic section by section in markdown cells, running the harness so each claim renders as executed output. | Never redefines the math — it calls into `<slug_underscored>.py`. The topic's `notebookPath` frontmatter points here. Commit it **without** stored outputs (we execute to verify, not to snapshot). |
 
 The directory name uses hyphens (`notebooks/rank-fusion-rrf/`); the notebook filename uses
-underscores (`01_rank_fusion_rrf.ipynb`). The `.py` file uses the hyphenless slug
+underscores (`01_rank_fusion_rrf.ipynb`). The `.py` file uses the underscored slug
 (`rank_fusion_rrf.py`) so it imports cleanly.
 
 ## Why two artifacts

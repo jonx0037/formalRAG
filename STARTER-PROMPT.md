@@ -70,8 +70,8 @@ source of truth that the later pillars are checked against.
     `notebooks/bm25/01_bm25.ipynb`. Commit without stored outputs.
   - Both exit 0:
     ```bash
-    uv run --with <deps> python notebooks/<slug>/<slug>.py
-    uv run --with <deps> --with jupyter jupyter execute notebooks/<slug>/01_<slug>.ipynb
+    uv run --with <deps> python notebooks/<slug>/<slug_underscored>.py
+    uv run --with <deps> --with jupyter jupyter execute notebooks/<slug>/01_<slug_underscored>.ipynb
     ```
 
 ### A2. Editorial voice (non-negotiable)
@@ -132,7 +132,7 @@ The notebook is now immutable and is the source of truth. Build the page against
 
 ### B1. Required reading (in order)
 
-`CLAUDE.md` → `docs/plans/formalrag-<slug>-brief.md` → `notebooks/<slug>/01_<slug>.ipynb`. Then
+`CLAUDE.md` → `docs/plans/formalrag-<slug>-brief.md` → `notebooks/<slug>/01_<slug_underscored>.ipynb`. Then
 study the BM25 topic as the structural exemplar: `src/content/topics/bm25-binary-independence-model.mdx`
 (frontmatter anatomy, `TheoremBlock`/`NamedSection`/`RigorFlag`/`FinanceCaseStudy` usage, the
 `<Viz client:visible />` embed) and `src/components/viz/BM25ScoringLaboratory.tsx`.

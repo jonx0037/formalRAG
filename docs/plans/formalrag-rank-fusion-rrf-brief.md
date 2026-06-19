@@ -121,14 +121,16 @@ these. What is real:
 - formalCalculus: none. Reverse links from siblings are added per-sibling (worktree off `origin/main`)
   once this ships.
 
-## References (Chicago 17th, Notes & Bibliography — confirm DOIs at authoring)
+## References (Chicago 17th, Notes & Bibliography — core URLs/DOIs verified 2026-06-19)
 
 - Cormack, Gordon V., Charles L. A. Clarke, and Stefan Büttcher. "Reciprocal Rank Fusion Outperforms
   Condorcet and Individual Rank Learning Methods." *SIGIR '09*. https://doi.org/10.1145/1571941.1572114 — RRF origin; the $k=60$ constant.
-- Fox, Edward A., and Joseph A. Shaw. "Combination of Multiple Searches." *TREC-2*, 1994. — CombSUM/CombMNZ. (NIST proceedings URL.)
+- Fox, Edward A., and Joseph A. Shaw. "Combination of Multiple Searches." *TREC-2*, NIST SP 500-215,
+  pp. 243–252, 1994. https://trec.nist.gov/pubs/trec2/papers/txt/23.txt — CombSUM/CombMNZ.
 - Dwork, Cynthia, Ravi Kumar, Moni Naor, and D. Sivakumar. "Rank Aggregation Methods for the Web."
   *WWW '01*. https://doi.org/10.1145/371920.372165 — Kemeny, footrule, NP-hardness, 2-approximation.
-- Diaconis, Persi, and R. L. Graham. "Spearman's Footrule as a Measure of Disarray." *JRSS-B* 39, no. 2 (1977). — the $K \le F \le 2K$ inequality.
+- Diaconis, Persi, and R. L. Graham. "Spearman's Footrule as a Measure of Disarray." *JRSS-B* 39, no. 2
+  (1977): 262–268. https://doi.org/10.1111/j.2517-6161.1977.tb01624.x — the $K \le F \le 2K$ inequality.
 - (optional, `documentation`) a production hybrid-search RRF doc — Elasticsearch / Qdrant / Weaviate — for the systems-aware angle.
 
 ## Decisions (locked 2026-06-19)
@@ -143,5 +145,5 @@ these. What is real:
 5. **Cross-site: verified** (see the Cross-site section) — `rank-tests` on formalML; no LTR slug.
 
 ## Confirm at authoring
-- DOIs / proceedings URLs for every reference (each needs a `url`).
+- A URL for the optional hybrid-search `documentation` reference (the four core refs are verified).
 - Whether `order-statistics-and-quantiles` earns a cross-link or is dropped as too thin.
