@@ -74,7 +74,12 @@ source of truth that the later pillars are checked against.
     ties can break a naive order-equality (the RRF→Borda limit holds only when the Borda totals are strict).
   - `notebooks/<slug>/01_<slug_underscored>.ipynb` — narrative notebook that imports the `.py` and
     walks the topic section by section, so claims render as executed output. Model it on
-    `notebooks/bm25/01_bm25.ipynb`. A hand-written `.ipynb` lacks cell `id` fields, so after writing
+    `notebooks/bm25/01_bm25.ipynb`. For LaTeX-dense notebooks, **generate the `.ipynb`
+    programmatically** rather than hand-writing JSON: build cells with
+    `nbformat.v4.new_markdown_cell`/`new_code_cell` (raw triple-quoted Python strings, so KaTeX
+    backslashes need no JSON escaping), then `nbformat.validator.normalize`, clear code outputs, and
+    `nbformat.write` — this subsumes the normalize one-liner below and avoids escaping bugs. If you do
+    hand-write the `.ipynb`, it lacks cell `id` fields, so after writing
     it **normalize** (add ids, clear outputs) or `jupyter execute` warns (a future hard error):
     `uv run --with nbformat python -c "import nbformat; p='notebooks/<slug>/01_<slug_underscored>.ipynb'; nb=nbformat.read(p,as_version=4); _,nb=nbformat.validator.normalize(nb); [c.update(outputs=[],execution_count=None) for c in nb.cells if c.cell_type=='code']; nbformat.write(nb,p)"`.
     Commit without stored outputs.
