@@ -51,7 +51,7 @@
     {
       "id": "vector-space-model-tfidf",
       "label": "The Vector Space Model and TF-IDF",
-      "status": "draft",
+      "status": "published",
       "domain": "probabilistic-ir"
     },
     {
@@ -63,7 +63,7 @@
     {
       "id": "probability-ranking-principle",
       "label": "The Probability Ranking Principle",
-      "status": "draft",
+      "status": "published",
       "domain": "probabilistic-ir"
     },
     {
@@ -347,7 +347,7 @@
       "target": "inverted-index-dynamic-pruning"
     },
     {
-      "source": "vector-space-model-tfidf",
+      "source": "the-retrieval-problem",
       "target": "probability-ranking-principle"
     },
     {

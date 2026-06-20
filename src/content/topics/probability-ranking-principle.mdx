@@ -1,26 +1,267 @@
 ---
 title: "The Probability Ranking Principle"
-status: "draft"
+subtitle: "The exchange-argument proof that ranking by decreasing probability of relevance is decision-theoretically optimal — the root probabilistic IR builds on"
+status: "published"
 difficulty: "intermediate"
+prerequisites:
+  - "the-retrieval-problem"
 tags:
   - "probability-ranking-principle"
+  - "probabilistic-ir"
   - "decision-theory"
   - "ranking"
+  - "expected-utility"
+  - "exchange-argument"
 domain: "probabilistic-ir"
+pipelineStage: "retrieve"
 financeCaseStudy: false
-abstract: "The exchange-argument proof that ranking by decreasing probability of relevance is optimal under a stated cost model — the decision-theoretic root of probabilistic IR."
+modality:
+  - "text"
+rigorFlag: "The PRP theorem is clean but its scope is narrow, and the gap between the two is the whole point. The optimality proof assumes the cost of a ranking is ADDITIVE across documents — each document's relevance is judged in isolation and contributes independently to the total. Under that assumption the exchange argument is exact and ranking by decreasing P(R | d, q) is optimal at every cutoff at once; we prove it in full and verify it by brute force over all permutations of a small corpus. But additivity is a modeling assumption, not a theorem: when relevance is interdependent — two near-duplicate documents that are each relevant alone but redundant together — the additive model is wrong and the PRP is provably NOT optimal. That is the diversity / Maximal Marginal Relevance regime, which the PRP does not cover and makes no claim to. Two further caveats: P(R | d, q) is an unobserved, only-estimated quantity, and the PRP optimizes a single static batch ranking, not an interactive session."
+videoId: null
+notebookPath: "notebooks/probability-ranking-principle/01_probability_ranking_principle.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/probability-ranking-principle.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 26
+abstract: "Retrieval ranks documents by a relevance functional; the Probability Ranking Principle says the right functional is the probability of relevance itself, P(R=1 | d, q), and that ranking by it is not a heuristic but provably optimal. We set up the decision-theoretic frame — a Bernoulli relevance variable per document, a linear cost for retrieving a non-relevant document or missing a relevant one, and the additive expected cost of an ordering — and prove the PRP by an exchange argument: swapping any out-of-order adjacent pair can only lower expected cost, so the order sorted by decreasing P(R) is optimal at every cutoff at once, reached by nothing but bubble-sort swaps. We specialize to the 1/0 cost model, where the principle maximizes expected precision and recall at every k, and to the log-odds form the next topic inherits: because ranking is invariant under strictly monotone transforms, ranking by P(R) is ranking by the log-odds of relevance, which is exactly where the Binary Independence Model and BM25 begin. We separate the clean theorem from its load-bearing assumption — additivity of cost — and show, with an executable counterexample, where interdependent relevance breaks it. An interactive exchange-argument laboratory and a tested NumPy notebook that brute-forces the optimum over all permutations accompany the derivation."
+connections:
+  - topic: "bm25-binary-independence-model"
+    relationship: "BM25's derivation begins exactly where the PRP leaves off: rank by decreasing probability of relevance, then — because ranking is invariant under strictly monotone transforms — by the log-odds of relevance, which is the quantity the Binary Independence Model models term by term"
+  - topic: "the-retrieval-problem"
+    relationship: "this topic refines that one's relevance functional rel(q, d) from an uncalibrated geometric score into a calibrated probability P(R=1 | d, q), and supplies the rank-invariance-under-monotone-transforms fact the exchange argument and the log-odds reduction both lean on"
+references:
+  - type: "paper"
+    title: "The Probability Ranking Principle in IR"
+    authors: "Robertson"
+    year: 1977
+    url: "https://doi.org/10.1108/eb026647"
+    note: "The original statement and decision-theoretic justification of the PRP; the optimality result this topic proves"
+  - type: "paper"
+    title: "Relevance Weighting of Search Terms"
+    authors: "Robertson & Spärck-Jones"
+    year: 1976
+    url: "https://doi.org/10.1002/asi.4630270302"
+    note: "The probabilistic relevance weighting the PRP feeds into; shared lineage with the BIM"
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapter 11: probabilistic information retrieval, the PRP, and the Binary Independence Model"
+  - type: "paper"
+    title: "The Probabilistic Relevance Framework: BM25 and Beyond"
+    authors: "Robertson & Zaragoza"
+    year: 2009
+    url: "https://doi.org/10.1561/1500000019"
+    note: "Places the PRP as the decision-theoretic root of the framework BM25 specializes"
+  - type: "paper"
+    title: "The Use of MMR, Diversity-Based Reranking for Reordering Documents and Producing Summaries"
+    authors: "Carbonell & Goldstein"
+    year: 1998
+    url: "https://doi.org/10.1145/290941.291025"
+    note: "The interdependent-relevance regime where the PRP's additivity assumption breaks"
+formalmlPrereqs:
+  - topic: "naive-bayes"
+    site: "formalml"
+    relationship: "the PRP is the ranking analogue of the Bayes-optimal decision rule developed there: just as the Bayes classifier minimizes 0/1 loss by choosing the maximum-posterior class, the PRP minimizes expected retrieval cost by ordering documents by their posterior probability of relevance"
+formalstatisticsPrereqs:
+  - topic: "expectation-moments"
+    site: "formalstatistics"
+    relationship: "the expected utility of a ranking is a sum of per-document expected costs, and the key step — that the expected number of relevant documents in the top k is the prefix sum of the relevance probabilities — is exactly linearity of expectation applied to Bernoulli indicators, which holds without any independence assumption"
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "the PRP is a decision-theoretic optimality result, minimizing an expected loss over orderings under a stated cost model — the same loss-risk-and-admissibility framework that topic builds to compare estimators by their expected loss"
+formalstatisticsConnections:
+  - topic: "likelihood-ratio-tests-and-np"
+    site: "formalstatistics"
+    relationship: "the Neyman–Pearson lemma has the same shape as the PRP — ranking by the likelihood ratio is optimal, proved by an exchange-style argument that swapping any out-of-order pair cannot help — so the two are siblings in different fields"
 ---
 
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
 import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import ExchangeArgumentLaboratory from '../../components/viz/ExchangeArgumentLaboratory.tsx';
 
-<NamedSection id="status" title="On the roadmap">
+## Overview & motivation
 
-This topic is part of the formalRAG curriculum and is **not yet published** — it is
-currently a stub so that links from neighboring topics resolve. See the
-[curriculum roadmap](/paths) for where it sits in the dependency graph.
+The [retrieval problem](/topics/the-retrieval-problem) framed retrieval as ranking documents by a relevance functional $\mathrm{rel}(q, d)$, and left the choice of functional open. The [vector space model](/topics/vector-space-model-tfidf) offered one concrete answer — the cosine of TF-IDF vectors — but it was honest that a cosine is a geometric alignment, not a probability. The Probability Ranking Principle answers the question at its root: the *right* functional is the probability of relevance itself, $P(R = 1 \mid d, q)$, and ranking by it is not a heuristic. It is optimal — provably, under a stated cost model, and at every cutoff at once.
 
-In the meantime, the published pilot topic
-[BM25 and the Binary Independence Model](/topics/bm25-binary-independence-model)
-demonstrates the three-pillar treatment this topic will receive.
+This is the decision-theoretic foundation the rest of probabilistic IR rests on. [BM25](/topics/bm25-binary-independence-model) opens by *assuming* it: "rank by the probability of relevance, then by its log-odds." Here we earn that opening. The whole result follows from a single, almost embarrassingly simple move — the exchange argument — and the laboratory below lets you carry it out by hand.
 
-</NamedSection>
+Reorder the five documents and watch the cumulative expected-relevance curve race toward the dashed envelope; the envelope is the order sorted by $P(R)$, and your curve can touch it but never beat it. The "one adjacent swap" button performs exactly one step of the proof.
+
+<ExchangeArgumentLaboratory client:visible />
+
+### What we cover
+
+1. The decision-theoretic setup: relevance as a random variable, and the additive cost of an ordering.
+2. The expected number of relevant documents in the top $k$, by linearity of expectation.
+3. The exchange (adjacent-swap) lemma, and the PRP theorem it proves.
+4. The 1/0 special case (precision and recall) and the log-odds form [BM25](/topics/bm25-binary-independence-model) inherits.
+5. Where the theorem breaks — the additivity assumption and the diversity regime.
+
+---
+
+## The decision-theoretic setup
+
+Fix a query $q$. Relevance is not something we observe directly; it is uncertain, so we model it as a random variable per document.
+
+<TheoremBlock type="definition" number={1} title="Relevance random variable">
+
+For a document $d$, relevance is a Bernoulli random variable $R \in \{0, 1\}$ with $p_d = P(R = 1 \mid d, q)$, the probability that a user judges $d$ relevant to $q$. This refines the retrieval problem's functional $\mathrm{rel}(q, d)$: the relevance score is now literally a probability, not an uncalibrated geometric quantity.
+
+</TheoremBlock>
+
+<TheoremBlock type="definition" number={2} title="Ordering and cutoff">
+
+An ordering $\pi$ is a permutation of the corpus $\{d_1, \dots, d_n\}$; $\pi(i)$ is the document placed at position $i$, and top-$k$ retrieval returns the first $k$ positions. Writing $p_{\pi(i)}$ for the relevance probability of the document at position $i$, the question is which permutation to choose.
+
+</TheoremBlock>
+
+To say one ordering is *better* than another we need a cost. The standard model is linear and, crucially, **additive** across documents.
+
+<TheoremBlock type="definition" number={3} title="Additive linear cost model">
+
+Assign a cost $c_{\text{fp}} \ge 0$ to retrieving a non-relevant document and $c_{\text{fn}} \ge 0$ to missing a relevant one. The expected cost of retrieving the top $k$ of an ordering is the sum of per-document expected costs,
+
+$$
+C_k(\pi) = c_{\text{fp}} \sum_{i \le k} \bigl(1 - p_{\pi(i)}\bigr) \;+\; c_{\text{fn}} \sum_{i > k} p_{\pi(i)},
+$$
+
+with no term coupling one document's contribution to another's. That **additivity** is the load-bearing assumption — we flag it now, and return to where it fails at the end.
+
+</TheoremBlock>
+
+Before optimizing the cost, note the quantity that drives everything. It is a sum, and it needs no independence assumption.
+
+<TheoremBlock type="proposition" number={1} title="Expected relevant count is a prefix sum">
+
+The expected number of relevant documents in the top $k$ of an ordering $\pi$ is the prefix sum of relevance probabilities,
+
+$$
+\mathbb{E}\bigl[\#\text{rel in top-}k\bigr] = \sum_{i=1}^{k} p_{\pi(i)}.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Write the count of relevant documents in the top $k$ as a sum of indicator variables, $\sum_{i=1}^{k} \mathbf{1}\{R_{\pi(i)} = 1\}$. Linearity of expectation — which holds for *any* random variables, dependent or not — lets us push the expectation inside the sum, and the expectation of a Bernoulli indicator is its probability, $\mathbb{E}[\mathbf{1}\{R_{\pi(i)} = 1\}] = p_{\pi(i)}$. This is the [linearity of expectation](https://formalstatistics.com/topics/expectation-moments) doing the whole job; the absence of any independence requirement is exactly why the PRP's proof needs none.
+
+</TheoremBlock>
+
+The linear cost is governed by the same prefix sum. Expanding Definition 3 and collecting terms, $C_k(\pi) = c_{\text{fp}}\, k + c_{\text{fn}} \sum_i p_i - (c_{\text{fp}} + c_{\text{fn}}) \sum_{i \le k} p_{\pi(i)}$, where $\sum_i p_i$ is the total over all documents — a constant. Only the last term depends on the ordering, and it is $-(c_{\text{fp}} + c_{\text{fn}})$ times the prefix sum. So **minimizing expected cost at cutoff $k$ is the same as maximizing the prefix sum at $k$**, and we can prove the theorem for the prefix sum alone.
+
+---
+
+## The exchange argument
+
+The entire optimality proof rests on a single observation about swapping two adjacent documents that are in the wrong order.
+
+<TheoremBlock type="lemma" number={1} title="Adjacent-swap (exchange) lemma">
+
+Let $\pi$ place an out-of-order pair at positions $j$ and $j+1$ — that is, $p_{\pi(j)} < p_{\pi(j+1)}$ — and let $\pi'$ be $\pi$ with those two swapped. Then $\pi'$ has prefix sum greater than or equal to $\pi$'s at *every* cutoff, and strictly greater at cutoff $k = j$:
+
+$$
+\sum_{i \le k} p_{\pi'(i)} \;\ge\; \sum_{i \le k} p_{\pi(i)} \quad \text{for all } k, \qquad \text{with strict inequality at } k = j.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The swap touches only positions $j$ and $j+1$, so compare the prefix sums cutoff by cutoff. For $k < j$ the top-$k$ set is untouched and the two prefix sums are identical. For $k \ge j+1$ the top-$k$ set contains *both* swapped documents, so the sums are again identical — addition does not care about order. The only cutoff that can differ is $k = j$, where $\pi$ includes $\pi(j)$ (the lower-probability document) while $\pi'$ includes $\pi(j+1)$ (the higher one). The difference is
+
+$$
+\sum_{i \le j} p_{\pi'(i)} - \sum_{i \le j} p_{\pi(i)} = p_{\pi(j+1)} - p_{\pi(j)} > 0,
+$$
+
+strictly positive precisely because the pair was out of order. So the swap helps at one cutoff and is neutral at every other — it can never hurt. Notice where additivity entered: it is what made the unaffected cutoffs contribute *exactly* zero. The harness checks this on thousands of random orderings in `test_adjacent_swap_lemma`.
+
+</TheoremBlock>
+
+From the lemma, the theorem is a short step — it is bubble sort.
+
+<TheoremBlock type="theorem" number={1} title="The Probability Ranking Principle">
+
+Ranking documents by decreasing probability of relevance $p_d = P(R = 1 \mid d, q)$ minimizes the expected cost (equivalently, maximizes the expected relevant count) under the additive cost model, simultaneously at every cutoff $k$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Take any ordering not already sorted by decreasing $p$. Sortedness is characterized by adjacent pairs: an ordering is sorted *if and only if* it has no out-of-order adjacent pair, so an unsorted ordering must contain at least one. By Lemma 1, swapping that pair weakly raises the prefix sum at every cutoff and strictly raises it at one. The swap also strictly decreases the number of *inversions* — pairs $(i, j)$ with $i$ before $j$ but $p_i < p_j$ — a non-negative integer. Repeat: each swap strictly drops a non-negative integer, so after finitely many swaps it reaches zero, and an ordering with no inversions is the fully sorted one. This is exactly bubble sort, and because every step was non-decreasing at *every* cutoff, the sorted order dominates the one we started from at every cutoff at once.
+
+The conclusion is stronger than "optimal for one chosen $k$": the PRP order is simultaneously optimal at *all* cutoffs, so a single ranking serves every retrieval depth. The companion notebook makes this exhaustive rather than rhetorical — `test_prp_maximizes_over_all_permutations` checks the PRP order against all $5! = 120$ permutations of a corpus and confirms it attains the maximum prefix sum at every $k$, and `test_bubble_sort_terminates_at_prp` watches the inversion count fall monotonically to zero.
+
+</TheoremBlock>
+
+Nowhere did the proof assume the documents' relevance judgments were independent — only that the cost is additive and that expectation is linear. That economy is what makes the PRP so robust a foundation.
+
+---
+
+## Cost models: when it holds and what it specializes to
+
+Two specializations connect the principle to the rest of the curriculum.
+
+<TheoremBlock type="proposition" number={2} title="Precision and recall corollary">
+
+Under the 1/0 cost model, the PRP order maximizes expected precision-at-$k$ and expected recall-at-$k$ for every $k$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Expected precision-at-$k$ is the expected relevant count divided by $k$, and expected recall-at-$k$ is that count divided by the total expected relevant — both are the prefix sum $\sum_{i \le k} p_{\pi(i)}$ times a constant that does not depend on the ordering. Maximizing the prefix sum at every $k$, which Theorem 1 does, therefore maximizes both. `test_precision_recall_special_case` confirms it over all permutations.
+
+</TheoremBlock>
+
+The second specialization is the bridge the next topic walks across.
+
+<TheoremBlock type="proposition" number={3} title="Ranking by probability, odds, and log-odds coincide">
+
+Ranking by $p_d$, by the odds $\dfrac{p_d}{1 - p_d}$, and by the log-odds $\log \dfrac{p_d}{1 - p_d}$ all produce the identical ordering.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Ranking is invariant under any strictly increasing transform (the rank-invariance fact from [the retrieval problem](/topics/the-retrieval-problem)). The map $t \mapsto t / (1 - t)$ is strictly increasing on $(0, 1)$, and $\log$ is strictly increasing on $(0, \infty)$; composing them is strictly increasing, so all three rankings agree. `test_monotone_transform_invariance` verifies the three orderings are identical.
+
+</TheoremBlock>
+
+This is the sentence [BM25](/topics/bm25-binary-independence-model) opens with. Because ranking by $P(R)$ is ranking by the log-odds of relevance, the Binary Independence Model is free to model the log-odds term by term — and the whole probabilistic derivation of IDF and the saturating term-frequency weight follows. The PRP supplies the license; BM25 spends it.
+
+---
+
+## A finance-flavored example
+
+Make the principle concrete on the query *"interest rate exposure"* over five documents, each with a calibrated probability of relevance: a concise 10-K net-interest-margin disclosure ($0.82$), a Fed-rate news item ($0.61$), a long padded earnings-call transcript ($0.55$), an off-topic FX-risk filing ($0.30$), and a brief call update ($0.12$). The PRP order is simply these, sorted downward.
+
+Now consider a *length-biased* retriever — the failure mode the lexical topics fought. It floats the verbose documents to the top: the long transcript first, then the wordier FX and macro items, and it buries the terse but on-point 10-K disclosure at rank four. The two orderings retrieve the same documents eventually, but the top three differ. The PRP order's expected relevant count in the top three is $0.82 + 0.61 + 0.55 = 1.98$; the length-biased order's is $0.55 + 0.30 + 0.61 = 1.46$. Ranking by actual probability of relevance recovers half a relevant document, in expectation, in the first three results — and it does so at *every* cutoff, not just $k = 3$. The notebook's `test_prp_beats_plausible_alternative` asserts exactly this gap.
+
+The lesson the principle adds to the earlier topics is calibration. The vector space model could surface the concise filing once cosine removed the length advantage, but it ranked by an angle. The PRP says: if you can estimate the *probability* that each document is relevant, ranking by that probability is not merely reasonable — it is optimal, and no cleverer ordering exists.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+The PRP theorem is exact, but its assumptions are specific, and the distance between the two is where the rest of ranking research lives.
+
+1. **Additivity is a modeling assumption, not a theorem.** The proof needs the cost of an ordering to be additive across documents — each judged in isolation. When relevance is *interdependent*, the model is simply wrong. Two near-duplicate documents that are each relevant alone are redundant together, so retrieving both wastes a slot; under a redundancy-discounted utility the PRP order is provably *not* optimal, and a diversified order beats it. The notebook demonstrates this directly in `test_independence_break_diversity`. This is the regime [Maximal Marginal Relevance](https://doi.org/10.1145/290941.291025) and determinantal point processes address, and the PRP makes no claim there.
+2. **$P(R \mid d, q)$ is estimated, never observed.** The principle tells you what to do *with* the probabilities; it does not give them to you. Every probabilistic retrieval model — the Binary Independence Model, query-likelihood, a learned scorer — is an attempt to estimate them, and the ranking is only as good as the estimate.
+3. **It optimizes a single static batch.** The cost model scores one ranking presented at once, under a fixed user model — not an interactive session where a user's later judgments depend on what they have already seen.
+
+The proved core — the adjacent-swap lemma and the bubble-sort completion — is exact under its stated cost model. Everything outside that model is out of scope by construction, and saying so plainly is the point.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) needs nothing beyond NumPy and the standard library: the corpus is small enough that the theorem is checked by *brute force*. `test_prp_maximizes_over_all_permutations` enumerates all $120$ orderings of the five-document corpus and confirms the PRP order attains the maximum expected relevant count at every cutoff; `test_prp_minimizes_cost_over_all_permutations` does the same for the cost form across several $(c_{\text{fp}}, c_{\text{fn}})$ settings. The exchange lemma is checked on thousands of random orderings, and the bubble-sort completion is watched driving inversions monotonically to zero.
+
+Running the harness prints the worked example back as numbers: the PRP order's cumulative expected relevant count climbs $0.82, 1.43, 1.98, 2.28, 2.40$ across the five cutoffs, while the length-biased order trails at $0.55, 0.85, 1.46, 2.28, 2.40$ — equal only once both orders have retrieved everything. The interactive laboratory mirrors these numbers to the decimal, so the proof on the page, the curve on the screen, and the assertions in the code are three views of one fact.

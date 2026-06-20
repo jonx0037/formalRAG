@@ -54,7 +54,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   the numbers* — plus `01_<slug_underscored>.ipynb`, a narrative notebook that imports the `.py` and walks the
   topic section by section. Both must exit 0 before shipping; commit the `.ipynb` without stored
   outputs, and **normalize** a hand-written `.ipynb` (nbformat — add cell ids, clear outputs) or
-  `jupyter execute` warns (a future hard error). `notebooks/bm25/` is the exemplar. The full per-topic
+  `jupyter execute` warns (a future hard error). Reliable path: emit the `.ipynb` from a throwaway
+  `uv run --with nbformat` generator (sequential `cell-N` ids, `outputs: []`, `execution_count: null`),
+  then `jupyter execute` to verify exit 0. `notebooks/bm25/` is the exemplar. The full per-topic
   workflow lives in `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
@@ -69,6 +71,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   D3-drawn `<rect>/<circle>` children and `katex.render()` output (a post-load `.katex` count bump)
   appear only *after* hydration — assert on those before clicking.
 - Pagefind UI assets 404 in `astro dev` (generated only by `postbuild`) — expected, harmless.
+- **Don't hyperlink prose forward-references to unbuilt topics** — the link 404s until that topic
+  ships. Link only to slugs that already have MDX; name a future topic in prose without a link.
+  (Stale placeholder links can lurk in *published* topics too — e.g. a "Johnson–Lindenstrauss" link
+  was once parked at `/topics/the-retrieval-problem` until a later sweep corrected it.)
 - `pnpm dev` may not land on **4321** — with other `formal*` servers up it picks 4322/4323/…; read
   the dev log for the actual port (a `curl :4321` can hit a *different* project and falsely report
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
