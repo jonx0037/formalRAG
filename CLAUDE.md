@@ -70,8 +70,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - Pagefind UI assets 404 in `astro dev` (generated only by `postbuild`) — expected, harmless.
 - **Don't hyperlink prose forward-references to unbuilt topics** — the link 404s until that topic
   ships. Link only to slugs that already have MDX; name a future topic in prose without a link.
-  (Stale placeholder links lurk in *published* topics too — e.g. a "Johnson–Lindenstrauss" link
-  parked at `/topics/the-retrieval-problem`.)
+  (Stale placeholder links can lurk in *published* topics too — e.g. a "Johnson–Lindenstrauss" link
+  was once parked at `/topics/the-retrieval-problem` until a later sweep corrected it.)
 - `pnpm dev` may not land on **4321** — with other `formal*` servers up it picks 4322/4323/…; read
   the dev log for the actual port (a `curl :4321` can hit a *different* project and falsely report
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
