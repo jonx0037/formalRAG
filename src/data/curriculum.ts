@@ -25,10 +25,7 @@ export const tracks = [
     layer: 'Foundations',
     description:
       'Where embeddings live and what ANN must contend with: concentration of measure, hypersphere and von Mises–Fisher geometry, PCA and random projections, Johnson–Lindenstrauss, and chunking as segmentation.',
-    planned: [
-      'Matryoshka Representations: Jointly Trained Nested Subspaces',
-      'Random Projections and the Johnson–Lindenstrauss Lemma',
-    ],
+    planned: [],
     dependsOnFormalML: true,
   },
   {

@@ -1,0 +1,226 @@
+---
+title: "Matryoshka Representations: Jointly Trained Nested Subspaces"
+subtitle: "One embedding whose every prefix is itself a usable representation — and the exact sense in which the linear version is just PCA"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "pca-dimensionality-reduction"
+tags:
+  - "matryoshka"
+  - "nested-representations"
+  - "adaptive-retrieval"
+  - "dimensionality-reduction"
+  - "representation-learning"
+  - "eckart-young"
+  - "embedding-geometry"
+domain: "embedding-geometry"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The clean theorem of this page — Matryoshka representation learning, in the linear squared-reconstruction case, is exactly PCA — is true and exact (it is nestedness plus Eckart-Young), but it is also the case where Matryoshka reduces to something we already had, so it should not be oversold as the reason the method matters. The method matters in the nonlinear, contrastively trained case, and there the headline claims are empirical, not theorems: there is no general proof that jointly trained nested prefixes dominate independently trained per-dimension heads, the granularity weights c_m are an untuned heuristic, and the reading nested-means-ordered-by-importance is exact only in the linear special case. Prefix retrieval quality is monotone in the prefix width m for a nested embedding, but nested is a property that must be TRAINED, not assumed: a random rotation of the same embedding preserves every full-width distance yet retrieves no better than chance at small prefixes (on the finance cloud, prefix-96 recall is about 94 percent nested versus about 12 percent rotated). The adaptive funnel retrieval recall is measured, not tightly bounded. Finally, the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in whose nested basis is literally PCA, not a trained Matryoshka encoder; on a real encoder the nesting comes from the contrastive objective, which the linear model only mimics. The proved core — that the PCA basis attains the Eckart-Young rank-m optimum at every granularity simultaneously, and is therefore the joint optimum for any positive granularity weights — holds exactly."
+videoId: null
+notebookPath: "notebooks/matryoshka-nested-representations/01_matryoshka_nested_representations.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/matryoshka-nested-representations.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 32
+abstract: "A retriever that stores one embedding per document would like to spend few dimensions when latency matters and many when accuracy does — without re-encoding the corpus. Matryoshka Representation Learning trains a single embedding so that every prefix of it is itself a usable representation: the first 96 coordinates retrieve almost as well as all 1536. We make the geometry precise. In the linear, squared-reconstruction setting we prove that the jointly optimal nested basis is exactly PCA's eigenvalue-ordered basis — because PCA's top-k subspaces are nested and each is the Eckart-Young rank-k optimum, one ordered basis is simultaneously optimal at every granularity, hence optimal for any positive weighting of the granularities. Matryoshka generalizes PCA's nested-subspace optimality from variance to an arbitrary task loss. We then confront the honest catch: the nesting that makes a prefix usable is a property of the training, not a free consequence of having an embedding — a random rotation preserves every full-width distance yet destroys the prefixes — and the nonlinear, contrastively trained version's advantages are empirical regularities, not theorems. We close with adaptive funnel retrieval, shortlisting on a cheap short prefix and reranking at full width for near-exhaustive recall at a fraction of the cost, an interactive Matryoshka Laboratory, and a tested, scikit-learn-cross-checked implementation on a 1536-dimensional finance cloud."
+connections:
+  - topic: "pca-dimensionality-reduction"
+    relationship: "this topic generalizes PCA's central optimality from variance to an arbitrary task loss: PCA's nested top-k subspaces, each the Eckart-Young rank-k optimum proved there, are exactly the linear Matryoshka optimum, so the nested-subspace structure that PCA gives for reconstruction is the structure Matryoshka trains for retrieval, and in the linear case the two coincide"
+references:
+  - type: "paper"
+    title: "Matryoshka Representation Learning"
+    authors: "Kusupati, Bhatt, Rege, Wallingford, Sinha, Ramanujan, Howard-Snyder, Chen, Kakade, Jain & Farhadi"
+    year: 2022
+    url: "https://arxiv.org/abs/2205.13147"
+    note: "The original method: train one embedding whose nested prefixes are each usable, via a summed multi-granularity loss"
+  - type: "paper"
+    title: "The Approximation of One Matrix by Another of Lower Rank"
+    authors: "Eckart & Young"
+    year: 1936
+    url: "https://doi.org/10.1007/BF02288367"
+    note: "The rank-m reconstruction optimum that each Matryoshka granularity term inherits — the per-m half of the linear theorem"
+  - type: "book"
+    title: "Matrix Analysis"
+    authors: "Horn & Johnson"
+    year: 2013
+    url: "https://doi.org/10.1017/CBO9781139020411"
+    note: "Eckart-Young-Mirsky and the nestedness of the dominant invariant subspaces the joint optimality turns on"
+  - type: "paper"
+    title: "Representation Learning with Contrastive Predictive Coding"
+    authors: "van den Oord, Li & Vinyals"
+    year: 2018
+    url: "https://arxiv.org/abs/1807.03748"
+    note: "The InfoNCE contrastive objective the nonlinear Matryoshka loss applies at each prefix width — the forthcoming neural-retrieval topic"
+  - type: "book"
+    title: "Principal Component Analysis"
+    authors: "Jolliffe"
+    year: 2002
+    url: "https://doi.org/10.1007/b98835"
+    note: "Nested principal subspaces and component retention — the classical structure the linear theorem rests on"
+  - type: "documentation"
+    title: "New Embedding Models and API Updates (text-embedding-3)"
+    authors: "OpenAI"
+    year: 2024
+    url: "https://openai.com/index/new-embedding-models-and-api-updates/"
+    note: "Production Matryoshka: the embeddings expose a dimension parameter that truncates the nested representation"
+  - type: "paper"
+    title: "Nomic Embed: Training a Reproducible Long Context Text Embedder"
+    authors: "Nussbaum, Morris, Duderstadt & Mulyar"
+    year: 2024
+    url: "https://arxiv.org/abs/2402.01613"
+    note: "An open Matryoshka-trained text embedder — the nested-prefix recipe applied to a real encoder"
+formalmlPrereqs:
+  - topic: "pca-low-rank"
+    site: "formalml"
+    relationship: "the optimal low-rank projection and the nested top-k principal subspaces developed there are precisely the object this topic shows the linear Matryoshka loss recovers; the nestedness of those subspaces — top-k contained in top-(k+1) — is the lemma that makes one ordered basis simultaneously optimal at every granularity"
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the Eckart-Young-Mirsky theorem proved there gives the rank-m reconstruction optimum that each per-granularity Matryoshka term inherits, and the truncated-SVD construction is exactly the prefix projector whose nestedness the joint-optimality proof exploits"
+formalmlConnections:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "Matryoshka is a representation-learning technique: it shapes the learned embedding so that its coordinates are ordered by usefulness, and the contrastive training that produces the nonlinear version is the representation-learning machinery developed there, specialized to make every prefix a good representation"
+formalstatisticsPrereqs:
+  - topic: "multivariate-distributions"
+    site: "formalstatistics"
+    relationship: "the linear Matryoshka optimum is the eigenbasis of the embedding covariance, the same covariance matrix and its eigendecomposition developed there; the ordering of the nested subspaces by eigenvalue is the ordering of the principal axes of that multivariate distribution"
+formalcalculusPrereqs:
+  - topic: "eigenvalues-eigenvectors"
+    site: "formalcalculus"
+    relationship: "the nested basis is the eigenvalue-ordered eigenvectors of the centered covariance, so the spectral ordering and the eigenvector machinery developed there are what give the prefixes their by-importance ordering that the linear theorem turns into joint optimality"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import MatryoshkaLaboratory from '../../components/viz/MatryoshkaLaboratory.tsx';
+
+## Overview & motivation
+
+The [PCA topic](/topics/pca-dimensionality-reduction) reduced an embedding cloud to $k$ dimensions by reading its covariance, and [random projection](/topics/johnson-lindenstrauss) reduced it with a fixed-width random map. Both produce a *single* target width: choose $k$ up front, and that is the representation you store. But a retriever often wants two widths at once — a short embedding to scan a billion candidates quickly, and a long one to score the survivors accurately — and re-encoding the whole corpus at a second width is exactly the cost we are trying to avoid.
+
+Matryoshka Representation Learning answers this by training one embedding so that *every prefix is itself a usable representation*. Store the full $1536$-dimensional vector; retrieve with its first $96$ coordinates when speed matters and its full width when accuracy does, with no re-encoding, because the short representation is literally a slice of the long one. The name is the nesting dolls: $z_{1:24} \subset z_{1:48} \subset z_{1:96} \subset \dots$, each a complete representation at its own resolution.
+
+Before the algebra, drag the prefix-width slider and watch what nesting buys:
+
+<MatryoshkaLaboratory client:visible />
+
+The first panel is the point of the whole method: the nested embedding's recall holds up as you shrink the prefix, while a random rotation of the *same* embedding — identical full-width geometry — collapses to near chance at small widths. The second shows the geometric reason in the linear case: the nested basis sits exactly on the Eckart–Young optimum at every width. The third is the payoff — shortlist on a cheap prefix, rerank at full width, and recover almost all the recall for a fraction of the cost.
+
+### What we cover
+
+1. The Matryoshka objective: a weighted sum of per-granularity losses.
+2. The linear theorem — the jointly optimal nested basis is exactly PCA — and why.
+3. Weight invariance: PCA is the optimum for *any* granularity weighting.
+4. Why nesting must be trained, not assumed.
+5. Adaptive funnel retrieval, and the nonlinear contrastive case.
+
+---
+
+## The Matryoshka objective
+
+Fix an embedding dimension $d$ and a set of granularities $\mathcal{M} = \{m_1 < m_2 < \dots < d\}$ — in practice the halving sequence $\{d, d/2, d/4, \dots\}$. A Matryoshka model produces, for each input, one vector $z \in \mathbb{R}^d$, and is trained so that every prefix $z_{1:m}$ is a good representation under a task loss $\ell$. The objective is a weighted sum over the granularities,
+
+$$
+\mathcal{L} = \sum_{m \in \mathcal{M}} c_m\, \ell\bigl(z_{1:m}\bigr), \qquad c_m > 0 .
+$$
+
+The weights $c_m$ trade off the granularities; the single shared trunk producing $z$ is what forces the prefixes to *nest*, because the same early coordinates must serve every width at once. To see the geometry cleanly we specialize $\ell$ to linear reconstruction, where the answer is exact and familiar.
+
+---
+
+## The linear theorem: Matryoshka is PCA
+
+Let $\tilde{X} \in \mathbb{R}^{n \times D}$ be the centered data and let the representation be a linear projection onto an orthonormal basis $V \in \mathbb{R}^{D \times d}$, so the prefix $z_{1:m}$ uses the first $m$ columns $V_{:m}$ and reconstructs $\tilde{X}$ through the projector $P_m = V_{:m} V_{:m}^{\top}$. Take $\ell$ to be the squared reconstruction error $\ell(z_{1:m}) = \lVert \tilde{X} - \tilde{X} P_m \rVert_F^2$.
+
+<TheoremBlock type="theorem" number={1} title="The linear Matryoshka optimum is PCA">
+
+For the linear squared-reconstruction loss, the basis minimizing the joint objective $\sum_{m \in \mathcal{M}} c_m \lVert \tilde{X} - \tilde{X} V_{:m} V_{:m}^{\top}\rVert_F^2$, for any positive weights $c_m$, is the PCA basis: the eigenvalue-ordered eigenvectors of the covariance $\tilde{X}^{\top}\tilde{X}$, equivalently the right singular vectors of $\tilde{X}$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Fix a single granularity $m$. Minimizing $\lVert \tilde{X} - \tilde{X} V_{:m}V_{:m}^{\top}\rVert_F^2$ over rank-$m$ orthonormal projectors is the [Eckart–Young–Mirsky](/topics/pca-dimensionality-reduction) problem, whose minimizer is the top-$m$ PCA subspace and whose minimum value is the tail $\sum_{i>m}\sigma_i^2$. Call that per-granularity minimum $\ell_m^\star$.
+
+The decisive structural fact is *nestedness*: the top-$m$ principal subspace is contained in the top-$(m+1)$ principal subspace, because both are spanned by a prefix of the *same* eigenvalue-ordered list $v_1, v_2, \dots$. So a single ordered basis $V^{\mathrm{pca}} = [v_1\ \cdots\ v_d]$ has the property that its first $m$ columns span exactly the top-$m$ subspace, *for every $m$ at once*. Therefore $V^{\mathrm{pca}}$ attains $\ell_m^\star$ at every granularity simultaneously, and
+
+$$
+\sum_{m} c_m\, \ell_m\bigl(V^{\mathrm{pca}}\bigr) = \sum_m c_m\, \ell_m^\star \;\le\; \sum_m c_m\, \ell_m(W)
+$$
+
+for any orthonormal $W$, since $\ell_m(W) \ge \ell_m^\star$ termwise and $c_m > 0$. This is exactly what a non-nested basis cannot do: a $W$ tuned to be optimal at one width has, in general, suboptimal prefixes at the others, because *its* top-$m$ subspaces are not nested. Only the eigenvalue-ordered basis is optimal at all widths at once, so it is the joint minimizer. $\blacksquare$
+
+</TheoremBlock>
+
+The reading to keep is that PCA already *is* a nested representation — its top-$k$ subspaces are the original matryoshka dolls — and the linear Matryoshka objective simply rediscovers it. What Matryoshka adds, in the nonlinear case below, is the same nested structure for a representation optimized against a *retrieval* loss rather than reconstruction. The companion harness confirms the theorem to the decimal: the PCA prefix reconstruction error equals the Eckart–Young rank-$m$ optimum at every granularity, while a random orthonormal basis is far worse.
+
+---
+
+## The optimum does not depend on the weighting
+
+A natural worry is that the granularity weights $c_m$ should change the answer — favor short prefixes and surely the basis should tilt toward them. In the linear case they do not.
+
+<TheoremBlock type="proposition" number={1} title="Weight invariance of the nested optimum">
+
+Because the PCA basis attains the per-granularity optimum $\ell_m^\star$ at *every* $m$, the joint loss it achieves equals $\sum_m c_m \ell_m^\star$, which is the smallest value the weighted sum can take for those weights. Hence the PCA basis is the joint minimizer for *every* choice of positive weights $c_m$ — the optimal nested basis is weight-invariant.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The quantity $\sum_m c_m \ell_m^\star$ is a lower bound on $\sum_m c_m \ell_m(W)$ for any $W$, because each term is bounded below by $c_m \ell_m^\star$. The PCA basis meets this lower bound exactly (Theorem 1), so it is optimal, and the bound — and the minimizer that meets it — do not depend on the $c_m$ beyond their positivity. The harness verifies this over randomly drawn weight vectors: the PCA joint loss equals the weighted sum of the per-$m$ optima every time. $\blacksquare$
+
+</TheoremBlock>
+
+This is a comforting sanity check and a warning at once. Comforting, because in the linear world you never have to tune the weights. A warning, because it is a symptom of the linear case being *too* easy: the weighting only starts to matter when the per-granularity optima cannot all be achieved by one basis, which is precisely the nonlinear regime where Matryoshka earns its keep.
+
+---
+
+## Nesting must be trained
+
+Here is the fact that keeps Matryoshka from being trivial, and it is best seen by trying to fake it. Take the nested embedding and apply a random rotation $R \in O(d)$ to produce $z' = Rz$. Rotation is an isometry, so it preserves *every* full-width distance exactly — at $m = d$ the two embeddings retrieve identically. But $z'$ smears the information that lived in the early coordinates of $z$ across all $d$ of them, so its prefixes are arbitrary mixtures.
+
+The retrieval consequence is stark. On the finance cloud, the nested embedding's first $96$ coordinates retrieve at about $94\%$ recall@10; the rotated embedding's first $96$ coordinates, with identical full-width geometry, retrieve at about $12\%$ — barely above chance. The "Prefix recall" panel shows the two curves: the nested one rises fast and plateaus near the intrinsic dimension of the cloud, while the rotated one crawls along the bottom until almost every coordinate is restored. Nesting is not a property an embedding has for free; it is a property the *training* must put there, by forcing the shared trunk to load the most useful directions into the earliest coordinates. In the linear case that loading is the eigenvalue ordering; in the nonlinear case it is what the multi-granularity loss trains.
+
+---
+
+## Adaptive retrieval, and the nonlinear case
+
+The practical reward is *adaptive*, or *funnel*, retrieval. Shortlist candidates cheaply using a short prefix, then rerank only the shortlist at full width. The first stage scores every document on $m_{\text{short}}$ dimensions and the second scores a handful on all $d$, so the cost is a small fraction of an exhaustive full-width scan while the recall is nearly unchanged — the short prefix is good enough to *retrieve* the right candidates even when it is not good enough to *order* them, and the full-width rerank fixes the order. On the finance cloud, shortlisting on a $96$-dimensional prefix and reranking at $1536$ recovers $100\%$ of the exhaustive recall@10 at under $9\%$ of the scoring cost; the "Adaptive funnel" panel traces the recall-versus-cost frontier as the shortlist grows.
+
+The version that matters in practice is nonlinear and *contrastive*. Real Matryoshka encoders replace the reconstruction loss $\ell$ with a contrastive objective — pull a query toward its relevant document and push it from negatives — applied at each prefix width and summed, $\sum_m c_m\,\ell_{\text{contrastive}}(z_{1:m})$. That contrastive loss is the subject of a forthcoming neural-retrieval topic; here we only note its role. With it, the headline empirical results hold — a nonlinear Matryoshka embedding matches a full-width model's accuracy at a fraction of the dimensions, and the jointly trained prefixes beat heads trained independently at each width. We are careful to call these *empirical*: there is no general theorem that joint training dominates independent heads, and the clean optimality we proved is special to the linear case. What carries over is the geometry — coordinates ordered by usefulness, prefixes that nest — which the linear theorem shows is not magic but the natural generalization of PCA.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+Take $2000$ document embeddings in $\mathbb{R}^{1536}$ — a synthetic low-rank-plus-noise stand-in for a production financial retriever's filings-and-transcripts cloud, whose nested basis is literally PCA, not a trained Matryoshka encoder — and ask what nesting buys.
+
+The first coordinates carry the structure. The nested embedding's prefix-$96$ recall@10 is $93.7\%$, already near its full-width ceiling, because the cloud's intrinsic dimension is small and the eigenvalue ordering loads it into the first few dozen coordinates. The same embedding, randomly rotated, retrieves at $12.0\%$ on its first $96$ coordinates despite identical full-width distances — the difference is entirely the nesting. And the funnel pays off: shortlisting on the $96$-dimensional prefix and reranking the shortlist at the full $1536$ recovers $100\%$ of the exhaustive recall@10 at $8.8\%$ of the scoring cost. For a retriever scanning millions of documents per query, that is the difference between scoring everything at full width and scoring everything at a sixteenth of it, with the accuracy of the former.
+
+</FinanceCaseStudy>
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+- **The clean theorem is the easy case.** Linear Matryoshka *is* PCA — exact, by nestedness and Eckart–Young — but that is the case where the method reduces to something we already had. The method matters in the nonlinear, contrastively trained case.
+- **The real advantages are empirical.** There is no general proof that jointly trained nested prefixes dominate independently trained per-width heads; the granularity weights $c_m$ are an untuned heuristic; "nested = ordered by importance" is exact only in the linear case.
+- **Nesting is trained, not free.** A random rotation preserves every full-width distance yet destroys the prefixes — prefix-$96$ recall $\sim 94\%$ nested vs $\sim 12\%$ rotated. The usefulness ordering must be put into the early coordinates by the training.
+- **Funnel recall is measured.** The adaptive-retrieval recall is an empirical number on this cloud, not a tight bound.
+- **Synthetic data, PCA stand-in.** The finance embeddings are a synthetic low-rank-plus-noise cloud whose nested basis is PCA; a real encoder gets its nesting from the contrastive objective, which the linear model only mimics.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion module [`matryoshka_nested_representations.py`](https://github.com/jonx0037/formalRAG/blob/main/notebooks/matryoshka-nested-representations/matryoshka_nested_representations.py) owns every number this page and the laboratory cite. Its seven assertions encode the claims in order: the linear Matryoshka optimum is PCA (the prefix reconstruction equals the Eckart–Young rank-$m$ optimum at every granularity, to the decimal); weight invariance (the PCA joint loss equals the weighted sum of per-$m$ optima for random weightings); prefix-recall monotonicity; the trained-nesting gap (a random rotation preserves full-width recall but collapses the prefixes); funnel retrieval (near-full recall at a fraction of the cost); a scikit-learn cross-check of the nested basis; and the finance headline. A subtlety worth flagging, since it bit during development: the synthetic corpus must have more points than dimensions for PCA to return a full-width $1536$-dimensional basis, so the finance cloud uses $n = 2000$. Both the module and the narrative notebook run in about five seconds and must exit cleanly before the topic ships.
