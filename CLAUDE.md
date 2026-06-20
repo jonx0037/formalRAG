@@ -87,8 +87,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   form (the self-information theorem) but *score* with smoothed `log(1+N/df)`, flagging smoothing as
   a convention. Reusing a shared corpus across topics does **not** guarantee the same flip holds
   under each topic's scoring variant.
-- **Verify reference DOIs** with `WebFetch https://doi.org/<doi>` — the 302 redirect URL alone
-  confirms journal/volume/issue/pages, so no need to fetch the (often paywalled) destination.
+- **Verify reference DOIs** with `curl -sI https://doi.org/<doi>` — the `location:` header in the 302
+  alone confirms journal/volume/issue/pages (a HEAD request: no redirect-following, no paywalled GET).
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
 - **Multiple topics in one session = independent feature branches off `main`** (each depends only on
