@@ -58,9 +58,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `uv run --with nbformat` generator (sequential `cell-N` ids, `outputs: []`, `execution_count: null`),
   then `jupyter execute` to verify exit 0. `notebooks/bm25/` is the exemplar. The full per-topic
   workflow lives in `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
-- **A dependent topic's `.py` IMPORTS its prereq's `.py`, never reimplements it** — the
-  `sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "<prereq-slug>"))` pattern
-  (`rank_fusion_rrf`→`bm25`, `product_quantization`→`vector_quantization_lloyd_max`). Reuse the
+- **A dependent topic's `.py` IMPORTS its prereq's `.py`, never reimplements it** — add the prereq's
+  **hyphenated dir** to the path, then import its **underscored module**:
+  `sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "vector-quantization-lloyd-max"))` then
+  `from vector_quantization_lloyd_max import ...` (the `rank_fusion_rrf`→`bm25` precedent). Reuse the
   prereq's exact dataset and **re-derive any shared baseline** rather than hardcoding it, so a
   cross-topic comparison (PQ's recall vs the flat-VQ ceiling it re-derives) is provably one cloud.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
