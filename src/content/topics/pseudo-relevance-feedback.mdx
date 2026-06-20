@@ -1,0 +1,229 @@
+---
+title: "Relevance Feedback and Query Expansion: Rocchio and RM3"
+subtitle: "Closing the loop — using the documents you just retrieved to repair the query, and why doing too much of it drifts off topic"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "bm25-binary-independence-model"
+  - "query-likelihood-language-models"
+tags:
+  - "relevance-feedback"
+  - "query-expansion"
+  - "rocchio"
+  - "rm3"
+  - "pseudo-relevance-feedback"
+domain: "probabilistic-ir"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "Pseudo-relevance feedback assumes the top retrieved documents are relevant, which is often false; when it is, the query drifts and recall degrades. The Rocchio weights α, β, γ and the RM3 interpolation α and term count are tuned empirically, and the method improves average effectiveness with no per-query guarantee."
+videoId: null
+notebookPath: "notebooks/pseudo-relevance-feedback/01_pseudo_relevance_feedback.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/pseudo-relevance-feedback.mdx"
+datePublished: 2026-06-20
+estimatedReadTime: 30
+abstract: "A query and its relevant documents often use different words — a filing's risk disclosure says 'outlook' and 'forecast' where the analyst typed 'guidance' — and lexical retrieval cannot match what is not there. Relevance feedback repairs the query using the documents already retrieved. We derive Rocchio, the vector-space update that moves the query toward the centroid of the relevant documents, and the language-model relevance models RM1 and RM3, which estimate an expanded query distribution from the top documents weighted by their query likelihood and re-score by the KL/cross-entropy view. We prove Rocchio's centroid-optimality and RM3's interpolation limits, and we make the central honest point executable: pseudo-relevance feedback assumes the top documents are relevant, so a little feedback bridges the vocabulary gap and lifts recall, but too much pulls in off-topic terms and the query drifts. An interactive feedback laboratory and a from-scratch implementation whose tests assert both the gain and the drift accompany the derivation, with a finance case study over filings and transcripts."
+connections:
+  - topic: "query-likelihood-language-models"
+    relationship: "RM3 is the relevance-model generalization of query likelihood: it replaces the empirical query model with a feedback-estimated relevance model and re-scores by the same KL/cross-entropy, and it weights feedback documents by their query likelihood P(q|d)"
+  - topic: "bm25-binary-independence-model"
+    relationship: "the initial ranking that feedback documents are drawn from is produced by BM25; pseudo-relevance feedback treats its top-k as relevant"
+  - topic: "vector-space-model-tfidf"
+    relationship: "Rocchio operates on the tf-idf vectors of the vector space model, moving the query vector toward the centroid of the feedback documents"
+references:
+  - type: "paper"
+    title: "Relevance-Based Language Models"
+    authors: "Lavrenko & Croft"
+    year: 2001
+    url: "https://doi.org/10.1145/383952.383972"
+    note: "The RM1 relevance model"
+  - type: "paper"
+    title: "A Comparative Study of Methods for Estimating Query Language Models with Pseudo Relevance Feedback"
+    authors: "Lv & Zhai"
+    year: 2009
+    url: "https://doi.org/10.1145/1645953.1646259"
+    note: "RM3 and a systematic comparison of PRF estimation methods"
+  - type: "paper"
+    title: "Improving Retrieval Performance by Relevance Feedback"
+    authors: "Salton & Buckley"
+    year: 1990
+    url: "https://doi.org/10.1002/(SICI)1097-4571(199006)41:4<288::AID-ASI8>3.0.CO;2-H"
+    note: "The definitive treatment of Rocchio relevance feedback in the vector space model"
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapter 9: relevance feedback and query expansion"
+  - type: "documentation"
+    title: "Pyserini / Anserini: reproducible RM3 pseudo-relevance feedback"
+    url: "https://github.com/castorini/pyserini"
+    note: "Reference RM3 implementation over Lucene"
+formalmlPrereqs:
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "Rocchio moves the query toward the centroid of the relevant documents — it is a nearest-centroid construction, the same centroid geometry that underlies clustering"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "RM3 re-scores documents by the cross-entropy of the expanded query model with each document model, the KL-divergence retrieval view that query likelihood established"
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "the RM1 relevance model is a point estimate of an expanded query distribution from a small sample of pseudo-relevant documents — and its bias when that sample is contaminated is exactly query drift"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import QueryExpansionFeedbackLab from '../../components/viz/QueryExpansionFeedbackLab.tsx';
+
+Every retrieval model so far has matched a query against documents *as written*. But a query and the documents that answer it routinely use different words. An analyst searches for *rate guidance*; the filing that answers the question discusses the company's *outlook* and *rate forecast* and never once writes "guidance." [BM25](/topics/bm25-binary-independence-model) and [query likelihood](/topics/query-likelihood-language-models) cannot match a term that is not there, so the most on-point document sinks beneath worse ones that happen to share the query's vocabulary. This is the **vocabulary mismatch** problem, and relevance feedback is the classical fix: use the documents you have already retrieved to *repair the query*, then search again.
+
+The catch is in the assumption. We rarely have real relevance judgments at query time, so **pseudo-relevance feedback** simply *assumes the top-k retrieved documents are relevant* and harvests expansion terms from them. When that assumption holds, feedback bridges the vocabulary gap and recall jumps. When it fails — when an off-topic document sits near the top — its words pollute the query and the results drift away from the user's intent. The whole topic lives in the tension between those two outcomes.
+
+<QueryExpansionFeedbackLab client:visible />
+
+The laboratory above runs RM3 over a worked corpus for the query *rate guidance*. Two of the four relevant documents are synonym-only — they say *outlook* and *forecast*, never "guidance" — so the no-feedback ranking misses them and recall@4 is only $0.5$. Slide the feedback size to one or two documents and the relevance model adds *outlook* and *forecast*, the synonym filings surface, and recall reaches $1.0$. Keep sliding: off-topic feedback documents add *segment* and *budget*, the query drifts, and a relevant document drops back out.
+
+### What we cover
+
+1. Relevance feedback and the vocabulary-mismatch problem.
+2. Rocchio: moving the query toward the relevant centroid.
+3. The relevance model RM1.
+4. RM3: interpolating the relevance model with the original query.
+5. Query drift: the honest failure mode, and a finance case study.
+
+---
+
+## Rocchio: the centroid update
+
+The vector-space answer, due to Rocchio, treats query repair as geometry: push the query vector toward the documents marked relevant and away from those marked non-relevant.
+
+<TheoremBlock type="definition" number={1} title="Rocchio update">
+
+Given sets of relevant documents $D_r$ and non-relevant documents $D_{nr}$ (as tf-idf vectors), the updated query is
+
+$$
+q' = \alpha\, q + \beta\,\frac{1}{|D_r|}\sum_{d \in D_r} d - \gamma\,\frac{1}{|D_{nr}|}\sum_{d \in D_{nr}} d,
+$$
+
+with weights $\alpha, \beta, \gamma \ge 0$. In **pseudo-relevance feedback** we set $\gamma = 0$ and take $D_r$ to be the top retrieved documents, then re-rank by cosine similarity to $q'$.
+
+</TheoremBlock>
+
+The two averages are the **centroids** of the relevant and non-relevant sets, so Rocchio is a [nearest-centroid](https://formalml.com/topics/clustering) construction: it shifts the query toward the middle of what looks relevant. This is not an arbitrary recipe — it is the solution to an optimization.
+
+<TheoremBlock type="proposition" number={1} title="Rocchio maximizes the relevant–non-relevant margin">
+
+Among query vectors of fixed norm, the one that maximizes the difference between the average similarity to the relevant set and the average similarity to the non-relevant set,
+
+$$
+J(q') = \frac{1}{|D_r|}\sum_{d \in D_r} q'^\top d \;-\; \frac{1}{|D_{nr}|}\sum_{d \in D_{nr}} q'^\top d,
+$$
+
+points in the direction of the centroid difference $\bar{d}_r - \bar{d}_{nr}$. Rocchio's $\beta$ and $\gamma$ terms are exactly this direction; the $\alpha\,q$ term anchors the result to the original query.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Write the objective as a single inner product. Pulling the sums inside,
+
+$$
+J(q') = q'^\top\!\left(\frac{1}{|D_r|}\sum_{d \in D_r} d - \frac{1}{|D_{nr}|}\sum_{d \in D_{nr}} d\right) = q'^\top\big(\bar{d}_r - \bar{d}_{nr}\big),
+$$
+
+where $\bar{d}_r$ and $\bar{d}_{nr}$ are the two centroids. Maximizing a linear function $q'^\top v$ over the sphere $\lVert q' \rVert = c$ is the textbook Cauchy–Schwarz problem: $q'^\top v \le \lVert q' \rVert\,\lVert v \rVert$ with equality iff $q'$ is parallel to $v$. So the optimal direction is $v = \bar{d}_r - \bar{d}_{nr}$ — the centroid difference. Rocchio realizes this direction with separate non-negative weights $\beta$ on $\bar{d}_r$ and $\gamma$ on $\bar{d}_{nr}$, and adds $\alpha\,q$ so the repaired query does not wander arbitrarily far from what the user actually asked. $\;\blacksquare$
+
+</TheoremBlock>
+
+Because $q'$ now points toward the relevant centroid, its similarity to those documents — and to their unseen near-neighbors in the same vocabulary — rises. The companion notebook confirms that the Rocchio update strictly increases the query's mean cosine to the feedback documents and lifts recall@4 on the worked corpus.
+
+---
+
+## The relevance model RM1
+
+The language-model analogue, due to Lavrenko and Croft, is more probabilistic. Instead of moving a vector, it estimates a distribution: a **relevance model** $P(w \mid R)$ that we imagine the relevant documents were generated from.
+
+<TheoremBlock type="definition" number={2} title="RM1 relevance model">
+
+Estimate the probability of a word under the relevance model by averaging the document models, weighted by how well each document explains the query:
+
+$$
+P(w \mid R) = \sum_{d} P(w \mid d)\, P(d \mid q), \qquad P(d \mid q) \propto P(q \mid d)\,P(d),
+$$
+
+where $P(q \mid d)$ is the [query likelihood](/topics/query-likelihood-language-models) and the document prior $P(d)$ is taken uniform over the feedback set.
+
+</TheoremBlock>
+
+The intuition is a sampling story: if we believe the query was drawn from the relevant class, then documents that generate the query well ($P(q \mid d)$ large) are our best proxies for that class, and the words they contain are the words the relevant class favors. Summing each feedback document's model weighted by its query likelihood produces a genuine probability distribution over the vocabulary — the notebook verifies $\sum_w P(w \mid R) = 1$ — whose highest-probability terms are the expansion terms. On the worked corpus with clean feedback, those top terms are exactly *forecast* and *outlook*, each at weight $0.243$: the relevance model has discovered the synonyms the literal query lacked. This is a [point estimate](https://formalstatistics.com/topics/point-estimation) of the expanded query from a small sample of documents, and — as we will see — its bias when that sample is contaminated is precisely query drift.
+
+---
+
+## RM3: interpolating with the original query
+
+A pure relevance model can wander, so RM3 anchors it to the original query, exactly as Rocchio's $\alpha\,q$ term does.
+
+<TheoremBlock type="definition" number={3} title="RM3">
+
+Interpolate the relevance model with the original (maximum-likelihood) query model and re-score by cross-entropy:
+
+$$
+P_{\text{RM3}}(w) = (1 - \alpha)\,P_{\text{ml}}(w \mid q) + \alpha\,P_{\text{RM1}}(w \mid R), \qquad
+\text{score}(d) = \sum_w P_{\text{RM3}}(w)\,\log P(w \mid d).
+$$
+
+</TheoremBlock>
+
+The re-scoring is the [KL / cross-entropy view](https://formalml.com/topics/kl-divergence) from the query-likelihood topic, with the thin empirical query model swapped for the richer $P_{\text{RM3}}$. The mixing weight $\alpha$ interpolates between two familiar endpoints.
+
+<TheoremBlock type="proposition" number={2} title="RM3 limits">
+
+At $\alpha = 0$, $P_{\text{RM3}} = P_{\text{ml}}(\cdot \mid q)$ and the ranking is exactly the original query-likelihood ranking — no expansion. At $\alpha = 1$, $P_{\text{RM3}} = P_{\text{RM1}}$, the pure relevance model. Intermediate $\alpha$ blends the two.
+
+</TheoremBlock>
+
+The proof is immediate from the definition — substitute $\alpha = 0$ and $\alpha = 1$ — but the content is real: $\alpha$ is the dial between trusting the user's words and trusting the feedback. The notebook confirms that at $\alpha = 0$ the RM3 ranking equals the unexpanded query-likelihood ranking (recall $0.5$), while a moderate $\alpha = 0.5$ with a little feedback bridges the vocabulary gap to recall $1.0$.
+
+---
+
+## Query drift: the honest failure
+
+Everything above assumed the feedback documents are relevant. Pseudo-relevance feedback assumes it *by fiat* — it trusts the top-k of the initial ranking — and that is where it can fail.
+
+<RigorFlag>
+
+Pseudo-relevance feedback is effective on average but carries three honest qualifications:
+
+1. **The relevance assumption is often false.** PRF treats the top-k retrieved documents as relevant. When one is not — a *tax rate* filing surfacing for an interest-*rate* query — its terms enter the relevance model and the query **drifts** toward them. The notebook makes this concrete: recall@4 climbs from $0.5$ to $1.0$ with one or two feedback documents, then falls back toward $0.5$ as the feedback set grows to include off-topic documents whose terms (*segment*, *budget*) crowd out the bridging ones.
+2. **No per-query guarantee.** PRF improves *mean* effectiveness across queries while hurting some individual queries outright. There is no theorem that it never lowers recall for a given query — and the drift curve shows it plainly does.
+3. **The parameters are tuned.** Rocchio's $\alpha, \beta, \gamma$, RM3's $\alpha$, the number of feedback documents, and the number of expansion terms are all set empirically; the smoothing used in the re-ranking must itself be scaled to document length. None of them are derived from first principles.
+
+The drift is not a bug to be patched away — it is the structural cost of fabricating relevance judgments, and naming it is the point.
+
+</RigorFlag>
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+Query expansion earns its keep in financial retrieval precisely because the domain is full of vocabulary mismatch. An analyst's *rate guidance* must match a filing's *outlook for the rate environment*; a query for *credit deterioration* must reach a disclosure of *rising provisions for loan losses*. Pseudo-relevance feedback over **10-K / 10-Q filings** and **earnings-call transcripts** bridges these gaps by harvesting the domain's own synonyms from the top retrieved documents.
+
+But the finance domain is also where drift bites hardest, because of polysemy: *rate* means an interest rate, a tax rate, a dividend rate, or a growth rate depending on context. A pseudo-relevant document about the *effective tax rate* injects *tax* and *charge* into the relevance model and pulls an interest-rate query toward accounting disclosures. The practical discipline this topic teaches — use few feedback documents, interpolate with the original query (RM3's $\alpha$), and cap the expansion — is exactly the guardrail a production retriever needs.
+
+In the production system, query expansion runs *before* fusion: the expanded lexical query feeds [reciprocal rank fusion](/topics/rank-fusion-rrf) alongside dense retrieval, so the dense leg's paraphrase-matching and the expanded lexical leg's synonym-bridging reinforce each other, while RM3's interpolation with the original query keeps the drift bounded.
+
+</FinanceCaseStudy>
+
+---
+
+## Implementation
+
+The companion notebook implements both relevance-feedback families from scratch over the worked finance corpus — Rocchio on tf-idf vectors and RM1/RM3 on language models, with the query likelihood $P(q \mid d)$ supplying the feedback weights — and turns each claim into an assertion. It verifies that the RM1 relevance model is a proper distribution, that the Rocchio update equals $\alpha\,q + \beta$ times the feedback centroid and raises the query's mean similarity to it, and that RM3 recovers the unexpanded query-likelihood ranking at $\alpha = 0$.
+
+The two headline numbers are the gain and the drift, measured on the same curve. For the query *rate guidance*, whose four relevant documents include two synonym-only filings, recall@4 starts at $0.50$ with no feedback, rises to $1.00$ once one or two feedback documents inject *forecast* and *outlook* (each weighted $0.243$ in the relevance model), and falls back to $0.50$ as the feedback set grows to four and off-topic terms enter — the query-drift failure, reproduced exactly. The full recall-versus-feedback curve and the expansion terms at each feedback size are printed by the harness so the page, the notebook, and the laboratory read one set of numbers.

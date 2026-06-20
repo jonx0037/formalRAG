@@ -33,6 +33,8 @@ connections:
     relationship: "the two dominant probabilistic retrieval models — BM25 ranks by probability of relevance (the BIM), query likelihood ranks by probability of generating the query; they are unified through the KL-divergence / risk-minimization view"
   - topic: "probability-ranking-principle"
     relationship: "query likelihood is a generative instance of the PRP under a risk-minimization framing: ranking by P(q | document model) is the decision rule that minimizes Bayes risk under a specific loss"
+  - topic: "pseudo-relevance-feedback"
+    relationship: "the KL-divergence view generalizes directly to relevance models: RM3 replaces the empirical query model θ_q with a feedback-estimated relevance model, re-scored by the same cross-entropy"
 references:
   - type: "paper"
     title: "A Language Modeling Approach to Information Retrieval"
@@ -260,7 +262,7 @@ Substituting gives the stated identity. For a fixed query, $H(\theta_q)$ is the 
 
 The [Shannon entropy](https://formalml.com/topics/shannon-entropy) term is the price of admission that cancels: it depends only on the query, so it shifts every document's score by the same amount and never changes the ranking. What remains, $\sum_t \theta_q(t)\log\theta_d(t)$, is the negative **cross-entropy** of the document model relative to the query model — retrieval as *finding the document whose language model is least surprised by the query*. The harness checks this equivalence not only on the worked corpus but on two hundred random strict instances, where ties cannot mask a disagreement.
 
-This reframing is the single most useful idea in the topic, because it generalizes. Nothing in the proof required $\theta_q$ to be the raw query frequencies; any distribution over terms will do. Replace the thin empirical query model with a richer **relevance model** estimated from documents we believe to be relevant, and the same cross-entropy ranking becomes pseudo-relevance feedback — the relevance models behind Rocchio and RM3 build directly on this view.
+This reframing is the single most useful idea in the topic, because it generalizes. Nothing in the proof required $\theta_q$ to be the raw query frequencies; any distribution over terms will do. Replace the thin empirical query model with a richer **relevance model** estimated from documents we believe to be relevant, and the same cross-entropy ranking becomes pseudo-relevance feedback — the [Rocchio and RM3](/topics/pseudo-relevance-feedback) methods build directly on this view.
 
 ---
 

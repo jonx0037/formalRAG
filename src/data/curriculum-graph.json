@@ -81,7 +81,7 @@
     {
       "id": "pseudo-relevance-feedback",
       "label": "Relevance Feedback and Query Expansion: Rocchio and RM3",
-      "status": "planned",
+      "status": "published",
       "domain": "probabilistic-ir"
     },
     {
