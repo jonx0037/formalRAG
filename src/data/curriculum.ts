@@ -26,7 +26,6 @@ export const tracks = [
     description:
       'Where embeddings live and what ANN must contend with: concentration of measure, hypersphere and von Mises–Fisher geometry, PCA and random projections, Johnson–Lindenstrauss, and chunking as segmentation.',
     planned: [
-      'Matryoshka Representations: Jointly Trained Nested Subspaces',
       'Chunking as a Segmentation and Optimization Problem',
     ],
     dependsOnFormalML: true,
