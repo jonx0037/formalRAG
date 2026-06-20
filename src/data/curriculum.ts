@@ -34,7 +34,6 @@ export const tracks = [
     planned: [
       'The Vector Space Model and TF-IDF',
       'The Inverted Index and Safe Dynamic Pruning (WAND, BlockMax-WAND)',
-      'The Probability Ranking Principle',
       'Query-Likelihood Language Models and Smoothing',
       'Relevance Feedback and Query Expansion: Rocchio and RM3',
     ],
