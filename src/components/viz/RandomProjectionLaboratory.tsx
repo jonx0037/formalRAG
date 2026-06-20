@@ -285,7 +285,7 @@ export default function RandomProjectionLaboratory() {
           {recallPlot}
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.3rem 0 0.75rem' }}>
             Nearest-neighbor recall@10 retained after projecting to k dimensions: data-dependent PCA (accent) against the data-oblivious random projection (faint).
-            JL preserves <em>distances</em>, but exact top-10 <em>rankings</em> are the price of obliviousness — PCA keeps far more recall per dimension.
+            JL preserves <em>distances</em> — the currency an approximate-search index trades in — but not exact <em>rankings</em>, so a random projection is an ANN front end, not a standalone retriever; the exact order is restored by a downstream rerank.
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
             <Readout label={`random recall@10 at k = ${k}`} value={`${(RECALL_RAND[kIdx] * 100).toFixed(1)}%`} />
