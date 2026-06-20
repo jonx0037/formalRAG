@@ -95,6 +95,8 @@ def segment_dp(emb: np.ndarray, k: int):
     """Globally optimal segmentation into exactly k contiguous segments, by DP over
     (segments-used, prefix-length). Returns (boundaries, total_cost). O(k n^2)."""
     n = len(emb)
+    if not 1 <= k <= n:
+        raise ValueError(f"k must be between 1 and the number of embeddings n={n}, got {k}")
     P = _prefix_sums(emb)
     INF = float("inf")
     D = [[INF] * (n + 1) for _ in range(k + 1)]
@@ -150,6 +152,10 @@ def adjacent_dissimilarity(emb: np.ndarray, window: int = 3) -> np.ndarray:
     """1 - cosine between the mean of the `window` sentences before and after each gap.
     Peaks mark likely topic boundaries — the TextTiling signal."""
     n = len(emb)
+    if n < 2:
+        return np.array([], dtype=float)
+    if window < 1:
+        raise ValueError(f"window must be at least 1, got {window}")
     g = np.zeros(n - 1)
     for t in range(1, n):
         left = emb[max(0, t - window):t].mean(axis=0)
@@ -170,6 +176,8 @@ def texttiling_greedy(emb: np.ndarray, k: int, window: int = 3):
 
 def fixed_size(n: int, k: int):
     """k roughly-equal segments — semantics-free chunking."""
+    if not 1 <= k <= n:
+        raise ValueError(f"k must be between 1 and n={n}, got {k}")
     edges = np.linspace(0, n, k + 1).round().astype(int)
     return [int(b) for b in edges[1:-1]]
 
@@ -180,9 +188,9 @@ def fixed_size(n: int, k: int):
 
 def boundary_f1(pred, truth, tol: int = 1) -> float:
     """F1 of predicted vs planted boundaries, a prediction matching a truth within `tol`."""
-    if not pred and not truth:
+    if len(pred) == 0 and len(truth) == 0:
         return 1.0
-    if not pred or not truth:
+    if len(pred) == 0 or len(truth) == 0:
         return 0.0
     truth_left = set(truth)
     tp = 0
