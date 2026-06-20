@@ -1,0 +1,262 @@
+---
+title: "Optimized Product Quantization and Score-Aware Quantization"
+subtitle: "Two ways to make a product quantizer optimal: rotate the space so its subspaces carry balanced information, and reshape the loss so it protects the inner products a query actually sees"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "product-quantization"
+  - "pca-dimensionality-reduction"
+  - "hypersphere-vmf-geometry"
+tags:
+  - "optimized-pq"
+  - "product-quantization"
+  - "rotation"
+  - "orthogonal-procrustes"
+  - "anisotropic-quantization"
+  - "score-aware-loss"
+  - "maximum-inner-product-search"
+  - "scann"
+domain: "vector-quantization"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "This topic celebrates two optimality results, and both rest on assumptions that must be stated plainly. First, parametric optimized product quantization — decorrelate, then balance the PRODUCT of per-subspace variances — is provably optimal only under a high-rate rate-distortion bound for a zero-mean Gaussian; on non-Gaussian embeddings it is a principled construction and a good initializer, not a certified optimum, and it requires the ambient dimension to divide evenly into subspaces. Second, the non-parametric alternating algorithm is block coordinate descent on a coupled non-convex objective: each step (Lloyd per subspace, then the closed-form Orthogonal Procrustes rotation) is its own subproblem's global optimum, so the distortion is monotone non-increasing and converges, but only to an initialization-dependent LOCAL optimum, never a certified global one. Third, the rotation is a strict isometry, so it never changes which database vectors are a query's true neighbors; the only thing it buys is lower quantization distortion at a fixed code length, and we measure the gain on the same synthetic clouds the previous topics used. Fourth, the score-aware (anisotropic) result of ScaNN holds for an assumed query distribution — uniform on the unit sphere — and its convenient weight ratio is the large-dimension limit of a ratio of integrals, with the score threshold (equivalently the anisotropy parameter) a tuned hyperparameter; the clean additive training objective further assumes a constant-norm database. We demonstrate the DIRECTION of every effect on synthetic data and never promise a universal margin: optimized PQ beats the variance-balancing heuristic and crushes raw PQ, and a score-aware codebook lowers the inner-product error on high-scoring query pairs, but the exact numbers are properties of these clouds and these hyperparameters."
+videoId: null
+notebookPath: "notebooks/optimized-product-quantization/01_optimized_product_quantization.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/optimized-product-quantization.mdx"
+datePublished: 2026-06-20
+estimatedReadTime: 38
+abstract: "The previous topic ended on a wall the product quantizer could not climb alone: it assumes the subspaces are independent, and cross-subspace correlation with unequal per-subspace variance under equal bit allocation is the loss it pays. A variance-balancing rotation cut the distortion several-fold on a deliberately imbalanced cloud — but only as a heuristic. This topic formalizes that rotation, then changes the loss the quantizer optimizes. Optimized product quantization inserts an orthogonal matrix R before the split and optimizes it jointly with the codebooks. Because R is an isometry, it leaves every distance and inner product unchanged, so it cannot hurt retrieval — but it adds the freedom to choose the axes along which the vector is cut. We derive the parametric solution: under a Gaussian high-rate bound, the optimal R decorrelates the data and balances the PRODUCT of eigenvalues across subspaces, not the SUM the previous topic's heuristic balanced — a distinction that is provable and matters. We then derive the non-parametric algorithm, alternating optimization in which the rotation step is a closed-form Orthogonal Procrustes problem solved by a single SVD, giving a monotone descent to a local optimum. The second half changes the objective. For maximum-inner-product search, reconstruction error is the wrong loss: what matters is the inner product seen by queries that actually retrieve the vector. Score-aware quantization, the idea behind ScaNN, splits the quantization residual into a component parallel to the datapoint and an orthogonal one, and weights the parallel part — which dominates the inner-product error for aligned queries — more heavily. An interactive laboratory and a tested implementation that imports and extends the product-quantization code accompany the derivation."
+connections:
+  - topic: "product-quantization"
+    relationship: "optimized product quantization IS product quantization with a learned orthogonal rotation applied before the subspace split: the additive distortion decomposition, the per-subspace Lloyd training, the asymmetric distance lookup, and the variance-imbalanced cloud that motivated the rotation are all inherited unchanged, and the companion code imports the previous topic's train_pq, pq_distortion, and rotation_distortion_study and re-derives its raw, PCA-only, and balanced baselines rather than reimplementing them"
+  - topic: "pca-dimensionality-reduction"
+    relationship: "the parametric rotation begins exactly where PCA does — diagonalize the covariance to decorrelate the subspaces — and the eigenvalue allocation that balances the variance product across subspaces is a permutation of the principal axes, so optimized PQ is a structured application of the eigendecomposition and variance-ordering developed there"
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "score-aware quantization decomposes the residual relative to the datapoint's direction on the unit sphere and integrates the inner-product error over queries drawn uniformly from that sphere, so the directional and concentration geometry developed there is exactly the machinery the anisotropic weight ratio is derived from"
+references:
+  - type: "paper"
+    title: "Optimized Product Quantization"
+    authors: "Ge, He, Ke & Sun"
+    year: 2014
+    url: "https://doi.org/10.1109/TPAMI.2013.240"
+    note: "The source of both results in the rotation half: the parametric eigenvalue-allocation solution (decorrelate and balance the product of eigenvalues) and the non-parametric alternating algorithm whose rotation step is an Orthogonal Procrustes problem"
+  - type: "paper"
+    title: "Accelerating Large-Scale Inference with Anisotropic Vector Quantization"
+    authors: "Guo, Sun, Lindgren, Geng, Simcha, Chern & Kumar"
+    year: 2020
+    url: "https://proceedings.mlr.press/v119/guo20h.html"
+    note: "The ScaNN paper: the score-aware quantization loss, the parallel/orthogonal residual decomposition, and the proof that for any score-increasing weight the parallel error is penalized at least as heavily as the orthogonal one"
+  - type: "paper"
+    title: "Product Quantization for Nearest Neighbor Search"
+    authors: "Jégou, Douze & Schmid"
+    year: 2011
+    url: "https://doi.org/10.1109/TPAMI.2010.57"
+    note: "The product quantizer optimized here, and the source of the sum-of-variances balancing heuristic that the parametric optimum supersedes"
+  - type: "paper"
+    title: "A Generalized Solution of the Orthogonal Procrustes Problem"
+    authors: "Schönemann"
+    year: 1966
+    url: "https://doi.org/10.1007/BF02289451"
+    note: "The closed-form SVD solution R = VU^T to the orthogonal-matrix least-squares problem that is the non-parametric rotation step"
+  - type: "documentation"
+    title: "Faiss: Billion-Scale Similarity Search"
+    authors: "Johnson, Douze & Jégou"
+    year: 2019
+    url: "https://doi.org/10.1109/TBDATA.2019.2921572"
+    note: "How production ANN indexes implement the OPQ pre-rotation as a matrix multiply composed with PQ encoding (IndexPreTransform + IndexPQ / IndexIVFPQ)"
+formalmlPrereqs:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the non-parametric rotation step is an Orthogonal Procrustes problem whose closed-form minimizer R = VU^T is read directly off the singular value decomposition of a cross-covariance matrix, so the SVD existence, uniqueness, and best-orthogonal-approximation theory developed there is the engine of the alternating algorithm"
+  - topic: "pca-low-rank"
+    site: "formalml"
+    relationship: "the parametric optimum decorrelates the data by diagonalizing its covariance and then allocates the resulting eigen-axes across subspaces, so the principal-component eigendecomposition and the variance-ordering of components developed there is the starting point of the rotation OPQ learns"
+formalmlConnections:
+  - topic: "spectral-theorem"
+    site: "formalml"
+    relationship: "both the parametric eigenvalue allocation and the symmetry of the covariance whose determinant blocks must be balanced rest on the symmetric-positive-semidefinite spectral decomposition developed there, so the optimal-rotation construction is spectral at its core"
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "the parametric optimum is derived from a high-rate rate-distortion lower bound on quantization distortion, and the bit-allocation question of how the determinant should be split across subspaces is the operational form of the rate-distortion trade-off developed there"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import OptimizedProductQuantizationLaboratory from '../../components/viz/OptimizedProductQuantizationLaboratory.tsx';
+
+## Overview & motivation
+
+The [previous topic](/topics/product-quantization) left a clean cliffhanger. Product quantization splits a vector into $m$ disjoint subvectors and quantizes each subspace independently, and it works because squared Euclidean distance separates over disjoint coordinate blocks. But that separation is also its weakness: the quantizer treats the subspaces as if they were independent and gives each the same number of bits. On a deliberately variance-imbalanced cloud — coordinates whose variance decays geometrically — raw product quantization paid a reconstruction distortion of about $85.6$, because the equal bit budget over-quantizes the low-variance tail and starves the high-variance head. A rotation that *balanced* the variance across subspaces cut that distortion to about $15.4$. We showed the direction of the effect and named the fix; this topic is the fix.
+
+There are two independent ways to make a product quantizer better, and they are orthogonal in the literal sense. The first changes the *axes*: rotate the space before the split so each subspace carries a balanced share of the data's information. This is **optimized product quantization** (OPQ), and it is the first half of the topic. The second changes the *loss*: when the downstream task is maximum-inner-product search rather than reconstruction, the error that matters is not how far the reconstruction sits from the vector, but how much it disturbs the inner products that high-scoring queries see. This is **score-aware**, or **anisotropic**, quantization — the idea behind ScaNN — and it is the second half. The laboratory below lets you switch between the four rotations, watch the alternating optimization converge, and raise the anisotropy to see a quantizer trade reconstruction for inner-product fidelity.
+
+<OptimizedProductQuantizationLaboratory client:visible />
+
+The first panel is the on-ramp made precise: switch among the raw axes, a naive PCA-alignment, the previous topic's balancing heuristic, and the learned OPQ rotation, and read the distortion drop and the per-subspace variance bars. The second panel runs the alternating optimization and shows its distortion descending monotonically below the heuristic. The third panel is the score-aware story: a datapoint, its candidate codewords, and the residual split into the part that moves the inner product and the part that does not.
+
+## The rotation is a free isometry
+
+Throughout, $x \in \mathbb{R}^d$ is a database vector, $R \in O(d)$ is an orthogonal matrix ($R^{\mathsf T} R = I$), and the data splits into $m$ contiguous subspaces of width $d/m$. A *rotated* product quantizer first maps $x \mapsto Rx$, then product-quantizes the rotated vector.
+
+<TheoremBlock type="definition" number={1} title="Rotated product quantizer">
+
+Fix an orthogonal $R \in O(d)$ and a product codebook $\mathcal{C} = \mathcal{C}^1 \times \cdots \times \mathcal{C}^m$ with $k^\*$ centroids per subspace. The rotated product quantizer encodes $x$ by the tuple of sub-centroid indices of $Rx$ and reconstructs
+
+$$
+Q_R(x) \;=\; R^{\mathsf T}\, c(Rx), \qquad c(Rx) \in \mathcal{C},
+$$
+
+where $c(\cdot)$ is the ordinary product-quantization codeword. Optimized product quantization minimizes the reconstruction distortion jointly over the rotation and the codebooks:
+
+$$
+\min_{R^{\mathsf T} R = I,\;\mathcal{C}^1,\dots,\mathcal{C}^m}\ \sum_{i} \big\lVert R x_i - c(R x_i) \big\rVert^2 .
+$$
+
+</TheoremBlock>
+
+Why is it legitimate to rotate the data before quantizing — does it not change the retrieval problem? It does not, and this is the whole license for the method.
+
+<TheoremBlock type="theorem" number={1} title="Rotation is a distance- and inner-product-preserving isometry">
+
+For any orthogonal $R$ and any $x, y \in \mathbb{R}^d$,
+
+$$
+\lVert Rx - Ry \rVert = \lVert x - y \rVert, \qquad \langle Rx, Ry \rangle = \langle x, y \rangle .
+$$
+
+Consequently, rotating every database vector and every query by the same $R$ leaves all pairwise distances and all inner products unchanged, so the true nearest neighbors and the true maximum-inner-product results are identical. Since ordinary product quantization is the special case $R = I$, and the feasible set of optimized product quantization strictly contains it, the optimized distortion never exceeds the unoptimized one:
+
+$$
+E_{\mathrm{OPQ}} \;\le\; E_{\mathrm{PQ}} .
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Orthogonality gives $\lVert Rx \rVert^2 = (Rx)^{\mathsf T}(Rx) = x^{\mathsf T} R^{\mathsf T} R x = x^{\mathsf T} x = \lVert x \rVert^2$, and the same computation applied to $x - y$ and to the polarization identity $\langle x, y \rangle = \tfrac12(\lVert x \rVert^2 + \lVert y \rVert^2 - \lVert x - y \rVert^2)$ gives both equalities. Encoding $x$ as the nearest codeword of $Rx$ and decoding through $R^{\mathsf T}$ is therefore a quantizer on the original space whose distortion equals that of ordinary product quantization applied to the rotated data. Optimizing over $R$ includes $R = I$, so the minimum can only decrease. $\blacksquare$
+
+</TheoremBlock>
+
+The rotation is, in this exact sense, *free*: it cannot move a single true neighbor, but it adds $d(d-1)/2$ degrees of freedom the quantizer can spend to reduce distortion. The companion code verifies the isometry directly and confirms that rotating both the database and the queries leaves every true nearest neighbor in place. The only question left is which $R$ to choose.
+
+## Parametric OPQ: balance the product, not the sum
+
+When the data is well modeled by a Gaussian, the optimal rotation has a closed form. Write $\Sigma$ for the covariance of $x$, and after rotation let $\hat\Sigma = R \Sigma R^{\mathsf T}$, partitioned into $m$ diagonal blocks $\hat\Sigma_{jj}$ of size $(d/m) \times (d/m)$ — one per subspace. High-rate quantization theory bounds the distortion of a $k$-centroid quantizer of a Gaussian by a constant times $|\Sigma|^{1/d}$, the determinant to the $1/d$ power. Applying that bound per subspace and summing gives the quantity OPQ must minimize.
+
+<TheoremBlock type="theorem" number={2} title="Parametric optimum: decorrelate and balance the determinant">
+
+Under $x \sim \mathcal{N}(0, \Sigma)$ and the high-rate bound, the product-quantization distortion after rotation satisfies
+
+$$
+E(R) \;\ge\; (k^\*)^{-2m/d}\,\frac{d}{m}\,\sum_{j=1}^{m} \big| \hat\Sigma_{jj} \big|^{m/d},
+$$
+
+and minimizing the right-hand side over $R$ is equivalent to minimizing $\sum_{j=1}^{m} |\hat\Sigma_{jj}|^{m/d}$. By the arithmetic–geometric-mean inequality and Fischer's inequality,
+
+$$
+\sum_{j=1}^{m} \big| \hat\Sigma_{jj} \big|^{m/d} \;\ge\; m \Big(\prod_{j=1}^{m} \big|\hat\Sigma_{jj}\big|\Big)^{1/d} \;\ge\; m\,|\Sigma|^{1/d},
+$$
+
+a bound that is constant in $R$. It is attained if and only if (i) the off-diagonal blocks of $\hat\Sigma$ vanish — the subspaces are **decorrelated**, achieved by aligning to the principal axes — and (ii) the block determinants $|\hat\Sigma_{jj}|$ are **equal across subspaces**, i.e. the *product* of the eigenvalues assigned to each subspace is balanced.
+
+</TheoremBlock>
+
+The two conditions are distinct, and both are needed. Diagonalizing $\Sigma$ by PCA makes Fischer's inequality tight — it removes cross-subspace correlation — but it does not say which eigen-axis belongs to which subspace. The arithmetic–geometric-mean step is tight only when the products of eigenvalues match across subspaces, and that is a question of *allocation*: distribute the $d$ eigenvalues into $m$ groups so the products are as equal as possible. The greedy **eigenvalue allocation** does exactly this — it repeatedly places the largest unassigned eigen-axis into the subspace with the smallest current product (equivalently, the smallest sum of log-eigenvalues).
+
+This is where the previous topic's heuristic and the true optimum part ways, and the difference is provable rather than cosmetic. The balancing heuristic equalized the *sum* of variances across subspaces — the trace of each block. The parametric optimum equalizes the *product* — the determinant. Under the high-rate bound the distortion is governed by the geometric mean of the variances, not the arithmetic mean, so balancing the sum is only an approximation while balancing the product is exact. In the companion code, the spread of per-subspace log-variances on the imbalanced cloud falls from about $12.2$ under the raw contiguous blocks to about $0.3$ under the eigenvalue allocation: the determinant is balanced almost perfectly, which the sum-balancing heuristic does not achieve.
+
+The Gaussian assumption is doing real work here, and we flag it: on data that is not Gaussian, the eigenvalue allocation is a principled construction and an excellent starting point, but not a certified optimum. For that we need an algorithm that makes no distributional assumption at all.
+
+## Non-parametric OPQ: alternating optimization
+
+Drop the Gaussian model and return to the raw objective of Definition 1. It couples the rotation and the codebooks, and it is not jointly convex — but it splits into two subproblems, each of which we can solve to its global optimum, and alternating between them is a descent.
+
+<TheoremBlock type="theorem" number={3} title="The rotation step is an Orthogonal Procrustes problem">
+
+Hold the codebooks fixed, and let $Y$ collect the current reconstructions $c(Rx_i)$ — one per training vector — with the data $X$ and reconstructions $Y$ stacked as columns. The rotation that minimizes the reconstruction error,
+
+$$
+\min_{R^{\mathsf T} R = I}\ \big\lVert R X - Y \big\rVert_F^2,
+$$
+
+has the closed form
+
+$$
+X Y^{\mathsf T} = U \Sigma V^{\mathsf T} \quad\Longrightarrow\quad R = V U^{\mathsf T},
+$$
+
+read directly off the singular value decomposition of the cross-covariance $X Y^{\mathsf T}$. Holding the rotation fixed instead, the codebook subproblem is ordinary product quantization on the rotated data $RX$ — $m$ independent Lloyd problems. Alternating the two steps produces a sequence of distortions that is **monotone non-increasing** and converges.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Expand the objective: $\lVert RX - Y \rVert_F^2 = \lVert X \rVert_F^2 + \lVert Y \rVert_F^2 - 2\,\mathrm{tr}(R X Y^{\mathsf T})$, so minimizing it is maximizing $\mathrm{tr}(R\, X Y^{\mathsf T})$. With $X Y^{\mathsf T} = U \Sigma V^{\mathsf T}$ and $Z = V^{\mathsf T} R U$ orthogonal, $\mathrm{tr}(R X Y^{\mathsf T}) = \mathrm{tr}(R U \Sigma V^{\mathsf T}) = \mathrm{tr}(Z^{\mathsf T} \Sigma) = \sum_i \Sigma_{ii} Z_{ii} \le \sum_i \Sigma_{ii}$, since the singular values are non-negative and the diagonal of an orthogonal matrix is bounded by one in magnitude. Equality holds when $Z = I$, i.e. $R = V U^{\mathsf T}$. Each step is the global optimum of its subproblem — the codebook step by Lloyd's monotonicity, the rotation step by this closed form — so the joint distortion cannot increase. Bounded below by zero, the sequence converges. $\blacksquare$
+
+</TheoremBlock>
+
+The guarantee is monotone descent, not global optimality: alternating optimization over a non-convex coupled objective reaches a local optimum that depends on the initialization, and the standard remedy is to warm-start from the parametric eigenvalue-allocation rotation, which is what the companion code does. On the imbalanced cloud the trajectory starts at the heuristic's distortion of about $15.4$ and descends monotonically to about $14.4$ — the second panel of the laboratory traces it. The extra gain over the balancing heuristic comes from the within-block rotation the Procrustes step finds; the per-subspace variance sums barely move, which is why the variance bars for the heuristic and for OPQ look almost identical even though the distortion differs. We cross-check the rotation step against `scipy.linalg.orthogonal_procrustes` rather than trust an opaque library, and assert the monotone descent as a test.
+
+## Score-aware quantization: protect the inner product
+
+Everything so far minimized reconstruction error, $\lVert x - Q(x) \rVert^2$. For maximum-inner-product search that is the wrong objective. What a search actually cares about is the *inner-product* error — how much quantization perturbs $\langle q, x \rangle$ — and, more sharply, it cares about that error only for the queries $q$ that score $x$ highly enough to retrieve it. A reconstruction that is excellent on average but distorts the high-scoring inner products is worse than one that is mediocre on average but preserves them.
+
+Make the residual $r = x - \tilde x$ explicit and split it relative to the datapoint's own direction.
+
+<TheoremBlock type="definition" number={2} title="Parallel and orthogonal residual">
+
+For a datapoint $x \ne 0$ and a reconstruction $\tilde x$, decompose the residual $r = x - \tilde x$ into its component parallel to $x$ and the orthogonal remainder:
+
+$$
+r_\parallel \;=\; \frac{\langle r, x \rangle}{\lVert x \rVert^2}\, x, \qquad r_\perp \;=\; r - r_\parallel, \qquad \lVert r \rVert^2 = \lVert r_\parallel \rVert^2 + \lVert r_\perp \rVert^2 .
+$$
+
+</TheoremBlock>
+
+The parallel component is the one that moves the inner product. For a query $q$ roughly aligned with $x$ — which is what a high-scoring query is — the inner-product error $\langle q, x - \tilde x \rangle$ is dominated by the part of the residual along $x$, while the orthogonal part is largely invisible to it. Averaging over queries drawn uniformly from the unit sphere makes this exact.
+
+<TheoremBlock type="theorem" number={4} title="Anisotropic decomposition of the score-aware loss">
+
+Let $q$ be uniform on the unit sphere in $\mathbb{R}^d$, and weight each query by a score-dependent weight $w(\langle q, x \rangle)$. The expected weighted inner-product error decomposes as an anisotropic sum of the two residual magnitudes,
+
+$$
+\mathbb{E}_q\big[\, w(\langle q, x \rangle)\,\langle q,\, x - \tilde x \rangle^2 \,\big] \;=\; h_\parallel\,\lVert r_\parallel \rVert^2 \;+\; h_\perp\,\lVert r_\perp \rVert^2,
+$$
+
+and for any weight $w$ that is zero on negative scores and non-decreasing on positive ones, $h_\parallel \ge h_\perp$. For the threshold weight $w(t) = \mathbf{1}[t \ge T]$, the ratio $\eta = h_\parallel / h_\perp$ grows with dimension and, in the large-$d$ limit,
+
+$$
+\eta \;\approx\; (d-1)\,\frac{(T/\lVert x \rVert)^2}{1 - (T/\lVert x \rVert)^2} .
+$$
+
+</TheoremBlock>
+
+The ratio $\eta \ge 1$ is the entire content of the result: the parallel error is penalized at least as heavily as the orthogonal error, and strictly more as the score threshold $T$ rises. At $T = 0$ every query counts equally, $\eta = 1$, and the loss collapses back to ordinary reconstruction. As $T \to \lVert x \rVert$ only near-perfectly-aligned queries count and $\eta \to \infty$, penalizing only the parallel error. So the score-aware quantizer minimizes
+
+$$
+\ell(x, \tilde x, \eta) \;=\; \eta\,\lVert r_\parallel \rVert^2 \;+\; \lVert r_\perp \rVert^2, \qquad \eta \ge 1,
+$$
+
+and chooses, for each datapoint, the codeword that best preserves its magnitude *along its own direction* even at the cost of larger orthogonal error. The third panel of the laboratory shows the swap: at $\eta = 1$ the quantizer picks the Euclidean-nearest codeword; raise $\eta$ and it switches to a codeword lying exactly on the datapoint's direction, with zero parallel residual.
+
+The closed-form weight is a large-dimension limit, the threshold $T$ (equivalently $\eta$) is a tuned knob, and the additive objective above is cleanest when the database has constant norm — all of which we flag. What survives those caveats is the mechanism, and it is robust: protecting the parallel component protects the inner products a query sees.
+
+<FinanceCaseStudy modality={["text"]}>
+
+On the synthetic finance cloud, we train two codebooks of the same size — an isotropic $k$-means codebook and a score-aware one that minimizes the anisotropic loss at $\eta = 8$ — and compare them on the inner-product error of each query's true top-ten pairs, the high-scoring pairs a maximum-inner-product search would surface. The score-aware codebook lowers that error by about a third (from $0.00439$ to $0.00284$ in the companion code) and raises the MIPS recall@10 from about $12.0\%$ to $13.1\%$, at exactly the same code length. The two improvements are the same phenomenon: a codebook that spends its representational budget on the magnitude-along-the-vector preserves the inner products that ranking depends on. For a production multimodal retrieval index whose embeddings are compared by inner product, this is the difference between a quantizer tuned for a reconstruction objective nobody queries and one tuned for the search that actually runs. The gain is a direction, not a guarantee — its size depends on the cloud, the code size, and the anisotropy — but its sign is the point.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+Both optimality claims in this topic are conditional, and the conditions are load-bearing. Parametric OPQ — decorrelate and balance the product of per-subspace variances — is optimal only under a high-rate rate-distortion bound for a zero-mean Gaussian, and only when the dimension divides evenly into subspaces; off that model it is a principled initializer, not a certified optimum. Non-parametric OPQ is block coordinate descent: the rotation step (Orthogonal Procrustes) and the codebook step (Lloyd per subspace) are each globally optimal, so the distortion is monotone non-increasing and converges, but only to an initialization-dependent local optimum — never a certified global one, which is why the parametric rotation is used to warm-start it. The rotation is a strict isometry, so it changes no true neighbor; its only effect is lower quantization distortion at a fixed rate, measured here on the same synthetic clouds as the previous topics. Score-aware quantization's optimality holds for a uniform-on-the-sphere query distribution; the convenient weight ratio is a large-dimension limit of a ratio of integrals; the score threshold is a tuned hyperparameter; and the clean additive training objective assumes a constant-norm database. Every numeric result — the rotation distortions, the monotone trajectory, the score-aware error reduction — is a property of these clouds and these hyperparameters, asserted as a direction in the companion code and never promised as a universal margin.
+
+</RigorFlag>
+
+The rotated, score-aware codebook is the atom the production indexes assemble. An inverted-file index quantizes the residual after a coarse partition; a multi-vector index quantizes each token embedding; and both inherit, unchanged, the rotation that balances the determinant and the loss that protects the inner product. Those are the topics that follow.

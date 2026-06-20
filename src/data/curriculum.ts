@@ -40,9 +40,7 @@ export const tracks = [
     layer: 'Retrieval Mechanics',
     description:
       'Lossy compression of embedding vectors for memory-bounded search — rate-distortion and estimation theory: Lloyd–Max optimality, product quantization, and score-aware anisotropic quantization.',
-    planned: [
-      'Optimized PQ and Score-Aware Quantization (OPQ, ScaNN)',
-    ],
+    planned: [],
     dependsOnFormalML: true,
   },
   {

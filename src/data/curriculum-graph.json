@@ -129,7 +129,7 @@
     {
       "id": "optimized-product-quantization",
       "label": "Optimized PQ and Score-Aware Quantization (OPQ, ScaNN)",
-      "status": "planned",
+      "status": "published",
       "domain": "vector-quantization"
     },
     {
