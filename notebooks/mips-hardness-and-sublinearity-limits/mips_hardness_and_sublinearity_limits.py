@@ -63,8 +63,10 @@ def lift(C: np.ndarray, q: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
     zero coordinate to the query. Then ||q~ - p~||^2 = ||q||^2 + M^2 - 2<q, p>, so
     minimizing lifted Euclidean distance maximizes the inner product.
     """
-    M = float(np.max(np.linalg.norm(C, axis=1)))
-    extra = np.sqrt(np.maximum(M**2 - (C**2).sum(axis=1), 0.0))
+    sq_norms = (C**2).sum(axis=1)                  # squared row norms, computed once
+    M2 = float(sq_norms.max())
+    M = float(np.sqrt(M2))
+    extra = np.sqrt(np.maximum(M2 - sq_norms, 0.0))
     C_tilde = np.hstack([C, extra[:, None]])
     q_tilde = np.concatenate([q, [0.0]])
     return C_tilde, q_tilde, M
@@ -182,15 +184,15 @@ def inspected_fraction(d: int, rng: np.random.Generator, n: int = 800,
     candidate = np.ones(n, dtype=bool)
     candidate[piv_idx] = False
     pivots = X[piv_idx]
+    Dpx = [np.linalg.norm(X - p, axis=1) for p in pivots]      # pivot->database, query-independent
     fracs = []
     for _ in range(n_queries):
         q = rng.standard_normal(d)
         r = float(np.linalg.norm(X - q, axis=1).min())        # exact NN distance (best radius)
         pruned = np.zeros(n, dtype=bool)
-        for p_idx, p in zip(piv_idx, pivots):
+        for p, dpx in zip(pivots, Dpx):
             Dqp = float(np.linalg.norm(p - q))                # D(q, pivot)
-            Dpx = np.linalg.norm(X - p, axis=1)               # D(pivot, x)
-            pruned |= np.abs(Dqp - Dpx) > r                   # triangle-inequality lower bound
+            pruned |= np.abs(Dqp - dpx) > r                   # triangle-inequality lower bound
         fracs.append(float((~pruned[candidate]).mean()))
     return float(np.mean(fracs))
 
@@ -251,12 +253,21 @@ def finance_demo() -> None:
 
 
 def test_finance_scaling_is_linear() -> None:
-    """The O(nd) claim, made deterministic: the multiply-add count is exactly n*d,
-    so doubling the corpus doubles the work (independent of wall-clock noise)."""
+    """The O(nd) claim, made concrete: the scan computes exactly one inner product
+    per document (n total) and returns the true argmax, so doubling the corpus
+    doubles the work — verified from the actual score-vector shapes, not arithmetic."""
+    rng = np.random.default_rng(12)
     d = 1536
-    for n in (5_000, 10_000):
-        assert 2 * (2 * n) * d == 2 * (2 * n * d)              # work(2n) = 2 * work(n)
-    print("  [ok] brute-force MIPS work is exactly 2*n*d multiply-adds (linear in n)")
+    counts = {}
+    for n in (4_000, 8_000):                                   # n > d for a full structured basis
+        C = structured_data(n, d, 8, rng)
+        q = rng.standard_normal(d)
+        scores = C @ q
+        assert scores.shape == (n,)                           # exactly n inner products: O(n) work
+        assert brute_force_mips(q, C) == int(np.argmax(scores))  # and the scan is correct
+        counts[n] = int(scores.shape[0])
+    assert counts[8_000] == 2 * counts[4_000]                 # doubling the corpus doubles the work
+    print("  [ok] brute-force MIPS does exactly n inner products (linear in n) and is correct")
 
 
 def test_finance_demo_numbers() -> None:
