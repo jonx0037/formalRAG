@@ -58,6 +58,12 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `uv run --with nbformat` generator (sequential `cell-N` ids, `outputs: []`, `execution_count: null`),
   then `jupyter execute` to verify exit 0. `notebooks/bm25/` is the exemplar. The full per-topic
   workflow lives in `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
+- **A dependent topic's `.py` IMPORTS its prereq's `.py`, never reimplements it** — add the prereq's
+  **hyphenated dir** to the path, then import its **underscored module**:
+  `sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "vector-quantization-lloyd-max"))` then
+  `from vector_quantization_lloyd_max import ...` (the `rank_fusion_rrf`→`bm25` precedent). Reuse the
+  prereq's exact dataset and **re-derive any shared baseline** rather than hardcoding it, so a
+  cross-topic comparison (PQ's recall vs the flat-VQ ceiling it re-derives) is provably one cloud.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
@@ -97,10 +103,17 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   under each topic's scoring variant. **Smoothing/normalization parameters must scale to the toy
   corpus's short docs** — Dirichlet μ≈document length (≈5), not the production μ≈1000–2000, or smoothing
   swamps every doc model toward the collection and the ranking signal vanishes.
+- **A viz that *demonstrates* a phenomenon needs baked toy data that actually exhibits it — assert the
+  contrast in the harness, don't assume.** The Lloyd lab's first cloud (3 well-separated blobs) converged
+  to one optimum from every seed, falsifying its "Reseed shows local optima" story; 4 corner blobs at k=3
+  fixed it, locked by `test_toy_local_optima` (global < near-miss < stuck).
 - **Verify reference DOIs** with `curl -sI https://doi.org/<doi>` — the `location:` header in the 302
   alone confirms journal/volume/issue/pages (a HEAD request: no redirect-following, no paywalled GET).
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
+- `status` gates only **listings** (homepage / `/topics` / `/paths`) + prereq availability;
+  `getStaticPaths` builds a page for *every* topic, so the full MDX renders at its URL regardless of
+  status (a draft "stub" shows a notice only because its *body* is one).
 - **Sync local `main` first.** `gh pr merge` updates *origin*, not local `main` — before branching each
   topic run `git fetch origin && git checkout main && git merge --ff-only origin/main`. The tell that
   you're on a stale base: a "published" topic shows as a draft stub with an orphaned `__pycache__/` and
@@ -108,7 +121,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - **Multiple topics in one session = feature branches off `main`.** They merge in any order *only if*
   each depends solely on already-published prereqs. If a batch topic lists a **sibling** as prereq (e.g.
   pseudo-relevance-feedback needs query-likelihood), sequence them: re-sync `main` only **after** its
-  in-batch prereq merges, then branch the dependent off it. Each removes its title
+  in-batch prereq merges, then branch the dependent off it. **If you can't wait for the prereq to reach
+  `main`** (you don't control the merge), branch the dependent off the **prereq branch** — but then the
+  dependent PR's base IS that branch, so merging it lands in the prereq branch (bundling both topics),
+  NOT `main`, and GitHub's merge dialog names the prereq branch (it reads like merging the prereq); the
+  prereq PR then carries both topics to `main` in one merge. Each removes its title
   from a track's `planned[]` array, so the **2nd+ merge needs a trivial one-line `curriculum.ts`
   `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge; but a
   DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
@@ -116,8 +133,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
   medium-priority robustness/perf/a11y ones before merging. It reliably flags **unguarded denominators**
   (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` — add
-  those guards up front. (`jupyter execute` does *not* write outputs back, so re-running to verify won't
-  dirty the committed output-free `.ipynb`.)
+  those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
+  slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
+  and stale refs in d3 drag handlers — guard array-index lookups (`C[labels[i]]`, `colors[a[i] ?? 0]`)
+  and compute drag-end distortion from live points/centroids, not a render-lagging ref. (`jupyter
+  execute` does *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.)
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`.
 
