@@ -168,6 +168,8 @@ def sdc_distance(query_codes: np.ndarray, db_codes: np.ndarray, sdc: np.ndarray)
 # --------------------------------------------------------------------------- #
 
 def _topk(d2_row: np.ndarray, topk: int) -> np.ndarray:
+    if topk >= len(d2_row):                       # argpartition needs kth < len
+        return np.arange(len(d2_row))
     return np.argpartition(d2_row, topk)[:topk]
 
 

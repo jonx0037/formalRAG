@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import katex from 'katex';
 
@@ -126,7 +126,7 @@ function SubspacePlot({ codebook, project, selectedIdx, title }: {
   return <svg ref={ref} role="img" aria-label={`${title} Voronoi codebook`} />;
 }
 
-function FrontierPlot() {
+const FrontierPlot = memo(function FrontierPlot() {
   const pw = 540, ph = 240, pad = 38;
   const bx = (b: number) => pad + ((pw - 2 * pad) * (b - 8)) / 56;
   const vy = (v: number) => pad + (ph - 2 * pad) * (1 - v);
@@ -149,7 +149,7 @@ function FrontierPlot() {
       {FRONTIER.map((r) => (<circle key={r.bits} cx={bx(r.bits)} cy={vy(r.recall)} r={3.4} fill="var(--color-accent)" />))}
     </svg>
   );
-}
+});
 
 export default function ProductQuantizationLaboratory() {
   const [panel, setPanel] = useState<'split' | 'frontier' | 'adc'>('split');
@@ -170,7 +170,7 @@ export default function ProductQuantizationLaboratory() {
       '\\lVert x-Q(x)\\rVert^2 = \\lVert x^1-c^1_{q_1}\\rVert^2 + \\lVert x^2-c^2_{q_2}\\rVert^2',
       formulaRef.current, { throwOnError: false, displayMode: true },
     );
-  }, [panel, selectedIdx]);
+  }, [panel]);
 
   const pill = (active: boolean) => ({
     fontFamily: 'var(--font-sans)', fontSize: '0.78rem', padding: '0.3rem 0.7rem', borderRadius: '999px', cursor: 'pointer',
