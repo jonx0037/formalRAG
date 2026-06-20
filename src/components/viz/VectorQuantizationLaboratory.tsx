@@ -106,7 +106,12 @@ function assignAll(points: Pt[], C: Pt[]): { labels: number[]; distortion: numbe
 }
 
 function totalDistortion(points: Pt[], C: Pt[], labels: number[]): number {
-  return points.reduce((s, p, i) => s + sqd(p, C[labels[i]]), 0);
+  // Guard the transition frame after the point-count slider grows `points` but before
+  // the reset effect refreshes `assignments`: labels[i] / its codeword can be undefined.
+  return points.reduce((s, p, i) => {
+    const c = C[labels[i]];
+    return c ? s + sqd(p, c) : s;
+  }, 0);
 }
 
 // M-step with the furthest-point empty-cell repair from the notebook.
@@ -300,7 +305,7 @@ export default function VectorQuantizationLaboratory() {
     // points colored by current assignment
     svg.append('g').selectAll('circle.pt').data(points).join('circle').attr('class', 'pt')
       .attr('cx', (p) => wx(p[0])).attr('cy', (p) => wy(p[1])).attr('r', 3.4)
-      .attr('fill', (_, i) => CELL_COLORS[assignments[i] % CELL_COLORS.length]).attr('opacity', 0.85);
+      .attr('fill', (_, i) => CELL_COLORS[(assignments[i] ?? 0) % CELL_COLORS.length]).attr('opacity', 0.85);
 
     // codewords (draggable), drawn as a ring + cross
     const cg = svg.append('g').selectAll('g.cw').data(centroids.map((_, i) => i)).join('g').attr('class', 'cw')
@@ -320,8 +325,10 @@ export default function VectorQuantizationLaboratory() {
         setAssignments(assignAll(pointsRef.current, next).labels);
       })
       .on('end', () => {
-        const d = totalDistortion(pointsRef.current, centroidsRef.current, assignmentsRef.current);
-        setDistHistory([d]); setIter(0); setConverged(false);
+        // Recompute from the latest points + centroids rather than the possibly-stale
+        // assignmentsRef, which lags a render behind the last drag event.
+        const { distortion } = assignAll(pointsRef.current, centroidsRef.current);
+        setDistHistory([distortion]); setIter(0); setConverged(false);
       });
     cg.call(drag);
   }, [panel, points, centroids, assignments, k]);

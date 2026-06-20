@@ -173,6 +173,10 @@ def lloyd(X: np.ndarray, k: int, C0: np.ndarray, max_iter: int = 100,
     if k > n:
         raise ValueError(f"k ({k}) exceeds n_points ({n}); no valid k-cell partition")
     C = np.array(C0, dtype=float).copy()
+    if C.shape[0] != k:
+        raise ValueError(f"initial codebook has {C.shape[0]} codewords, expected k={k}")
+    if C.shape[1] != X.shape[1]:
+        raise ValueError(f"dimension mismatch: X has d={X.shape[1]}, C0 has d={C.shape[1]}")
     labels, dist = assign(X, C)
     history = [dist]
     for _ in range(max_iter):
