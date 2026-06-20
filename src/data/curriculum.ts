@@ -31,9 +31,7 @@ export const tracks = [
     layer: 'Retrieval Mechanics',
     description:
       'The classical algebraic and probabilistic retrieval models that form the lexical half of hybrid retrieval: the vector space model, the Probability Ranking Principle, BM25, query-likelihood models, and the inverted index.',
-    planned: [
-      'Relevance Feedback and Query Expansion: Rocchio and RM3',
-    ],
+    planned: [],
     dependsOnFormalML: false,
   },
   {
