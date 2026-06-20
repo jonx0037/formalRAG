@@ -117,7 +117,7 @@
     {
       "id": "vector-quantization-lloyd-max",
       "label": "Vector Quantization and the Lloyd-Max Optimality Conditions",
-      "status": "planned",
+      "status": "published",
       "domain": "vector-quantization"
     },
     {

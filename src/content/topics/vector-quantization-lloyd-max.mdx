@@ -1,0 +1,351 @@
+---
+title: "Vector Quantization and the Lloyd–Max Optimality Conditions"
+subtitle: "The two conditions an optimal quantizer must satisfy — nearest-neighbor encoding and centroid decoding — and the alternating algorithm that drives distortion down to a local optimum"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "high-dimensional-geometry"
+tags:
+  - "vector-quantization"
+  - "lloyd-max"
+  - "k-means"
+  - "rate-distortion"
+  - "codebook"
+  - "voronoi-partition"
+  - "centroid-condition"
+  - "zador-bound"
+domain: "vector-quantization"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The clean story — Lloyd's two conditions characterize the optimal quantizer, and Lloyd's algorithm finds it — is true only as a statement about LOCAL optima, and several of its joints are softer than the alternating-minimization picture suggests. The nearest-neighbor condition (optimal encoder given the codebook) and the centroid condition (optimal decoder given the partition) are each exact necessary conditions for optimality (Theorems 1-2), and Lloyd's algorithm provably decreases distortion monotonically and converges to a fixed point where both hold (Theorem 3); but a fixed point satisfying both conditions is only a local minimum, the objective is non-convex in the codebook, and the result depends on initialization — there is no polynomial-time guarantee of the global optimum (the global k-means problem is NP-hard), and we present k-means++ seeding and multiple restarts as the standard heuristic mitigation, not a fix. k-means is exactly this algorithm under the empirical (uniform-over-sample) measure and squared-Euclidean distortion, and that machinery is cited to formalML's clustering topic. The asymptotic law D ~ C(d) k^(-2/d) (Zador 1982) is an asymptotic, high-rate result whose constant C(d) is known in closed form only in special cases; we state the k^(-2/d) scaling as the load-bearing claim, tie its 2/d exponent to the ambient dimension of the prerequisite geometry topic, and verify the SCALING numerically (on low-dimensional uniform sources, where the high-rate regime is reachable) rather than the constant. Ties in the nearest-neighbor assignment (cell boundaries) and empty cells are measure-zero for continuous sources but real on finite samples, and we handle them by an explicit lowest-index tie-break and a furthest-point empty-cell reseeding convention rather than pretending they do not occur. Finally, the squared-Euclidean centroid is the optimal representative for L2 distortion but not for the cosine/angular score retrieval actually uses, and the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in, not a trained encoder, with all distortion and recall numbers measured on that synthetic cloud."
+videoId: null
+notebookPath: "notebooks/vector-quantization-lloyd-max/01_vector_quantization_lloyd_max.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/vector-quantization-lloyd-max.mdx"
+datePublished: 2026-06-20
+estimatedReadTime: 35
+abstract: "A retriever that stores ten million high-dimensional float32 embeddings spends tens of gigabytes before any structure is added, and every dimension is paid for again at query time. Vector quantization attacks the memory directly: replace each embedding by the index of the nearest entry in a small learned codebook, so a vector costs log2(k) bits instead of thousands of floats. We formalize what makes such a quantizer optimal. A quantizer factors as a decoder composed with an encoder, Q = beta . alpha, and its quality is the expected squared distortion D = E||X - Q(X)||^2. We prove the two conditions an optimal quantizer must satisfy: given the codebook, the optimal encoder assigns each point to its nearest codeword, carving space into Voronoi cells (the nearest-neighbor condition); and given that partition, the optimal codeword is the conditional mean of its cell, c_i = E[X | X in R_i] (the centroid condition). Alternating the two is Lloyd's algorithm, which we show drives distortion down monotonically to a fixed point — a local, not global, optimum. We identify k-means as exactly this procedure under the empirical measure, confront the non-convexity and initialization dependence honestly, and connect the asymptotic law D ~ C(d) k^(-2/d) to the curse of dimensionality: the same d that concentrates distances forces codebook size to grow exponentially for a fixed distortion. An interactive Quantization Laboratory and a tested, scipy-cross-checked implementation accompany the derivation, quantizing a finance embedding cloud and measuring the rate-distortion tradeoff that the next topics — product quantization and the IVF index — are built to exploit."
+connections:
+  - topic: "high-dimensional-geometry"
+    relationship: "the curse-of-dimensionality exponent reappears here as the d in Zador's asymptotic distortion D ~ C(d) k^(-2/d): the same ambient dimension that forces distances to concentrate also forces the number of codewords needed for a fixed distortion to grow exponentially in d, so the low-intrinsic-dimension escape proved there is exactly what makes a finite codebook usable for real embeddings"
+  - topic: "pca-dimensionality-reduction"
+    relationship: "PCA reduces the width of each vector while quantization reduces the bits per vector; the two are orthogonal axes of compression that compose, and the low effective rank PCA exposes is what lets a small codebook cover an embedding cloud with low distortion, so this topic quantizes the very subspace one projects onto"
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "the centroid condition produces the Euclidean conditional mean E[X | X in R_i], but cosine retrieval lives on the sphere where the optimal representative is the normalized mean direction rather than the raw centroid, so the spherical-geometry caveats there are exactly the modeling gap between squared-Euclidean Lloyd and angular retrieval"
+  - topic: "mips-hardness-and-sublinearity-limits"
+    relationship: "exact maximum-inner-product search is the scan this curriculum is trying to avoid, and quantization is one of the escapes named there: replacing each vector by a short code turns the inner product into a table lookup, trading the proven hardness of exact MIPS for a controlled distortion this topic quantifies"
+references:
+  - type: "paper"
+    title: "Least Squares Quantization in PCM"
+    authors: "Lloyd"
+    year: 1982
+    url: "https://doi.org/10.1109/TIT.1982.1056489"
+    note: "The nearest-neighbor and centroid conditions and the alternating algorithm — written in 1957 at Bell Labs, published in 1982; the source of the two optimality conditions proved here"
+  - type: "paper"
+    title: "Quantizing for Minimum Distortion"
+    authors: "Max"
+    year: 1960
+    url: "https://doi.org/10.1109/TIT.1960.1057548"
+    note: "The independent derivation of the optimal scalar quantizer's level-and-threshold fixed-point equations — the 'Max' of Lloyd-Max"
+  - type: "paper"
+    title: "An Algorithm for Vector Quantizer Design"
+    authors: "Linde, Buzo & Gray"
+    year: 1980
+    url: "https://doi.org/10.1109/TCOM.1980.1094577"
+    note: "The LBG algorithm — Lloyd's conditions generalized to vectors and an empirical training set, the form used at embedding scale"
+  - type: "paper"
+    title: "Asymptotic Quantization Error of Continuous Signals and the Quantization Dimension"
+    authors: "Zador"
+    year: 1982
+    url: "https://doi.org/10.1109/TIT.1982.1056490"
+    note: "The asymptotic distortion D ~ C(d) k^(-2/d) for the optimal k-point quantizer — the rate-distortion exponent tying codebook size to dimension"
+  - type: "paper"
+    title: "Quantization"
+    authors: "Gray & Neuhoff"
+    year: 1998
+    url: "https://doi.org/10.1109/18.720541"
+    note: "The definitive survey: the encoder/decoder factorization, the optimality conditions, high-rate theory, and the history of vector quantization"
+  - type: "book"
+    title: "Vector Quantization and Signal Compression"
+    authors: "Gersho & Gray"
+    year: 1992
+    url: "https://doi.org/10.1007/978-1-4615-3626-0"
+    note: "The standard text: the VQ optimality conditions, the generalized-Lloyd algorithm, and codebook design"
+  - type: "paper"
+    title: "k-means++: The Advantages of Careful Seeding"
+    authors: "Arthur & Vassilvitskii"
+    year: 2007
+    url: "https://theory.stanford.edu/~sergei/papers/kMeansPP-soda.pdf"
+    note: "D-squared seeding with an O(log k) expected-approximation guarantee — the cited heuristic that tightens, but does not fix, Lloyd's local-optimum problem"
+  - type: "documentation"
+    title: "Faiss: The Index Factory and Quantizers"
+    authors: "Johnson, Douze & Jégou"
+    year: 2019
+    url: "https://github.com/facebookresearch/faiss/wiki/Faiss-indexes"
+    note: "How production ANN indexes train and apply codebooks — the k-means quantizer behind IVF and PQ"
+formalmlPrereqs:
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "k-means is the empirical special case of Lloyd's algorithm under a uniform measure over a finite sample and squared-Euclidean distortion, and the alternating assignment/update steps, the monotone objective decrease, and the local-optimum and initialization caveats are developed there in full; this topic specializes that machinery to embedding codebooks and reads the cluster centroids as decoder codewords"
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "the distortion D = E||X - Q(X)||^2 this topic minimizes is the operational rate-distortion functional, and the rate log2(k) bits per vector versus distortion tradeoff, the high-rate asymptotics, and Zador's k^(-2/d) law are the information-theoretic frame proved there, which the Lloyd conditions realize operationally for a finite codebook"
+formalmlConnections:
+  - topic: "spectral-theorem"
+    site: "formalml"
+    relationship: "the centroid condition minimizes a quadratic E||X - c||^2 whose unique stationary point is the conditional mean, the same convex-quadratic minimization underlying the least-squares and eigenvalue machinery developed there, and the per-cell distortion Lloyd drives down is the trace of the within-cell covariance"
+formalstatisticsPrereqs:
+  - topic: "multivariate-distributions"
+    site: "formalstatistics"
+    relationship: "the source X is a random vector with a distribution over R^d, the distortion is an expectation against that law, and the centroid condition c_i = E[X | X in R_i] is a conditional expectation of a multivariate distribution restricted to a Voronoi cell, the conditional-mean machinery developed there"
+formalcalculusPrereqs:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "the centroid step is the unconstrained minimization of a strictly convex quadratic, solved by setting the gradient to zero, and Lloyd's algorithm is block-coordinate descent on the joint distortion over codebook and partition — the alternating-minimization and convexity machinery developed there explains both the monotone decrease and why it only reaches a local optimum"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import VectorQuantizationLaboratory from '../../components/viz/VectorQuantizationLaboratory.tsx';
+
+## Overview & motivation
+
+A vector retriever pays for every dimension twice, and the [previous topic on PCA](/topics/pca-dimensionality-reduction) attacked one of those costs by shrinking the *width* of each vector. This topic attacks the other: the number of *bits*. PCA still hands back a vector of real numbers — narrower, but $128$ or $256$ `float32` coordinates is still kilobytes per item across tens of millions of items. Vector quantization makes a more aggressive trade. Instead of storing each embedding, store the *index* of the nearest entry in a small shared **codebook** of $k$ representative vectors. A codeword index costs $\log_2 k$ bits — eight bits for a codebook of $256$ — in place of the thousands of bits the raw vector needed. The reconstruction is lossy, and the entire question is how to choose the codebook so that the loss, measured as squared error, is as small as possible.
+
+That question has a clean and classical answer, and it is the subject of this topic. We will define a quantizer as a decoder composed with an encoder, write its quality as an expected squared **distortion**, and prove the two conditions an optimal quantizer must satisfy — one for the encoder, one for the decoder. Alternating those two conditions is **Lloyd's algorithm**; we will show it drives distortion downhill to a fixed point, recognize it as exactly $k$-means, and then confront the honest catch that the fixed point it reaches is only a *local* optimum. The codebook this topic builds is the atom that *product quantization* later splits across subspaces, and the partition it induces is the coarse index the *inverted file* reuses — both topics that follow in this track.
+
+Before the algebra, run the algorithm. Step through Lloyd's two half-steps on a small cloud and watch the distortion fall; then reseed and watch a different starting codebook get stuck somewhere worse:
+
+<VectorQuantizationLaboratory client:visible />
+
+The first panel is Lloyd on a two-dimensional cloud of four blobs with three codewords. Each **Step** runs one iteration — re-assign every point to its nearest codeword (the Voronoi cells recolor), then move every codeword to the mean of its cell — and the distortion readout and its sparkline fall monotonically to a fixed point. The lesson is in the **Reseed** button: the same data, started from a different codebook, converges to a visibly worse partition, because Lloyd finds a local optimum and the initialization decides which one. The second panel is the payoff for retrieval: on a synthetic finance cloud, distortion against the rate $\log_2 k$, falling as the codebook grows but slowly — the shape Zador's law predicts and the wall the next topic is built to break.
+
+### What we cover
+
+1. The quantization problem: encoder, decoder, codebook, cells, and distortion.
+2. The nearest-neighbor condition — the optimal encoder is Voronoi assignment.
+3. The centroid condition — the optimal codeword is the conditional mean of its cell.
+4. Lloyd's algorithm: alternating minimization, monotone descent, and convergence to a fixed point.
+5. $k$-means as the empirical special case, and the non-convexity and initialization caveats.
+6. Rate versus distortion, Zador's $k^{-2/d}$ law, a finance case study, and the tested code.
+
+---
+
+## The quantization problem
+
+Fix a source: a random vector $X \in \mathbb{R}^d$ with distribution $P$, the embedding a real encoder would produce. A quantizer compresses $X$ through a finite codebook and is built from two maps.
+
+<TheoremBlock type="definition" number={1} title="Vector quantizer">
+
+A **codebook** is a finite set $\mathcal{C} = \{c_1, \dots, c_k\} \subset \mathbb{R}^d$ of $k$ **codewords**. An **encoder** $\alpha : \mathbb{R}^d \to \{1, \dots, k\}$ assigns each point an index, and a **decoder** $\beta : \{1, \dots, k\} \to \mathbb{R}^d$ with $\beta(i) = c_i$ reads the index back to its codeword. The **quantizer** is the composition
+
+$$
+Q = \beta \circ \alpha, \qquad Q(x) = c_{\alpha(x)} .
+$$
+
+The encoder induces a partition of $\mathbb{R}^d$ into **cells** $R_i = \alpha^{-1}(i) = \{x : \alpha(x) = i\}$. Storing $Q(X)$ costs the **rate** $\log_2 k$ bits per vector, and the quality is the **distortion**, the expected squared error
+
+$$
+D(\alpha, \beta) = \mathbb{E}\lVert X - Q(X)\rVert^2 = \sum_{i=1}^{k} \int_{R_i} \lVert x - c_i\rVert^2 \, dP(x) .
+$$
+
+</TheoremBlock>
+
+The factorization $Q = \beta \circ \alpha$ is the whole structural insight. The distortion couples the encoder and the decoder, but only loosely: with the codebook held fixed we can optimize the encoder alone, and with the partition held fixed we can optimize the codebook alone. Each of those one-sided problems has an exact, closed-form solution — the next two theorems — and alternating between them is the algorithm. The rate–distortion functional $D$ itself, and the information-theoretic limits on how small it can be at a given rate, are developed in [rate–distortion theory](https://formalml.com/topics/rate-distortion); here we take the operational view and minimize it for a finite codebook.
+
+---
+
+## The nearest-neighbor condition: the optimal encoder
+
+Hold the codebook fixed and ask for the best encoder. Because the decoder just looks up $c_{\alpha(x)}$, the encoder's only job is to choose, for each $x$, which codeword to point at — and the distortion is a sum of independent per-point penalties, so the choice is pointwise.
+
+<TheoremBlock type="theorem" number={1} title="The nearest-neighbor (Voronoi) condition">
+
+For a fixed codebook $\mathcal{C} = \{c_1, \dots, c_k\}$, the encoder that minimizes distortion assigns each point to its nearest codeword,
+
+$$
+\alpha^\star(x) = \arg\min_{i \in \{1, \dots, k\}} \lVert x - c_i\rVert^2 ,
+$$
+
+so the optimal cells are the **Voronoi regions** of the codebook, $R_i^\star = \{x : \lVert x - c_i\rVert \le \lVert x - c_j\rVert \ \text{for all } j\}$, and the minimized distortion is $D = \mathbb{E}\,\min_i \lVert X - c_i\rVert^2$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The distortion $D(\alpha, \beta) = \int \lVert x - c_{\alpha(x)}\rVert^2 \, dP(x)$ is the integral of a nonnegative integrand, and with the codebook fixed the value of $\alpha(x)$ at one point $x$ does not constrain its value anywhere else. So the integral is minimized by minimizing the integrand pointwise: for each $x$ independently, choose $\alpha(x)$ to make $\lVert x - c_{\alpha(x)}\rVert^2$ as small as possible, which is the index of the nearest codeword. The points equidistant from two nearest codewords — the cell boundaries — form a measure-zero set under a continuous $P$ and may be assigned by any fixed rule; we break ties by the lowest index, the convention the companion code and the laboratory share. $\blacksquare$
+
+</TheoremBlock>
+
+The optimal partition is therefore *always* a Voronoi diagram of the current codebook: nothing else can do better once the codewords are fixed. This is more than a bookkeeping fact. It is the reason an inverted-file index can use a coarse $k$-means codebook as its routing structure — the cells it searches are exactly these Voronoi regions — and it is the geometry the laboratory redraws on every assignment step.
+
+---
+
+## The centroid condition: the optimal decoder
+
+Now reverse the roles. Hold the partition fixed and ask for the best codebook. The distortion decouples across cells, $D = \sum_i \int_{R_i} \lVert x - c_i\rVert^2 \, dP$, so each codeword is chosen independently to minimize its own cell's contribution, and that is a one-dimensional question about a single representative point.
+
+<TheoremBlock type="theorem" number={2} title="The centroid (conditional-mean) condition">
+
+For a fixed partition $\{R_1, \dots, R_k\}$ with $P(R_i) > 0$, the codebook that minimizes distortion sets each codeword to the conditional mean of its cell,
+
+$$
+c_i^\star = \mathbb{E}[X \mid X \in R_i] = \frac{\int_{R_i} x \, dP(x)}{P(R_i)} .
+$$
+
+The codeword is the unique minimizer, and the resulting per-cell distortion is the within-cell variance — the trace of the conditional covariance.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Fix one cell and minimize $f(c) = \int_{R_i} \lVert x - c\rVert^2 \, dP(x)$ over $c \in \mathbb{R}^d$. Write $\mu_i = \mathbb{E}[X \mid X \in R_i]$ and add and subtract it:
+
+$$
+\int_{R_i} \lVert x - c\rVert^2 \, dP = \int_{R_i} \lVert x - \mu_i\rVert^2 \, dP + P(R_i)\,\lVert \mu_i - c\rVert^2 ,
+$$
+
+where the cross term $-2\langle \mu_i - c, \int_{R_i}(x - \mu_i)\,dP\rangle$ vanishes because $\int_{R_i}(x - \mu_i)\,dP = 0$ by the definition of $\mu_i$. The first term does not depend on $c$; the second is nonnegative and is zero exactly when $c = \mu_i$. Equivalently, $f$ is a strictly convex quadratic — its gradient $\nabla_c f = -2\int_{R_i}(x - c)\,dP$ vanishes only at $c = \mu_i$, and its Hessian $2P(R_i) I$ is positive definite — so the stationary point is the unique global minimum, the [convex-quadratic minimization](https://formalcalculus.com/topics/convex-optimization) the centroid step solves. For a finite sample the conditional mean is the cell's sample mean, the [conditional expectation](https://formalstatistics.com/topics/multivariate-distributions) of the empirical law restricted to the cell. $\blacksquare$
+
+</TheoremBlock>
+
+One pathology is worth naming now, because it returns in the algorithm: if a cell is empty, $P(R_i) = 0$, the conditional mean is a $0/0$ and the codeword is undefined. For a continuous source this never happens, but on a finite sample a codeword can capture no points, and a faithful implementation must say what to do. We reseed an orphaned codeword onto the worst-served point — the data point currently farthest from its own codeword — a deterministic repair that, as we will see, can only lower distortion.
+
+---
+
+## Lloyd's algorithm: alternating optimization
+
+We have two exact half-solutions: the best encoder for a fixed decoder, and the best decoder for a fixed encoder. Neither alone solves the joint problem, because each assumes the other is fixed. Lloyd's idea is to alternate them.
+
+<TheoremBlock type="algorithm" number={1} title="Lloyd's algorithm (generalized Lloyd / LBG)">
+
+Input: a source $P$ (or a finite sample), a codebook size $k$, and an initial codebook $\mathcal{C}^{(0)}$. For $t = 0, 1, 2, \dots$ repeat:
+
+1. **Assignment step (nearest-neighbor condition).** Hold $\mathcal{C}^{(t)}$ fixed and form the Voronoi partition $R_i^{(t)} = \{x : \alpha^\star(x) = i\}$ by Theorem 1.
+2. **Update step (centroid condition).** Hold the partition fixed and set $c_i^{(t+1)} = \mathbb{E}[X \mid X \in R_i^{(t)}]$ by Theorem 2.
+
+Stop when the codewords stop moving (equivalently, when the assignment no longer changes).
+
+</TheoremBlock>
+
+Each step solves one of the two sub-problems exactly, so neither can raise the distortion — and that is enough to prove the algorithm converges.
+
+<TheoremBlock type="theorem" number={3} title="Monotone distortion decrease and convergence to a fixed point">
+
+The distortion sequence $D^{(t)} = D(\alpha^{(t)}, \beta^{(t)})$ is non-increasing,
+
+$$
+D^{(0)} \ge D^{(1)} \ge D^{(2)} \ge \dots \ge 0 ,
+$$
+
+and, bounded below by zero, it converges. On a finite sample there are finitely many distinct partitions, so the algorithm reaches a **fixed point** in finitely many steps — a configuration satisfying *both* Theorem 1 and Theorem 2 at once. Such a fixed point is a **local** minimum of $D$; it need not be global.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The assignment step minimizes $D$ over the encoder with the decoder fixed (Theorem 1), so $D(\alpha^{(t+1)}, \beta^{(t)}) \le D(\alpha^{(t)}, \beta^{(t)})$. The update step minimizes $D$ over the decoder with the encoder fixed (Theorem 2), so $D(\alpha^{(t+1)}, \beta^{(t+1)}) \le D(\alpha^{(t+1)}, \beta^{(t)})$. Chaining the two inequalities gives $D^{(t+1)} \le D^{(t)}$, and a monotone sequence bounded below converges. On a finite training set the distortion depends only on the partition, of which there are at most $k^n$; monotone decrease through a finite set, with the lowest-index tie-break preventing cycles, forces termination at a partition where neither step changes anything — a point satisfying both conditions. That this point is only *local* is structural: $D$ is non-convex jointly in $(\alpha, \beta)$, and Lloyd is **block-coordinate descent** on that non-convex objective, which the per-step optimality cannot upgrade to global optimality. $\blacksquare$
+
+</TheoremBlock>
+
+So Lloyd's algorithm is descent by construction: it cannot get worse, and on real data it converges quickly. The empty-cell repair fits inside this guarantee. Reseeding an orphaned codeword onto the farthest-served point changes nothing in the current step's distortion — the empty cell contributed nothing either way — but on the next assignment that point, now sitting on a codeword, is captured at zero cost, strictly lowering distortion. The monotone descent of Theorem 3 is the pedagogical claim the laboratory makes visible and the companion harness asserts iteration by iteration.
+
+---
+
+## $k$-means as the empirical special case
+
+Theorems 1–3 are stated for a distribution $P$, but in practice we never have $P$ — we have a sample of corpus embeddings. Replace $P$ by the **empirical measure** $\hat{P} = \tfrac{1}{n}\sum_{j=1}^{n} \delta_{x_j}$ over the points $\{x_1, \dots, x_n\}$, and every object above specializes.
+
+<TheoremBlock type="proposition" number={1} title="Lloyd under the empirical measure is k-means">
+
+Under $\hat{P}$ with squared-Euclidean distortion, the distortion becomes the **within-cluster sum of squares**
+
+$$
+D = \frac{1}{n}\sum_{i=1}^{k} \sum_{x_j \in R_i} \lVert x_j - c_i\rVert^2 ,
+$$
+
+the centroid condition becomes the sample mean $c_i = \tfrac{1}{|R_i|}\sum_{x_j \in R_i} x_j$, and Lloyd's algorithm becomes the standard $k$-means iteration.
+
+</TheoremBlock>
+
+This is not an analogy: $k$-means *is* Lloyd's algorithm under the empirical measure, and the within-cluster sum of squares *is* the vector-quantization distortion. The cluster centroids are the decoder codewords, and the whole apparatus — the alternating updates, the monotone objective, the local-optimum and initialization caveats — is developed in formalML's [clustering](https://formalml.com/topics/clustering) topic. A production codebook is trained exactly this way: run $k$-means on a sample of the corpus embeddings and keep the centroids as the codebook (the $k$-means quantizer behind a Faiss IVF or PQ index). The companion harness confirms the equivalence by matching our converged distortion, from the same initialization, against `scipy.cluster.vq.kmeans2`.
+
+---
+
+## Rate, distortion, and the curse of dimensionality
+
+Larger codebooks cost more bits and earn less distortion, and the exchange rate between the two is governed by the dimension. The asymptotic law is Zador's, and it is the place where the geometry of the prerequisite topic returns with teeth.
+
+<TheoremBlock type="theorem" number={4} title="Zador's asymptotic distortion law (high-rate)">
+
+For a source with a density on $\mathbb{R}^d$ satisfying mild regularity, the minimal distortion of the optimal $k$-codeword quantizer satisfies, as $k \to \infty$,
+
+$$
+D^\star(k) \sim C(d) \left( \int p(x)^{\frac{d}{d+2}}\, dx \right)^{\!\frac{d+2}{d}} k^{-2/d} ,
+$$
+
+so $D^\star(k) = \Theta\!\left(k^{-2/d}\right)$. In terms of the rate $R = \log_2 k$ bits per vector, $D^\star \sim \text{const}\cdot 2^{-2R/d}$. The constant $C(d)$ depends on the optimal point density and the best lattice in $\mathbb{R}^d$ and is known in closed form only in special cases.
+
+</TheoremBlock>
+
+We do not reprove this asymptotic result — it is Zador's (1982), surveyed in Gray and Neuhoff (1998) — but the exponent has a one-line explanation. To halve the diameter of every cell in $d$ dimensions you must tile space with $2^d$ times as many cells, so the codebook size $k$ must grow like the inverse $d$-th power of the cell diameter; since distortion scales as the *square* of the diameter, $D \sim k^{-2/d}$.
+
+<TheoremBlock type="remark">
+
+The exponent $2/d$ *is* the curse of dimensionality, in quantization form. In low dimension a codebook buys distortion cheaply — for $d = 1$, distortion falls like $k^{-2}$, so each extra bit (doubling $k$) cuts distortion fourfold — but as $d$ grows the exponent flattens toward zero and additional codewords barely help. This is the same ambient $d$ that, in [high-dimensional geometry](/topics/high-dimensional-geometry), concentrates pairwise distances; the escape is also the same. Real embeddings have low *effective* dimension, so the $d$ that governs $k^{-2/d}$ in practice is the intrinsic dimension, not the ambient one, which is why a modest codebook can reach usable distortion at all. The companion harness verifies the *scaling* directly: on uniform sources in $d = 1$ and $d = 2$, the fitted log-log slope of distortion against $k$ is $-2.01$ and $-1.05$, matching $-2/d$; we verify the exponent, not Zador's constant.
+
+</TheoremBlock>
+
+So the exact theorems are Theorems 1–3; the asymptotic law is Theorem 4, whose scaling we confirm numerically and whose constant we do not claim. With that honesty in place, the finance case study makes the tradeoff concrete.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+The production financial-RAG system behind the [BM25](/topics/bm25-binary-independence-model) and [rank-fusion](/topics/rank-fusion-rrf) case studies stores high-dimensional embeddings of 10-K passages and earnings-call chunks. At ten million chunks the index is tens of gigabytes of `float32`, and the natural question is how cheaply each vector can be stored without wrecking retrieval. Vector quantization gives a direct answer: train a codebook and store an index per vector.
+
+We make the point with a self-contained experiment on a synthetic cloud of $256$-dimensional embeddings — six topical groups (rates, credit, FX, equity, macro, earnings) on a low-rank-plus-noise manifold, a stand-in for the geometry a real encoder produces. We train codebooks of growing size by $k$-means and measure the rate–distortion tradeoff:
+
+- a **raw vector is $256 \times 32 = 8192$ bits**; a **codeword index at $k = 256$ is $8$ bits** — a $\mathbf{1024\times}$ reduction in code size;
+- **distortion falls from $71\%$ of the single-codeword baseline at $k = 2$ to $\mathbf{12.9\%}$ at $k = 256$**, monotonically in the rate but with diminishing returns — Zador's $k^{-2/d}$ with a high effective $d$;
+- **recall@10 retained climbs from near zero to $\mathbf{52.8\%}$** at $k = 256$, the fraction of exact nearest neighbors the quantized index still surfaces.
+
+The shape of the rate–distortion curve is the message. Each extra bit buys less than the last, because a single codebook over the whole $256$-dimensional space is fighting the curse of dimensionality head-on: to drive distortion down by a constant factor, the $k^{-2/d}$ law demands the codebook grow by a factor exponential in the effective dimension. That is the wall *product quantization* breaks — by splitting the vector into low-dimensional subspaces and quantizing each with its own small codebook, so the effective codebook size multiplies while each sub-codebook stays cheap — and the Voronoi partition of Theorem 1 is the coarse index the *inverted file* searches. Both are the next two topics in this track.
+
+</FinanceCaseStudy>
+
+A candid note on the companion code, in the spirit of the series: the cloud is a synthetic low-rank-plus-noise construction, sampled deterministically so the notebook is CPU-only and reproducible to the decimal with no model download, and the distortion and recall numbers are measured on it. It is not the output of a trained encoder, and a real encoder's angular geometry would call for *spherical* quantization — codewords as mean *directions* on the [hypersphere](/topics/hypersphere-vmf-geometry) rather than Euclidean centroids — which is exactly the squared-Euclidean-versus-cosine caveat below.
+
+---
+
+## The honest catch: a fixed point is only a local optimum
+
+Theorems 1–3 guarantee that Lloyd's algorithm *converges* and that it *decreases* distortion to a configuration satisfying both optimality conditions. They do not guarantee that the configuration is the best one. The distortion is non-convex in the codebook, so the fixed point Lloyd reaches depends on where it starts, and different initializations land in different basins — as the laboratory's **Reseed** button shows directly: on the same four-blob cloud, one initialization reaches the global optimum at distortion $285.2$, another a near-miss local optimum at $313.9$, and a third gets stuck at $541.1$, nearly twice as bad, by merging two diagonally opposite blobs into a single cell that no local move can separate.
+
+The pessimism is fundamental, not incidental: finding the globally optimal $k$-means partition is NP-hard, so no efficient algorithm reaches the global optimum in general. What practice offers is not a fix but a discipline. **$k$-means++ seeding** spreads the initial codewords out by sampling them with probability proportional to their squared distance from the codewords chosen so far, which comes with an $O(\log k)$ expected-approximation guarantee (Arthur and Vassilvitskii, 2007) — the one provable handle on the problem, and still only in expectation. **Multiple restarts**, keeping the lowest-distortion run, trade computation for a better local optimum. The companion harness shows both effects: across twelve random initializations the final distortion varies by hundreds, and $k$-means++ seeding lowers the mean. We present these as the honest state of the art — heuristics that improve the expected result without certifying the global one.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Five qualifications keep the optimality honest:
+
+1. **Local, not global.** Lloyd decreases distortion to a fixed point satisfying both conditions (Theorems 1–3), but $D$ is non-convex in the codebook, so the optimum is local and initialization-dependent. The global $k$-means problem is NP-hard; $k$-means++ ($O(\log k)$ in expectation) and restarts are cited heuristics, not fixes.
+2. **Zador is asymptotic.** The law $D \sim C(d)\,k^{-2/d}$ is high-rate, and its constant $C(d)$ is known in closed form only in special cases. We verify the $k^{-2/d}$ *scaling* numerically on uniform sources and tie the exponent to the prerequisite geometry; we do not claim the constant.
+3. **Ties and empty cells.** Cell boundaries and empty cells are measure-zero for a continuous source but real on a finite sample. We handle them by an explicit lowest-index tie-break and a deterministic furthest-point reseeding rule, not by pretending they do not occur.
+4. **Squared-Euclidean is not cosine.** The centroid is the optimal representative for $\ell_2$ distortion, but cosine retrieval wants the normalized mean direction. The gap between Lloyd's Euclidean codeword and the angular geometry retrieval scores on is a modeling choice, not a theorem.
+5. **The finance embeddings are synthetic.** The companion cloud is a low-rank-plus-noise stand-in, not a trained encoder, and the distortion and recall numbers are measured on it.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) is self-contained, CPU-only, and runs in a few seconds on `numpy` and `scipy`. It implements Lloyd's two half-steps from scratch — nearest-neighbor assignment with a lowest-index tie-break, centroid update with a furthest-point empty-cell repair — and runs them on the two-dimensional toy cloud the laboratory mirrors and on the synthetic finance cloud, training codebooks across the rate grid and measuring distortion and quantized recall@10. Its verification harness makes each claim executable: distortion is non-increasing across every iteration (Theorem 3); at convergence the labels are stable and every codeword equals its cell's sample mean to machine precision (Theorems 1–2); the $k$-means objective equals the within-cluster sum of squares identically (Proposition 1); different initializations reach different optima while $k$-means++ lowers the mean; the empty-cell repair stays finite and monotone; the optimal-quantizer distortion scales as $k^{-2/d}$ on uniform sources (Theorem 4, exponent only); the finance rate–distortion curve is monotone; and our converged distortion matches `scipy.cluster.vq.kmeans2` from the same initialization. The three pillars — the proofs above, the laboratory, and the tested code — agree by construction, the toy cloud's seed codebooks and converged distortions baked from the same `viz_constants()` the laboratory reads.
