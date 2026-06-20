@@ -21,7 +21,6 @@ Run:  uv run --with numpy python notebooks/probability-ranking-principle/probabi
 """
 from __future__ import annotations
 
-import math
 from itertools import permutations
 
 import numpy as np
@@ -137,10 +136,14 @@ def test_adjacent_swap_lemma() -> None:
         for k in range(1, 6):
             delta = expected_relevant_at_k(swapped, p, k) - expected_relevant_at_k(order, p, k)
             assert delta >= -1e-12, (k, delta)
-        # strict improvement exactly at the cutoff between the swapped pair
+        # the improvement at the cutoff between the pair equals exactly the gap
+        # p_hi - p_lo, which is strictly positive because the pair was out of order.
+        # Tying the assert to the gap (rather than an arbitrary magnitude floor)
+        # stays robust even when two random probabilities are very close.
+        gap = p[order[j + 1]] - p[order[j]]
         strict = (expected_relevant_at_k(swapped, p, j + 1)
                   - expected_relevant_at_k(order, p, j + 1))
-        assert strict > 1e-12, strict
+        assert gap > 0.0 and abs(strict - gap) < 1e-9, (strict, gap)
     print("  [ok] adjacent-swap lemma: a swap weakly helps every cutoff, strictly one")
 
 

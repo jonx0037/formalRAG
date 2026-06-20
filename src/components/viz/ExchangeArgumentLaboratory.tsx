@@ -89,6 +89,7 @@ export default function ExchangeArgumentLaboratory() {
 
   // Panel: cumulative expected-relevant curve — current vs PRP-optimal envelope
   useEffect(() => {
+    if (!chartRef.current) return;
     const svg = d3.select(chartRef.current);
     svg.selectAll('*').remove();
     const W = 420, H = 260, m = { t: 16, r: 16, b: 40, l: 40 };
