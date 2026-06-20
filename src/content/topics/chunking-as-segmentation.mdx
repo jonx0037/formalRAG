@@ -1,0 +1,213 @@
+---
+title: "Chunking as a Segmentation and Optimization Problem"
+subtitle: "Where to cut a document, posed as a coherence-maximizing segmentation with an exact dynamic-programming optimum — and the proxy it secretly optimizes"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "hypersphere-vmf-geometry"
+tags:
+  - "chunking"
+  - "text-segmentation"
+  - "dynamic-programming"
+  - "von-mises-fisher"
+  - "coherence"
+  - "change-point-detection"
+  - "embedding-geometry"
+domain: "embedding-geometry"
+pipelineStage: "ingest"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The dynamic program in this topic is provably optimal — but only for the objective it is given, and that objective is a proxy. Within-chunk coherence, which we show equals the mean resultant length of the segment's embeddings (the von Mises-Fisher concentration statistic), is a stand-in for the true target, which is downstream retrieval and generation quality, and optimizing the proxy is not the same as optimizing the goal: the companion harness shows boundary-recovery F1 peaking at the true section count and then declining under over-segmentation, even as the coherence cost keeps falling monotonically, so minimizing cost past the true number of segments buys lower incoherence and worse structure. The DP's optimality is also only relative to the modeling assumptions baked into the cost — additivity across segments, cosine-to-mean-direction coherence, a single similarity metric — and TextTiling and fixed-size chunking, the baselines, are heuristics with no optimality guarantee at all. Real documents carry structural boundaries that a pure-similarity objective ignores: section headers, speaker turns, tables, lists; and the right chunk size trades retrieval granularity against context window in ways coherence alone does not capture. The proved core — that within-segment coherence is exactly the mean resultant length, and that the additive-cost segmentation has an exact O(n squared) dynamic-programming optimum matching brute force — holds exactly; the optimality of the heuristics is not claimed, and the synthetic 10-K filing is a sequence of von Mises-Fisher blocks, not a real document, with boundary-recovery numbers measured on it."
+videoId: null
+notebookPath: "notebooks/chunking-as-segmentation/01_chunking_as_segmentation.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/chunking-as-segmentation.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 30
+abstract: "Chunking is the first thing a retrieval pipeline does to a document and the least mathematized — the default is to split every few hundred tokens and move on. Posed properly it is a one-dimensional segmentation problem: choose boundaries that maximize within-chunk coherence. We show that coherence has a clean closed form — for L2-normalized sentence embeddings the within-segment cost is the segment length minus the norm of the sum of its embeddings, which is the length times one minus the mean resultant length, the von Mises-Fisher concentration statistic from the prerequisite topic — so minimizing total cost carves the document into tight clusters on the sphere. Because the cost is additive across segments, the globally optimal segmentation is computed exactly by an O(n squared) dynamic program, which we prove optimal and verify against brute force; TextTiling's greedy depth scores and fixed-size chunking are heuristics that cannot beat it. We then confront the honest catch that makes this more than an algorithms exercise: coherence is a proxy for downstream retrieval quality, and the harness shows boundary-recovery F1 peaking at the true section count while the coherence cost keeps falling under over-segmentation. An interactive Chunking Laboratory and a tested implementation accompany the derivation, with a synthetic 10-K filing on which the optimal segmentation recovers the section structure that fixed-size chunking misses."
+connections:
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "the within-segment coherence this topic minimizes is exactly the mean resultant length developed there — the norm of the average of unit embeddings, the maximum-likelihood concentration estimate of a von Mises-Fisher cluster — so an optimal chunk is a tight vMF cluster on the sphere, and segmentation is the problem of cutting the document where the mean direction shifts"
+references:
+  - type: "paper"
+    title: "TextTiling: Segmenting Text into Multi-paragraph Subtopic Passages"
+    authors: "Hearst"
+    year: 1997
+    url: "https://aclanthology.org/J97-1003/"
+    note: "The greedy depth-score segmentation heuristic — the baseline this topic contrasts with the optimal DP"
+  - type: "paper"
+    title: "On the Approximation of Curves by Line Segments Using Dynamic Programming"
+    authors: "Bellman"
+    year: 1961
+    url: "https://doi.org/10.1145/366573.366611"
+    note: "The origin of optimal one-dimensional segmentation by dynamic programming"
+  - type: "paper"
+    title: "On Grouping for Maximum Homogeneity"
+    authors: "Fisher"
+    year: 1958
+    url: "https://doi.org/10.1080/01621459.1958.10501479"
+    note: "Exact optimal one-dimensional clustering by DP — contiguity-constrained grouping, the segmentation problem's statistical ancestor"
+  - type: "book"
+    title: "Directional Statistics"
+    authors: "Mardia & Jupp"
+    year: 2000
+    url: "https://doi.org/10.1002/9780470316979"
+    note: "The mean resultant length and the von Mises-Fisher distribution — the coherence measure the segment cost reduces to"
+  - type: "paper"
+    title: "Selective Review of Offline Change Point Detection Methods"
+    authors: "Truong, Oudre & Vayatis"
+    year: 2020
+    url: "https://doi.org/10.1016/j.sigpro.2019.107299"
+    note: "Segmentation as change-point detection — the signal-processing framing and the cost/penalty design space"
+  - type: "paper"
+    title: "Statistical Models for Text Segmentation"
+    authors: "Beeferman, Berger & Lafferty"
+    year: 1999
+    url: "https://doi.org/10.1023/A:1007506220214"
+    note: "Probabilistic text segmentation and the Pk evaluation metric — the measurement side of the problem"
+  - type: "documentation"
+    title: "How to Split Text Based on Semantic Similarity (Semantic Chunker)"
+    authors: "LangChain"
+    year: 2024
+    url: "https://python.langchain.com/docs/how_to/semantic-chunker/"
+    note: "The modern embedding-similarity chunking practice this topic formalizes and contrasts with the global optimum"
+formalmlPrereqs:
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "segmentation is clustering with a contiguity constraint: the within-segment coherence cost is the same within-cluster dispersion that k-means and the Lloyd iteration minimize there, restricted to contiguous one-dimensional groups, so the DP is the exact solver that the contiguity constraint makes possible where general k-means is NP-hard"
+formalmlConnections:
+  - topic: "graph-laplacians"
+    site: "formalml"
+    relationship: "the higher-dimensional analog of cutting a document at its topic shifts is partitioning a similarity graph at its weak edges, which is the spectral-clustering and normalized-cut machinery developed there; one-dimensional segmentation is the case where the graph is a path and the cut becomes a dynamic program"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import ChunkingLaboratory from '../../components/viz/ChunkingLaboratory.tsx';
+
+## Overview & motivation
+
+Every retrieval pipeline begins by cutting documents into chunks, and the standard recipe — split every $512$ tokens — is the one step in the stack with no mathematics behind it. Yet the choice matters: a boundary dropped in the middle of an argument splits the evidence a query needs across two chunks, and a chunk that spans two topics dilutes the embedding of both. The question *where to cut* deserves to be posed precisely, and when it is, it turns out to be a clean optimization problem with an exact solution.
+
+The framing is segmentation. Represent the document as a sequence of sentence embeddings $e_1, \dots, e_n$, L2-normalized so they live on the unit sphere, and choose boundaries that maximize *within-chunk coherence* — keep each chunk's sentences pointing the same way. We will see that this coherence is exactly the [mean resultant length](/topics/hypersphere-vmf-geometry) of the chunk, the von Mises–Fisher concentration statistic, so an optimal chunk is a tight cluster on the sphere; that the resulting additive objective has a globally optimal $O(n^2)$ dynamic-programming solution; and that the heuristics in common use — TextTiling and fixed-size splitting — cannot beat it. Then the honest part: the coherence we optimize is a *proxy*, and optimizing it past the true number of sections makes the chunks more coherent and the segmentation worse.
+
+Before the algebra, drag the chunk-count slider and watch the optimal boundaries find the topic shifts:
+
+<ChunkingLaboratory client:visible />
+
+The first panel is the document as a colored strip with the adjacent-gap dissimilarity beneath it; at the true count of five sections the dynamic program lands its boundaries exactly on the topic shifts, while fixed-size cuts fall wherever the arithmetic puts them. The second panel is the catch — coherence cost falls forever as you add chunks, but boundary-recovery accuracy peaks at the true count and then declines. The third compares the methods head to head.
+
+### What we cover
+
+1. Why within-chunk coherence is the mean resultant length, and the closed form it gives.
+2. The optimal segmentation as a dynamic program, proved optimal.
+3. TextTiling and fixed-size chunking, and the gap to the optimum.
+4. The proxy problem: coherence is not retrieval quality.
+5. A finance case study on a synthetic 10-K filing.
+
+---
+
+## Coherence is the mean resultant length
+
+Fix a candidate chunk — the sentences $e_i, \dots, e_{j-1}$, written $[i, j)$ — and measure its incoherence by how far its sentences point from the chunk's average direction. Let $\mu$ be the unit vector along the sum $\sum_{t \in [i,j)} e_t$. The cost is the total angular spread, $\sum_t (1 - \langle e_t, \mu\rangle)$, which is zero when every sentence aligns with $\mu$ and grows as they disagree.
+
+<TheoremBlock type="proposition" number={1} title="The chunk cost is its length minus its resultant length">
+
+For L2-normalized embeddings, the chunk cost has the closed form
+
+$$
+c(i, j) = \sum_{t \in [i,j)} \bigl(1 - \langle e_t, \mu\rangle\bigr) = (j - i) - \Bigl\lVert \sum_{t \in [i,j)} e_t \Bigr\rVert = (j - i)\,(1 - \bar{R}),
+$$
+
+where $\bar{R} = \lVert \frac{1}{j-i}\sum_t e_t\rVert$ is the **mean resultant length** of the chunk — the von Mises–Fisher concentration statistic.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Because $\mu = \bigl(\sum_t e_t\bigr) / \lVert \sum_t e_t\rVert$ is the unit vector along the sum, the total alignment is
+
+$$
+\sum_{t \in [i,j)} \langle e_t, \mu\rangle = \Bigl\langle \sum_t e_t,\ \mu \Bigr\rangle = \Bigl\langle \sum_t e_t,\ \frac{\sum_t e_t}{\lVert \sum_t e_t\rVert} \Bigr\rangle = \Bigl\lVert \sum_t e_t \Bigr\rVert .
+$$
+
+Subtracting from the chunk length $j - i$ (each of the $j-i$ unit embeddings contributes $1$ to $\sum_t 1$) gives $c(i,j) = (j-i) - \lVert\sum_t e_t\rVert$. Dividing the sum by $j-i$ turns the norm into the mean resultant length $\bar{R}$, so $c(i,j) = (j-i)(1 - \bar{R})$. $\blacksquare$
+
+</TheoremBlock>
+
+This is the bridge to the [prerequisite topic](/topics/hypersphere-vmf-geometry). There, $\bar{R}$ was the maximum-likelihood estimate of a von Mises–Fisher distribution's concentration $\kappa$: a tight topical cluster has $\bar{R}$ near $1$, a diffuse one near $0$. Here the same quantity is a chunk's coherence, and minimizing the total cost over a segmentation is maximizing the total resultant length — *carving the document into tight vMF clusters on the sphere*. The cost is also cheap: with prefix sums of the embeddings, $\lVert\sum_{[i,j)} e_t\rVert$ and hence $c(i,j)$ is computed in time proportional to the embedding dimension, independent of the chunk's length.
+
+---
+
+## The optimal segmentation is a dynamic program
+
+A segmentation into $k$ chunks is a choice of $k-1$ internal boundaries, and its total cost is the sum of the per-chunk costs — an *additive* objective over contiguous pieces. Additivity is exactly the structure dynamic programming exploits.
+
+<TheoremBlock type="theorem" number={1} title="Optimal segmentation by dynamic programming">
+
+Let $\mathrm{OPT}_k(j)$ be the minimum total cost of segmenting the prefix $[0, j)$ into $k$ contiguous chunks. Then
+
+$$
+\mathrm{OPT}_k(j) = \min_{k-1 \le i < j}\ \mathrm{OPT}_{k-1}(i) + c(i, j),
+$$
+
+and the globally optimal $k$-segmentation of the whole document is recovered from $\mathrm{OPT}_k(n)$ in $O(k n^2)$ time. With a per-chunk penalty in place of a fixed $k$, the single recurrence $\mathrm{OPT}(j) = \min_{i<j} \mathrm{OPT}(i) + c(i,j) + \lambda$ runs in $O(n^2)$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The argument is optimal substructure. Consider any optimal $k$-segmentation of $[0, j)$ and let its last chunk be $[i, j)$. The remaining chunks form a $(k-1)$-segmentation of $[0, i)$, and it must itself be optimal: if some other $(k-1)$-segmentation of $[0, i)$ had strictly smaller cost, swapping it in — the last chunk $[i,j)$ is unchanged, so its cost $c(i,j)$ is unchanged — would give a $k$-segmentation of $[0, j)$ with smaller total cost, contradicting optimality. Hence the optimal cost decomposes as $\mathrm{OPT}_{k-1}(i) + c(i,j)$ for the true split point $i$, and since we do not know $i$ we minimize over all valid $i$, which is the recurrence. Filling the table over $s = 1, \dots, k$ and $j = 1, \dots, n$, each entry a minimization over $i$, is $O(k n^2)$; back-pointers reconstruct the boundaries. $\blacksquare$
+
+</TheoremBlock>
+
+The companion harness checks this the only way that settles it: against brute force. For small documents it enumerates *every* way to place the boundaries, and the dynamic program matches the exhaustive optimum at every $k$ — it is the global minimum, not a good guess. That is the dividing line between this and the methods practitioners actually use.
+
+---
+
+## What practitioners use, and the gap
+
+Two heuristics dominate real pipelines, and neither optimizes the objective above. **Fixed-size chunking** cuts every $w$ tokens; it is semantics-free, and on a document whose sections have *uneven* lengths — every real document — its boundaries land on the topic shifts only by accident. **TextTiling** (Hearst 1997) is smarter: it slides a window across the document, scores each gap by the dissimilarity of the text before and after, and places boundaries at the gaps of locally greatest dissimilarity. That greedy, local rule often finds the obvious shifts, but it cannot see the global trade-off the dynamic program optimizes, so at the same number of chunks its total coherence is no better — and usually worse — than the optimum.
+
+On the synthetic document in the laboratory, at the true count of five chunks, the dynamic program places its boundaries exactly on the planted topic shifts (boundary $F_1 = 100\%$), the greedy heuristic recovers three of four ($F_1 = 75\%$), and fixed-size chunking, fooled by the uneven section lengths, recovers two ($F_1 = 50\%$) — while the optimum's coherence cost is strictly the lowest of the three, as the theorem guarantees. The "Boundary recovery" panel shows the gap; it is the value of optimizing globally rather than locally.
+
+---
+
+## Coherence is a proxy
+
+Here is the catch that keeps this honest, and it is visible the moment you keep splitting. The optimal coherence cost is *monotone decreasing* in the number of chunks — more boundaries can only reduce within-chunk spread, all the way down to singletons of cost zero. So the objective, taken literally, wants to cut the document into individual sentences. What stops it is that coherence is a **proxy** for the thing we actually care about, which is whether the chunks are good units of *retrieval*, and that target is not monotone in the chunk count at all.
+
+The "Granularity tradeoff" panel makes the divergence concrete: as $k$ grows, the coherence cost slides down forever, but the boundary-recovery $F_1$ *rises to a peak at the true number of sections and then falls*, because past that point the optimizer is splitting coherent sections into even-more-coherent fragments — lowering the cost while destroying the structure. Minimizing the proxy past the true $k$ is actively harmful. This is the segmentation analog of every proxy-objective problem in the field: the dynamic program will give you the exact optimum of what you asked for, and what you asked for is not quite what you wanted. The practical consequence is that the penalty $\lambda$, or the chunk count $k$, is the load-bearing hyperparameter, and it must be set by the downstream retrieval metric, not by the coherence the algorithm optimizes.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+Take a synthetic 10-K filing — $42$ sentences across six sections of uneven length, each a coherent von Mises–Fisher block standing in for Business, Risk Factors, MD&A, Financials, Notes, and Controls — and segment it three ways at the true count of six.
+
+The optimal dynamic program recovers the section structure that semantics-free chunking cannot: boundary $F_1$ is $80\%$ for the DP optimum and $80\%$ for the greedy heuristic, but only $20\%$ for fixed-size chunking, which the uneven section lengths defeat almost entirely. The DP's within-chunk incoherence ($19.3$) is, as guaranteed, below the greedy's ($20.2$). The reading is the practical one. For a filing whose sections are the natural retrieval units — a query about litigation risk wants the Risk Factors block, not a window that straddles it and the MD&A — optimizing coherence recovers those units far better than cutting every $n$ tokens. But the same experiment is the warning: the optimizer hands back exactly the segmentation that minimizes incoherence at the count you specify, and choosing that count, here the true six, is the part coherence cannot do for you.
+
+</FinanceCaseStudy>
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+- **Provably optimal — for a proxy.** The DP is the exact global optimum of within-chunk coherence, but coherence (the mean resultant length) is a stand-in for downstream retrieval quality. The harness shows boundary $F_1$ peaking at the true section count while the cost keeps falling — optimizing the proxy past the true $k$ makes chunks *more* coherent and the segmentation *worse*.
+- **Optimal relative to modeling assumptions.** The optimality holds for the chosen additive, cosine-to-mean-direction cost; a different coherence measure gives a different optimum.
+- **The baselines have no guarantee.** TextTiling is greedy and local; fixed-size chunking is semantics-free. Neither is claimed optimal — and on uneven sections fixed-size fails badly.
+- **Real documents have structure the objective ignores.** Section headers, speaker turns, tables, and lists are boundaries a pure-similarity cost does not see, and chunk *size* trades retrieval granularity against context window in ways coherence alone does not capture.
+- **Synthetic data.** The 10-K is a sequence of von Mises–Fisher blocks, not a real filing; the recovery numbers are measured on it.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion module [`chunking_as_segmentation.py`](https://github.com/jonx0037/formalRAG/blob/main/notebooks/chunking-as-segmentation/chunking_as_segmentation.py) owns every number this page and the laboratory cite. Its six assertions encode the claims in order: the chunk cost equals the sum of one-minus-cosine to the mean direction, hence the mean resultant length (to the decimal); the dynamic program matches an exhaustive brute-force optimum at every $k$; neither the greedy nor the fixed-size heuristic beats the DP's objective value; the optimal cost is monotone in the chunk count; the DP recovers planted boundaries better than the baselines on a document with uneven sections; and the finance filing. A trap worth flagging, since it shaped the experiment: with *equal-length* sections, fixed-size chunking hits the boundaries by accident and looks as good as the optimum, so the documents are deliberately uneven — which is also what makes them realistic. Both the module and the narrative notebook run in well under a second and must exit cleanly before the topic ships.

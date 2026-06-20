@@ -77,6 +77,12 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   length-hijack flip. Don't let prose drift from the verified numbers.
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
+- **Multiple topics in one session = independent feature branches off `main`** (each depends only on
+  already-published prereqs, not on its siblings, so they merge in any order). Each removes its title
+  from a track's `planned[]` array, so the **2nd+ merge needs a trivial one-line `curriculum.ts`
+  `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge). PRs
+  also get an automated `gemini-code-assist` review — address its medium-priority robustness/perf nits
+  before merging.
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`.
 
