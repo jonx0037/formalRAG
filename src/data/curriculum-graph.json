@@ -39,7 +39,7 @@
     {
       "id": "johnson-lindenstrauss",
       "label": "Random Projections and the Johnson-Lindenstrauss Lemma",
-      "status": "planned",
+      "status": "published",
       "domain": "embedding-geometry"
     },
     {
