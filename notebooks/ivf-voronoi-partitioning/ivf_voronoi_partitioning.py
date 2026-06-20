@@ -117,6 +117,8 @@ def ivf_recall(queries: np.ndarray, X: np.ndarray, C: np.ndarray, lists, nprobe:
     distance. nprobe = nlist recovers exact search (recall 1). GUARD: empty probed candidate set."""
     if len(queries) == 0:
         raise ValueError("queries must be non-empty")
+    if topk < 1:
+        raise ValueError(f"topk must be >= 1, got {topk}")
     if truth is None:
         truth = true_topk(queries, X, topk)
     hits = 0
@@ -136,7 +138,9 @@ def ivf_recall(queries: np.ndarray, X: np.ndarray, C: np.ndarray, lists, nprobe:
 def candidate_fraction(queries: np.ndarray, C: np.ndarray, lists, nprobe: int) -> float:
     """Mean fraction of the database scanned at this nprobe: total occupancy of the probed cells
     over n. For balanced cells this is about nprobe/nlist; k-means cells are imbalanced, so it
-    drifts. GUARD: empty database."""
+    drifts. GUARDS: empty query set or empty database -> 0.0."""
+    if len(queries) == 0:
+        return 0.0
     sizes = np.array([len(l) for l in lists])
     n = int(sizes.sum())
     if n == 0:
@@ -190,7 +194,11 @@ def build_ivfadc(X, C, labels, m, k_star, seed: int = 0):
 def ivfadc_recall(queries, X, C, lists, codebooks, codes, nprobe, topk: int = 10, truth=None):
     """Mean recall@topk under IVFADC: probe the nprobe nearest cells and rank their members by the
     ASYMMETRIC distance between the query's residual q - c_i and the stored residual codes. nprobe =
-    nlist is exhaustive ADC over residuals. GUARD: empty probed candidate set."""
+    nlist is exhaustive ADC over residuals. GUARDS: non-empty queries, topk >= 1, empty probed set."""
+    if len(queries) == 0:
+        raise ValueError("queries must be non-empty")
+    if topk < 1:
+        raise ValueError(f"topk must be >= 1, got {topk}")
     if truth is None:
         truth = true_topk(queries, X, topk)
     hits = 0
