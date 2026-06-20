@@ -32,7 +32,6 @@ export const tracks = [
     description:
       'The classical algebraic and probabilistic retrieval models that form the lexical half of hybrid retrieval: the vector space model, the Probability Ranking Principle, BM25, query-likelihood models, and the inverted index.',
     planned: [
-      'The Inverted Index and Safe Dynamic Pruning (WAND, BlockMax-WAND)',
       'Relevance Feedback and Query Expansion: Rocchio and RM3',
     ],
     dependsOnFormalML: false,
