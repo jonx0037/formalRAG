@@ -63,7 +63,8 @@ def build_inverted_index(corpus: dict[str, str]) -> InvertedIndex:
     vocab: dict[str, int] = {}
     for toks in tokenized:
         for t in toks:
-            vocab.setdefault(t, len(vocab))
+            if t not in vocab:
+                vocab[t] = len(vocab)
 
     tf = np.zeros((len(doc_ids), len(vocab)))
     doc_len = np.zeros(len(doc_ids))

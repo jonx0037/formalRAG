@@ -76,6 +76,7 @@ function Toggle({ label, on, onLabel, offLabel, onToggle }: {
           fontFamily: 'var(--font-sans)', fontSize: '0.8rem', transition: 'all 0.2s',
         }}
         aria-pressed={on}
+        aria-label={`${label}: ${on ? onLabel : offLabel}`}
       >
         {on ? onLabel : offLabel}
       </button>
