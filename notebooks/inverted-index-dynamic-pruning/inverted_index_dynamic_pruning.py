@@ -26,6 +26,8 @@ Run:  uv run --with numpy python notebooks/inverted-index-dynamic-pruning/invert
 """
 from __future__ import annotations
 
+import bisect
+import heapq
 import math
 import re
 from collections import Counter
@@ -86,6 +88,8 @@ def idf(term: str, index: InvertedIndex) -> float:
 
 
 def tf_factor(tf: float, dl: float, avgdl: float) -> float:
+    if avgdl == 0.0:                                  # empty corpus guard
+        return 0.0
     return (tf * (K1 + 1.0)) / (tf + K1 * (1.0 - B + B * dl / avgdl))
 
 
@@ -128,14 +132,14 @@ class _Heap:
         self.items: list[tuple[float, int]] = []   # (score, doc_id)
 
     def threshold(self) -> float:
-        return min(s for s, _ in self.items) if len(self.items) >= self.k else -math.inf
+        # heapq keeps the smallest at items[0]; that is the k-th best once full
+        return self.items[0][0] if len(self.items) >= self.k else -math.inf
 
     def offer(self, score: float, doc_id: int) -> None:
         if len(self.items) < self.k:
-            self.items.append((score, doc_id))
+            heapq.heappush(self.items, (score, doc_id))
         elif score > self.threshold():
-            worst = min(range(len(self.items)), key=lambda i: self.items[i][0])
-            self.items[worst] = (score, doc_id)
+            heapq.heappushpop(self.items, (score, doc_id))
 
     def topk(self) -> list[tuple[int, float]]:
         return [(d, s) for s, d in sorted(self.items, key=lambda kv: (-kv[0], kv[1]))]
@@ -172,21 +176,18 @@ def wand_topk(query: str, index: InvertedIndex, k: int) -> tuple[list[tuple[int,
         if pivot is None:
             break                                   # no remaining document can enter the top-k
         pivot_doc = cur_doc(pivot)
-        if cur_doc(active[0]) == pivot_doc:
-            # all cursors before the pivot are aligned at pivot_doc -> fully score it
-            score = 0.0
-            for t in active:
-                if cur[t] < len(index.postings[t]) and index.postings[t][cur[t]][0] == pivot_doc:
-                    score += contribution(t, pivot_doc, index.postings[t][cur[t]][1], index)
-                    cur[t] += 1
+        if cur_doc(active[0]) < pivot_doc:
+            # the smallest-id cursor lags the pivot -> skip it forward (binary search)
+            t = active[0]
+            cur[t] = bisect.bisect_left(index.postings[t], pivot_doc, lo=cur[t], key=lambda x: x[0])
+        else:
+            # active[0] == pivot_doc: every term aligned here contributes -> fully score it
+            present = [t for t in active if cur_doc(t) == pivot_doc]
+            score = sum(contribution(t, pivot_doc, index.postings[t][cur[t]][1], index) for t in present)
+            for t in present:
+                cur[t] += 1
             full_evals += 1
             heap.offer(score, pivot_doc)
-        else:
-            # advance the smallest-id cursor before the pivot up to pivot_doc (skip)
-            t = active[0]
-            p = index.postings[t]
-            while cur[t] < len(p) and p[cur[t]][0] < pivot_doc:
-                cur[t] += 1
     return heap.topk(), full_evals, monotone
 
 
@@ -225,11 +226,11 @@ def bmw_topk(query: str, index: InvertedIndex, k: int,
 
     def block_ub(t: str, doc: int) -> float:
         """Max contribution of t's first block whose last_doc >= doc (the block
-        that could contain doc); 0 if doc is past all of t's postings."""
-        for last_doc, max_c in blocks[t]:
-            if last_doc >= doc:
-                return max_c
-        return 0.0
+        that could contain doc); 0 if doc is past all of t's postings. Binary
+        search on the blocks' last-doc keys."""
+        blks = blocks[t]
+        i = bisect.bisect_left(blks, doc, key=lambda blk: blk[0])
+        return blks[i][1] if i < len(blks) else 0.0
 
     while True:
         active = sorted((t for t in qterms if cur[t] < len(index.postings[t])), key=cur_doc)
@@ -245,30 +246,24 @@ def bmw_topk(query: str, index: InvertedIndex, k: int,
         if pivot is None:
             break
         pivot_doc = cur_doc(pivot)
-        # block-max refinement: a tighter upper bound on pivot_doc's true score,
-        # summed over EVERY term whose cursor could reach pivot_doc (cur_doc <=
-        # pivot_doc) — including terms tied at pivot_doc past the pivot index.
-        present = [t for t in active if cur_doc(t) <= pivot_doc]
+        if cur_doc(active[0]) < pivot_doc:
+            # the smallest-id cursor lags the pivot -> skip it forward
+            t = active[0]
+            cur[t] = bisect.bisect_left(index.postings[t], pivot_doc, lo=cur[t], key=lambda x: x[0])
+            continue
+        # active[0] == pivot_doc: refine the upper bound with block maxima over the
+        # terms aligned here; if it cannot reach the threshold, skip the full scoring.
+        present = [t for t in active if cur_doc(t) == pivot_doc]
         refined = sum(block_ub(t, pivot_doc) for t in present)
         if refined < theta:
-            # pivot_doc cannot enter — skip the full evaluation, advance past it
             for t in present:
-                if cur_doc(t) == pivot_doc:
-                    cur[t] += 1
-            continue
-        if cur_doc(active[0]) == pivot_doc:
-            score = 0.0
-            for t in active:
-                if cur[t] < len(index.postings[t]) and index.postings[t][cur[t]][0] == pivot_doc:
-                    score += contribution(t, pivot_doc, index.postings[t][cur[t]][1], index)
-                    cur[t] += 1
-            full_evals += 1
-            heap.offer(score, pivot_doc)
-        else:
-            t = active[0]
-            p = index.postings[t]
-            while cur[t] < len(p) and p[cur[t]][0] < pivot_doc:
                 cur[t] += 1
+            continue
+        score = sum(contribution(t, pivot_doc, index.postings[t][cur[t]][1], index) for t in present)
+        for t in present:
+            cur[t] += 1
+        full_evals += 1
+        heap.offer(score, pivot_doc)
     return heap.topk(), full_evals
 
 

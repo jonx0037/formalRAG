@@ -80,21 +80,23 @@ function pruned(k: number, useBlocks: boolean, blockSize = 2): Result {
     for (const t of active) { cum += UB[t]; if (cum >= theta) { pivot = t; break; } }
     if (pivot === null) break;
     const pd = curDoc(pivot);
-    if (useBlocks) {
-      const present = active.filter((t) => curDoc(t) <= pd);
-      const refined = present.reduce((s, t) => s + blockUB(t, pd), 0);
-      if (refined < theta) { for (const t of present) if (curDoc(t) === pd) cur[t]++; continue; }
-    }
-    if (curDoc(active[0]) === pd) {
-      let score = 0;
-      for (const t of active) if (cur[t] < POSTINGS[t].length && POSTINGS[t][cur[t]].doc === pd) { score += POSTINGS[t][cur[t]].c; cur[t]++; }
-      fullEvals++; scored.add(pd);
-      if (heap.length < k) heap.push({ s: score, doc: pd });
-      else { const m = Math.min(...heap.map((h) => h.s)); if (score > m) { const wi = heap.reduce((mi, h, i, a) => (h.s < a[mi].s ? i : mi), 0); heap[wi] = { s: score, doc: pd }; } }
-    } else {
+    if (curDoc(active[0]) < pd) {
+      // the smallest-id cursor lags the pivot -> skip it forward, then re-pivot
       const t = active[0];
       while (cur[t] < POSTINGS[t].length && POSTINGS[t][cur[t]].doc < pd) cur[t]++;
+      continue;
     }
+    // active[0] === pd: the terms aligned here are the only contributors
+    const present = active.filter((t) => curDoc(t) === pd);
+    if (useBlocks) {
+      const refined = present.reduce((s, t) => s + blockUB(t, pd), 0);
+      if (refined < theta) { for (const t of present) cur[t]++; continue; }
+    }
+    let score = 0;
+    for (const t of present) { score += POSTINGS[t][cur[t]].c; cur[t]++; }
+    fullEvals++; scored.add(pd);
+    if (heap.length < k) heap.push({ s: score, doc: pd });
+    else { const m = Math.min(...heap.map((h) => h.s)); if (score > m) { const wi = heap.reduce((mi, h, i, a) => (h.s < a[mi].s ? i : mi), 0); heap[wi] = { s: score, doc: pd }; } }
   }
   const topk = heap.slice().sort((a, b) => b.s - a.s || a.doc - b.doc);
   return { topk, fullEvals, scored };
