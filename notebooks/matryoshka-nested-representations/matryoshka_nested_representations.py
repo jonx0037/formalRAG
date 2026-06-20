@@ -96,10 +96,12 @@ def random_rotation(d: int, seed: int = 0) -> np.ndarray:
 # --------------------------------------------------------------------------- #
 
 def prefix_recon_error(X: np.ndarray, V: np.ndarray, m: int) -> float:
-    """Squared Frobenius reconstruction error of the rank-m prefix projector V[:,:m]."""
+    """Squared Frobenius reconstruction error of the rank-m prefix projector V[:,:m].
+    Reassociate as (Xc @ Vm) @ Vm.T rather than forming the D x D projector Vm @ Vm.T:
+    O(n D m) and no D x D allocation (a ~16x saving at D=1536, m=96)."""
     Xc = X - X.mean(axis=0)
-    Pm = V[:, :m] @ V[:, :m].T
-    return float(np.sum((Xc - Xc @ Pm) ** 2))
+    Vm = V[:, :m]
+    return float(np.sum((Xc - (Xc @ Vm) @ Vm.T) ** 2))
 
 
 def eckart_young_rankm(X: np.ndarray, m: int) -> float:
