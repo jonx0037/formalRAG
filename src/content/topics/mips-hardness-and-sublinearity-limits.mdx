@@ -1,0 +1,303 @@
+---
+title: "MIPS Hardness and the Limits of Exact Nearest-Neighbor Search"
+subtitle: "Why maximum inner-product search is not a metric problem, why exact high-dimensional search has no truly-sublinear algorithm, and why we approximate"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "the-retrieval-problem"
+tags:
+  - "maximum-inner-product-search"
+  - "mips"
+  - "nearest-neighbor-search"
+  - "curse-of-dimensionality"
+  - "fine-grained-complexity"
+  - "strong-exponential-time-hypothesis"
+  - "orthogonal-vectors"
+  - "asymmetric-lsh"
+domain: "retrieval-foundations"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "audio"
+rigorFlag: "The headline that exact high-dimensional search is hopeless is conditional, and the conditionality matters. The n^(2-o(1)) lower bound for exact closest/farthest pair rests on the Strong Exponential Time Hypothesis, via the Orthogonal Vectors problem (Williams 2005; Alman-Williams 2015; Rubinstein 2018 for the approximate case). SETH is a hypothesis, not a theorem, so this is 'no known truly-subquadratic exact algorithm,' not 'proven impossible.' We prove the load-bearing OV-to-farthest-pair separation gap in full and verify it in the harness, but cite the SAT-to-OV reduction and the SETH conditionality rather than reprove them. Second, the asymmetric lifting transforms preserve the exact argmax — which we prove and assert — but they do not preserve approximation ratios: a c-approximate Euclidean neighbor in the lifted space is not a c-approximate inner product, a subtlety the harness demonstrates with an explicit counterexample. Third, the whole hardness story is for the d = omega(log n) regime; in genuinely low intrinsic dimension exact and approximate search are tractable — the escape hatch the high-dimensional-geometry and Johnson-Lindenstrauss topics develop. Finally, the trade-off triangle is a faithful summary of the landscape, not a single proven theorem, and the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in, not a trained encoder; the cost figures are measured on that synthetic cloud."
+videoId: null
+notebookPath: "notebooks/mips-hardness-and-sublinearity-limits/01_mips_hardness_and_sublinearity_limits.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/mips-hardness-and-sublinearity-limits.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 38
+abstract: "Retrieval ranks documents by maximum inner product: return the document maximizing <q, d>. We first show why this is not the metric nearest-neighbor problem it is often mistaken for — the inner product has no triangle inequality, and a vector need not be its own best match — so the space-partitioning intuition that organizes metric search does not transfer. We then give the asymmetric lifting transforms (Bachrach et al.; Shrivastava-Li; Neyshabur-Srebro) that turn MIPS into Euclidean nearest-neighbor search on a lifted sphere, prove the transform preserves the argmax exactly, and flag honestly that it does not preserve approximation ratios. With the problems reduced to one another, we reach the hardness: exact high-dimensional nearest-neighbor and closest-pair search have no known algorithm that is simultaneously exact, truly sublinear per query, and near-linear in space. We present the Orthogonal Vectors problem and its reduction to closest/farthest pair, state the Strong Exponential Time Hypothesis precisely, and derive the conditional n^(2-o(1)) lower bound — emphasizing that this is conditional hardness, not a proven impossibility. The payoff is the trade-off triangle that motivates the rest of the curriculum: in high ambient dimension you cannot have exactness, sublinear time, and near-linear space at once, so you relax one — give up exactness for approximate indexes, or exploit the low intrinsic dimension that the concentration topic showed real embeddings actually have. An interactive laboratory and a tested notebook accompany the derivation, with a finance example on why exact MIPS over a multimodal corpus is hopeless at query time."
+connections:
+  - topic: "high-dimensional-geometry"
+    relationship: "the curse of dimensionality proved there — vanishing relative contrast as the ambient dimension grows — is the reason space-partitioning pruning collapses and exact search degenerates to a linear scan; this topic turns that geometric fact into a complexity-theoretic lower bound and shows the intrinsic-dimension escape is the only way out"
+  - topic: "johnson-lindenstrauss"
+    relationship: "random projection buys back dimension at a controlled distance distortion, mapping the d = omega(log n) hard regime toward the d = O(log n) tractable one; it is the data-oblivious lever this topic identifies for sidestepping the hardness, at the recall price that topic measures"
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "the lifting transform that reduces MIPS to nearest-neighbor search places all documents on a sphere of equal norm, the normalized hypersphere geometry developed there, which is exactly where max-cosine and max-inner-product coincide"
+references:
+  - type: "paper"
+    title: "Approximate Nearest Neighbors: Towards Removing the Curse of Dimensionality"
+    authors: "Indyk & Motwani"
+    year: 1998
+    url: "https://doi.org/10.1145/276698.276876"
+    note: "Founds approximate NN / LSH as the response to the curse — the relaxation this topic motivates"
+  - type: "paper"
+    title: "Speeding Up the Xbox Recommender System Using a Euclidean Transformation for Inner-Product Spaces"
+    authors: "Bachrach, Finkelstein, Gilad-Bachrach, Katzir, Koenigstein, Nice & Paquet"
+    year: 2014
+    url: "https://doi.org/10.1145/2645710.2645741"
+    note: "The norm-equalizing lifting that turns MIPS into Euclidean NN on a sphere"
+  - type: "paper"
+    title: "Asymmetric LSH (ALSH) for Sublinear Time Maximum Inner Product Search (MIPS)"
+    authors: "Shrivastava & Li"
+    year: 2014
+    url: "https://proceedings.neurips.cc/paper/2014/hash/310ce61c90f3a46e340ee8257bc70e93-Abstract.html"
+    note: "Asymmetric hashing for MIPS; the transform whose approximation-ratio distortion this topic flags"
+  - type: "paper"
+    title: "On Symmetric and Asymmetric LSHs for Inner Product Search"
+    authors: "Neyshabur & Srebro"
+    year: 2015
+    url: "https://proceedings.mlr.press/v37/neyshabur15.html"
+    note: "Clarifies when a symmetric LSH suffices and corrects the asymmetric-transform analysis"
+  - type: "paper"
+    title: "A New Algorithm for Optimal 2-Constraint Satisfaction and Its Implications"
+    authors: "Williams"
+    year: 2005
+    url: "https://doi.org/10.1016/j.tcs.2005.09.023"
+    note: "Introduces the Orthogonal Vectors problem and its SETH-conditional n^(2-o(1)) hardness"
+  - type: "paper"
+    title: "Probabilistic Polynomials and Hamming Nearest Neighbors"
+    authors: "Alman & Williams"
+    year: 2015
+    url: "https://doi.org/10.1109/FOCS.2015.18"
+    note: "Fine-grained hardness of batch / Hamming nearest neighbor in d = omega(log n) dimensions"
+  - type: "paper"
+    title: "Hardness of Approximate Nearest Neighbor Search"
+    authors: "Rubinstein"
+    year: 2018
+    url: "https://doi.org/10.1145/3188745.3188916"
+    note: "Extends SETH-conditional hardness to the approximate regime — even (1+eps)-NN is hard"
+  - type: "course"
+    title: "Nearest Neighbors in High-Dimensional Spaces (Handbook of Discrete and Computational Geometry, ch. 43)"
+    authors: "Andoni & Indyk"
+    year: 2017
+    url: "https://doi.org/10.1201/9781315119601"
+    note: "Survey of the upper-bound side: LSH, the rho exponent, and the exactness / space / time landscape"
+formalstatisticsPrereqs:
+  - topic: "discrete-distributions"
+    site: "formalstatistics"
+    relationship: "the Orthogonal Vectors instances are 0/1 Boolean vectors and the reduction's separation argument counts the coordinates where both vectors are 1 — Bernoulli indicators and their sums, the discrete machinery developed there, are exactly what make the orthogonal-versus-non-orthogonal distance gap a clean counting statement"
+formalmlConnections:
+  - topic: "expander-graphs"
+    site: "formalml"
+    relationship: "the trade-off this topic forces — give up exactness for a navigable structure — is realized downstream by small-world and expander-like graphs whose O(log n) mixing and strong connectivity are exactly the spectral-gap properties developed there, the graph-theoretic escape hatch from the linear-scan lower bound"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import MIPSHardnessLaboratory from '../../components/viz/MIPSHardnessLaboratory.tsx';
+
+## Overview & motivation
+
+[The Retrieval Problem](/topics/the-retrieval-problem) left us ranking documents by a similarity score, and for dense retrieval that score is the inner product: return the document $d$ that maximizes $\langle q, d\rangle$. Computing that maximum exactly is trivial — scan the corpus, take the largest. The trouble is the scan. A single query costs $O(nd)$ time over $n$ documents in $d$ dimensions, and a production corpus has $n$ in the millions and $d$ in the thousands. The entire downstream half of this curriculum — inverted indexes, IVF, LSH, HNSW, product quantization — exists to avoid that scan. This topic is the honest accounting of *why* the scan is hard to avoid, and it has a sharper answer than "the constant is large."
+
+We will make three claims, in increasing order of depth. First, **maximum inner-product search is not metric nearest-neighbor search**, so the geometric intuition that organizes fast metric indexes does not transfer to it directly. Second, MIPS *can* be reduced to Euclidean nearest-neighbor search by a clever lifting, but the reduction **preserves the exact answer while distorting approximation ratios** — a celebrated and subtle fact. Third, even Euclidean nearest neighbor has **no known truly-sublinear exact algorithm in high dimension**, and under a standard complexity hypothesis it cannot have one: you cannot be exact, sublinear in query time, and near-linear in space all at once. That impossibility is the hinge the rest of the site turns on. Before the complexity theory, drag the dimension slider and watch exact search degenerate into a scan:
+
+<MIPSHardnessLaboratory client:visible />
+
+In the pruning panel, a metric index's ability to skip candidates evaporates as the dimension grows — by $d = 24$ it must inspect essentially every point. In the lifting panel, the transform that reduces MIPS to nearest-neighbor search keeps the exact winner but garbles the runner-up's margin. Both are made precise below.
+
+### What we cover
+
+1. Why MIPS is not a metric problem, and why self-similarity can fail.
+2. The asymmetric lifting transform, and the exact-argmax-but-distorted-ratio subtlety.
+3. The hardness core: Orthogonal Vectors, SETH, and the $n^{2-o(1)}$ lower bound.
+4. The trade-off triangle: exactness, sublinear time, near-linear space — pick two.
+5. The empirical curse: how distance concentration collapses pruning in practice.
+6. A finance case study, the honest caveats, and the tested implementation.
+
+---
+
+## MIPS is not a metric problem
+
+It is tempting to treat $\operatorname{arg\,max}_d \langle q, d\rangle$ as a nearest-neighbor query in disguise and reach for a metric tree. The temptation is a trap, because the inner product fails the structural property those trees rely on.
+
+<TheoremBlock type="definition" number={1} title="Maximum inner-product search (MIPS)">
+
+Given a corpus $C = \{p_1, \dots, p_n\} \subset \mathbb{R}^d$ and a query $q$, **MIPS** returns
+$$
+p^\star = \operatorname*{arg\,max}_{p \in C}\ \langle q, p\rangle.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proposition" number={1} title="MIPS is not metric nearest-neighbor search">
+
+The inner product induces no metric whose nearest neighbor is the MIPS solution. In particular, **self-similarity fails**: a point need not be its own best match. For $q = (1, 0)$ and the corpus $\{q, 2q\}$, the MIPS winner for query $q$ is $2q$, not $q$, since $\langle q, 2q\rangle = 2 > 1 = \langle q, q\rangle$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+[The Retrieval Problem](/topics/the-retrieval-problem) established that the dot product is not a metric — it lacks identity of indiscernibles and ranks in the opposite sense. The concrete consequence here is self-similarity: under a genuine metric $\rho$, a point $x$ is its own nearest neighbor because $\rho(x, x) = 0 \le \rho(x, y)$. Under MIPS the analogue would be $\langle q, q\rangle \ge \langle q, p\rangle$ for all $p$, and the corpus $\{q, 2q\}$ refutes it: $\langle q, 2q\rangle = 2\lVert q\rVert^2 > \lVert q\rVert^2 = \langle q, q\rangle$. A metric tree prunes by assuming a query is closest to points near itself; MIPS rewards *long* vectors in the query's direction, which may lie far from $q$ in any metric, so that pruning logic is simply unsound. $\blacksquare$
+
+</TheoremBlock>
+
+The harness verifies the failure directly, and it is the reason we cannot just hand MIPS to a $k$-d tree and declare victory. We need a reduction that repairs the missing structure.
+
+---
+
+## The lifting transform: MIPS becomes Euclidean nearest neighbor
+
+The repair is a change of coordinates that equalizes norms. If every database vector had the *same* length, then by the [cosine-distance identity](/topics/the-retrieval-problem) the inner product and the Euclidean distance would rank the corpus identically — and Euclidean distance *is* a metric. We cannot change the data, but we can append coordinates to fake equal norms.
+
+<TheoremBlock type="definition" number={2} title="The asymmetric lifting transform">
+
+Let $M = \max_i \lVert p_i\rVert$. Map each database vector $p \in \mathbb{R}^d$ and the query $q$ into $\mathbb{R}^{d+1}$ by
+$$
+\tilde p = \bigl(\,p,\ \sqrt{M^2 - \lVert p\rVert^2}\,\bigr), \qquad \tilde q = (\,q,\ 0\,).
+$$
+Every lifted database vector has norm exactly $M$, and the map is **asymmetric** — the database and the query are transformed by different rules (Bachrach et al., 2014; Shrivastava and Li, 2014).
+
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={1} title="The lift preserves the MIPS argmax">
+
+For all $p$ in the corpus, $\lVert \tilde q - \tilde p\rVert^2 = \lVert q\rVert^2 + M^2 - 2\langle q, p\rangle$. Consequently the lifted Euclidean nearest neighbor is the exact MIPS winner:
+$$
+\operatorname*{arg\,min}_{p}\ \lVert \tilde q - \tilde p\rVert = \operatorname*{arg\,max}_{p}\ \langle q, p\rangle.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Expand the lifted squared distance, splitting the first $d$ coordinates from the appended one:
+$$
+\lVert \tilde q - \tilde p\rVert^2 = \lVert q - p\rVert^2 + \Bigl(0 - \sqrt{M^2 - \lVert p\rVert^2}\Bigr)^2 = \lVert q - p\rVert^2 + M^2 - \lVert p\rVert^2.
+$$
+Apply the cosine-distance identity $\lVert q - p\rVert^2 = \lVert q\rVert^2 + \lVert p\rVert^2 - 2\langle q, p\rangle$ and the $\lVert p\rVert^2$ terms cancel, leaving $\lVert q\rVert^2 + M^2 - 2\langle q, p\rangle$. The terms $\lVert q\rVert^2$ and $M^2$ are constant across the corpus, so the only document-dependent term is $-2\langle q, p\rangle$: minimizing the lifted distance is maximizing the inner product. By the rank-invariance of monotone transforms, the two arg-operators select the same $p$. $\blacksquare$
+
+</TheoremBlock>
+
+So MIPS reduces to Euclidean nearest-neighbor search, and any exact metric index can now be pointed at the lifted data. But there is a catch that took the literature a few years to state cleanly, and it is exactly the kind of honest caveat this site exists to surface.
+
+<RigorFlag>
+
+**The lift preserves the exact answer but not approximation ratios.** Approximate nearest-neighbor indexes return a point within a factor $c$ of the optimum, and the additive constant $\lVert q\rVert^2 + M^2$ in Theorem 1 does not survive a multiplicative ratio. A point that is a $c$-approximate Euclidean neighbor in the lifted space is generally *not* a $c$-approximate maximizer of the inner product. The companion harness exhibits this: with $q = (1, 0)$, a winner $A = (0.90, 0.20)$, and a runner-up $B = (0.85, 0)$, the runner-up $B$ is within a factor $1.06$ on the inner product but a factor $1.73$ on lifted distance — it would pass a $c = 1.3$ tolerance as a MIPS solution yet fail the same tolerance as a Euclidean neighbor. This is why Neyshabur and Srebro (2015) revisited the asymmetric-LSH analysis: the reduction is exact for the *top-1* but must be handled with care for *approximate* MIPS.
+
+</RigorFlag>
+
+---
+
+## The hardness core: Orthogonal Vectors and SETH
+
+The lift buys us a metric, but it does not buy us speed: Euclidean nearest neighbor is itself hard in high dimension. The modern statement of that hardness comes from fine-grained complexity, and it routes through one deceptively simple problem.
+
+<TheoremBlock type="definition" number={3} title="Orthogonal Vectors (OV)">
+
+Given two sets $A, B$ of $n$ Boolean vectors in $\{0, 1\}^d$, decide whether there exist $a \in A$ and $b \in B$ with $\langle a, b\rangle = 0$ — that is, with disjoint supports.
+
+</TheoremBlock>
+
+The brute-force algorithm checks all $n^2$ pairs in $O(n^2 d)$ time. No algorithm is known that is truly subquadratic — $O(n^{2-\varepsilon})$ for a constant $\varepsilon > 0$ — when $d$ grows even mildly with $n$, and the reason is a hypothesis about satisfiability.
+
+<TheoremBlock type="definition" number={4} title="The Strong Exponential Time Hypothesis (SETH)">
+
+For every $\varepsilon > 0$ there is a $k$ such that $k$-SAT on $n$ variables cannot be solved in $O\!\left(2^{(1-\varepsilon)n}\right)$ time. Informally: there is no algorithm for general CNF-SAT essentially faster than trying all $2^n$ assignments.
+
+</TheoremBlock>
+
+SETH is a *conjecture*, not a theorem — but a load-bearing one, and a large web of conditional lower bounds hangs from it.
+
+<TheoremBlock type="theorem" number={2} title="OV is SETH-hard (Williams, 2005)">
+
+Under SETH, for every $\varepsilon > 0$, Orthogonal Vectors on $n$ vectors in dimension $d = \omega(\log n)$ cannot be solved in $O(n^{2-\varepsilon})$ time. We cite this reduction (a split-and-list argument from CNF-SAT) rather than reprove it.
+
+</TheoremBlock>
+
+The bridge from OV to *geometry* is the part we can prove outright, and it is short. The trick is to fix the number of ones so that orthogonality becomes a statement about distance.
+
+<TheoremBlock type="algorithm" number={1} title="OV reduces to the farthest pair">
+
+Restrict to vectors of fixed Hamming weight $w$ (exactly $w$ ones). For Boolean $a, b$ of weight $w$, the cosine-distance identity gives
+$$
+\lVert a - b\rVert^2 = \lVert a\rVert^2 + \lVert b\rVert^2 - 2\langle a, b\rangle = 2w - 2\langle a, b\rangle.
+$$
+Hence $\langle a, b\rangle = 0$ if and only if $\lVert a - b\rVert^2 = 2w$, its maximum, while any non-orthogonal pair has $\langle a, b\rangle \ge 1$ and therefore $\lVert a - b\rVert^2 \le 2w - 2$. Orthogonal and non-orthogonal pairs are separated by a gap of $2$ in squared distance, so an algorithm that finds the farthest pair *exactly* decides Orthogonal Vectors.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The displayed identity is the [cosine-distance identity](/topics/the-retrieval-problem) specialized to $0/1$ vectors, where $\lVert a\rVert^2$ equals the number of ones, here $w$. Since $\langle a, b\rangle$ is a non-negative integer (a count of shared ones), it is either $0$ — giving squared distance exactly $2w$ — or at least $1$ — giving squared distance at most $2w - 2$. The two cases are disjoint and separated by $2$, so the maximum pairwise squared distance equals $2w$ precisely when an orthogonal pair exists. A subquadratic exact farthest-pair algorithm would thus solve OV in subquadratic time, contradicting Theorem 2 under SETH. The companion harness builds an explicit weight-$2$ instance in $\{0,1\}^6$ and verifies the gap: the planted orthogonal pair sits at squared distance $4 = 2w$, every non-orthogonal cross pair at $2 = 2w - 2$. $\blacksquare$
+
+</TheoremBlock>
+
+A symmetric construction reduces OV to the *closest* pair, and through it to exact nearest-neighbor search, so the conclusion stands for the problem we actually care about: under SETH, exact nearest-neighbor and closest-pair search on $n$ points in dimension $d = \omega(\log n)$ require $n^{2-o(1)}$ time (Alman and Williams, 2015). There is no truly-subquadratic exact algorithm.
+
+<TheoremBlock type="remark" title="The approximate regime is hard too">
+
+One might hope that *approximation* dissolves the hardness. It does not, entirely: Rubinstein (2018) showed that under SETH, even $(1+\varepsilon)$-approximate nearest neighbor inherits conditional hardness for small enough $\varepsilon$. So approximation alone is not a free pass; the genuine escape, developed below and in the [concentration topic](/topics/high-dimensional-geometry), is that real data has low *intrinsic* dimension.
+
+</TheoremBlock>
+
+---
+
+## The trade-off triangle
+
+Collecting the threads gives the organizing principle for everything downstream. It is best stated as an impossibility, and we state it honestly as a summary of the landscape rather than a single theorem.
+
+<TheoremBlock type="proposition" number={2} title="Pick at most two (informal)">
+
+For exact nearest-neighbor or maximum-inner-product search in high ambient dimension ($d = \omega(\log n)$), no known data structure simultaneously achieves all three of: **(i) exactness**, **(ii) truly sublinear query time**, and **(iii) near-linear space**. Brute force gives exactness and linear space but linear query time; exhaustive precomputation gives exactness and fast queries but superpolynomial space; and the rest of the curriculum gives fast queries and linear space by relaxing exactness.
+
+</TheoremBlock>
+
+Each vertex names a chapter of what follows. Relax exactness and you arrive at approximate indexes — [LSH](/topics/the-retrieval-problem)'s collision probabilities, IVF's Voronoi cells, HNSW's navigable graphs. Relax the dimension — exploit that real embeddings occupy far fewer effective dimensions than the ambient space — and the hardness simply does not bite, because the $d = \omega(\log n)$ premise fails. The second escape is the one the [embedding-geometry track](/topics/high-dimensional-geometry) already built, and it is why retrieval works at all.
+
+---
+
+## The empirical curse: pruning collapses
+
+The complexity theory has a concrete, measurable shadow. Metric indexes prune candidates with the triangle inequality: given a pivot $p$, a candidate $x$ can be skipped for a query $q$ whenever $\lvert D(q, p) - D(p, x)\rvert$ exceeds the current best radius $r$, because that quantity is a valid lower bound on $D(q, x)$. As the dimension grows, [distance concentration](/topics/high-dimensional-geometry) drives $D(q, p)$ and $D(p, x)$ toward a common value, the lower bound collapses toward zero, and almost nothing can be pruned.
+
+The companion code measures exactly this. For Gaussian data with a handful of pivots, the fraction of candidates that *cannot* be pruned climbs from $0.1\%$ at $d = 2$ to $48\%$ at $d = 8$ to over $99\%$ by $d = 24$ — the dimension slider in the laboratory above is reading this grid. By the time the dimension reaches the dozens, a metric index inspects essentially the whole corpus, which is the curse of dimensionality wearing its algorithmic face: not "distances are meaningless," but "the structure a fast index needs has evaporated." This is the same phenomenon the [concentration topic](/topics/high-dimensional-geometry) proves as the vanishing of relative contrast, seen now from the indexing side.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf", "audio"]}>
+
+The production financial-RAG system behind the [BM25](/topics/bm25-binary-independence-model) and [concentration](/topics/high-dimensional-geometry) case studies retrieves over millions of multimodal embeddings: 10-K and 10-Q filing passages (text and PDF), earnings-call segments (derived from audio), and chart captions, all mapped into a shared $1536$-dimensional space. Answering a query by exact MIPS means scoring the query against every stored vector — an $O(nd)$ scan.
+
+The companion code makes the cost concrete on a synthetic stand-in for that corpus. Each query is $2nd$ multiply-adds; at $n = 10{,}000$ vectors in $d = 1536$ that is about thirty million operations per query, on the order of a millisecond in the harness, and the measured time grows *linearly* in $n$ exactly as the operation count predicts. Extrapolate to a realistic corpus of ten million vectors and a single exact query is on the order of a second of pure arithmetic — before memory bandwidth, before concurrency, before the dozens of queries per second a production system must serve. Exact MIPS at that scale is not slow, it is infeasible, and Proposition 2 says no exact index rescues it in this dimension. Everything the rest of the curriculum builds — quantization to shrink the vectors, IVF and graphs to skip most of them — is a response to this single accounting.
+
+</FinanceCaseStudy>
+
+A candid note on the companion code: the embeddings are a synthetic low-rank-plus-noise construction with intrinsic dimension far below the ambient $1536$, chosen so the notebook is deterministic and CPU-only. The timing figures are measured on that synthetic cloud and on one machine, so treat them as orders of magnitude, not benchmarks. The structural claim — that exact MIPS is $\Theta(nd)$ per query and grows linearly in the corpus — is exact and machine-independent.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Four qualifications keep the hardness honest:
+
+1. **"No known" is not "proven impossible."** The $n^{2-o(1)}$ lower bound (Theorem 2, Algorithm 1) is conditional on SETH, which is a hypothesis. A truly-subquadratic exact algorithm is not ruled out by a theorem — it would instead refute SETH and collapse a large structure of conditional results.
+2. **Argmax-preservation is not ratio-preservation.** The lifting transform (Theorem 1) is exact for the top-1 but distorts approximation ratios (the rigor flag above, with the explicit $1.06$-versus-$1.73$ counterexample). Asymmetric LSH for *approximate* MIPS must be analyzed with that distortion in mind.
+3. **The hardness is for $d = \omega(\log n)$.** In genuinely low dimension — or low *intrinsic* dimension — exact and approximate search are tractable. This is not a loophole but the main escape, the one the [high-dimensional-geometry](/topics/high-dimensional-geometry) and [Johnson–Lindenstrauss](/topics/johnson-lindenstrauss) topics develop.
+4. **The trade-off triangle is a summary, not a single theorem,** and the finance figures are measured on a synthetic stand-in, not a trained encoder on real hardware.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) is self-contained, CPU-only, and runs in a couple of seconds on `numpy`. Its verification harness makes each claim executable: brute-force MIPS agrees with an explicit loop, and a query's own copy loses to a longer aligned vector, so MIPS is not self-similar (Proposition 1); the lifting transform's lifted nearest neighbor equals the exact MIPS winner on two hundred random queries (Theorem 1) while the explicit $A$–$B$ counterexample straddles the $c = 1.3$ tolerance, $1.0588$ on the inner product against $1.7321$ on lifted distance (the ratio-distortion rigor flag); the weight-$2$ Orthogonal-Vectors instance separates the orthogonal pair at squared distance $4 = 2w$ from every non-orthogonal pair at $2 = 2w - 2$ (Algorithm 1); the triangle-inequality pruning fraction climbs monotonically from $0.001$ at $d = 2$ to $1.000$ by $d = 64$ (the empirical curse, which drives the laboratory's slider); and the brute-force scan is exactly $2nd$ multiply-adds, linear in the corpus size (the finance case). The three pillars — the proofs above, the laboratory, and the tested code — agree by construction.

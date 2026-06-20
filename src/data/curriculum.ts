@@ -13,9 +13,7 @@ export const tracks = [
     layer: 'Foundations',
     description:
       'Retrieval as ranking by a relevance functional; the metric and inner-product structure of similarity; and the complexity-theoretic limits of exact search. The root of the dependency graph.',
-    planned: [
-      'MIPS Hardness and the Limits of Exact Nearest-Neighbor Search',
-    ],
+    planned: [],
     dependsOnFormalML: false,
   },
   {

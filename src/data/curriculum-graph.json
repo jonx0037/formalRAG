@@ -9,7 +9,7 @@
     {
       "id": "mips-hardness-and-sublinearity-limits",
       "label": "MIPS Hardness and the Limits of Exact Nearest-Neighbor Search",
-      "status": "planned",
+      "status": "published",
       "domain": "retrieval-foundations"
     },
     {
@@ -304,6 +304,10 @@
   "edges": [
     {
       "source": "the-retrieval-problem",
+      "target": "mips-hardness-and-sublinearity-limits"
+    },
+    {
+      "source": "high-dimensional-geometry",
       "target": "mips-hardness-and-sublinearity-limits"
     },
     {
