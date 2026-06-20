@@ -35,9 +35,9 @@ def euclidean(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
-    """Cosine similarity <a, b> / (||a|| ||b||); guarded at the zero vector."""
+    """Cosine similarity <a, b> / (||a|| ||b||); guarded against a (near-)zero norm."""
     na, nb = np.linalg.norm(a), np.linalg.norm(b)
-    if na == 0.0 or nb == 0.0:
+    if na < 1e-12 or nb < 1e-12:
         return 0.0
     return float(np.dot(a, b) / (na * nb))
 

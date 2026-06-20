@@ -38,7 +38,7 @@ type Score = 'euclidean' | 'dot' | 'cosine';
 const dot = (a: Vec, b: Vec) => a[0] * b[0] + a[1] * b[1];
 const norm = (a: Vec) => Math.hypot(a[0], a[1]);
 const euclid = (a: Vec, b: Vec) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-const cosine = (a: Vec, b: Vec) => (norm(a) === 0 || norm(b) === 0 ? 0 : dot(a, b) / (norm(a) * norm(b)));
+const cosine = (a: Vec, b: Vec) => (norm(a) < 1e-12 || norm(b) < 1e-12 ? 0 : dot(a, b) / (norm(a) * norm(b)));
 const unit = (a: Vec): Vec => { const n = norm(a); return n === 0 ? a : [a[0] / n, a[1] / n]; };
 const scale = (a: Vec, c: number): Vec => [a[0] * c, a[1] * c];
 
@@ -70,7 +70,7 @@ export default function SimilarityGeometryLaboratory() {
     })),
     [c, normalized],
   );
-  const q: Vec = normalized ? unit(Q) : Q;
+  const q: Vec = useMemo(() => (normalized ? unit(Q) : Q), [normalized]);
   const star = docs.find((d) => d.isStar)!;
 
   // Ranking under the active score (descending for similarities, ascending for distance).
