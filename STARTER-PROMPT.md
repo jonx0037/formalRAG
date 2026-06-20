@@ -88,6 +88,14 @@ source of truth that the later pillars are checked against.
     uv run --with <deps> python notebooks/<slug>/<slug_underscored>.py
     uv run --with <deps> --with jupyter jupyter execute notebooks/<slug>/01_<slug_underscored>.ipynb
     ```
+- **Two numerical traps that bit this build:** (1) Monte-Carlo averaging loops must draw every sample
+  from ONE `np.random.default_rng()` stream (or `SeedSequence(base).spawn(N)`) — per-seed
+  `default_rng(s)` over consecutive `s` correlates the generators' opening draws and inflates the
+  sampled variance, *worse as `d` grows* (it broke a χ² variance check and a dimension-independence
+  assert); reserve per-seed construction for the single deterministic matrices the viz mirrors.
+  (2) A synthetic cloud whose full-width `d`-dim PCA/nested basis is truncated at prefixes up to `d`
+  needs `n > d`, else `np.linalg.svd` yields only `min(n,d)` components and large granularities
+  degrade silently (matryoshka's finance cloud uses `n=2000 > d=1536`).
 
 ### A2. Editorial voice (non-negotiable)
 
@@ -128,6 +136,10 @@ calculus/statistics foundations — the inverse of the sibling sites. Each entry
 
 **Verify the target slug exists on the sibling before citing it — do not invent.** (CLAUDE.md flags
 that `learning-theory` is *not* a formalML slug; use `vc-dimension` / `generalization-bounds`.)
+Fast check: `ls ../<sibling>/src/content/topics/` (the three siblings are adjacent on disk — no
+`FORMAL_*_PATH` needed) and `grep` the target MDX so the `relationship` prose is honest (e.g. that
+formalStatistics `continuous-distributions` really covers $\chi^2$, formalCalculus
+`probability-and-union-bound` really is Boole's inequality).
 Reverse links from the siblings back into formalRAG are added per-sibling, via a worktree off that
 sibling's `origin/main`, as the linked topics ship.
 
