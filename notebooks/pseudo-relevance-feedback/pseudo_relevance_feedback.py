@@ -103,13 +103,17 @@ class Index:
         return self.cf[t] / self.coll_len
 
     def doc_model(self, d: str, mu: float = MU) -> dict[str, float]:
-        c = Counter(self.toks[d]); dl = self.doc_len(d)
-        return {t: (c.get(t, 0) + mu * self.p_collection(t)) / (dl + mu) for t in self.vocab}
+        c = Counter(self.toks[d]); denom = self.doc_len(d) + mu
+        if denom == 0.0:                                  # empty document and mu=0
+            return {t: 0.0 for t in self.vocab}
+        return {t: (c.get(t, 0) + mu * self.p_collection(t)) / denom for t in self.vocab}
 
     def p_query_given_doc(self, query: str, d: str, mu: float = MU) -> float:
-        c = Counter(self.toks[d]); dl = self.doc_len(d); lp = 0.0
+        c = Counter(self.toks[d]); denom = self.doc_len(d) + mu; lp = 0.0
+        if denom == 0.0:
+            return 0.0
         for t in tokenize(query):
-            p = (c.get(t, 0) + mu * self.p_collection(t)) / (dl + mu)
+            p = (c.get(t, 0) + mu * self.p_collection(t)) / denom
             lp += math.log(p) if p > 0 else -math.inf
         return math.exp(lp)
 
@@ -136,7 +140,9 @@ def rm1(feedback: list[str], index: Index, mu: float = MU) -> dict[str, float]:
     """P(w|R) = sum_d P(w|d) P(d|q), with P(d|q) proportional to the query
     likelihood P(q|d) over the feedback documents (uniform document prior)."""
     pq = {d: index.p_query_given_doc(_QUERY, d, mu) for d in feedback}
-    z = sum(pq.values()) or 1.0
+    z = sum(pq.values())
+    if z == 0.0:                                          # no feedback doc explains the query
+        return {t: 1.0 / len(index.vocab) if index.vocab else 0.0 for t in index.vocab}
     return {t: sum(index.doc_model(d, mu)[t] * pq[d] / z for d in feedback) for t in index.vocab}
 
 
@@ -144,7 +150,7 @@ def rm3_model(feedback: list[str], index: Index, alpha: float = ALPHA,
               n_terms: int = N_TERMS, mu: float = MU) -> dict[str, float]:
     """RM3 = (1-alpha) * original query model + alpha * (top-n_terms of RM1)."""
     qc = Counter(tokenize(_QUERY)); qlen = sum(qc.values())
-    qmodel = {t: qc.get(t, 0) / qlen for t in index.vocab}
+    qmodel = {t: (qc.get(t, 0) / qlen if qlen > 0 else 0.0) for t in index.vocab}
     if not feedback:
         return qmodel
     pw = rm1(feedback, index, mu)
@@ -191,9 +197,9 @@ def _cos(a: np.ndarray, b: np.ndarray) -> float:
 def rocchio_query(n_feedback: int, index: Index, a: float = 1.0, b: float = 0.75) -> np.ndarray:
     """q' = a*q + b * centroid(top-n_feedback documents).  (gamma = 0: PRF.)"""
     q = query_vector(index)
-    if n_feedback == 0:
-        return q
     fb = bm25_rank(_QUERY, index)[:n_feedback]
+    if not fb:                                            # no feedback (or empty index)
+        return a * q
     centroid = np.mean([tfidf_vector(d, index) for d in fb], axis=0)
     return a * q + b * centroid
 

@@ -47,7 +47,6 @@ export default function QueryExpansionFeedbackLab() {
   const [nfb, setNfb] = useState(2);
   const s = TABLE[nfb];
   const maxW = Math.max(0.001, ...s.terms.map((x) => x.w));
-  const peak = Math.max(...TABLE.map((x) => x.recall));
 
   return (
     <div style={{ border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', margin: '2rem 0' }}>
