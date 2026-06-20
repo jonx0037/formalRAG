@@ -1,26 +1,354 @@
 ---
 title: "Query-Likelihood Language Models and Smoothing"
-status: "draft"
+subtitle: "Ranking by the probability a document's language model generates the query — and why smoothing is not optional but the whole game"
+status: "published"
 difficulty: "intermediate"
+prerequisites:
+  - "the-retrieval-problem"
+  - "vector-space-model-tfidf"
 tags:
   - "language-models"
+  - "query-likelihood"
   - "smoothing"
+  - "dirichlet"
   - "kl-divergence"
+  - "probabilistic-ir"
 domain: "probabilistic-ir"
-financeCaseStudy: false
-abstract: "Ranking documents by the probability their language model generates the query; Jelinek-Mercer and Dirichlet smoothing, and the KL-divergence retrieval view."
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "audio"
+  - "text"
+rigorFlag: "The unigram model assumes query terms are conditionally independent given the document, which is false for real text; the smoothing parameters λ and μ are tuned empirically (μ ≈ 1000–2000 is typical), not derived; and smoothing's IDF-like effect is an emergent property of the score decomposition, not a derived inverse-document-frequency."
+videoId: null
+notebookPath: "notebooks/query-likelihood-language-models/01_query_likelihood_language_models.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/query-likelihood-language-models.mdx"
+datePublished: 2026-06-20
+estimatedReadTime: 34
+abstract: "The query-likelihood model ranks documents by the probability that each document's language model generated the query. The maximum-likelihood estimate P(t|d) = tf/|d| already divides by document length, so query likelihood sidesteps the length hijack that captures the raw tf-idf dot product — but it pays with the zero-frequency catastrophe, where a single unseen query term sends the score to negative infinity. Smoothing repairs this, and it is the entire substance of the model: we derive Jelinek-Mercer interpolation and Dirichlet smoothing, prove that Dirichlet smoothing is exactly the Bayesian posterior mean under a conjugate Dirichlet prior, show that ranking by negative KL divergence between the query and document models is rank-equivalent to query likelihood, and expose via the Zhai-Lafferty decomposition the IDF-like role smoothing plays. An interactive smoothing laboratory and a from-scratch NumPy implementation whose tests verify every claim accompany the derivation, with a worked finance example over earnings-call transcripts and 10-K filings."
+connections:
+  - topic: "vector-space-model-tfidf"
+    relationship: "query likelihood replaces the geometric similarity of the vector space model with a generative probability; the MLE P(t|d) = tf/|d| is the length-normalized term weight the raw tf-idf dot product lacks"
+  - topic: "bm25-binary-independence-model"
+    relationship: "the two dominant probabilistic retrieval models — BM25 ranks by probability of relevance (the BIM), query likelihood ranks by probability of generating the query; they are unified through the KL-divergence / risk-minimization view"
+  - topic: "probability-ranking-principle"
+    relationship: "query likelihood is a generative instance of the PRP under a risk-minimization framing: ranking by P(q | document model) is the decision rule that minimizes Bayes risk under a specific loss"
+references:
+  - type: "paper"
+    title: "A Language Modeling Approach to Information Retrieval"
+    authors: "Ponte & Croft"
+    year: 1998
+    url: "https://doi.org/10.1145/290941.291008"
+    note: "The original query-likelihood model for IR"
+  - type: "paper"
+    title: "A Study of Smoothing Methods for Language Models Applied to Ad Hoc Information Retrieval"
+    authors: "Zhai & Lafferty"
+    year: 2004
+    url: "https://doi.org/10.1145/984321.984322"
+    note: "The definitive study of Jelinek-Mercer and Dirichlet smoothing and the dual role of smoothing"
+  - type: "paper"
+    title: "Document Language Models, Query Models, and Risk Minimization for Information Retrieval"
+    authors: "Lafferty & Zhai"
+    year: 2001
+    url: "https://doi.org/10.1145/383952.383970"
+    note: "The KL-divergence / risk-minimization framework that unifies query likelihood and relevance models"
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapter 12: language models for information retrieval"
+  - type: "documentation"
+    title: "Pyserini: reproducible IR with Lucene query-likelihood (QL/QLD)"
+    url: "https://github.com/castorini/pyserini"
+    note: "Reference Dirichlet-smoothed query-likelihood retrieval"
+formalmlPrereqs:
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "ranking by query likelihood is rank-equivalent to ranking by the negative KL divergence between the empirical query model and the smoothed document model; KL divergence is the organizing quantity of the whole topic"
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the query-entropy term H(θ_q) that drops out of the KL ranking, and the cross-entropy reading of the query-likelihood score, are exactly the Shannon information quantities"
+formalstatisticsPrereqs:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "the unsmoothed document model P(t|d) = tf/|d| is the maximum-likelihood estimate of a multinomial; its zero-frequency failure is the textbook motivation for regularizing an MLE"
+  - topic: "bayesian-foundations-and-prior-selection"
+    site: "formalstatistics"
+    relationship: "Dirichlet smoothing is the Bayesian posterior mean of the multinomial parameter under a conjugate Dirichlet prior whose concentration is set by the collection model and a strength parameter μ"
 ---
 
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
 import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import QueryLikelihoodSmoothingLab from '../../components/viz/QueryLikelihoodSmoothingLab.tsx';
 
-<NamedSection id="status" title="On the roadmap">
+The [vector space model](/topics/vector-space-model-tfidf) asked a geometric question — how close is the document's term-weight vector to the query's? — and [BM25](/topics/bm25-binary-independence-model) asked a probabilistic one — how likely is the document to be *relevant*? Query likelihood asks a third, generative question, and it turns out to be the most direct of the three. Imagine the author of each document equipped with a private, biased die over the vocabulary — their **language model** — that they roll to produce text. Hand each author the query and ask: how probable is it that *your* die would have produced these exact words? Rank the documents by that probability and you have a retrieval model that never mentions relevance at all, yet competes with BM25 on every standard benchmark.
 
-This topic is part of the formalRAG curriculum and is **not yet published** — it is
-currently a stub so that links from neighboring topics resolve. See the
-[curriculum roadmap](/paths) for where it sits in the dependency graph.
+The appeal is that the model is almost entirely forced. Once we commit to "rank by the probability the document generates the query," the only freedom left is how we estimate each document's die from the handful of words the document actually contains — and that single estimation choice, **smoothing**, is where all the action is. Get it wrong in the most natural way and the model assigns probability zero to most of the collection.
 
-In the meantime, the published pilot topic
-[BM25 and the Binary Independence Model](/topics/bm25-binary-independence-model)
-demonstrates the three-pillar treatment this topic will receive.
+<QueryLikelihoodSmoothingLab client:visible />
 
-</NamedSection>
+Make the failure concrete with the same finance corpus the vector space model and BM25 score. The query is *interest rate exposure*. A one-line 10-K disclosure — "net interest margin is sensitive to interest rate moves and our rate exposure is disclosed" — contains all three query words. So does a ninety-minute earnings-call transcript padded with hundreds of words of operational filler. But a foreign-exchange filing that talks only about *currency rate movements* and *exposure to translation* never says **interest** — and under the naive model its probability of generating the query is exactly zero, its log-score $-\infty$, and it is unrankable. On this six-document corpus, three of the six documents are killed this way. Smoothing is what brings them back, and the laboratory above lets you watch each smoothing scheme rescue them and reshuffle the ranking as you turn its single knob.
+
+### What we cover
+
+1. The query-likelihood model: documents as multinomial language models.
+2. The zero-frequency catastrophe and why the maximum-likelihood estimate is unusable.
+3. Two smoothings: Jelinek–Mercer interpolation and Dirichlet smoothing.
+4. Dirichlet smoothing *is* a Bayesian posterior mean (Theorem 1).
+5. The KL-divergence view: query likelihood as cross-entropy (Theorem 2).
+6. The dual role of smoothing: an IDF-like effect that emerges, not imposed (Theorem 3).
+7. Length adaptivity, the contrast with the length hijack, and a finance case study.
+
+---
+
+## The query-likelihood model
+
+We model each document $d$ as a probability distribution $M_d$ over the vocabulary — a **multinomial unigram language model**, "unigram" because it treats word order as irrelevant and scores each query term independently. Ranking is by the probability that $M_d$, sampled $|q|$ times, produces the query.
+
+<TheoremBlock type="definition" number={1} title="Query-likelihood retrieval">
+
+Let $c(t, q)$ be the number of times term $t$ occurs in the query $q$. Under the multinomial unigram model, the probability that document $d$'s language model generates the query is
+
+$$
+P(q \mid M_d) = \prod_{t \in q} P(t \mid M_d)^{c(t, q)},
+$$
+
+and because ranking is invariant under the logarithm, we rank documents by
+
+$$
+\text{score}(q, d) = \log P(q \mid M_d) = \sum_{t \in q} c(t, q)\,\log P(t \mid M_d).
+$$
+
+</TheoremBlock>
+
+The whole model now reduces to a single question: what is $P(t \mid M_d)$? The most natural answer is the **maximum-likelihood estimate** — the relative frequency of the term in the document:
+
+$$
+P_{\mathrm{ml}}(t \mid d) = \frac{\text{tf}_{t,d}}{|d|},
+$$
+
+where $\text{tf}_{t,d}$ is the term's count in $d$ and $|d|$ the document's length in tokens. This estimate is the [maximum-likelihood estimator](https://formalstatistics.com/topics/maximum-likelihood) of a multinomial, and it already does something the raw tf-idf dot product never did: it **divides by document length**. A term that appears twice in a fifteen-word filing has probability $2/15$; the same term appearing three times in a 249-word padded transcript has probability $3/249$. Length normalization is not bolted on afterward — it is built into the probability itself.
+
+---
+
+## The zero-frequency catastrophe
+
+The maximum-likelihood estimate has a fatal flaw, and it is not subtle. If a single query term never appears in a document, $\text{tf}_{t,d} = 0$, so $P_{\mathrm{ml}}(t \mid d) = 0$, and the product in Definition 1 collapses to zero — $\log 0 = -\infty$. One missing word annihilates the entire score, no matter how perfectly the document matches the rest of the query.
+
+<TheoremBlock type="proposition" number={1} title="The zero-frequency catastrophe">
+
+Under the maximum-likelihood document model, $\text{score}(q, d) = -\infty$ whenever $d$ omits any query term. The model can only rank documents that contain *every* query term; all others are tied at $-\infty$.
+
+</TheoremBlock>
+
+This is not a corner case to be patched — for any query of more than one or two words it is the *common* case. On the worked corpus, the query *interest rate exposure* leaves only three of six documents with finite scores; the foreign-exchange filing (no *interest*), the macro news item (no *exposure*), and the short transcript (no *exposure*) are all sent to $-\infty$, even though two of them are plainly about the topic. A model that cannot rank documents missing one query word out of three is not a retrieval model at all.
+
+The diagnosis is the same one statistics makes of any unregularized maximum-likelihood estimate over sparse counts: zero observed occurrences is *not* the same as zero probability. A fifteen-word filing that happens not to use the word "translation" has not declared translation impossible; it has simply given us too small a sample to estimate its rate. The cure is to pull each estimate away from the raw counts toward a sensible default — the **collection model**
+
+$$
+P(t \mid C) = \frac{\text{cf}_t}{|C|},
+$$
+
+the relative frequency of term $t$ across the entire corpus ($\text{cf}_t$ its total count, $|C|$ the total number of tokens). The collection model is never zero for a term anyone ever queries, and mixing a little of it into every document model is exactly **smoothing**.
+
+---
+
+## Two smoothings
+
+There are two canonical ways to mix the document model with the collection model, and they differ in one decision: should the amount of smoothing be the same for every document, or should it adapt to document length?
+
+<TheoremBlock type="definition" number={2} title="Jelinek–Mercer and Dirichlet smoothing">
+
+**Jelinek–Mercer** smoothing is a fixed linear interpolation with a single mixing weight $\lambda \in (0, 1)$:
+
+$$
+P_\lambda(t \mid d) = (1 - \lambda)\,P_{\mathrm{ml}}(t \mid d) + \lambda\,P(t \mid C).
+$$
+
+**Dirichlet** smoothing adds $\mu$ pseudo-counts distributed according to the collection model, with $\mu > 0$:
+
+$$
+P_\mu(t \mid d) = \frac{\text{tf}_{t,d} + \mu\,P(t \mid C)}{|d| + \mu}.
+$$
+
+</TheoremBlock>
+
+Both produce genuine probability distributions — every term gets nonzero probability, and the weights over the vocabulary sum to one (the companion harness verifies this for a range of $\lambda$ and $\mu$). The difference is structural. Jelinek–Mercer trusts the document and the collection in a fixed ratio $\,(1-\lambda) : \lambda\,$ regardless of how much evidence the document offers. Dirichlet smoothing instead rewrites itself as
+
+$$
+P_\mu(t \mid d) = \frac{|d|}{|d| + \mu}\,P_{\mathrm{ml}}(t \mid d) + \frac{\mu}{|d| + \mu}\,P(t \mid C),
+$$
+
+a Jelinek–Mercer interpolation whose *effective* mixing weight $\lambda_d = \mu/(|d| + \mu)$ shrinks as the document grows. A long document is trusted more (it has supplied more evidence); a short one is smoothed harder toward the collection. We will see in Section 6 that this length-dependence is exactly a length-normalization term, the probabilistic cousin of BM25's $b$.
+
+---
+
+## Dirichlet smoothing is a Bayesian posterior mean
+
+The two pseudo-counts in Dirichlet smoothing are not an arbitrary patch. They are precisely what Bayesian estimation of a multinomial prescribes.
+
+<TheoremBlock type="theorem" number={1} title="Dirichlet smoothing as posterior mean">
+
+Treat the document model as an unknown multinomial parameter $\theta = (\theta_t)_{t}$ and place on it a conjugate **Dirichlet prior** with concentration parameters $\alpha_t = \mu\,P(t \mid C)$. After observing the document's term counts $(\text{tf}_{t,d})_t$, the posterior is $\mathrm{Dirichlet}(\alpha_t + \text{tf}_{t,d})$, and its mean is exactly the Dirichlet-smoothed estimate
+
+$$
+\mathbb{E}[\theta_t \mid d] = \frac{\alpha_t + \text{tf}_{t,d}}{\sum_{t'} (\alpha_{t'} + \text{tf}_{t',d})} = \frac{\text{tf}_{t,d} + \mu\,P(t \mid C)}{|d| + \mu} = P_\mu(t \mid d).
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The Dirichlet distribution is the [conjugate prior](https://formalstatistics.com/topics/bayesian-foundations-and-prior-selection) for the multinomial: a $\mathrm{Dirichlet}(\alpha)$ prior multiplied by a multinomial likelihood with counts $\text{tf}$ yields a $\mathrm{Dirichlet}(\alpha + \text{tf})$ posterior, because both contribute the same functional form $\prod_t \theta_t^{(\cdot)}$ and the exponents simply add. The mean of a $\mathrm{Dirichlet}(\beta)$ distribution is $\beta_t / \sum_{t'} \beta_{t'}$. Substituting $\beta_t = \alpha_t + \text{tf}_{t,d}$ gives the posterior mean above.
+
+The denominator simplifies cleanly. The prior pseudo-counts sum to
+
+$$
+\sum_t \alpha_t = \mu \sum_t P(t \mid C) = \mu,
+$$
+
+because the collection model is a probability distribution, and the observed counts sum to the document length, $\sum_t \text{tf}_{t,d} = |d|$. Hence $\sum_{t'}(\alpha_{t'} + \text{tf}_{t',d}) = |d| + \mu$, and the posterior mean is $(\text{tf}_{t,d} + \mu P(t \mid C)) / (|d| + \mu)$ as claimed. $\;\blacksquare$
+
+</TheoremBlock>
+
+So $\mu$ is not a tuning knob bolted onto a heuristic — it is the **strength of the prior**, measured in pseudo-tokens. Setting $\mu = 2000$ asserts that, before reading a word of the document, our belief about its language model is worth two thousand tokens drawn from the collection. A short filing of fifteen real tokens is then dominated by its prior; a long transcript of several hundred is dominated by its own evidence. The companion harness confirms the identity to machine precision across $\mu \in \{10, 500, 2000\}$ and every document — the smoothing formula and the posterior mean are the same object.
+
+---
+
+## The KL-divergence view
+
+Query likelihood looks like it ranks by a generation probability, but there is a more revealing way to read the same number: as a measure of how far the document's language model sits from the query's.
+
+<TheoremBlock type="theorem" number={2} title="Query likelihood is negative cross-entropy">
+
+Let $\theta_q(t) = c(t, q)/|q|$ be the empirical **query model** — the query's own relative term frequencies. Ranking documents by the query likelihood is rank-equivalent to ranking by the negative KL divergence from the query model to the document model:
+
+$$
+-\,\mathrm{KL}\!\big(\theta_q \,\|\, \theta_d\big) = H(\theta_q) + \frac{1}{|q|}\,\text{score}(q, d),
+$$
+
+where $\theta_d(t) = P(t \mid M_d)$ is the (smoothed) document model and $H(\theta_q)$ is the Shannon entropy of the query model.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Expand the [KL divergence](https://formalml.com/topics/kl-divergence) and split the logarithm:
+
+$$
+\mathrm{KL}(\theta_q \,\|\, \theta_d) = \sum_t \theta_q(t)\,\log\frac{\theta_q(t)}{\theta_d(t)} = \underbrace{\sum_t \theta_q(t)\log\theta_q(t)}_{-H(\theta_q)} - \sum_t \theta_q(t)\log\theta_d(t).
+$$
+
+Negate both sides:
+
+$$
+-\,\mathrm{KL}(\theta_q \,\|\, \theta_d) = H(\theta_q) + \sum_t \theta_q(t)\,\log\theta_d(t).
+$$
+
+The cross-entropy sum is the query likelihood up to a scalar: since $\theta_q(t) = c(t,q)/|q|$ and $\theta_d(t) = P(t \mid M_d)$,
+
+$$
+\sum_t \theta_q(t)\log\theta_d(t) = \frac{1}{|q|}\sum_t c(t,q)\log P(t \mid M_d) = \frac{1}{|q|}\,\text{score}(q, d).
+$$
+
+Substituting gives the stated identity. For a fixed query, $H(\theta_q)$ is the same for every document and $1/|q| > 0$ is a positive constant, so ordering documents by $-\mathrm{KL}(\theta_q \| \theta_d)$ is identical to ordering them by $\text{score}(q, d)$. $\;\blacksquare$
+
+</TheoremBlock>
+
+The [Shannon entropy](https://formalml.com/topics/shannon-entropy) term is the price of admission that cancels: it depends only on the query, so it shifts every document's score by the same amount and never changes the ranking. What remains, $\sum_t \theta_q(t)\log\theta_d(t)$, is the negative **cross-entropy** of the document model relative to the query model — retrieval as *finding the document whose language model is least surprised by the query*. The harness checks this equivalence not only on the worked corpus but on two hundred random strict instances, where ties cannot mask a disagreement.
+
+This reframing is the single most useful idea in the topic, because it generalizes. Nothing in the proof required $\theta_q$ to be the raw query frequencies; any distribution over terms will do. Replace the thin empirical query model with a richer **relevance model** estimated from documents we believe to be relevant, and the same cross-entropy ranking becomes pseudo-relevance feedback — the relevance models behind Rocchio and RM3 build directly on this view.
+
+---
+
+## The dual role of smoothing
+
+We argued that smoothing is forced by the zero-frequency catastrophe. But Zhai and Lafferty observed that it does a second job at the same time: it supplies the IDF-like weighting that the raw query-likelihood score otherwise lacks.
+
+<TheoremBlock type="theorem" number={3} title="Smoothing's IDF-like effect (Zhai–Lafferty)">
+
+The Jelinek–Mercer log score decomposes into a document-dependent matched-term sum plus a constant that is the same for every document:
+
+$$
+\log P(q \mid d) = \underbrace{\sum_{\substack{t \in q \\ \text{tf}_{t,d} > 0}} c(t,q)\,\log\!\left(1 + \frac{1 - \lambda}{\lambda}\cdot\frac{P_{\mathrm{ml}}(t \mid d)}{P(t \mid C)}\right)}_{\text{determines the ranking}} \;+\; \underbrace{|q|\log\lambda + \sum_{t \in q} c(t,q)\log P(t \mid C)}_{\text{constant across documents}}.
+$$
+
+Inside the matched-term sum, the per-term weight is strictly decreasing in the collection probability $P(t \mid C)$: a query term that is rare in the collection contributes more than a common one. This is an inverse-collection-frequency effect, the language-model analogue of IDF.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+For a matched term ($\text{tf}_{t,d} > 0$), factor the smoothed probability:
+
+$$
+P_\lambda(t \mid d) = (1-\lambda)P_{\mathrm{ml}}(t\mid d) + \lambda P(t\mid C) = \lambda P(t \mid C)\left(1 + \frac{1-\lambda}{\lambda}\cdot\frac{P_{\mathrm{ml}}(t\mid d)}{P(t\mid C)}\right).
+$$
+
+Taking logs, $\log P_\lambda(t\mid d) = \log\!\big(1 + \tfrac{1-\lambda}{\lambda}\tfrac{P_{\mathrm{ml}}}{P(t\mid C)}\big) + \log\lambda + \log P(t\mid C)$. For an unmatched term, $P_\lambda(t\mid d) = \lambda P(t\mid C)$, so its log is just $\log\lambda + \log P(t \mid C)$ — the same trailing constant with no matched-term contribution. Summing $c(t,q)\log P_\lambda(t\mid d)$ over all query terms collects the $\log(1 + \cdots)$ pieces over matched terms only, while the $\log\lambda + \log P(t\mid C)$ pieces accumulate over *all* query terms into $|q|\log\lambda + \sum_{t\in q} c(t,q)\log P(t\mid C)$, which depends on the query and collection but not on the document.
+
+For the monotonicity, fix a matched frequency so $P_{\mathrm{ml}}$ is held constant and view the weight as a function of $x = P(t \mid C)$: $w(x) = \log(1 + \kappa/x)$ with $\kappa = \tfrac{1-\lambda}{\lambda}P_{\mathrm{ml}} > 0$. Then $w'(x) = -\kappa / \big(x(x + \kappa)\big) < 0$, so the weight strictly decreases as the collection probability rises. $\;\blacksquare$
+
+</TheoremBlock>
+
+Two consequences are worth drawing out. First, only the matched-term sum varies across documents, so it alone determines the ranking — the harness confirms it reproduces the full query-likelihood order exactly. Second, the IDF-like weight here is *emergent*, not designed: nobody inserted an inverse-document-frequency factor, yet rare query terms automatically dominate because the collection probability $P(t \mid C)$ sits in the denominator. This is the honest version of a claim often made loosely — query-likelihood models "contain IDF." They contain an inverse-*collection*-frequency effect that behaves like IDF, and it falls out of smoothing rather than being a separate ingredient.
+
+---
+
+## Length adaptivity and the length hijack
+
+Section 3 noted that Dirichlet smoothing's effective mixing weight $\lambda_d = \mu/(|d| + \mu)$ shrinks with length. That same factor is, read another way, a length-normalization penalty.
+
+<TheoremBlock type="proposition" number={2} title="Dirichlet length normalization">
+
+The Dirichlet-smoothed log score carries an explicit length penalty. Collecting the document-length dependence, the score includes the additive term $|q|\,\log\!\big(\mu/(|d| + \mu)\big)$, which is strictly decreasing in $|d|$: longer documents are penalized more. Equivalently, the effective smoothing weight $\mu/(|d| + \mu)$ is strictly decreasing in $|d|$, so short documents are smoothed harder toward the collection.
+
+</TheoremBlock>
+
+The function $\mu/(|d| + \mu)$ is manifestly decreasing in $|d|$ for $\mu > 0$, and the harness verifies both the monotonicity and that the longest document on the corpus receives the most negative length penalty. This is the probabilistic counterpart of BM25's $b$ parameter: where BM25 stretches its saturation point in proportion to length, Dirichlet smoothing discounts long documents through the prior's diminishing relative weight. Jelinek–Mercer, with its fixed $\lambda$, has no such term — which is precisely why Dirichlet smoothing is the better default for the short, keyword-style queries that dominate retrieval.
+
+The headline payoff is the contrast with the [vector space model](/topics/vector-space-model-tfidf). On that page, the *same* corpus and the *same* query exposed the length-hijack flip: the raw tf-idf dot product ranked the padded transcript first, purely because length let it accumulate term occurrences, and only cosine normalization rescued the concise filing. Query likelihood never has that problem to begin with. Because $P_{\mathrm{ml}} = \text{tf}/|d|$ divides by length, the padded transcript's query-term probabilities are tiny ($3/249$ rather than the filing's $2/15$), and the concise on-point filing ranks first under the bare maximum-likelihood estimate, under Jelinek–Mercer, and under Dirichlet smoothing alike. The model that solves the zero-frequency problem solves the length problem for free.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["audio", "text"]}>
+
+Query likelihood is the second lexical retriever in a production multimodal financial RAG system, run alongside BM25 over **earnings-call transcripts** (from call audio) and **10-K / 10-Q filing text**. Two properties of the model matter directly for this corpus:
+
+- **Length handling without a tuning knob.** Transcripts run from a five-minute pre-announcement update to a ninety-minute call with Q&A, a tenfold length spread. The maximum-likelihood term probability $\text{tf}/|d|$ normalizes this automatically, and Dirichlet smoothing's $\mu/(|d|+\mu)$ factor adds a further length penalty — so a concise disclosure outranks a long transcript that merely repeats the query words, with no per-collection $b$ to tune.
+- **Smoothing as a domain knob.** The collection model $P(t \mid C)$ is estimated over the financial corpus, so genuinely common financial words ("guidance," "quarter," "rate") are correctly treated as weak evidence, while rare, discriminating terms (a specific GAAP line item, a defined term from a filing's glossary) dominate the matched-term sum through the inverse-collection-frequency effect of Theorem 3.
+
+The worked query *interest rate exposure* over the laboratory's six-document corpus shows the model end to end: under the unsmoothed estimate, the three documents missing a query term are unrankable at $-\infty$; turn on Jelinek–Mercer or Dirichlet smoothing and all six become finite, with the on-point 10-K sentence ranked first and the padded transcript demoted. This generative lexical signal complements BM25's relevance-weighted one, and both feed [reciprocal rank fusion](/topics/rank-fusion-rrf) alongside dense retrieval.
+
+</FinanceCaseStudy>
+
+Query likelihood and BM25 are close cousins on the same corpus, and the production system runs both rather than choosing because they fail differently. BM25's saturating term-frequency transform is more forgiving of a query term repeated many times in a genuinely on-topic document; query likelihood's collection-model smoothing gives a cleaner, parameter-light handle on the wildly varying lengths of transcripts. Where they agree, the fusion is confident; where they disagree, the disagreement is itself signal that downstream reranking can exploit.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Query likelihood is principled, but three qualifications keep it honest:
+
+1. The **unigram independence** assumption — that query terms are conditionally independent given the document model — is false for real text. "Interest" and "rate" are strongly correlated, yet the model multiplies their probabilities as if they were not.
+2. The smoothing parameters are **tuned, not derived.** Dirichlet's $\mu$ is typically in the range $1000$–$2000$ and Jelinek–Mercer's $\lambda$ near $0.1$ for short queries; the Bayesian story explains what $\mu$ *means* (prior strength in pseudo-tokens) but not what value the data will prefer.
+3. Smoothing's **IDF-like effect is emergent**, not an inverse-document-frequency factor. It is an inverse-*collection*-frequency weight that behaves like IDF in the score decomposition — a real and useful effect, but not the same statistic BM25's IDF computes, and it should not be described as if the model contained IDF by construction.
+
+That a model this transparent matches BM25 on standard benchmarks *despite* the false independence assumption is, as with BM25 itself, worth sitting with.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook builds the multinomial language models from scratch over the shared finance corpus ($N = 6$ documents, $|C| = 316$ collection tokens) and turns every claim above into an assertion. It confirms the zero-frequency catastrophe — the maximum-likelihood model leaves exactly three of six documents finite and smoothing rescues all six — then verifies the Dirichlet posterior-mean identity to machine precision, the KL rank-equivalence on the worked example plus two hundred random strict instances, the Zhai–Lafferty decomposition and its inverse-collection-frequency monotonicity, and the Dirichlet length penalty.
+
+The printed rankings make the story legible. For *interest rate exposure*, the unsmoothed model scores the on-point filing at $-6.74$ and the padded transcript at $-13.37$ (with the three term-missing documents at $-\infty$); Jelinek–Mercer at $\lambda = 0.5$ scores the on-point filing first at $-8.16$, ahead of the boilerplate filing at $-9.06$ and the rescued foreign-exchange filing at $-9.58$; Dirichlet at $\mu = 2000$ keeps the on-point filing first at $-10.93$, now in a tight pack with the foreign-exchange and boilerplate filings at $-10.95$ and $-10.96$, the heavy prior having compressed the scores toward the collection. The collection probabilities the interactive laboratory mirrors — $P(\text{interest} \mid C) = 0.0253$, $P(\text{rate} \mid C) = 0.0348$, $P(\text{exposure} \mid C) = 0.0190$ — are printed by the harness so the page, the notebook, and the viz read one set of numbers.
