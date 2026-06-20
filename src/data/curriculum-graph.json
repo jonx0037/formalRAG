@@ -75,7 +75,7 @@
     {
       "id": "query-likelihood-language-models",
       "label": "Query-Likelihood Language Models and Smoothing",
-      "status": "draft",
+      "status": "published",
       "domain": "probabilistic-ir"
     },
     {
