@@ -1,26 +1,354 @@
 ---
 title: "The Retrieval Problem: Relevance, Similarity, and the Geometry of Scores"
-status: "draft"
+subtitle: "Retrieval as ranking by a relevance functional — and the three similarity scores that agree on the sphere and diverge off it"
+status: "published"
 difficulty: "foundational"
+prerequisites: []
 tags:
   - "retrieval"
+  - "relevance"
   - "similarity"
-  - "geometry"
+  - "cosine-similarity"
+  - "dot-product"
+  - "euclidean-distance"
+  - "ranking"
+  - "metric-axioms"
 domain: "retrieval-foundations"
-financeCaseStudy: false
-abstract: "Retrieval formalized as ranking documents by a relevance functional rel(q,d); the metric and inner-product structure of similarity (cosine, dot product, Euclidean) and where they agree and disagree."
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The clean 'three scores, one geometry' story has soft joints. Cosine 'distance' 1 - cos is not a metric: it violates the triangle inequality, which the companion code demonstrates with an explicit three-point counterexample and reports the violation gap rather than asserting the inequality. The dot product is not a distance at all — it has no identity of indiscernibles and ranks in the opposite sense — so maximum inner-product search is not metric search and is only reduced to one by augmentation. The on-the-sphere equivalence of the three rankings is exact, but it holds only after L2 normalization; on raw embeddings, whose norms vary, dot-product and cosine rankings genuinely disagree, and which one is right is a modeling choice, not a theorem. Finally, cosine similarity is a calibrated geometry, not a calibrated probability, and the relevance functional rel(q,d) is a modeling stand-in for a human judgment we never fully observe. The proved core — the identity, monotone rank-invariance, the on-sphere equivalence, the metric axioms for Euclidean distance, and the level-set classification — holds exactly; the finance vectors in the companion code are a synthetic low-dimensional stand-in, not a trained encoder."
+videoId: null
+notebookPath: "notebooks/the-retrieval-problem/01_the_retrieval_problem.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/the-retrieval-problem.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 32
+abstract: "Retrieval is ranking: given a query, score every document by a relevance functional rel(q, d) and return the top k, a set-valued operator on the resulting order. Because only the order matters, relevance is ordinal even though scores are cardinal — the ranking is invariant under any strictly monotone transform of the score, a fact we will lean on repeatedly. We then study the three similarity functions retrieval actually uses — Euclidean distance, the dot product, and cosine similarity — through the single identity ||a-b||^2 = ||a||^2 + ||b||^2 - 2<a,b>. On the unit sphere this identity collapses the three into one: ranking by Euclidean distance, by dot product, and by cosine all induce the same order. Off the sphere they diverge, because magnitude matters for the dot product but is quotiented away by cosine — the divergence that motivates normalization throughout the rest of the curriculum. We separate which of these are true metrics (Euclidean is; cosine distance violates the triangle inequality; the dot product is not a metric at all) because the triangle inequality is exactly the structure that tree- and graph-based approximate-nearest-neighbor indexes later exploit. The level sets make the picture geometric: equal-score loci are hyperplanes for the dot product, spheres for Euclidean distance, and cones for cosine. An interactive similarity playground and a tested, deterministic implementation accompany the derivation, with a finance example showing the same query ranking documents differently under dot product and cosine when document norms vary."
+connections:
+  - topic: "vector-space-model-tfidf"
+    relationship: "the vector space model is the first concrete instance of the relevance functional defined here — documents and queries become weighted term vectors and rel(q,d) is their cosine similarity, the exact off-sphere-versus-on-sphere distinction this topic formalizes"
+  - topic: "bm25-binary-independence-model"
+    relationship: "BM25's length normalization is the lexical-retrieval answer to the magnitude sensitivity shown here: when document norms vary, dot-product ranking favors long documents, and normalization is what removes that bias"
+  - topic: "high-dimensional-geometry"
+    relationship: "this topic defines the similarity scores in any dimension; the next asks what happens to them as the dimension grows, where the cosine-distance identity meets concentration of measure and near-orthogonality"
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "once embeddings are L2-normalized they live on the unit sphere, the exact regime where this topic proves the three similarity scores induce the same ranking; that topic builds the directional-statistics model of a cluster on that sphere"
+references:
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapter 6: scoring, term weighting, and the vector space model — retrieval as ranking by a similarity functional, and cosine versus inner product"
+  - type: "book"
+    title: "Foundations of Data Science"
+    authors: "Blum, Hopcroft & Kannan"
+    year: 2020
+    url: "https://doi.org/10.1017/9781108755528"
+    note: "The geometry of inner products, norms, and distances that the cosine-distance identity rests on"
+  - type: "book"
+    title: "Metric Spaces"
+    authors: "Ó Searcóid"
+    year: 2007
+    url: "https://doi.org/10.1007/978-1-84628-627-8"
+    note: "The metric axioms — identity of indiscernibles, symmetry, triangle inequality — used to classify which similarity scores are true metrics"
+  - type: "paper"
+    title: "Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs"
+    authors: "Malkov & Yashunin"
+    year: 2018
+    url: "https://doi.org/10.1109/TPAMI.2018.2889473"
+    note: "Why the triangle inequality is load-bearing downstream: graph ANN indexes exploit metric structure that cosine distance lacks"
+  - type: "documentation"
+    title: "Faiss: Metric Types and Distances"
+    url: "https://github.com/facebookresearch/faiss/wiki/MetricType-and-distances"
+    note: "How a production vector index distinguishes inner-product, L2, and normalized-cosine search — the off-sphere divergence in code"
+formalmlPrereqs:
+  - topic: "convex-analysis"
+    site: "formalml"
+    relationship: "inner products, norms, and the Cauchy-Schwarz inequality that bounds cosine similarity into [-1, 1] are the convex-analytic primitives this topic builds the three similarity scores from, and the half-space level sets of the dot product are exactly the supporting hyperplanes studied there"
+formalcalculusPrereqs:
+  - topic: "linear-algebra"
+    site: "formalcalculus"
+    relationship: "vectors, the dot product, vector norms, and orthogonal projection are the linear-algebra objects every similarity score here is built from, and the law of cosines that links angle to inner product is the geometric identity at the center of this topic"
+  - topic: "metric-spaces"
+    site: "formalcalculus"
+    relationship: "the metric axioms — non-negativity, identity of indiscernibles, symmetry, and the triangle inequality — are the formal checklist this topic runs each similarity score against to decide which ones are genuine metrics and which only look like distances"
 ---
 
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
 import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import SimilarityGeometryLaboratory from '../../components/viz/SimilarityGeometryLaboratory.tsx';
 
-<NamedSection id="status" title="On the roadmap">
+## Overview & motivation
 
-This topic is part of the formalRAG curriculum and is **not yet published** — it is
-currently a stub so that links from neighboring topics resolve. See the
-[curriculum roadmap](/paths) for where it sits in the dependency graph.
+Every retrieval system, lexical or neural, does the same thing: it scores documents against a query and returns the highest-scoring few. The entire apparatus the rest of this curriculum builds — inverted indexes, approximate-nearest-neighbor graphs, learned encoders, rerankers — exists to compute or approximate that scored ordering quickly and well. Before any of it, we should be precise about what the ordering *is*. Retrieval is ranking by a **relevance functional**, and the functionals we actually use are geometric: a query and a document are vectors, and relevance is a similarity between them.
 
-In the meantime, the published pilot topic
-[BM25 and the Binary Independence Model](/topics/bm25-binary-independence-model)
-demonstrates the three-pillar treatment this topic will receive.
+There are three similarity scores in near-universal use, and they are usually introduced as interchangeable: the Euclidean distance $\lVert q - d\rVert$, the dot product $\langle q, d\rangle$, and the cosine similarity $\langle q, d\rangle / (\lVert q\rVert\,\lVert d\rVert)$. They are not interchangeable, and the single most useful fact in this topic is the precise statement of when they agree and when they part ways. The short version: on the unit sphere, the three induce *the same ranking*; off it, they can disagree on which document is most relevant, because the dot product rewards magnitude and cosine does not. That divergence is not a technicality — it is the reason embeddings are normalized, the reason BM25 normalizes by length, and the seed of a genuine hardness result later on. Before the algebra, drag the controls and watch it happen:
 
-</NamedSection>
+<SimilarityGeometryLaboratory client:visible />
+
+Pick a score with the toggle and the laboratory draws its equal-score locus through the marked document $d^\star$ — a line for the dot product, a circle for Euclidean distance, a pair of rays for cosine. Slide $d^\star$'s magnitude and watch the ranking on the right: under the dot product it climbs and eventually seizes the top spot from the long, large-norm transcript; under cosine it never moves. Tick "normalize all to the unit circle" and the three rankings snap into agreement.
+
+### What we cover
+
+1. Retrieval as ranking by a relevance functional, and why only the order matters.
+2. The three similarity scores and the one identity that ties them together.
+3. On the unit sphere: why the three rankings coincide.
+4. Off the sphere: why magnitude makes them diverge.
+5. Which of these are genuine metrics, and why the triangle inequality matters downstream.
+6. The level-set geometry, a finance case study, the honest caveats, and the tested implementation.
+
+---
+
+## Retrieval as ranking by a relevance functional
+
+Fix a query $q$ drawn from a query space $Q$ and a corpus $D$ of documents. A retrieval model is, at bottom, a function that scores each document for its relevance to the query.
+
+<TheoremBlock type="definition" number={1} title="Relevance functional and the induced ranking">
+
+A **relevance functional** is a map $\operatorname{rel} : Q \times D \to \mathbb{R}$. For a fixed query $q$, it induces a **ranking** of the corpus: the total preorder in which $d_i$ is ranked at least as high as $d_j$ whenever $\operatorname{rel}(q, d_i) \ge \operatorname{rel}(q, d_j)$. Documents are returned in order of decreasing $\operatorname{rel}(q, \cdot)$.
+
+</TheoremBlock>
+
+The output a user sees is not the scores but the order, and usually only its top. We make that explicit.
+
+<TheoremBlock type="definition" number={2} title="Top-k retrieval">
+
+For a fixed query $q$ and an integer $k$, **top-k retrieval** returns
+$$
+\operatorname*{arg\,top\textit{k}}_{d \in D}\ \operatorname{rel}(q, d) \;=\; \text{the set of the } k \text{ documents with the largest } \operatorname{rel}(q, \cdot),
+$$
+ties broken by a fixed rule. It is a set-valued operator that depends on $\operatorname{rel}$ only through the order it induces, not through the score values themselves.
+
+</TheoremBlock>
+
+That last clause is worth dwelling on, because it has a consequence we will use repeatedly. If the score is only ever consumed through the ranking, then any transformation of the score that preserves the order leaves the retrieval output identical.
+
+<TheoremBlock type="proposition" number={1} title="Rank invariance under monotone transforms">
+
+Let $\varphi : \mathbb{R} \to \mathbb{R}$ be strictly increasing. Then the relevance functionals $\operatorname{rel}$ and $\varphi \circ \operatorname{rel}$ induce the same ranking of every corpus, and hence the same top-k set for every $q$ and $k$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Fix $q$ and two documents $d_i, d_j$. Because $\varphi$ is strictly increasing, $\operatorname{rel}(q, d_i) \ge \operatorname{rel}(q, d_j)$ holds if and only if $\varphi(\operatorname{rel}(q, d_i)) \ge \varphi(\operatorname{rel}(q, d_j))$. So the two functionals order every pair of documents identically, and a total preorder is determined by how it orders pairs; the rankings coincide. The top-k set, being a function of the ranking alone, is therefore unchanged. $\blacksquare$
+
+</TheoremBlock>
+
+Relevance, in other words, is *ordinal*: the scores are cardinal numbers, but the retrieval system reads only their order. This is why we may pass a score through a logarithm, an exponential, or a positive rescaling whenever it is mathematically convenient — a freedom the [probabilistic models](/topics/bm25-binary-independence-model) exploit when they move to log-odds, and one we use immediately below to compare distances with inner products. The companion code checks it directly: the cosine ranking of the finance corpus is unchanged under $s \mapsto s + 5$, $s \mapsto 3s$, $s \mapsto e^s$, and $s \mapsto s^3$.
+
+---
+
+## Three similarity scores and one identity
+
+We now make the relevance functional concrete. Embed the query and each document as vectors in $\mathbb{R}^d$, and write $\langle a, b\rangle = \sum_{i=1}^d a_i b_i$ for the inner product and $\lVert a\rVert = \langle a, a\rangle^{1/2}$ for the Euclidean norm.
+
+<TheoremBlock type="definition" number={3} title="Euclidean distance, dot product, cosine similarity">
+
+For query $q$ and document $d$ in $\mathbb{R}^d$,
+$$
+\text{distance } \lVert q - d\rVert, \qquad \text{dot product } \langle q, d\rangle, \qquad \text{cosine } \cos(q, d) = \frac{\langle q, d\rangle}{\lVert q\rVert\,\lVert d\rVert}.
+$$
+The distance is a **dissimilarity** — the nearest document ranks first, so the corpus is ordered by *increasing* distance — while the dot product and cosine are **similarities**, ordered by *decreasing* value.
+
+</TheoremBlock>
+
+These three are not independent. A single algebraic identity, the expansion of a squared norm, connects all of them.
+
+<TheoremBlock type="theorem" number={1} title="The cosine-distance identity">
+
+For any $a, b \in \mathbb{R}^d$,
+$$
+\lVert a - b\rVert^2 = \lVert a\rVert^2 + \lVert b\rVert^2 - 2\langle a, b\rangle.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Expand the squared norm using the bilinearity of the inner product:
+$$
+\lVert a - b\rVert^2 = \langle a - b,\, a - b\rangle = \langle a, a\rangle - \langle a, b\rangle - \langle b, a\rangle + \langle b, b\rangle.
+$$
+The inner product is symmetric, so $\langle a, b\rangle = \langle b, a\rangle$, and the middle two terms combine into $-2\langle a, b\rangle$, leaving $\lVert a\rVert^2 + \lVert b\rVert^2 - 2\langle a, b\rangle$. $\blacksquare$
+
+</TheoremBlock>
+
+Read geometrically, this is the law of cosines: writing $\langle a, b\rangle = \lVert a\rVert\,\lVert b\rVert \cos\theta$ for the angle $\theta$ between $a$ and $b$ recovers $\lVert a - b\rVert^2 = \lVert a\rVert^2 + \lVert b\rVert^2 - 2\lVert a\rVert\,\lVert b\rVert\cos\theta$, the relation between a triangle's third side and the angle it subtends. The identity is the [linear-algebra](https://formalcalculus.com/topics/linear-algebra) bridge between the *additive* world of distances and the *multiplicative* world of inner products and angles, and every comparison that follows is an application of it.
+
+---
+
+## On the unit sphere the three rankings coincide
+
+The cleanest consequence of the identity appears when every vector has the same length. Suppose the documents are **L2-normalized** — projected onto the unit sphere $S^{d-1} = \{x : \lVert x\rVert = 1\}$ — as they are in most dense retrieval systems. Then the three scores, despite measuring apparently different things, rank the corpus identically.
+
+<TheoremBlock type="theorem" number={2} title="Equivalence of rankings on the sphere">
+
+Let the query $q$ be fixed and the documents lie on the unit sphere, $\lVert d\rVert = 1$ for all $d$. Then ranking by decreasing cosine similarity, by decreasing dot product, and by increasing Euclidean distance produce the identical order.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+On the sphere $\lVert d\rVert = 1$, so the cosine denominator $\lVert q\rVert\,\lVert d\rVert = \lVert q\rVert$ is a positive constant across all documents; cosine is therefore a fixed positive multiple of the dot product, $\cos(q, d) = \langle q, d\rangle / \lVert q\rVert$, and the two rank the corpus identically. For the distance, apply Theorem 1 with $a = q$, $b = d$ and $\lVert d\rVert = 1$:
+$$
+\lVert q - d\rVert^2 = \lVert q\rVert^2 + 1 - 2\langle q, d\rangle.
+$$
+The right-hand side is a strictly decreasing affine function of $\langle q, d\rangle$ — the only document-dependent term is $-2\langle q, d\rangle$. So *increasing* $\langle q, d\rangle$ means *decreasing* $\lVert q - d\rVert^2$, hence decreasing $\lVert q - d\rVert$. By Proposition 1, ranking by the increasing distance is ranking by the decreasing dot product under the strictly monotone map $t \mapsto \sqrt{\lVert q\rVert^2 + 1 - 2t}$, so all three orders agree. $\blacksquare$
+
+</TheoremBlock>
+
+This is the result that lets a normalized dense retriever use whichever score is cheapest to compute — most systems store unit vectors and take dot products, knowing the cosine and Euclidean rankings are identical. The companion code confirms the coincidence not only on the finance corpus but on random corpora up to $128$ dimensions, where the cosine, dot, and Euclidean orders match exactly. The whole story of the [unit hypersphere](/topics/hypersphere-vmf-geometry), where normalized embeddings actually live, begins from this equivalence.
+
+---
+
+## Off the sphere they diverge: magnitude matters
+
+The equivalence is conditional on normalization, and the condition bites. The moment document norms vary, the dot product and cosine can disagree, because the dot product sees magnitude and cosine does not.
+
+<TheoremBlock type="proposition" number={2} title="Magnitude sensitivity of the dot product">
+
+Fix a query $q$ and a document $d$ with $\langle q, d\rangle > 0$, and scale the document by $c > 0$. Then
+$$
+\langle q, c\,d\rangle = c\,\langle q, d\rangle, \qquad \cos(q, c\,d) = \cos(q, d).
+$$
+The dot product is linear in the document's magnitude while the cosine is invariant to it. Consequently, enlarging a document's norm can lift it arbitrarily high in the dot-product ranking without changing its cosine ranking at all.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+By the linearity of the inner product in its second argument, $\langle q, c\,d\rangle = c\,\langle q, d\rangle$, which is strictly increasing in $c$ when $\langle q, d\rangle > 0$. For the cosine, $\lVert c\,d\rVert = c\,\lVert d\rVert$ for $c > 0$, so
+$$
+\cos(q, c\,d) = \frac{\langle q, c\,d\rangle}{\lVert q\rVert\,\lVert c\,d\rVert} = \frac{c\,\langle q, d\rangle}{c\,\lVert q\rVert\,\lVert d\rVert} = \cos(q, d),
+$$
+the factor $c$ cancelling. Cosine quotients magnitude out; the dot product does not. $\blacksquare$
+
+</TheoremBlock>
+
+The laboratory above is a direct illustration. Its marked document $d^\star$ is a concise, on-point filing; the corpus also contains a long, padded transcript with a larger norm. Under cosine, $d^\star$ leads — it points most nearly in the query's direction. Under the dot product, the padded transcript leads on the strength of its magnitude alone, and only when $d^\star$'s norm is scaled past $c^\star = 1.7895$ does it overtake the transcript. Same query, same corpus, two different "most relevant" documents. This is exactly the pathology that [BM25](/topics/bm25-binary-independence-model) addresses with length normalization, and the reason dense retrievers normalize before they compare.
+
+---
+
+## Which of these are metrics?
+
+We have been calling $\lVert q - d\rVert$ a distance and, loosely, $1 - \cos(q, d)$ a "cosine distance." It is worth being exact about which of these is a genuine **metric**, because the difference governs which data structures can index them.
+
+<TheoremBlock type="definition" number={4} title="Metric axioms">
+
+A function $\rho : X \times X \to \mathbb{R}$ is a **metric** if for all $x, y, z$: (i) $\rho(x, y) \ge 0$ with $\rho(x, y) = 0$ if and only if $x = y$ (non-negativity and identity of indiscernibles); (ii) $\rho(x, y) = \rho(y, x)$ (symmetry); and (iii) $\rho(x, z) \le \rho(x, y) + \rho(y, z)$ (the triangle inequality).
+
+</TheoremBlock>
+
+Euclidean distance satisfies all four conditions; the load-bearing one is the triangle inequality.
+
+<TheoremBlock type="proposition" number={3} title="Euclidean distance is a metric">
+
+The map $\rho(x, y) = \lVert x - y\rVert$ on $\mathbb{R}^d$ is a metric.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Non-negativity and symmetry are immediate from the definition of the norm, and $\lVert x - y\rVert = 0$ forces $x - y = 0$, i.e. $x = y$, giving identity of indiscernibles. For the triangle inequality, set $a = x - y$ and $b = y - z$, so $x - z = a + b$. Expanding and applying the Cauchy-Schwarz inequality $\langle a, b\rangle \le \lVert a\rVert\,\lVert b\rVert$ — the [convex-analytic](https://formalml.com/topics/convex-analysis) bound at the heart of inner-product geometry — gives
+$$
+\lVert a + b\rVert^2 = \lVert a\rVert^2 + 2\langle a, b\rangle + \lVert b\rVert^2 \le \lVert a\rVert^2 + 2\lVert a\rVert\,\lVert b\rVert + \lVert b\rVert^2 = (\lVert a\rVert + \lVert b\rVert)^2.
+$$
+Taking square roots, $\lVert x - z\rVert \le \lVert x - y\rVert + \lVert y - z\rVert$. $\blacksquare$
+
+</TheoremBlock>
+
+Cosine "distance" is a different story. It is symmetric and, on non-negative data, non-negative, but it is *not* a metric.
+
+<TheoremBlock type="proposition" number={4} title="Cosine distance violates the triangle inequality">
+
+The map $\rho_{\cos}(x, y) = 1 - \cos(x, y)$ is not a metric: there exist $x, y, z$ with $\rho_{\cos}(x, z) > \rho_{\cos}(x, y) + \rho_{\cos}(y, z)$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Take $x = (1, 0)$, $y = (1, 1)$, $z = (0, 1)$. Then $\cos(x, y) = \cos(y, z) = 1/\sqrt{2}$ while $\cos(x, z) = 0$, so
+$$
+\rho_{\cos}(x, z) = 1, \qquad \rho_{\cos}(x, y) + \rho_{\cos}(y, z) = 2\Bigl(1 - \tfrac{1}{\sqrt 2}\Bigr) = 2 - \sqrt 2 \approx 0.5858.
+$$
+The direct "distance" $1$ exceeds the detour $2 - \sqrt 2$, a violation by $\sqrt 2 - 1 \approx 0.4142$. The companion code computes this gap and asserts the violation. $\blacksquare$
+
+</TheoremBlock>
+
+The dot product fails even more basically: it is not a distance at all.
+
+<TheoremBlock type="proposition" number={5} title="The dot product is not a metric">
+
+The dot product cannot be a metric on $\mathbb{R}^d \setminus \{0\}$: it lacks identity of indiscernibles, since $\langle a, a\rangle = \lVert a\rVert^2 \ne 0$ for $a \ne 0$, and it ranks in the opposite sense, with *larger* values meaning *more* similar. A document need not even be its own best match: a longer vector in the same direction scores higher, $\langle a, 2a\rangle = 2\lVert a\rVert^2 > \lVert a\rVert^2 = \langle a, a\rangle$.
+
+</TheoremBlock>
+
+Why insist on this taxonomy? Because the triangle inequality is precisely the structure that makes fast search possible. Tree- and graph-based indexes prune the corpus using bounds of the form $\rho(q, x) \ge \lvert \rho(q, p) - \rho(p, x)\rvert$, which is the triangle inequality rearranged; without it, a pivot tells you nothing about points it has not directly measured. Euclidean distance admits such indexes, cosine distance does not without first normalizing onto the sphere (where it becomes a monotone function of Euclidean distance, by Theorem 2), and the bare dot product admits none — a fact that becomes a genuine complexity barrier for maximum inner-product search later in this track. Production indexes encode the distinction directly: a vector store exposes separate inner-product, L2, and normalized-cosine modes precisely because they are different problems.
+
+---
+
+## Level sets: the decision geometry
+
+There is a clean way to *see* why the three scores rank differently: look at the set of points that score equally with the query. Each score has a level set of a characteristic shape, and those shapes explain the rankings at a glance.
+
+<TheoremBlock type="proposition" number={6} title="Equal-score loci">
+
+For a fixed query $q \ne 0$ and a target value $c$, the locus $\{x : \operatorname{score}(q, x) = c\}$ is:
+- a **hyperplane** $\{x : \langle q, x\rangle = c\}$ for the dot product;
+- a **sphere** $\{x : \lVert q - x\rVert = c\}$ centered at $q$ for Euclidean distance;
+- a **cone** $\{x : \langle q, x\rangle = c\,\lVert q\rVert\,\lVert x\rVert\}$ through the origin for cosine.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The dot-product locus $\langle q, x\rangle = c$ is the solution set of a single linear equation in $x$, an affine hyperplane with normal vector $q$. The Euclidean locus $\lVert q - x\rVert = c$ is by definition the sphere of radius $c$ about $q$. For cosine, $\cos(q, x) = c$ means $\langle q, x\rangle = c\,\lVert q\rVert\,\lVert x\rVert$; this condition is invariant under positive scaling $x \mapsto t x$ for $t > 0$, since both sides scale by $t$, so the locus is a union of rays from the origin — a cone with axis $q$ and half-angle $\arccos c$. $\blacksquare$
+
+</TheoremBlock>
+
+The laboratory draws exactly these loci through the marked document: toggle the score and the dashed locus switches between a line, a circle, and a pair of rays. The shapes make the magnitude story visual. The cosine cone is anchored at the origin and cares only about *direction*, so sliding a document outward along a ray leaves its cosine score fixed; the dot-product hyperplane is perpendicular to $q$, so pushing a document farther in the $q$-direction strictly raises its dot score. That single picture — direction-only cone versus magnitude-sensitive hyperplane — is the whole of Proposition 2 made geometric.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+The production financial-RAG system behind the [BM25](/topics/bm25-binary-independence-model) and [high-dimensional-geometry](/topics/high-dimensional-geometry) case studies retrieves over a mix of 10-K filing passages and earnings-call transcripts. A recurring failure mode in such a corpus is that long, low-signal transcripts crowd out short, precise filings — and the choice of similarity score is exactly where that is decided.
+
+We make the point with a deterministic two-dimensional stand-in rather than a claim. Take the query direction $q$ for "interest rate exposure" and four documents whose *norms vary by design*: a concise on-point filing $d^\star$ best aligned with $q$, a padded earnings-call transcript with the largest norm, a macro news item, and an off-topic FX filing. The companion code computes, for $q = (1, 0)$:
+
+- **dot-product ranking:** padded transcript ($\mathbf{1.700}$), on-point filing ($\mathbf{0.950}$), news ($0.800$), FX ($0.300$) — the padded transcript leads on magnitude;
+- **cosine ranking:** on-point filing ($\mathbf{0.9785}$), news ($0.8240$), padded transcript ($\mathbf{0.7944}$), FX ($0.3162$) — the concise filing leads on direction, and the padded transcript falls to third.
+
+Same query, same documents, opposite winners — and the disagreement is not a tie-breaking accident but a third-place swing for the padded transcript. L2-normalizing every document onto the unit circle collapses the two rankings (and the Euclidean one) into the single order *on-point, news, transcript, FX*, exactly as Theorem 2 promises. The magnitude that the dot product rewards is precisely the document-length artifact that [BM25's length normalization](/topics/bm25-binary-independence-model) removes; here it is visible in two dimensions with nothing hidden.
+
+</FinanceCaseStudy>
+
+A candid note on the companion code, in the spirit of the rest of the series: the four document vectors are a synthetic two-dimensional construction, chosen so the notebook is deterministic, CPU-only, and reproducible to the decimal with no model download. They are not the output of a trained encoder. The phenomenon being illustrated — that dot-product and cosine rankings diverge when norms vary, and coincide once they do not — is exact and dimension-independent, which is why the same coincidence holds in the harness up to $128$ dimensions.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Four qualifications keep the geometry honest:
+
+1. **Cosine "distance" is not a metric.** It breaks the triangle inequality (Proposition 4, with an explicit three-point counterexample whose violation gap $\sqrt 2 - 1$ the code reports). Indexes that assume a metric must normalize onto the sphere first, where cosine becomes a monotone function of Euclidean distance.
+2. **The dot product is not a metric at all.** It has no identity of indiscernibles and ranks in the opposite sense (Proposition 5); maximum inner-product search is therefore *not* metric nearest-neighbor search, and is only reduced to one by augmentation — a distinction that becomes a hardness result later in this track.
+3. **The on-sphere equivalence is conditional on normalization.** It is exact on $S^{d-1}$ (Theorem 2); off the sphere, dot-product and cosine rankings genuinely diverge (Proposition 2), and which score is "right" is a modeling decision, not a theorem.
+4. **$\operatorname{rel}(q, d)$ and cosine are models, not ground truth.** Relevance is an unobserved human judgment that the functional only approximates, and cosine similarity is a calibrated *geometry*, not a calibrated *probability*: $0.8$ is more aligned than $0.4$, but it is not an eighty-percent chance of relevance. The finance vectors are a synthetic stand-in, not a trained encoder.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) is self-contained, CPU-only, and runs in a fraction of a second on `numpy`. It defines the three similarity primitives and the ranking operator, builds the finance corpus, and prints the score table that the `SimilarityGeometryLaboratory` mirrors to the decimal. Its verification harness makes each claim of the topic executable: the cosine-distance identity holds to machine precision up to $64$ dimensions (Theorem 1); the cosine ranking is invariant under a battery of strictly monotone transforms (Proposition 1); on the unit sphere the cosine, dot, and Euclidean rankings coincide on the finance corpus and on random corpora up to $128$ dimensions (Theorem 2); off the sphere the dot product tops the padded transcript while cosine tops the on-point filing, and scaling $d^\star$'s magnitude flips the dot ranking at $c^\star = 1.7895$ while leaving cosine fixed (Proposition 2); Euclidean distance satisfies all four metric axioms over a battery of point triples (Proposition 3); the cosine-distance triangle-inequality counterexample violates the inequality by $\sqrt 2 - 1$ (Proposition 4); the dot product fails identity of indiscernibles (Proposition 5); and points sampled along each computed level set carry a constant score, confirming the hyperplane, sphere, and cone classification (Proposition 6). The three pillars — the proofs above, the laboratory, and the tested code — agree by construction.
