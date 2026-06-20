@@ -45,7 +45,7 @@
     {
       "id": "chunking-as-segmentation",
       "label": "Chunking as a Segmentation and Optimization Problem",
-      "status": "planned",
+      "status": "published",
       "domain": "embedding-geometry"
     },
     {

@@ -28,7 +28,6 @@ export const tracks = [
     planned: [
       'Matryoshka Representations: Jointly Trained Nested Subspaces',
       'Random Projections and the Johnson–Lindenstrauss Lemma',
-      'Chunking as a Segmentation and Optimization Problem',
     ],
     dependsOnFormalML: true,
   },
