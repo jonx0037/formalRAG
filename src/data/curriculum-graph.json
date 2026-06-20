@@ -87,7 +87,7 @@
     {
       "id": "ivf-voronoi-partitioning",
       "label": "Voronoi Partitioning and the IVF Index",
-      "status": "planned",
+      "status": "published",
       "domain": "ann-indexing"
     },
     {
@@ -372,6 +372,10 @@
     },
     {
       "source": "vector-quantization-lloyd-max",
+      "target": "ivf-voronoi-partitioning"
+    },
+    {
+      "source": "product-quantization",
       "target": "ivf-voronoi-partitioning"
     },
     {

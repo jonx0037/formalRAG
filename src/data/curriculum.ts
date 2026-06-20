@@ -50,7 +50,6 @@ export const tracks = [
     description:
       'The data structures behind sublinear vector retrieval, at the level of their actual mathematics: IVF Voronoi partitioning, LSH sensitivity theory, navigable small-world graphs and HNSW, multi-vector and filtered ANN.',
     planned: [
-      'Voronoi Partitioning and the IVF Index',
       'Locality-Sensitive Hashing: Collision Probability and the ρ Exponent',
       'Navigable Small-World Graphs and the Mathematics of Greedy Routing',
       'HNSW: Hierarchical Navigable Small-World Construction and Search',
