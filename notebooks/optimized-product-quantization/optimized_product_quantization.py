@@ -196,11 +196,14 @@ def nonparametric_opq(X: np.ndarray, m: int, k_star: int, n_iter: int = 15, seed
         Xr = apply_rotation(Xc, R)
         Q = pq_decode(pq_encode(Xr, cb), cb)
         R = procrustes_update(Xc, Q)
-        # codebook step under the new rotation: never accept an increase vs the kept codebooks.
+        # codebook step under the new rotation: never accept an increase vs the kept codebooks
+        # (cache both distortions so pq_distortion runs exactly twice, not three times, per step).
         Xr = apply_rotation(Xc, R)
         cb_new = train_pq(Xr, m, k_star, seed=seed)
-        cb = cb_new if pq_distortion(Xr, cb_new) <= pq_distortion(Xr, cb) else cb
-        trajectory.append(pq_distortion(Xr, cb))
+        dist_new, dist_old = pq_distortion(Xr, cb_new), pq_distortion(Xr, cb)
+        if dist_new <= dist_old:
+            cb = cb_new
+        trajectory.append(min(dist_new, dist_old))
     return R, cb, np.array(trajectory)
 
 
@@ -288,7 +291,9 @@ def anisotropic_lloyd(X: np.ndarray, k: int, eta: float, n_iter: int = 20, seed:
 
 def _highscore_ip_mse(Qu, Xu, Xq, true_scores, topk):
     """Mean squared inner-product error (<q,x> - <q,x_q>)^2 over each query's true top-k pairs —
-    the high-score pairs that actually surface in a MIPS ranking. GUARD: empty pair set."""
+    the high-score pairs that actually surface in a MIPS ranking. GUARDS: cap topk at the database
+    size (np.argpartition would raise otherwise); empty pair set -> 0.0."""
+    topk = min(topk, true_scores.shape[1])
     approx = Qu @ Xq.T                              # (nq, n) approximate scores
     se, count = 0.0, 0
     for qi in range(Qu.shape[0]):
@@ -300,8 +305,9 @@ def _highscore_ip_mse(Qu, Xu, Xq, true_scores, topk):
 
 
 def _mips_recall(Qu, Xu, Xq, true_scores, topk):
-    """recall@topk of MIPS when database scores are approximated by <q, x_q>. GUARD: empty
-    query set or topk <= 0 -> 0.0 (no pairs to score)."""
+    """recall@topk of MIPS when database scores are approximated by <q, x_q>. GUARDS: cap topk at
+    the database size (np.argpartition would raise otherwise); empty query set or topk <= 0 -> 0.0."""
+    topk = min(topk, true_scores.shape[1])
     denom = Qu.shape[0] * topk
     if denom <= 0:
         return 0.0
