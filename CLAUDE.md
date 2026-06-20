@@ -107,8 +107,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   no `.py`/`.ipynb` (its source was merged on a branch you don't have yet).
 - **Multiple topics in one session = feature branches off `main`.** They merge in any order *only if*
   each depends solely on already-published prereqs. If a batch topic lists a **sibling** as prereq (e.g.
-  pseudo-relevance-feedback needs query-likelihood), sequence them: branch the dependent off `main`
-  only **after** its in-batch prereq merges, then re-sync `main`. Each removes its title
+  pseudo-relevance-feedback needs query-likelihood), sequence them: re-sync `main` only **after** its
+  in-batch prereq merges, then branch the dependent off it. Each removes its title
   from a track's `planned[]` array, so the **2nd+ merge needs a trivial one-line `curriculum.ts`
   `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge; but a
   DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
