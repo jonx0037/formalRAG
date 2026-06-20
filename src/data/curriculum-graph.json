@@ -57,7 +57,7 @@
     {
       "id": "inverted-index-dynamic-pruning",
       "label": "The Inverted Index and Safe Dynamic Pruning (WAND, BlockMax-WAND)",
-      "status": "draft",
+      "status": "published",
       "domain": "probabilistic-ir"
     },
     {

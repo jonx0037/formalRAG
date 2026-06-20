@@ -1,26 +1,244 @@
 ---
 title: "The Inverted Index and Safe Dynamic Pruning (WAND, BlockMax-WAND)"
-status: "draft"
+subtitle: "How BM25 is actually computed at scale — and the provably exact pruning that skips the documents that cannot enter the top-k"
+status: "published"
 difficulty: "intermediate"
+prerequisites:
+  - "vector-space-model-tfidf"
+  - "bm25-binary-independence-model"
 tags:
   - "inverted-index"
   - "wand"
+  - "blockmax-wand"
   - "dynamic-pruning"
+  - "top-k-retrieval"
 domain: "probabilistic-ir"
-financeCaseStudy: false
-abstract: "The data structure BM25 is computed over, and the provably top-k-safe pruning (WAND, BlockMax-WAND) that skips documents that cannot enter the result set."
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+rigorFlag: "WAND and BlockMax-WAND are exact — they return the same top-k as an exhaustive scan — but they carry no asymptotic guarantee: an adversarial flat-score query prunes nothing and degrades to the full scan. The speedup is a data-dependent constant factor, and block size is an empirically tuned parameter, not a derived optimum."
+videoId: null
+notebookPath: "notebooks/inverted-index-dynamic-pruning/01_inverted_index_dynamic_pruning.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/inverted-index-dynamic-pruning.mdx"
+datePublished: 2026-06-20
+estimatedReadTime: 32
+abstract: "BM25 assigns a score to a document, but a retrieval system must return the top-k documents from a collection of millions without scoring all of them. The inverted index is the data structure that makes this possible, and dynamic pruning is the algorithm. We define the inverted index — postings lists, document frequencies, length array — and document-at-a-time scoring, then derive WAND: per-term maximum-score upper bounds, a running threshold equal to the k-th best score so far, and a pivot rule that skips any document whose cumulative upper bound cannot reach the threshold. We prove the safety theorem — WAND returns the exact top-k — and show how BlockMax-WAND tightens the bound with per-block maxima for deeper skipping. The honest counterweight: pruning is exact but has no asymptotic guarantee, and an adversarial query reduces it to the exhaustive scan. An interactive pruning visualizer and a from-scratch implementation whose tests assert exactness and measure the pruning accompany the derivation, with a finance case study over filings and transcripts at scale."
+connections:
+  - topic: "bm25-binary-independence-model"
+    relationship: "the inverted index is the structure BM25 scores are accumulated over; WAND and BlockMax-WAND prune documents whose BM25 upper bound cannot enter the top-k"
+  - topic: "vector-space-model-tfidf"
+    relationship: "the postings lists, document frequencies, and length array are exactly the sparse term-weight representation the vector space model defines, now stored for fast retrieval"
+  - topic: "late-interaction-learned-sparse"
+    relationship: "learned sparse retrievers (SPLADE) produce weighted term expansions that live in the same inverted index and are served by the same dynamic-pruning machinery"
+references:
+  - type: "paper"
+    title: "Efficient Query Evaluation using a Two-Level Retrieval Process"
+    authors: "Broder, Carmel, Herscovici, Soffer & Zien"
+    year: 2003
+    url: "https://doi.org/10.1145/956863.956944"
+    note: "The original WAND algorithm"
+  - type: "paper"
+    title: "Faster Top-k Document Retrieval Using Block-Max Indexes"
+    authors: "Ding & Suel"
+    year: 2011
+    url: "https://doi.org/10.1145/2009916.2010048"
+    note: "BlockMax-WAND and the block-max index"
+  - type: "paper"
+    title: "Faster BlockMax WAND with Variable-sized Blocks"
+    authors: "Mallia, Ottaviano, Porciani, Tonellotto & Venturini"
+    year: 2017
+    url: "https://doi.org/10.1145/3077136.3080780"
+    note: "Variable-sized blocks (VBMW), the current state of the art"
+  - type: "paper"
+    title: "Query Evaluation: Strategies and Optimizations"
+    authors: "Turtle & Flood"
+    year: 1995
+    url: "https://doi.org/10.1016/0306-4573(95)00020-H"
+    note: "Document-at-a-time vs term-at-a-time evaluation"
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapters 1–2 (inverted index) and 5 (index compression)"
+  - type: "documentation"
+    title: "PISA: Performant Indexes and Search for Academia"
+    url: "https://github.com/pisa-engine/pisa"
+    note: "Reference implementations of WAND, BlockMax-WAND, and VBMW"
+formalstatisticsPrereqs:
+  - topic: "order-statistics-and-quantiles"
+    site: "formalstatistics"
+    relationship: "the WAND threshold is the k-th order statistic of the score stream; the algorithm maintains this running k-th-largest value incrementally and prunes against it"
 ---
 
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
 import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import InvertedIndexPruningVisualizer from '../../components/viz/InvertedIndexPruningVisualizer.tsx';
 
-<NamedSection id="status" title="On the roadmap">
+[BM25](/topics/bm25-binary-independence-model) tells us how to score one document against a query. It does not tell us how to find the ten best documents in a collection of ten million without computing ten million scores. That gap — between a scoring function and a retrieval system — is where the inverted index and dynamic pruning live, and it is the one place in classical IR where the mathematics is about *algorithms* rather than relevance.
 
-This topic is part of the formalRAG curriculum and is **not yet published** — it is
-currently a stub so that links from neighboring topics resolve. See the
-[curriculum roadmap](/paths) for where it sits in the dependency graph.
+The promise of dynamic pruning is unusually strong, and worth stating precisely up front: we will skip the vast majority of the collection and still return the **exact** top-k — the identical documents and scores an exhaustive scan would produce. Not an approximation, not a probabilistic guarantee with a failure rate, but the provably correct answer. The price, which we will be equally precise about, is that the guarantee is only on *correctness*, never on *speed*: a pathological query can force the algorithm to score everything.
 
-In the meantime, the published pilot topic
-[BM25 and the Binary Independence Model](/topics/bm25-binary-independence-model)
-demonstrates the three-pillar treatment this topic will receive.
+<InvertedIndexPruningVisualizer client:visible />
 
-</NamedSection>
+The visualizer above runs all three methods over a ten-document worked corpus for the query *interest rate exposure*. Switch between exhaustive scanning, WAND, and BlockMax-WAND and watch the "documents fully scored" bars: every method returns the same top-k ranking, but the pruning methods compute far fewer full scores. On ten documents the saving is modest; the closing section shows it reaching 7% of the collection at scale.
+
+### What we cover
+
+1. The inverted index: postings lists, document frequency, the length array.
+2. Document-at-a-time scoring, the exhaustive baseline.
+3. WAND: per-term upper bounds, the threshold, and the pivot.
+4. The safety theorem — WAND returns the exact top-k.
+5. BlockMax-WAND: tighter local bounds and deeper skipping.
+6. The honest limit: no asymptotic guarantee, and a finance case study at scale.
+
+---
+
+## The inverted index
+
+The data structure is the obvious one once you need it. Rather than store, per document, the list of terms it contains, store per *term* the list of documents that contain it.
+
+<TheoremBlock type="definition" number={1} title="Inverted index">
+
+For a collection of $N$ documents, the **inverted index** maps each term $t$ to a **postings list** — the documents containing $t$, sorted by document id, each annotated with the term frequency $\text{tf}_{t,d}$:
+
+$$
+t \;\longmapsto\; \big[(d_1, \text{tf}_{t,d_1}),\, (d_2, \text{tf}_{t,d_2}),\, \dots\big], \qquad d_1 < d_2 < \cdots
+$$
+
+Alongside it sit the **document frequency** $\text{df}_t$ (the length of $t$'s postings list) and the **length array** $\text{dl}_d$ (each document's token count), which together are all the statistics BM25 needs.
+
+</TheoremBlock>
+
+These are exactly the ingredients of the [vector space model](/topics/vector-space-model-tfidf): the postings are the nonzero entries of the sparse term–document matrix, $\text{df}_t$ drives IDF, and $\text{dl}_d$ drives length normalization. Storing them term-major rather than document-major is what lets us answer a query by reading only the postings of the query's terms — a handful of lists — instead of touching every document.
+
+There are two ways to walk those lists. **Term-at-a-time** (TAAT) processing reads one full postings list, accumulates partial scores into an array of size $N$, then moves to the next term. **Document-at-a-time** (DAAT) processing advances a cursor on every query term's list in lockstep, fully scoring one document before moving on. DAAT is what modern engines use and what dynamic pruning requires, because pruning decisions are made per document, against a threshold that evolves as documents are scored.
+
+---
+
+## Exhaustive document-at-a-time scoring
+
+The baseline is honest and exact: score every document that contains at least one query term.
+
+<TheoremBlock type="definition" number={2} title="Exhaustive DAAT top-k">
+
+Maintain a min-heap of the $k$ best $(\text{score}, d)$ pairs seen so far. Advance the query terms' cursors in document-id order; for each document $d$ that appears in any query term's postings, compute its full BM25 score $\sum_{t \in q} \text{contribution}_t(d)$, and offer it to the heap. After all postings are consumed, the heap holds the exact top-k.
+
+</TheoremBlock>
+
+This is correct by construction — it scores everything, so it cannot miss anything — and it is the ground truth every pruning method must reproduce. Its cost is one full score per document touched: on the union of the query terms' postings lists, which for a common term can be a large fraction of the collection. The entire point of WAND is to compute the same answer while *evaluating* far fewer of those documents.
+
+---
+
+## WAND: upper bounds, a threshold, and the pivot
+
+The key observation is that we do not need a document's exact score to rule it out — an upper bound suffices. For each term, precompute the largest contribution it can ever make.
+
+<TheoremBlock type="definition" number={3} title="Per-term upper bound and the pivot">
+
+For each query term $t$, let its **upper bound** be its maximum contribution over its postings,
+
+$$
+\text{UB}_t = \max_{d \,\in\, \text{postings}(t)} \text{contribution}_t(d).
+$$
+
+Let $\theta$ be the current **threshold** — the $k$-th largest score found so far (or $-\infty$ until $k$ documents have been scored). Sort the query terms by their cursors' current document ids. The **pivot** is the first term in this order whose cumulative upper bound reaches the threshold:
+
+$$
+\text{pivot} = \min\Big\{\, p : \textstyle\sum_{i \le p} \text{UB}_{t_i} \ge \theta \,\Big\},
+$$
+
+and the **pivot document** is that term's current document id. Any document with a smaller id cannot reach $\theta$ and is skipped; the pivot document is fully scored only if all earlier cursors already align on it.
+
+</TheoremBlock>
+
+WAND — "Weak AND," or "Weighted AND" — is the loop built on this rule (Broder et al., 2003). The threshold rises as better documents are found, which raises the pivot, which skips ever more documents. The interactive panel above shows the upper bounds $\text{UB}_t$ at the right of each postings row; the dimmed columns are the documents WAND's pivot rule never fully scores.
+
+---
+
+## The safety theorem
+
+Everything rests on one guarantee: that skipping never discards a document that belongs in the top-k.
+
+<TheoremBlock type="theorem" number={1} title="WAND returns the exact top-k">
+
+For any query, any $k$, and any documents, WAND fully scores every document that appears in the true top-k, and therefore returns exactly the same $k$ documents and scores as the exhaustive scan.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Two facts drive the proof. First, the threshold is **monotonically non-decreasing**: the heap only ever replaces its smallest element with a larger score, so its minimum $\theta$ can only rise. Let $\theta^\star$ be the final threshold — the $k$-th largest score in the collection (assuming at least $k$ documents match; otherwise every matching document is returned and there is nothing to prove).
+
+Second, the score of any document is bounded by the upper bounds of the terms it contains. Suppose, for contradiction, that WAND skips a document $d$ that belongs in the true top-k, so $\text{score}(d) \ge \theta^\star$. A document is skipped only at some step where the cumulative upper bound over the terms whose cursors sit at or before $d$ falls short of the *current* threshold $\theta$:
+
+$$
+\text{score}(d) \;=\; \sum_{t \,:\, d \,\in\, \text{postings}(t)} \text{contribution}_t(d) \;\le\; \sum_{t \,:\, d \,\in\, \text{postings}(t)} \text{UB}_t \;<\; \theta \;\le\; \theta^\star.
+$$
+
+The first inequality is the definition of the upper bound, applied term by term; the middle inequality is the skip condition — the only condition under which WAND advances past $d$ without scoring it; the last is monotonicity, since the current threshold never exceeds the final one. But this gives $\text{score}(d) < \theta^\star$, contradicting $\text{score}(d) \ge \theta^\star$. Hence no top-k document is ever skipped. Every top-k document is fully scored and offered to the heap, which retains the $k$ largest, so WAND's output equals the exhaustive scan's. $\;\blacksquare$
+
+</TheoremBlock>
+
+The proof is worth dwelling on because it isolates exactly what the algorithm needs to be correct: a *valid* upper bound (one that is never smaller than the true contribution) and a *monotone* threshold. Any tighter upper bound that remains valid keeps the algorithm exact while pruning more — which is precisely the door BlockMax-WAND walks through.
+
+---
+
+## BlockMax-WAND: tighter local bounds
+
+A single global $\text{UB}_t$ is pessimistic. A term's postings list might contain one document where it scores $1.5$ and a thousand where it scores $0.3$; the global upper bound is $1.5$ everywhere, so the pivot rule treats every one of those thousand documents as if it might score $1.5$. BlockMax-WAND (Ding and Suel, 2011) fixes this by storing, for each fixed-size **block** of a postings list, the maximum contribution *within that block*.
+
+<TheoremBlock type="proposition" number={1} title="Block maxima are valid, tighter upper bounds">
+
+Partition each postings list into blocks and store each block's maximum contribution. For a candidate pivot document, the sum of the relevant blocks' maxima is an upper bound on the document's true score (so pruning against it stays exact), and it is no larger than the global bound $\sum_t \text{UB}_t$ (so it prunes at least as much). When the block-max bound falls below the threshold, the document's full score need not be computed at all.
+
+</TheoremBlock>
+
+Because each block maximum is taken over a subset of the postings, it is at most the global maximum, so the block-max bound is tighter; and because it is still a maximum over the actual contributions in that block, it remains a valid upper bound, so the safety proof goes through verbatim with $\text{UB}_t$ replaced by the local block maximum. The result is the same exact top-k with strictly more skipping — the notebook confirms BlockMax-WAND never scores more documents than WAND, and far fewer at scale. Variable-sized blocks (VBMW; Mallia et al., 2017) push this further by choosing block boundaries to make the maxima as tight as possible.
+
+---
+
+## The honest limit: no asymptotic guarantee
+
+Dynamic pruning is one of the rare algorithms whose *correctness* is provable but whose *speedup* is not.
+
+<RigorFlag>
+
+WAND and BlockMax-WAND are **exact**, but three honest qualifications matter:
+
+1. **No asymptotic guarantee.** The worst case is still $O(\text{total postings})$. When every document scores nearly the same — a single very common term, or a query whose terms are uncorrelated and uniformly distributed — the threshold barely separates documents, the pivot never advances past them, and the algorithm degrades to the exhaustive scan. The notebook makes this concrete: a flat-score query prunes *nothing*. The speedup is a data-dependent constant factor, not a better complexity class.
+2. **Block size is tuned.** The choice of block size (and, in VBMW, the boundaries) trades index size and decompression cost against bound tightness; the good values are found empirically, not derived.
+3. **Upper bounds must be maintained.** The guarantee assumes the stored maxima are correct and that scores are bounded above by them — which holds for BM25 but must be re-established for any other scoring function (a learned model with unbounded outputs, for instance) before the safety proof applies.
+
+The discipline these flags enforce is the point of the topic: an *exact* pruning method is categorically different from an *approximate* nearest-neighbor index, and conflating "fast in practice" with "fast in the worst case" is exactly the kind of laundering this series exists to avoid.
+
+</RigorFlag>
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf"]}>
+
+The lexical leg of a production financial RAG retriever runs WAND-class pruning over an inverted index of **10-K / 10-Q filings** and **earnings-call transcripts** — hundreds of thousands of documents, many of them long. Two properties of the math matter directly:
+
+- **Exactness is non-negotiable.** A retrieval system feeding a compliance or research workflow cannot quietly drop the one filing that answers the query. Because WAND is provably exact, the engineering team gets the latency of pruning with the correctness of a full scan — there is no recall/speed trade-off to defend in an audit.
+- **The pruning is real because financial queries are selective.** Queries like a specific GAAP line item, a ticker, or *interest rate exposure* contain terms whose postings lists are short or whose high-scoring documents are few, so the threshold rises quickly and most of the collection is skipped. The adversarial flat-score case is rare here precisely because the discriminating terms a financial analyst searches for are, by definition, not uniformly distributed.
+
+The lexical leg's exact top-k is then fused with dense retrieval via [reciprocal rank fusion](/topics/rank-fusion-rrf); dynamic pruning is what keeps that lexical leg cheap enough to run on every query.
+
+</FinanceCaseStudy>
+
+In practice the index is also **compressed** — postings are delta-encoded and packed — so block-max indexes do double duty: the block boundaries that bound the scores are also the units of decompression, and skipping a block means skipping its decompression entirely. The I/O saved by not touching a block is often a larger win than the arithmetic saved by not scoring a document, which is why block-max methods, not plain WAND, are what production engines such as Lucene and PISA actually ship.
+
+---
+
+## Implementation
+
+The companion notebook builds an inverted index with real postings lists and scores it with BM25 replicated verbatim from the [BM25 topic](/topics/bm25-binary-independence-model) ($k_1 = 1.5$, $b = 0.75$), so the documents score identically to that page. It implements all three methods — exhaustive DAAT, WAND, and BlockMax-WAND — and turns the safety theorem into an assertion: across both the worked corpus and 150 random instances, the pruned methods return the exact top-k of the exhaustive scan, and the threshold is verified monotone.
+
+The pruning is then measured rather than asserted. On a skewed synthetic collection the documents fully scored fall from **2870** (exhaustive) to **792** (WAND) to **209** (BlockMax-WAND) for the top-10 over $N = 5000$ — BlockMax-WAND computes full scores for just 7% of the collection while returning the identical ranking. The honest counterpoint runs in the same harness: a flat-score query where every document is tied forces WAND to score all $40$ documents, exactly as many as the exhaustive scan, demonstrating that the guarantee is on correctness alone. The worked corpus the visualizer mirrors ($N = 10$, $\text{avgdl} = 9$) and its per-term upper bounds are printed by the harness so the page, the notebook, and the visualizer share one set of numbers.
