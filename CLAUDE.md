@@ -66,7 +66,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `/` on this setup; instead assert DOM state (`.katex` count, slider/ranking presence). Viz uses
   `client:visible`, so the SSR DOM (KaTeX counts, baked readouts) is present on load, but to test
   *interactivity* (toggling a panel, dragging a slider) you must `scrollIntoView` the component and
-  wait ~0.5–1 s for hydration first — otherwise clicks no-op against un-hydrated markup.
+  wait ~0.5–1 s for hydration first — otherwise clicks no-op against un-hydrated markup. A
+  React-controlled range slider ignores a synthesized `input` event (state won't change); drive it with
+  a **real keyboard interaction** (`focus()` then `ArrowRight`) and assert the readout updated.
   Hydration tell-tales: the React JSX (buttons, list, *empty* `<svg>`) is in the SSR DOM, but
   D3-drawn `<rect>/<circle>` children and `katex.render()` output (a post-load `.katex` count bump)
   appear only *after* hydration — assert on those before clicking.
@@ -92,19 +94,30 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   because a corpus-universal term (`rate`, in all docs) gets IDF 0; the fix was to teach the exact
   form (the self-information theorem) but *score* with smoothed `log(1+N/df)`, flagging smoothing as
   a convention. Reusing a shared corpus across topics does **not** guarantee the same flip holds
-  under each topic's scoring variant.
+  under each topic's scoring variant. **Smoothing/normalization parameters must scale to the toy
+  corpus's short docs** — Dirichlet μ≈document length (≈5), not the production μ≈1000–2000, or smoothing
+  swamps every doc model toward the collection and the ranking signal vanishes.
 - **Verify reference DOIs** with `curl -sI https://doi.org/<doi>` — the `location:` header in the 302
   alone confirms journal/volume/issue/pages (a HEAD request: no redirect-following, no paywalled GET).
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
-- **Multiple topics in one session = independent feature branches off `main`** (each depends only on
-  already-published prereqs, not on its siblings, so they merge in any order). Each removes its title
+- **Sync local `main` first.** `gh pr merge` updates *origin*, not local `main` — before branching each
+  topic run `git fetch origin && git checkout main && git merge --ff-only origin/main`. The tell that
+  you're on a stale base: a "published" topic shows as a draft stub with an orphaned `__pycache__/` and
+  no `.py`/`.ipynb` (its source was merged on a branch you don't have yet).
+- **Multiple topics in one session = feature branches off `main`.** They merge in any order *only if*
+  each depends solely on already-published prereqs. If a batch topic lists a **sibling** as prereq (e.g.
+  pseudo-relevance-feedback needs query-likelihood), sequence them: branch the dependent off `main`
+  only **after** its in-batch prereq merges, then re-sync `main`. Each removes its title
   from a track's `planned[]` array, so the **2nd+ merge needs a trivial one-line `curriculum.ts`
   `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge; but a
   DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
   `gemini-code-assist` review — fetch its nits with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments`
   (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
-  medium-priority robustness/perf/a11y ones before merging.
+  medium-priority robustness/perf/a11y ones before merging. It reliably flags **unguarded denominators**
+  (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` — add
+  those guards up front. (`jupyter execute` does *not* write outputs back, so re-running to verify won't
+  dirty the committed output-free `.ipynb`.)
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`.
 
