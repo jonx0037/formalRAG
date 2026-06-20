@@ -181,6 +181,8 @@ def neg_kl_score(query: str, index: InvertedIndex, method: str, param: float) ->
     pm = smoothed_model(index, method, param)
     qc = query_counts(query, index)
     qlen = qc.sum()
+    if qlen == 0:                                             # query is all out-of-vocabulary
+        return np.zeros(index.n_docs)
     theta_q = qc / qlen
     cols = np.nonzero(qc)[0]
     h_q = -(theta_q[cols] * np.log(theta_q[cols])).sum()      # query entropy (constant)
