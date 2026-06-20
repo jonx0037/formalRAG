@@ -1,0 +1,287 @@
+---
+title: "Product Quantization and Asymmetric Distance Computation"
+subtitle: "Quantizing each subspace independently turns one intractable codebook into a product of small ones — the additive distortion that makes it work, and the lookup table that keeps search fast"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "vector-quantization-lloyd-max"
+tags:
+  - "product-quantization"
+  - "asymmetric-distance"
+  - "codebook"
+  - "rate-distortion"
+  - "approximate-nearest-neighbor"
+  - "compression"
+  - "lookup-table"
+  - "optimized-pq"
+domain: "vector-quantization"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "Product quantization is a scalability win, not a free lunch, and the comparison must be stated honestly. First and most important: PQ never beats a TRAINABLE flat codebook at equal bits. The reconstruction of a product quantizer lives in the Cartesian product of its sub-codebooks — a strict subset of what an unconstrained flat codebook of the same bit budget can represent — so at any rate where a flat k=2^B codebook is actually trainable, flat-VQ distortion is at most PQ's. PQ's advantage is purely reachability: a flat codebook needs 2^B centroids, capped at k <= n training points and intractable past roughly sixteen to twenty bits, while PQ reaches the same rate at m*k* stored centroids, so it attains recall and distortion a flat codebook cannot reach at any feasible storage. We verify this both ways (the honest caveat AND the headline) and never flip the inequality. Second, asymmetric distance computation beats symmetric only IN THE MEAN: keeping the query un-quantized removes a query-quantization term from the expected squared distance error, but individual query-database pairs can reverse, so we assert the mean error inequality and the recall ordering, not a per-pair guarantee. Third, PQ assumes the subspaces are statistically independent; cross-subspace correlation and unequal per-subspace variance under equal bit allocation are the loss it pays, and a variance-balancing rotation lowers distortion — which is exactly what optimized product quantization learns. We demonstrate the DIRECTION of that effect on a deliberately variance-imbalanced cloud (where naive PCA-alignment alone barely helps, but a balanced rotation cuts distortion several-fold) and flag it as a motivated direction, not a magic number. Fourth, equal bit allocation across subspaces is optimal only for equal-variance subspaces. Finally, the per-subspace quantizer inherits every local-optimum caveat of Lloyd's algorithm, and the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in, not a trained encoder, with all distortion and recall numbers measured on that synthetic cloud — the same one the previous topic used, so the flat ceiling is a like-for-like comparison."
+videoId: null
+notebookPath: "notebooks/product-quantization/01_product_quantization.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/product-quantization.mdx"
+datePublished: 2026-06-20
+estimatedReadTime: 34
+abstract: "The previous topic ended on a wall: a single flat codebook of 256 codewords compresses a 256-dimensional embedding to one byte but retains only about half of the nearest-neighbor recall, and a flat codebook cannot do better cheaply — it needs 2^B centroids for B bits, capped at the number of training points and intractable past a couple dozen bits. Product quantization breaks the wall by giving up on a single codebook. Split each vector into m disjoint subvectors, quantize each subspace independently with its own small codebook of k* centroids — which is exactly Lloyd's k-means run m times — and store the tuple of m sub-centroid indices, m*log2(k*) bits. We prove the identity that makes this work: squared Euclidean distance separates over disjoint coordinate blocks, so the total distortion is the sum of the per-subspace distortions and each subspace is trained independently. The effective codebook is the product of the sub-codebooks, (k*)^m codewords, stored as only m*k* centroids: eight bytes encode an effective 2^64 codewords from 2048 stored vectors. For retrieval, asymmetric distance computation keeps the query exact and precomputes an m-by-k* table of squared sub-distances, so each database distance is m table lookups, turning an O(d) distance into O(m). We confront the honest accounting — at equal trainable bits a flat codebook matches or beats PQ; PQ wins only by reaching budgets a flat codebook cannot — and connect the residual loss to subspace correlation, the gap that optimized product quantization closes with a learned rotation. An interactive Quantization Laboratory and a tested implementation that imports and extends the previous topic's Lloyd code accompany the derivation."
+connections:
+  - topic: "vector-quantization-lloyd-max"
+    relationship: "product quantization is literally Lloyd's algorithm run independently on each subspace: every sub-codebook is trained by the k-means of the previous topic, the additive distortion decomposition reduces the joint problem to m independent Lloyd quantizers, and the companion code imports that topic's lloyd, kmeans++, and empty-cell repair rather than reimplementing them"
+  - topic: "high-dimensional-geometry"
+    relationship: "the curse of dimensionality is exactly what a single codebook cannot scale against — Zador's distortion falls only as k^(-2/d) — and product quantization beats it by factoring the d-dimensional problem into m low-dimensional ones whose product codebook is exponentially large at linear storage, the structured escape the concentration results there motivate"
+  - topic: "mips-hardness-and-sublinearity-limits"
+    relationship: "exact maximum-inner-product search is the scan to avoid, and asymmetric distance computation is the table-lookup escape this topic builds: replacing each database vector by a short code turns an O(d) distance into m table lookups, trading the proven hardness of exact search for the controlled approximation error PQ quantifies"
+  - topic: "pca-dimensionality-reduction"
+    relationship: "PCA rotates and truncates to decorrelate and shrink the vector, and the rotation that makes product quantization optimal is the same kind of object: the residual loss PQ pays is cross-subspace correlation, which a PCA-like rotation reduces, so the eigenstructure developed there is exactly what optimized product quantization learns to balance variance across subspaces"
+references:
+  - type: "paper"
+    title: "Product Quantization for Nearest Neighbor Search"
+    authors: "Jégou, Douze & Schmid"
+    year: 2011
+    url: "https://doi.org/10.1109/TPAMI.2010.57"
+    note: "The paper that introduced product quantization and asymmetric distance computation for ANN search — the source of the additive decomposition and the ADC/SDC distinction proved here"
+  - type: "paper"
+    title: "Optimized Product Quantization"
+    authors: "Ge, He, Ke & Sun"
+    year: 2014
+    url: "https://doi.org/10.1109/TPAMI.2013.240"
+    note: "The learned rotation that minimizes PQ distortion by decorrelating and balancing variance across subspaces — the next topic, and the cited fix for the independence caveat"
+  - type: "paper"
+    title: "Quantization"
+    authors: "Gray & Neuhoff"
+    year: 1998
+    url: "https://doi.org/10.1109/18.720541"
+    note: "The definitive survey: product and structured vector quantizers, the rate-distortion framing, and the constrained-complexity codebooks PQ is an instance of"
+  - type: "book"
+    title: "Vector Quantization and Signal Compression"
+    authors: "Gersho & Gray"
+    year: 1992
+    url: "https://doi.org/10.1007/978-1-4615-3626-0"
+    note: "The standard text on product-code and structured vector quantizers — the classical origin of quantizing subvectors with separate codebooks"
+  - type: "documentation"
+    title: "Faiss: Billion-Scale Similarity Search"
+    authors: "Johnson, Douze & Jégou"
+    year: 2019
+    url: "https://doi.org/10.1109/TBDATA.2019.2921572"
+    note: "How production ANN indexes implement PQ and IVFADC — the k-means quantizer, the asymmetric lookup tables, and the inverted-file coarse partition that compose into IndexIVFPQ"
+formalmlPrereqs:
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "each sub-codebook is trained by k-means, which is Lloyd's algorithm under the empirical measure, and the alternating assignment/update steps, the monotone objective, and the local-optimum and initialization caveats developed there are inherited per subspace by product quantization without modification"
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "product quantization is a constrained-complexity quantizer trading rate log2(k*) bits per subspace against distortion, and the rate-distortion functional, the high-rate asymptotics, and the bit-allocation question of how many bits each subspace should receive are the information-theoretic frame proved there that PQ realizes operationally"
+formalmlConnections:
+  - topic: "mutual-information"
+    site: "formalml"
+    relationship: "product quantization assumes the subspaces are statistically independent, and the distortion gap it pays relative to a full joint codebook is governed by the mutual information across subspaces — the dependence a decorrelating rotation reduces — so the information measure developed there quantifies exactly the loss optimized product quantization minimizes"
+  - topic: "spectral-theorem"
+    site: "formalml"
+    relationship: "the rotation that balances variance across subspaces and minimizes PQ distortion is built from the eigendecomposition of the covariance, the symmetric positive-semidefinite spectral machinery developed there, so the optimized-PQ fix for the independence caveat is a spectral construction at heart"
+formalstatisticsPrereqs:
+  - topic: "multivariate-distributions"
+    site: "formalstatistics"
+    relationship: "treating the subspaces independently is the statement that the joint embedding distribution factors over its subspace marginals, and the covariance whose off-block entries measure the failure of that factorization is the multivariate machinery developed there, made concrete as the correlation PQ ignores"
+  - topic: "conditional-probability"
+    site: "formalstatistics"
+    relationship: "the independence assumption product quantization rests on is precisely that each subvector's distribution is unconditional on the others, the independence-versus-conditioning distinction developed there, and the residual distortion PQ pays is the price of assuming a factorization that real embeddings only approximately satisfy"
+formalcalculusPrereqs:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "the additive distortion decomposition makes the joint codebook problem separable, so training reduces to m independent strictly-convex centroid minimizations — the per-subspace block-coordinate descent whose convexity and separability machinery is developed there"
+  - topic: "linear-algebra"
+    site: "formalcalculus"
+    relationship: "the block structure that splits a vector into subspaces, the Cartesian product of sub-codebooks, and the orthogonal rotation that optimized product quantization applies before splitting are all the vector-space and orthogonal-matrix constructions developed there"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import ProductQuantizationLaboratory from '../../components/viz/ProductQuantizationLaboratory.tsx';
+
+## Overview & motivation
+
+The [previous topic](/topics/vector-quantization-lloyd-max) left us at a wall. A single flat codebook of $k = 256$ codewords compresses a $256$-dimensional embedding to a single byte, but on the synthetic finance cloud it retained only about $53\%$ of the top-$10$ nearest-neighbor recall — and a flat codebook cannot do much better cheaply. To halve its distortion it must roughly square its codebook size, and a codebook of $k$ codewords needs $k$ trainable centroids: bounded above by the number of training points and, well before that, intractable to store or search. A flat codebook simply cannot reach the bit budgets that fine compression requires.
+
+Product quantization gives up on the single codebook. Split each vector into $m$ disjoint subvectors, quantize each subspace *independently* with its own small codebook, and represent the vector by the tuple of $m$ sub-centroid indices. Each sub-codebook is trained by exactly the Lloyd's k-means of the previous topic — product quantization is that algorithm run $m$ times, in parallel, on the coordinate blocks. The reward is a codebook that is the *product* of the sub-codebooks: with $m = 8$ subspaces and $k^\* = 256$ codewords each, an effective $256^8 = 2^{64}$ codewords represented by only $8 \times 256 = 2048$ stored centroids. The whole topic is the mathematics of that trade — why the independent training is correct, what the product buys, how retrieval stays fast, and, honestly, what the factorization costs.
+
+Before the algebra, take the product apart. Select a point and watch its two sub-codes and the two distortion bars that sum to its total:
+
+<ProductQuantizationLaboratory client:visible />
+
+The first panel splits a four-dimensional toy vector into two two-dimensional subspaces, each with its own Voronoi codebook; the per-subspace reconstruction errors sum exactly to the total — the identity this topic turns on. The second panel is the payoff: ADC recall against the rate, with PQ climbing past the flat-codebook ceiling it can never exceed. The third shows the lookup table that makes asymmetric distance an $O(m)$ operation. The codebook this topic builds is the atom that *optimized product quantization* rotates and that the *inverted-file* index (IVFADC) and the multi-vector PLAID index reuse — the topics that follow.
+
+### What we cover
+
+1. The product quantizer: subspaces, sub-codebooks, codes, and the effective codebook.
+2. The additive distortion decomposition — why each subspace is trained independently.
+3. What the product buys: $(k^\*)^m$ codewords at $m k^\*$ storage.
+4. Asymmetric distance computation — exact, and a table lookup; ADC versus SDC.
+5. Scalability, honestly: PQ reaches budgets a flat codebook cannot, but does not beat it per bit.
+6. The independence cost and the rotation that fixes it, a finance case study, and the tested code.
+
+---
+
+## The product quantizer
+
+Fix a source $X \in \mathbb{R}^d$ and a number of subspaces $m$ dividing $d$, with subspace dimension $d^\* = d/m$.
+
+<TheoremBlock type="definition" number={1} title="Product quantizer">
+
+Write $x = (x^1, \dots, x^m)$ with each **subvector** $x^j \in \mathbb{R}^{d^\*}$ the $j$-th block of coordinates. Each subspace has its own **sub-codebook** $\mathcal{C}^j = \{c^j_1, \dots, c^j_{k^\*}\} \subset \mathbb{R}^{d^\*}$ and sub-quantizer $q_j(x^j) = \arg\min_i \lVert x^j - c^j_i\rVert^2$. The **product quantizer** encodes $x$ as the tuple of indices $(q_1(x^1), \dots, q_m(x^m))$ — a **code** of $m \log_2 k^\*$ bits — and decodes by concatenation,
+
+$$
+Q(x) = \bigl(c^1_{q_1(x^1)}, \; \dots, \; c^m_{q_m(x^m)}\bigr).
+$$
+
+Its reproduction values form the **effective codebook** $\mathcal{C} = \mathcal{C}^1 \times \cdots \times \mathcal{C}^m$, the Cartesian product of the sub-codebooks, with $(k^\*)^m$ elements.
+
+</TheoremBlock>
+
+The single structural choice — quantize the blocks *separately* — is what we must justify. It is not obvious that independent sub-quantizers minimize the joint distortion, nor that a product codebook is a good codebook. The next theorem settles the first question completely.
+
+---
+
+## The additive distortion decomposition
+
+The distortion of $Q$ is $D = \mathbb{E}\lVert X - Q(X)\rVert^2$, the same squared-error objective as before. Its special structure under a product quantizer is the whole reason PQ works.
+
+<TheoremBlock type="theorem" number={1} title="Additive distortion decomposition">
+
+For a product quantizer, the squared reconstruction error splits over subspaces,
+
+$$
+\lVert x - Q(x)\rVert^2 = \sum_{j=1}^{m} \bigl\lVert x^j - c^j_{q_j(x^j)}\bigr\rVert^2,
+$$
+
+so the total distortion is the sum of the per-subspace distortions, $D = \sum_{j=1}^m D_j$ with $D_j = \mathbb{E}\lVert X^j - c^j_{q_j(X^j)}\rVert^2$. Consequently the codebook minimizing $D$ is obtained by minimizing each $D_j$ **independently**, and each sub-problem is exactly the Lloyd–Max quantizer of the previous topic on the $j$-th block.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The squared Euclidean norm is a sum over coordinates, and the coordinates partition into the $m$ disjoint blocks. Since $Q(x)$ restricted to block $j$ is $c^j_{q_j(x^j)}$ and depends only on the coordinates of $x$ in block $j$,
+
+$$
+\lVert x - Q(x)\rVert^2 = \sum_{i=1}^{d}\bigl(x_i - Q(x)_i\bigr)^2 = \sum_{j=1}^m \sum_{i \in \text{block } j}\bigl(x_i - c^j_{q_j,i}\bigr)^2 = \sum_{j=1}^m \bigl\lVert x^j - c^j_{q_j(x^j)}\bigr\rVert^2.
+$$
+
+Taking expectations gives $D = \sum_j D_j$. The decision variables are disjoint — the sub-codebook $\mathcal{C}^j$ and the encoder $q_j$ affect only the term $D_j$ and appear in no other — so the sum is minimized by minimizing each term over its own variables, with no coupling. Minimizing $D_j = \mathbb{E}\lVert X^j - c^j_{q_j(X^j)}\rVert^2$ over a $k^\*$-codeword quantizer of the $d^\*$-dimensional subvector is precisely the vector-quantization problem of the previous topic, solved by Lloyd's two conditions. $\blacksquare$
+
+</TheoremBlock>
+
+This is the theorem the laboratory's first panel makes visible: the two per-subspace bars sum to the total, exactly, for every point. It is also the practical recipe — train $m$ separate k-means, one per block — and the reason the companion code *imports* the previous topic's Lloyd implementation rather than writing a new one. Product quantization adds no new optimization; it only factors the old one.
+
+---
+
+## What the product buys
+
+The decomposition explains correctness; the product explains the win.
+
+<TheoremBlock type="proposition" number={1} title="Effective codebook versus storage">
+
+A product quantizer with $m$ subspaces and $k^\*$ codewords each represents $(k^\*)^m$ distinct reproduction vectors — the size of the product codebook — while storing only $m k^\*$ centroids and encoding each vector in $m \log_2 k^\*$ bits. The per-vector distance to a query costs $O(m)$ table lookups (next section), against $O(d)$ for an exact distance.
+
+</TheoremBlock>
+
+The numbers are stark. At $m = 8$, $k^\* = 256$, a product quantizer encodes each vector in $8 \times 8 = 64$ bits — eight bytes — and its effective codebook holds $256^8 = 2^{64}$ codewords. A flat codebook with $2^{64}$ codewords is a fantasy: it would need $2^{64}$ trained centroids, impossible to store, train, or search, and unreachable in principle from any finite training set since a codebook can have at most as many codewords as training points. The product quantizer reaches the same representational resolution from $2048$ stored centroids. That gap — exponential codebook from linear storage — is the entire value proposition, and we will price it honestly in two sections.
+
+---
+
+## Asymmetric distance computation
+
+A compressed index is useful only if we can search it. Given a query $q$ and database vectors stored as PQ codes, we need the distance $\lVert q - Q(x)\rVert^2$ to each. The block structure turns it into a table lookup.
+
+<TheoremBlock type="theorem" number={2} title="Asymmetric distance is exact and a table lookup">
+
+For an un-quantized query $q$ and a database vector with code $(q_1, \dots, q_m)$,
+
+$$
+\lVert q - Q(x)\rVert^2 = \sum_{j=1}^m \bigl\lVert q^j - c^j_{q_j(x^j)}\bigr\rVert^2 = \sum_{j=1}^m \mathrm{LUT}[j]\bigl[q_j(x^j)\bigr],
+$$
+
+where $\mathrm{LUT}[j][i] = \lVert q^j - c^j_i\rVert^2$ is an $m \times k^\*$ table of squared sub-distances built once per query. Each database distance is then $m$ table lookups and adds — $O(m)$, independent of $d$ beyond the one-time table build.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+$Q(x)$ is a genuine vector in $\mathbb{R}^d$, and $q$ is untouched, so the additive decomposition of Theorem 1 applies verbatim with $q$ in place of $x$: the squared norm splits over the blocks, and on block $j$ the reproduction is $c^j_{q_j(x^j)}$, giving $\sum_j \lVert q^j - c^j_{q_j}\rVert^2$. Each term depends on the database vector only through its index $q_j$ in subspace $j$, so once $\mathrm{LUT}[j][i] = \lVert q^j - c^j_i\rVert^2$ is precomputed for all $k^\*$ sub-centroids, the term is the single entry $\mathrm{LUT}[j][q_j]$. The sum is exact — the table memoizes, it does not approximate. $\blacksquare$
+
+</TheoremBlock>
+
+This is **asymmetric** distance: the query stays in full precision while the database is quantized. The third panel of the laboratory shows it directly — a database vector's code highlights $m$ cells of the table whose sum *is* the exact distance to its reconstruction. The companion harness checks this equality to machine precision on the finance cloud.
+
+The alternative is **symmetric** distance (SDC), which quantizes the query too and reads from a precomputed $k^\* \times k^\*$ table of inter-centroid distances. SDC is cheaper to precompute but adds the query's own quantization error, and that costs accuracy.
+
+<TheoremBlock type="proposition" number={2} title="Asymmetric beats symmetric in the mean">
+
+Averaged over queries and database vectors, the asymmetric estimate has smaller squared distance-estimation error than the symmetric one, $\mathbb{E}[(\hat d_{\mathrm{ADC}} - d_{\mathrm{true}})^2] < \mathbb{E}[(\hat d_{\mathrm{SDC}} - d_{\mathrm{true}})^2]$, and yields recall at least as high. The inequality is in expectation, not per pair: individual query–database pairs can reverse.
+
+</TheoremBlock>
+
+On the finance cloud the gap is large — the companion code measures a mean squared distance-estimation error of about $13$ for ADC against $455$ for SDC, and recall@10 of $0.75$ against $0.62$ — because keeping the query exact removes an entire source of error. We state the inequality honestly as a statement about the mean, since SDC can accidentally land closer on a given pair; what is guaranteed is the average and the recall.
+
+---
+
+## Scalability, honestly
+
+It is tempting to say product quantization "beats" a flat codebook. It does not, and the honest version is more interesting.
+
+<TheoremBlock type="remark">
+
+At any bit budget $B$ where a flat codebook of $k = 2^B$ codewords is *trainable*, the flat codebook is unconstrained while the product quantizer's reconstruction is confined to the product set $\mathcal{C}^1 \times \cdots \times \mathcal{C}^m$ — a strict subset of all $2^B$-codeword codebooks. So at equal trainable bits, flat-VQ distortion is at most PQ's; PQ pays a product-separability constraint. The companion code confirms this at $4$, $6$, and $8$ bits on the finance cloud. PQ's advantage is *reachability*: a flat codebook needs $2^B$ centroids — capped at $k \le n$ training points and intractable past roughly sixteen to twenty bits — while PQ reaches rate $B = m \log_2 k^\*$ at $m k^\*$ stored centroids. It attains distortion and recall a flat codebook cannot reach at any feasible storage.
+
+</TheoremBlock>
+
+The scalability panel of the laboratory plots this exactly. The flat ceiling is the $m = 1$ point: a single $256$-codeword codebook at $8$ bits, recall $0.53$ — the same number the previous topic baked, on the same cloud. As $m$ grows the rate grows and recall climbs to $0.56$ at $16$ bits, $0.64$ at $32$ bits, $0.75$ at $64$ bits — each a budget a flat codebook cannot train. The per-subspace Zador exponent of the previous topic is why each subspace needs only modest $k^\*$, and the product is why the budgets compose. The gain is real, but it is a gain in *reach*, not in quality per bit, and the laboratory labels it as such.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+We return to the exact $256$-dimensional synthetic finance cloud of the [previous topic](/topics/vector-quantization-lloyd-max) — six topical groups on a low-rank-plus-noise manifold — so the comparison is like-for-like. There, a flat $256$-codeword codebook compressed each vector to one byte and retained $52.8\%$ recall@10, the best a flat codebook can do at that storage. Now we product-quantize the same cloud and measure the rate–distortion frontier (the companion code re-derives the flat ceiling rather than hardcoding it, to prove the cloud is identical):
+
+- a raw vector is $256 \times 32 = 8192$ bits; at $m = 8$, $k^\* = 256$ the PQ code is **$64$ bits — eight bytes, a $128\times$ smaller code** — from $2048$ stored centroids, an effective $2^{64}$ codewords;
+- **recall@10 climbs from $52.8\%$ (the flat $8$-bit ceiling) to $\mathbf{75.2\%}$ at $64$ bits**, with the intermediate rates $55.6\%$ at $16$ bits and $63.7\%$ at $32$ bits;
+- the asymmetric distance to each database vector is $\mathbf{8}$ table lookups rather than a $256$-dimensional dot product, the one-time $8 \times 256$ table amortized over the whole database.
+
+The shape is the message. PQ does not magically retrieve perfectly — the cloud has a genuine noise floor, and $75\%$ at eight bytes reflects it honestly — but it reaches a recall that a flat codebook, frozen at its $8$-bit ceiling, simply cannot. This is the structure a production index exploits: the inverted-file index (IVFADC) adds a coarse Voronoi partition on top of these codes, and *optimized product quantization* — the next topic — rotates the space first to spend the bits better. Both are built on the codes this topic defines.
+
+</FinanceCaseStudy>
+
+A candid note, in the spirit of the series: the cloud is a deterministic synthetic low-rank-plus-noise construction, CPU-only and reproducible to the decimal, and the distortion and recall are measured on it; it is not a trained encoder. Because the previous topic used the same generator, the flat ceiling and the PQ numbers are measured on one cloud, which is what makes the comparison fair.
+
+---
+
+## The honest catch: the product constraint and the rotation that fixes it
+
+The product-separability constraint has a name and a cure. Product quantization treats the subspaces as independent — it allocates the same $k^\*$ to each and quantizes each in ignorance of the others. When the subspaces are genuinely independent and carry equal variance, that loses almost nothing. When they are *correlated*, or when their variances are uneven, PQ wastes bits: a high-variance subspace is under-quantized while a low-variance one is over-quantized, and correlation that a joint codebook would exploit is thrown away. The residual distortion PQ pays over a full joint codebook is governed by the [mutual information across subspaces](https://formalml.com/topics/mutual-information).
+
+The fix is a rotation. Apply an orthogonal $R$ to every vector before splitting; since $R$ preserves distances, the retrieval problem is unchanged, but the *axes* along which we split are now ours to choose. The companion code makes the effect concrete on a deliberately variance-imbalanced cloud, where the coordinate variances decay so the contiguous subspaces carry very unequal variance. Raw product quantization there has distortion about $85.6$. A *naive* rotation that only [aligns to the principal axes](https://formalcalculus.com/topics/linear-algebra) barely helps — distortion $83.3$ — because it concentrates all the variance into the first subspace and starves the rest. But a rotation that *balances* the variance across subspaces, spreading the high-variance principal directions evenly, cuts the distortion to about $15.4$, a several-fold reduction. Choosing the rotation that minimizes PQ distortion is exactly **optimized product quantization** (Ge et al., 2014), and it is the next topic. We show the direction of the effect, not a universal number — on the finance cloud, whose random basis already spreads variance fairly evenly, the gain is smaller — but the mechanism is the one OPQ formalizes.
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+Five qualifications keep the accounting honest:
+
+1. **PQ does not beat a trainable flat codebook at equal bits.** The product reconstruction is a strict subset of an unconstrained codebook's, so flat-VQ distortion is at most PQ's at any rate the flat codebook can train (verified at $4$, $6$, $8$ bits). PQ's win is reaching budgets a flat codebook cannot ($k = 2^B \le n$, intractable past ~$16$–$20$ bits) — a gain in reach, not in quality per bit. We never flip the inequality.
+2. **ADC beats SDC in the mean, not per pair.** Keeping the query exact removes a query-quantization term from the *expected* squared error and raises recall; individual pairs can reverse. We assert the mean error and recall ordering, not a pairwise guarantee.
+3. **Independence is an assumption.** PQ ignores cross-subspace correlation (= mutual information across subspaces) and unequal per-subspace variance under equal bits; a variance-balancing rotation lowers distortion, which is what optimized product quantization learns. We show the direction on an imbalanced cloud, not a magic number.
+4. **Equal bit allocation is optimal only for equal-variance subspaces.** Uneven variance calls for unequal allocation (reverse water-filling); standard PQ's equal split is a convention we flag, not a theorem.
+5. **The per-subspace quantizer inherits Lloyd's caveats, and the data is synthetic.** Each sub-codebook is a local optimum of k-means; the finance embeddings are a low-rank-plus-noise stand-in, not a trained encoder, with all numbers measured on the same cloud as the previous topic.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) is self-contained, CPU-only, and runs in a few seconds on `numpy` and `scipy`. It *imports* the previous topic's Lloyd implementation — `lloyd`, `kmeans++` seeding, the empty-cell repair, the synthetic finance cloud, and the `scipy` cross-check — so product quantization is provably just that algorithm run per subspace, and then adds the PQ-specific machinery: subspace splitting, the product encoder and decoder, the asymmetric and symmetric distance tables, the recall comparison, the flat-versus-PQ accounting, the scalability frontier, and the rotation study. Its verification harness makes each claim executable: the additive decomposition is exact (Theorem 1); the asymmetric distance equals the brute-force distance to the reconstruction to machine precision (Theorem 2); the effective codebook is $2^{64}$ from $2048$ centroids (Proposition 1); ADC's mean error is below SDC's and its recall at least as high (Proposition 2); a flat codebook's distortion is at most PQ's at every trainable bit budget; PQ's $64$-bit recall far exceeds the flat $8$-bit ceiling on the same cloud; a variance-balancing rotation lowers distortion where a naive one does not; and each sub-codebook matches `scipy.cluster.vq.kmeans2`. The three pillars — the proofs above, the laboratory, and the tested code — agree by construction, the toy cloud's sub-codebooks and the scalability frontier baked from the same `viz_constants()` the laboratory reads.
