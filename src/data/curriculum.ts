@@ -41,8 +41,6 @@ export const tracks = [
     description:
       'Lossy compression of embedding vectors for memory-bounded search — rate-distortion and estimation theory: Lloyd–Max optimality, product quantization, and score-aware anisotropic quantization.',
     planned: [
-      'Vector Quantization and the Lloyd–Max Optimality Conditions',
-      'Product Quantization and Asymmetric Distance Computation',
       'Optimized PQ and Score-Aware Quantization (OPQ, ScaNN)',
     ],
     dependsOnFormalML: true,
