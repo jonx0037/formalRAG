@@ -65,6 +65,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `client:visible`, so the SSR DOM (KaTeX counts, baked readouts) is present on load, but to test
   *interactivity* (toggling a panel, dragging a slider) you must `scrollIntoView` the component and
   wait ~0.5–1 s for hydration first — otherwise clicks no-op against un-hydrated markup.
+  Hydration tell-tales: the React JSX (buttons, list, *empty* `<svg>`) is in the SSR DOM, but
+  D3-drawn `<rect>/<circle>` children and `katex.render()` output (a post-load `.katex` count bump)
+  appear only *after* hydration — assert on those before clicking.
 - Pagefind UI assets 404 in `astro dev` (generated only by `postbuild`) — expected, harmless.
 - `pnpm dev` may not land on **4321** — with other `formal*` servers up it picks 4322/4323/…; read
   the dev log for the actual port (a `curl :4321` can hit a *different* project and falsely report
@@ -72,17 +75,30 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - `astro check` reports ~12 pre-existing type errors in the copied viz components
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
 - **Viz ↔ Python invariant:** `BM25ScoringLaboratory.tsx`'s corpus mirrors `notebooks/bm25/bm25.py`
-  to the decimal, and the topic claims they match. Change one → change both.
+  to the decimal, and the topic claims they match. Change one → change both. Numbers the viz needs
+  but the corpus *doesn't determine* (e.g. a full-document L2 norm that includes filler terms) go in
+  a `viz_constants()` function in the `.py` that prints them in the harness, then are mirrored to the
+  `.tsx` — never recomputed in TS (`vector_space_model_tfidf.py` / `probability_ranking_principle.py`).
 - **Pedagogical claims are tests:** the Python harness asserts the limit theorems and the
   length-hijack flip. Don't let prose drift from the verified numbers.
+- **Build + RUN a headline flip before writing it into prose/viz — it can be false under the topic's
+  exact weighting.** TF-IDF's length-hijack flip surfaces the *wrong* doc under exact IDF `log(N/df)`
+  because a corpus-universal term (`rate`, in all docs) gets IDF 0; the fix was to teach the exact
+  form (the self-information theorem) but *score* with smoothed `log(1+N/df)`, flagging smoothing as
+  a convention. Reusing a shared corpus across topics does **not** guarantee the same flip holds
+  under each topic's scoring variant.
+- **Verify reference DOIs** with `WebFetch https://doi.org/<doi>` — the 302 redirect URL alone
+  confirms journal/volume/issue/pages, so no need to fetch the (often paywalled) destination.
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
 - **Multiple topics in one session = independent feature branches off `main`** (each depends only on
   already-published prereqs, not on its siblings, so they merge in any order). Each removes its title
   from a track's `planned[]` array, so the **2nd+ merge needs a trivial one-line `curriculum.ts`
-  `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge). PRs
-  also get an automated `gemini-code-assist` review — address its medium-priority robustness/perf nits
-  before merging.
+  `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge; but a
+  DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
+  `gemini-code-assist` review — fetch its nits with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments`
+  (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
+  medium-priority robustness/perf/a11y ones before merging.
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`.
 
