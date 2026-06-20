@@ -1,26 +1,316 @@
 ---
 title: "The Vector Space Model and TF-IDF"
-status: "draft"
+subtitle: "Documents and queries as weighted term vectors — where inverse document frequency is the self-information of a term, and cosine normalization quotients document length away"
+status: "published"
 difficulty: "foundational"
+prerequisites:
+  - "the-retrieval-problem"
 tags:
   - "vector-space-model"
   - "tf-idf"
+  - "inverse-document-frequency"
+  - "self-information"
+  - "cosine-similarity"
   - "lexical-retrieval"
+  - "term-weighting"
+  - "ranking"
 domain: "probabilistic-ir"
-financeCaseStudy: false
-abstract: "Documents and queries as sparse weight vectors; term frequency, inverse document frequency as self-information, sublinear scaling, and cosine-normalized scoring — the lexical foundation BM25 refines."
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "TF-IDF is a calibrated geometry, not a probabilistic model, and most of its moving parts are conventions rather than theorems. The genuine results are exact: inverse document frequency equals the self-information −log(df/N) of a term's presence under a uniform-document model, sublinear tf 1+log(tf) is strictly increasing and concave, and cosine normalization is invariant to pure magnitude scaling. Everything else is a choice. The bag-of-words representation discards word order outright; the tf-scaling form and the logarithm base, and the IDF smoothing variant, are conventions with no optimality guarantee; cosine removes only the pure-magnitude part of the length problem, not the compositional part; and a cosine of 0.8 is an alignment, not an eighty-percent chance of relevance. The finance corpus is a deterministic synthetic stand-in, not a trained encoder."
+videoId: null
+notebookPath: "notebooks/vector-space-model-tfidf/01_vector_space_model_tfidf.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/vector-space-model-tfidf.mdx"
+datePublished: 2026-06-19
+estimatedReadTime: 30
+abstract: "The vector space model is the first concrete relevance functional: documents and queries become sparse vectors over the vocabulary, weighted by term frequency and inverse document frequency, and ranked by cosine similarity. We scale term frequency sublinearly so repetition has diminishing returns — a strictly increasing, concave transform — and then give inverse document frequency its rigorous reading: IDF is exactly the self-information, the pointwise Shannon surprise, of a term's presence under a uniform-document model, so a term in every document carries zero bits and a rare one carries log N. Assembling tf-scaling with IDF gives the TF-IDF weight, and cosine normalization quotients away the document-length magnitude that the off-sphere divergence of the retrieval problem warned about. We then locate exactly where TF-IDF falls short — sublinear tf is unbounded and cosine length normalization is untunable and document-global — which is precisely the gap BM25 closes with a saturating tf transform and a tunable length term. An interactive vector space laboratory and a tested NumPy implementation, cross-checked against scikit-learn and sharing the BM25 interest-rate-exposure corpus, accompany the derivation."
+connections:
+  - topic: "the-retrieval-problem"
+    relationship: "this topic instantiates the relevance functional defined there: documents and queries become weighted term vectors and rel(q,d) becomes their cosine similarity, with cosine normalization addressing the exact off-sphere magnitude divergence that topic formalizes"
+  - topic: "bm25-binary-independence-model"
+    relationship: "BM25 refines this topic point for point — it reuses the IDF factor introduced here, replaces unbounded sublinear tf with a saturating transform, and replaces untunable cosine length normalization with the tunable b parameter, so this topic is the lexical foundation BM25 sharpens"
+references:
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapters 6–7: term weighting, the vector space model, tf-idf, and cosine scoring"
+  - type: "paper"
+    title: "A Statistical Interpretation of Term Specificity and its Application in Retrieval"
+    authors: "Spärck Jones"
+    year: 1972
+    url: "https://doi.org/10.1108/eb026526"
+    note: "The original inverse document frequency paper; term specificity as a collection statistic"
+  - type: "paper"
+    title: "Understanding Inverse Document Frequency: On Theoretical Arguments for IDF"
+    authors: "Robertson"
+    year: 2004
+    url: "https://doi.org/10.1108/00220410410560582"
+    note: "The information-theoretic reading of IDF as self-information that this topic follows"
+  - type: "paper"
+    title: "Term-Weighting Approaches in Automatic Text Retrieval"
+    authors: "Salton & Buckley"
+    year: 1988
+    url: "https://doi.org/10.1016/0306-4573(88)90021-0"
+    note: "The systematic tf-idf weighting-scheme comparison and the case for cosine normalization"
+  - type: "documentation"
+    title: "scikit-learn: tf-idf term weighting (TfidfVectorizer)"
+    url: "https://scikit-learn.org/stable/modules/feature_extraction.html#tfidf-term-weighting"
+    note: "The reference implementation the notebook cross-checks its cosine ranking against"
+formalmlPrereqs:
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "inverse document frequency is exactly the self-information I(x) = −log P(x) of a term's presence under the uniform-document model — the surprise quantity this topic's IDF theorem rests on is Shannon's information content, defined and proved there"
+formalcalculusPrereqs:
+  - topic: "linear-algebra"
+    site: "formalcalculus"
+    relationship: "documents and queries are vectors in the term space, and the dot product, Euclidean norm, and cosine of an angle that define TF-IDF similarity are the linear-algebra primitives developed there"
+  - topic: "mean-value-taylor"
+    site: "formalcalculus"
+    relationship: "the proof that sublinear tf 1 + log(tf) gives diminishing returns is the statement that its second derivative is negative — the concavity-from-the-second-derivative criterion established via the second-order Taylor expansion there"
+formalstatisticsPrereqs:
+  - topic: "discrete-distributions"
+    site: "formalstatistics"
+    relationship: "the within-document term counts that term frequency tallies, and the document-frequency counting that underlies IDF, are the count-data mechanisms treated there — the same generative story BM25 later sharpens into the 2-Poisson eliteness model"
 ---
 
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
 import NamedSection from '../../components/ui/NamedSection.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import VectorSpaceLaboratory from '../../components/viz/VectorSpaceLaboratory.tsx';
 
-<NamedSection id="status" title="On the roadmap">
+## Overview & motivation
 
-This topic is part of the formalRAG curriculum and is **not yet published** — it is
-currently a stub so that links from neighboring topics resolve. See the
-[curriculum roadmap](/paths) for where it sits in the dependency graph.
+The [retrieval problem](/topics/the-retrieval-problem) told us that retrieval is ranking by a relevance functional $\mathrm{rel}(q, d)$, and that cosine similarity is a natural choice for it — but it left the vectors abstract. The vector space model fills them in. A document becomes a point in a space with one axis per vocabulary word, its coordinate along each axis a *weight* for that term, and a query becomes a point in the same space; we rank by how aligned the two are. The entire art is in the weights, and two questions decide them: how much should repeating a word matter, and how much should a word matter at all?
 
-In the meantime, the published pilot topic
-[BM25 and the Binary Independence Model](/topics/bm25-binary-independence-model)
-demonstrates the three-pillar treatment this topic will receive.
+The answers are term frequency and inverse document frequency. The first question has an easy direction — a document that says *interest* ten times is more about interest than one that says it once — and a subtler truth: not ten times more. The second has a sharper answer than it first appears: a word's weight should be its *surprise*. A term that occurs in every document tells you nothing about which one you want; a rare term, when it appears, is strong evidence. We will make that intuition exact — inverse document frequency is precisely the self-information of a term's presence — and it is the one genuine theorem in a topic otherwise built from honest conventions.
 
-</NamedSection>
+Before the algebra, drag the two toggles and watch the weights at work:
+
+<VectorSpaceLaboratory client:visible />
+
+Make the stakes concrete with the corpus this series carries throughout. A bank's ninety-minute earnings call, transcribed, repeats *interest* and *rate* a dozen times each as conversational filler, padded out with hundreds of words about logistics, headcount, and guidance. A single sentence in the same company's 10-K states the fact a risk analyst wants — that its net interest margin is sensitive to rate moves, its real *interest rate exposure*. Score these by the raw dot product of their term-weight vectors and the long transcript wins, not because it is more relevant but because length gives it more terms to accumulate. That is the length-hijack failure the retrieval problem warned us about when magnitude was free to vary, and cosine normalization is the vector space model's answer to it. Panel C above stages exactly this: switch normalization off and the padded transcript seizes the top spot; switch it on and the concise filing surfaces.
+
+### What we cover
+
+1. Documents and queries as sparse term-weight vectors.
+2. Term frequency and the sublinear transform that makes repetition saturate — and why it is strictly increasing and concave.
+3. Inverse document frequency, and the theorem that it *is* the self-information of a term's presence.
+4. The TF-IDF weight, assembled from the two.
+5. Cosine normalization, and how it quotients away the document-length magnitude.
+6. Where TF-IDF falls short — the two gaps that motivate [BM25](/topics/bm25-binary-independence-model).
+
+---
+
+## Documents and queries as term-weight vectors
+
+Fix a vocabulary, the set of distinct terms across the collection, and give it an arbitrary but fixed order $V = \{t_1, \dots, t_n\}$. Every document and every query then lives in the same $n$-dimensional space, one coordinate per term.
+
+<TheoremBlock type="definition" number={1} title="Vocabulary, term-vector space, and the bag of words">
+
+Let $V = \{t_1, \dots, t_n\}$ be the vocabulary. A document $d$ is the vector $\mathbf{w}_d \in \mathbb{R}^{n}$ whose coordinate $t$ is a weight $w_{t,d} \ge 0$, and a query $q$ is the vector $\mathbf{w}_q$ in the same space. A weight of $w_{t,d} = 0$ means term $t$ is absent from $d$, so each document vector is **sparse**: its only nonzero coordinates are the distinct terms it contains. This representation is the **bag of words** — it records which terms occur, and with what weight, but discards their order.
+
+</TheoremBlock>
+
+This is the first concrete instance of the relevance functional from the retrieval problem: with documents and queries pinned down as vectors, $\mathrm{rel}(q, d)$ becomes a similarity score on $\mathbb{R}^n$, and we are free to reuse the dot product, the Euclidean norm, and the cosine of the [linear-algebra](https://formalcalculus.com/topics/linear-algebra) we already have. What remains is to choose the weights, and we build them in two independent pieces: a within-document piece (how often the term occurs here) and a collection-wide piece (how discriminating the term is at all).
+
+---
+
+## Term frequency and sublinear scaling
+
+The within-document piece is term frequency, the raw count $\mathrm{tf}_{t,d}$ of how many times $t$ occurs in $d$. Used directly, raw count overpays for repetition: it treats the difference between one occurrence and two as worth exactly the difference between one hundred and one hundred and one. The fix is to scale the count so each additional occurrence is worth strictly less than the one before it.
+
+<TheoremBlock type="definition" number={2} title="Sublinear term frequency">
+
+The sublinear-scaled term frequency is
+
+$$
+\mathrm{wf}_{t,d} = \begin{cases} 1 + \log \mathrm{tf}_{t,d} & \mathrm{tf}_{t,d} > 0, \\ 0 & \mathrm{tf}_{t,d} = 0. \end{cases}
+$$
+
+</TheoremBlock>
+
+The choice of "diminishing returns" is not arbitrary hand-waving; it is a precise analytic property, and we can state and prove exactly what it means.
+
+<TheoremBlock type="proposition" number={1} title="Sublinear tf is strictly increasing and strictly concave">
+
+On $\mathrm{tf} \ge 1$, the map $g(x) = 1 + \log x$ is strictly increasing and strictly concave. Consequently each additional occurrence of a term adds strictly less weight than the occurrence before it.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+Differentiate. The first derivative $g'(x) = 1/x$ is strictly positive for $x \ge 1$, so $g$ is strictly increasing: more occurrences never lower the weight. The second derivative $g''(x) = -1/x^2$ is strictly negative, so $g$ is strictly concave — this is the second-derivative criterion for concavity from the [mean-value and Taylor theory](https://formalcalculus.com/topics/mean-value-taylor). Strict concavity is exactly "diminishing returns": the increment $g(x+1) - g(x)$ is itself decreasing in $x$, so the jump from one occurrence to two exceeds the jump from two to three, and so on. The companion harness asserts both signs numerically on a dense grid in `test_sublinear_tf_monotone_concave`.
+
+</TheoremBlock>
+
+Hold on to one feature of this curve for later: it is concave, but it is **unbounded**. As the count grows, $1 + \log \mathrm{tf}$ keeps rising, slowly but without ceiling. That is the seam at which BM25 will eventually depart from TF-IDF.
+
+---
+
+## Inverse document frequency as self-information
+
+The collection-wide piece is inverse document frequency, and here the topic earns its rigor. Let $\mathrm{df}_t$ be the **document frequency** of term $t$ — the number of documents, out of $N$, in which it appears — and define
+
+$$
+\mathrm{idf}_t = \log \frac{N}{\mathrm{df}_t}.
+$$
+
+The usual story stops at intuition: rare terms are informative, common terms are not, and the logarithm tames the range. We can do better and say exactly *what quantity* IDF is.
+
+<TheoremBlock type="definition" number={3} title="Self-information">
+
+The **self-information** (or pointwise surprise) of an event $A$ with probability $P(A)$ is $I(A) = -\log P(A)$ — the number of units of information carried by learning that $A$ occurred, large when $A$ is unlikely and zero when $A$ is certain. Measured with $\log_2$, the unit is the bit. This is the building block of [Shannon entropy](https://formalml.com/topics/shannon-entropy).
+
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={1} title="IDF is the self-information of a term's presence">
+
+Draw a document uniformly at random from the collection of $N$ documents, and let $A_t$ be the event that the drawn document contains term $t$, so that $P(A_t) = \mathrm{df}_t / N$. Then the self-information of $A_t$ is exactly the inverse document frequency:
+
+$$
+I(A_t) = -\log P(A_t) = -\log \frac{\mathrm{df}_t}{N} = \log \frac{N}{\mathrm{df}_t} = \mathrm{idf}_t.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The probability that a uniformly drawn document contains $t$ is the fraction of documents that do, $P(A_t) = \mathrm{df}_t / N$. Substitute into the definition of self-information and simplify the logarithm of a quotient:
+
+$$
+I(A_t) = -\log P(A_t) = -\log \frac{\mathrm{df}_t}{N} = \log \frac{N}{\mathrm{df}_t} = \mathrm{idf}_t. \qquad
+$$
+
+The identity is exact, and it holds in any base — base 2 reads the weight out in bits. `test_idf_is_self_information` checks it to machine precision for every term in the corpus.
+
+</TheoremBlock>
+
+So inverse document frequency is not a weighting trick; it is the surprise of a term's presence, in bits. Two corollaries make the reading vivid, and the laboratory's first panel shows both on our corpus. A term that appears in *every* document, $\mathrm{df}_t = N$, has $P(A_t) = 1$ and carries $\log(N/N) = 0$ bits — finding it is no surprise at all, so it can do nothing to discriminate one document from another. In the finance corpus, *rate* occurs in all six documents and registers exactly $0$ bits; it is dead weight. A term appearing in a single document, $\mathrm{df}_t = 1$, carries the maximum $\log N$ bits. Between them, *exposure* (in four of six documents) carries about $0.59$ bits and *interest* (in five) about $0.26$ — the rarer term is the louder signal.
+
+<TheoremBlock type="remark" title="A practical smoothing, and an honest flag">
+
+The theorem is exact for the textbook form $\log(N/\mathrm{df}_t)$, and that is the form whose self-information reading we just proved. In practice we make two adjustments. We avoid dividing by zero for an out-of-vocabulary term, and — the reason it matters here — we keep a term that happens to appear in *every* document from vanishing entirely, since a universal-but-not-quite-uninformative word should still carry a whisper of weight. A standard remedy is the smoothed form $\mathrm{idf}_t = \log\!\left(1 + N/\mathrm{df}_t\right)$, which stays strictly positive; it is what we use for the scoring below and what the laboratory ranks with. Smoothing is a convention, not a theorem — so we flag it as one, exactly as BM25 will flag the Jeffreys $+0.5$ correction in its own relevance weight.
+
+</TheoremBlock>
+
+---
+
+## The TF-IDF weight
+
+The two pieces multiply. A term earns weight in a document only if it is both *present often enough* to matter and *discriminating enough* to be worth counting.
+
+<TheoremBlock type="definition" number={4} title="TF-IDF weight">
+
+The TF-IDF weight of term $t$ in document $d$ is the product of its scaled term frequency and its inverse document frequency,
+
+$$
+w_{t,d} = \mathrm{wf}_{t,d} \cdot \mathrm{idf}_t = \bigl(1 + \log \mathrm{tf}_{t,d}\bigr)\,\log \frac{N}{\mathrm{df}_t},
+$$
+
+and the document vector is $\mathbf{w}_d = (w_{t,d})_{t \in V}$.
+
+</TheoremBlock>
+
+The product structure is the whole design. If a term is absent, $\mathrm{wf}_{t,d} = 0$ and the weight is zero; if a term is everywhere, $\mathrm{idf}_t = 0$ and the weight is zero again. Only a term that is both present *and* surprising contributes — term frequency says "this document uses the word," inverse document frequency says "and the word is worth listening to."
+
+---
+
+## Cosine normalization and the length problem
+
+With weight vectors in hand, the obvious score is the dot product $\langle \mathbf{w}_q, \mathbf{w}_d \rangle$. It has the pathology the retrieval problem diagnosed geometrically: it grows with the *magnitude* of $\mathbf{w}_d$, and a long document has a large magnitude for no better reason than that it contains many terms. The cure is to compare *direction* rather than magnitude — to score by the cosine of the angle between the vectors.
+
+<TheoremBlock type="definition" number={5} title="Cosine similarity">
+
+The cosine similarity of query and document is
+
+$$
+\mathrm{rel}(q, d) = \cos\bigl(\mathbf{w}_q, \mathbf{w}_d\bigr) = \frac{\langle \mathbf{w}_q, \mathbf{w}_d \rangle}{\lVert \mathbf{w}_q \rVert \, \lVert \mathbf{w}_d \rVert},
+$$
+
+the dot product of the two vectors after each has been normalized to unit length.
+
+</TheoremBlock>
+
+That this removes the length advantage is, again, something we can prove rather than assert.
+
+<TheoremBlock type="proposition" number={2} title="Cosine is invariant to pure magnitude">
+
+Let $c > 0$ and replace $\mathbf{w}_d$ by $c\,\mathbf{w}_d$ — an idealized "same document, scaled up" in which every term keeps its proportions. Then the cosine is unchanged while the raw dot product scales by $c$:
+
+$$
+\cos\bigl(\mathbf{w}_q, c\,\mathbf{w}_d\bigr) = \cos\bigl(\mathbf{w}_q, \mathbf{w}_d\bigr), \qquad \langle \mathbf{w}_q, c\,\mathbf{w}_d \rangle = c\,\langle \mathbf{w}_q, \mathbf{w}_d \rangle.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The dot product is linear in each argument, so $\langle \mathbf{w}_q, c\,\mathbf{w}_d \rangle = c\,\langle \mathbf{w}_q, \mathbf{w}_d \rangle$ — the raw score scales straight up with $c$. The norm is absolutely homogeneous, $\lVert c\,\mathbf{w}_d \rVert = c\,\lVert \mathbf{w}_d \rVert$ for $c > 0$, so in the cosine the factor of $c$ appears once in the numerator and once in the denominator and cancels:
+
+$$
+\cos\bigl(\mathbf{w}_q, c\,\mathbf{w}_d\bigr) = \frac{c\,\langle \mathbf{w}_q, \mathbf{w}_d \rangle}{\lVert \mathbf{w}_q \rVert \, (c\,\lVert \mathbf{w}_d \rVert)} = \frac{\langle \mathbf{w}_q, \mathbf{w}_d \rangle}{\lVert \mathbf{w}_q \rVert \, \lVert \mathbf{w}_d \rVert}.
+$$
+
+`test_cosine_normalization_invariant` confirms this on the corpus for $c \in \{2, 5, 10\}$.
+
+</TheoremBlock>
+
+This is precisely the "on the unit sphere the rankings coincide" result from the retrieval problem, now doing real work. The laboratory's third panel makes it concrete on the finance corpus. Score with the raw dot product and the padded transcript tops the list at $3.87$ — its sheer length lets it out-accumulate everything. Switch on cosine normalization and the transcript's enormous norm, swollen by hundreds of filler terms, divides its score down to the bottom; the concise on-point 10-K rises to first at a cosine of $0.31$. Same query, same documents, one toggle, opposite winners — the lexical-retrieval echo of the dot-product-versus-cosine divergence the retrieval problem drew in two dimensions.
+
+---
+
+## Where TF-IDF falls short: the bridge to BM25
+
+Cosine TF-IDF is a strong, honest baseline, but it is a *geometry*, and two structural limits separate it from the probabilistic retrieval the next topic builds. Both are visible in the panels above.
+
+<TheoremBlock type="proposition" number={3} title="Two structural gaps">
+
+1. **Sublinear term frequency is unbounded.** By Proposition 1, $1 + \log \mathrm{tf}$ is concave but has no ceiling, so a single document repeating one query term enough times can still run away with the score. BM25 replaces the transform with a *saturating* one, $\mathrm{tf}\,(k_1 + 1)/(\mathrm{tf} + k_1 B)$, bounded above by $k_1 + 1$.
+2. **Cosine length normalization is document-global and untunable.** The norm $\lVert \mathbf{w}_d \rVert = \sqrt{\sum_t w_{t,d}^2}$ depends on *every* term in the document and applies all-or-nothing. BM25 normalizes by document *length* alone, through a single scalar $B = 1 - b + b\,\mathrm{dl}/\mathrm{avgdl}$ with a dial $b \in [0, 1]$ that ranges from no normalization to full.
+
+</TheoremBlock>
+
+The first gap is the one to internalize, because it is the cleanest contrast. Sublinear tf and BM25's saturating factor are *both* increasing and *both* concave — but one rises forever and the other levels off at a finite ceiling. The harness makes the difference quantitative in `test_sublinear_unbounded_vs_bm25_bounded`: as the count grows, $1 + \log \mathrm{tf}$ climbs past any fixed bound while the BM25 factor stays pinned below $k_1 + 1$. Neither limit is a flaw in TF-IDF so much as the boundary of what a fixed geometry can express. Crossing it — turning the all-or-nothing norm into a tunable dial, and the unbounded log into a saturating curve — is exactly the work of the [Binary Independence Model and BM25](/topics/bm25-binary-independence-model), and the IDF factor we derived here carries over unchanged as the term-weighting core they inherit.
+
+---
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text"]}>
+
+The vector space model is the first lexical scorer in a production multimodal financial RAG retriever, run over **10-K / 10-Q filing text** and **earnings-call transcripts**. The query *"interest rate exposure"* exposes both of the ideas above on real documents.
+
+- **Inverse document frequency tells you which words to trust.** Across a corpus of filings and transcripts, *rate* is nearly universal — it appears in almost every document, carries close to zero bits, and is therefore almost useless for ranking, exactly as it registers $0$ bits on the toy corpus. *Exposure*, scarcer and more specific, carries real signal. IDF reads this off the collection statistics with no supervision.
+- **Cosine normalization rescues the concise disclosure.** A long earnings-call transcript that mentions the query words in passing will out-score, on the raw dot product, a single 10-K sentence that answers the question — until cosine normalization divides out the transcript's length and the focused disclosure surfaces.
+
+The toy corpus in the laboratory is the same one the [BM25 topic](/topics/bm25-binary-independence-model) uses, scored here with cosine TF-IDF. It reaches the same winner BM25 reaches — the on-point filing — which is the point: cosine normalization already fixes the pure-length failure. BM25 is what you reach for when length and repetition interact in ways a single global norm cannot tune, and when you want a probability rather than an angle.
+
+</FinanceCaseStudy>
+
+---
+
+## Honest caveats
+
+<RigorFlag>
+
+TF-IDF is a calibrated geometry, and it is most useful when you are clear about which of its parts are theorems and which are conventions.
+
+1. **The genuine results are exact.** IDF is the self-information $-\log(\mathrm{df}/N)$ of a term's presence (Theorem 1); sublinear tf is strictly increasing and concave (Proposition 1); cosine is invariant to pure magnitude (Proposition 2). These we proved, and the harness checks.
+2. **Most of the rest is a choice.** The bag-of-words representation discards word order outright. The tf-scaling form and its logarithm base, and the IDF smoothing variant, are conventions with no optimality guarantee — the SMART weighting schemes disagree about them and none is provably best.
+3. **Cosine fixes only the pure-magnitude length problem.** Real document padding shifts the *term mix*, not just the magnitude, and that compositional part cosine does not fully correct — which is one reason BM25's separately tunable length term exists.
+4. **A cosine is an alignment, not a probability.** A score of $0.8$ is more aligned than $0.4$, but it is not an eighty-percent chance of relevance; the vector space model never claims to be calibrated. Turning the geometry into a probability is what the Probability Ranking Principle and the Binary Independence Model are for.
+
+</RigorFlag>
+
+---
+
+## Implementation
+
+The companion notebook (`notebookPath`) builds the inverted index, computes IDF in both the textbook and smoothed forms so the self-information identity is visible alongside the form used for scoring, assembles TF-IDF weight vectors, and ranks by both the raw dot product and cosine. Its verification harness asserts every claim made above: that IDF equals the self-information to machine precision, that sublinear tf is increasing and concave on a dense grid, that cosine is invariant to magnitude scaling, that sublinear tf outgrows BM25's bounded factor, and — the headline — the length-hijack flip on the shared finance corpus.
+
+Running it prints the claims back as passing assertions. The IDF table shows the surprise of each query term in bits ($0.26$ for *interest*, $0.00$ for the universal *rate*, $0.59$ for *exposure*). The finance demo then scores the six-document corpus for *"interest rate exposure"* two ways: by the raw tf-idf dot product, where the padded transcript ranks first at $3.87$, and by cosine, where the concise on-point filing surfaces to first at $0.31$ while the transcript falls to last. That cosine ranking is cross-checked against scikit-learn's `TfidfVectorizer`, so any divergence would flag a genuine bug rather than a known formula difference. The interactive laboratory mirrors these numbers to the decimal — the math, the viz, and the notebook are three views of one computation.
