@@ -163,13 +163,18 @@ def _topk_neighbors(queries: np.ndarray, corpus: np.ndarray, topk: int) -> np.nd
 
 def _pca_components(X: np.ndarray, k: int) -> np.ndarray:
     """Top-k right singular vectors of the centered data (d x k) — the data-dependent
-    projection PCA would use, for the oblivious-vs-dependent recall comparison."""
+    projection PCA would use, for the oblivious-vs-dependent recall comparison. Uses
+    full_matrices only when k exceeds the thin-SVD rank min(n, d), so PCA at k > n (the
+    grid's k=512 with n=500) still returns a genuine (d x k) basis rather than silently
+    truncating to min(n, d) columns; the extra directions lie in the null space, so
+    recall is unaffected."""
     Xc = X - X.mean(axis=0)
-    _, _, Vt = np.linalg.svd(Xc, full_matrices=False)
+    _, _, Vt = np.linalg.svd(Xc, full_matrices=(k > min(Xc.shape)))
     return Vt[:k].T
 
 
-def recall_after_projection(X: np.ndarray, queries: np.ndarray, kept_dims,
+def recall_after_projection(X: np.ndarray, queries: np.ndarray,
+                            kept_dims: tuple[int, ...] | list[int],
                             topk: int = 10, method: str = "gaussian",
                             seed: int = 0) -> dict[int, float]:
     """Mean recall@topk of the full-dimensional nearest neighbors after projecting

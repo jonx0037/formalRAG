@@ -118,7 +118,7 @@ export default function RandomProjectionLaboratory() {
         <rect x={hx(1 - EPS)} y={PAD - 6} width={hx(1 + EPS) - hx(1 - EPS)} height={PLOT_H - PAD - (PAD - 6)}
           fill="var(--color-accent)" opacity={0.1} />
         {counts.map((c, i) => {
-          const h = ((PLOT_H - 2 * PAD) * c) / maxC;
+          const h = maxC > 0 ? ((PLOT_H - 2 * PAD) * c) / maxC : 0;
           return <rect key={i} x={hx(HIST_CENTERS[i]) - bw / 2 + 0.5} y={PLOT_H - PAD - h} width={bw - 1} height={h}
             fill="var(--color-accent)" opacity={0.78} />;
         })}
