@@ -249,7 +249,9 @@ def lsh_query(X: np.ndarray, q: np.ndarray, tables, planes, topk: int = 10):
     tables, dedupe, compute the EXACT distance to each candidate, and return the top-k. Cost, in the
     head-to-head's "distance computations per query" currency, is the L*k hyperplane projections to
     hash the query (the analogue of IVF's nlist coarse comparisons) PLUS one exact distance per
-    candidate examined. Returns (result indices nearest-first, cost)."""
+    candidate examined. Returns (result indices nearest-first, cost). GUARD: topk >= 1."""
+    if topk < 1:
+        raise ValueError(f"topk must be >= 1, got {topk}")
     hash_work = sum(pl.shape[0] for pl in planes)     # L * k projections, the coarse hashing cost
     cand: set[int] = set()
     for t in range(len(tables)):
