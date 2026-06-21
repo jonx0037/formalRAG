@@ -125,6 +125,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   Hydration tell-tales: the React JSX (buttons, list, *empty* `<svg>`) is in the SSR DOM, but
   D3-drawn `<rect>/<circle>` children and `katex.render()` output (a post-load `.katex` count bump)
   appear only *after* hydration — assert on those before clicking.
+  **Scope DOM assertions to the lab container** — the topic page has other SVGs (DAG/connection graphs)
+  that inflate document-wide `circle`/`path`/`text` counts. Hydration is per-load: a fresh navigation
+  needs another `scrollIntoView` before any click, **tab/panel switches included** (not just sliders).
 - Pagefind UI assets 404 in `astro dev` (generated only by `postbuild`) — expected, harmless.
 - **Don't hyperlink prose forward-references to unbuilt topics** — the link 404s until that topic
   ships. Link only to slugs that already have MDX; name a future topic in prose without a link.
@@ -161,6 +164,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   contrast in the harness, don't assume.** The Lloyd lab's first cloud (3 well-separated blobs) converged
   to one optimum from every seed, falsifying its "Reseed shows local optima" story; 4 corner blobs at k=3
   fixed it, locked by `test_toy_local_optima` (global < near-miss < stuck).
+- **vMF cluster toys: two `vMF(μ,κ)` draws have expected cosine ≈ `A_d(κ)²`.** A κ that "looks tight"
+  is near-orthogonal in expectation at high d (κ=12, d=64 → cosine ~0.03), so a same-cluster "hard
+  negative" isn't actually hard. Size κ so same-cluster cosine clearly beats inter-cluster and assert it
+  — InfoNCE's finance toy needed κ_sector≈60 at d=32, not κ=12 at d=64.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
@@ -168,6 +175,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   the intended rotated data. The wrong transpose makes distortion **increase**, so a monotone-descent
   assert plus a cross-check against `scipy.linalg.orthogonal_procrustes` pin the orientation by
   construction — add a new test of each when introducing a learned rotation.
+- **InfoNCE / CPC MI-bound proof direction:** the lower bound `I(q;d⁺) ≥ log(N+1) − L` comes from the
+  LLN (the sum of N negative density-ratios → N) **plus dropping the `+1`** in `log(1 + N/r₀)`, NOT a
+  Jensen step on "the sum is N in expectation" — Jensen on the concave log gives an *upper* bound on L,
+  the wrong direction. Verify the inequality direction numerically (Gaussian joint, Bayes-optimal critic)
+  before writing the proof; the `log(N+1)` ceiling/saturation is the load-bearing rigorFlag.
 - **Verify reference DOIs** with `curl -sI https://doi.org/<doi>` — the `location:` header in the 302
   alone confirms journal/volume/issue/pages (a HEAD request: no redirect-following, no paywalled GET).
   For conference papers also confirm the **venue + title** via content negotiation
@@ -214,7 +226,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   ~1–3 min after the push; `mergeable` flips to `UNKNOWN` transiently right then. (`jupyter execute` does
   *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.)
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
-  `generalization-bounds`.
+  `generalization-bounds`. `maximum-likelihood` / `exponential-families` are **formalStatistics** slugs,
+  not formalML; `shannon-entropy`, `kl-divergence`, `representation-learning`, `concentration-inequalities`
+  are the formalML info-theory/representation slugs. Confirm with `ls ../<sibling>/src/content/topics/<slug>.mdx`.
 
 ## Cross-site & sibling repos
 
