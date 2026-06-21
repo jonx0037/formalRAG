@@ -176,6 +176,8 @@ def build_nsw(X: np.ndarray, M: int = 8, ef_construction: int = 16, seed: int = 
     if M < 1 or ef_construction < 1:
         raise ValueError(f"M and ef_construction must be >= 1, got M={M}, ef={ef_construction}")
     n = X.shape[0]
+    if n < 1:
+        raise ValueError("X must contain at least one vector")
     order = np.random.default_rng(seed).permutation(n)
     adj = [set() for _ in range(n)]
     inserted = []
@@ -237,8 +239,10 @@ def recall_vs_ef(X, queries, adj, entry, ef_grid, topk: int = 10):
 
 def average_path_length(adj, sample: int = 60, seed: int = 0) -> float:
     """Mean shortest-path length (in hops) over random node pairs, by BFS — the small-world
-    diameter proxy. GUARD: unreachable pairs are skipped."""
+    diameter proxy. GUARDS: a graph with < 2 nodes has no pair -> 0.0; unreachable pairs skipped."""
     n = len(adj)
+    if n < 2:
+        return 0.0
     rng = np.random.default_rng(seed)
     lengths = []
     for _ in range(sample):
@@ -353,7 +357,7 @@ def toy_nsw_graph(seed: int = 2):
             best = (q, nn, walk, found)
         if walk[-1] != nn and found == nn:
             return X2, adj, entry, q, nn, walk, found
-    return (X2, adj, entry, *best[1:])
+    return (X2, adj, entry, *best)   # best = (q, nn, walk, found) -> a consistent 7-tuple
 
 
 def viz_constants() -> None:
