@@ -205,7 +205,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   recall/`topk` denominators (`hits/(nq·topk)`), `np.argpartition(d, topk)` when `topk>n` (cap
   `topk=min(topk, n)`), and **tuple-arity mismatches in a fallback `return`** (a 6- vs 7-tuple path — a real
   HIGH-severity catch). It also flags **list-comprehension membership filters over sets** (→ native
-  `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del`/`discard` stays safe). But
+  `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del dict[k]` (intersection over a
+  dict's keys) or set `.discard(x)` stays safe). But
   **decline with a posted rationale** the nits that would (a) break a byte-for-byte search twin — caching
   a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
   or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
