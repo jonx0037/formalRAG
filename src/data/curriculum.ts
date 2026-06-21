@@ -52,7 +52,6 @@ export const tracks = [
     planned: [
       'Voronoi Partitioning and the IVF Index',
       'Locality-Sensitive Hashing: Collision Probability and the ρ Exponent',
-      'Navigable Small-World Graphs and the Mathematics of Greedy Routing',
       'HNSW: Hierarchical Navigable Small-World Construction and Search',
       'Filtered and Incremental ANN: Predicate Search, Deletion, and Graph Connectivity',
       'Multi-Vector ANN: Indexing and Pruning MaxSim at Scale (PLAID)',
