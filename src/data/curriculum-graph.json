@@ -105,7 +105,7 @@
     {
       "id": "hnsw",
       "label": "HNSW: Hierarchical Navigable Small-World Construction and Search",
-      "status": "planned",
+      "status": "published",
       "domain": "ann-indexing"
     },
     {
