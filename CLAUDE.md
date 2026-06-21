@@ -74,6 +74,25 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `SVD(Xc.T @ Q) = U Σ V.T`, so `apply_rotation` gives `Xc @ R.T = Xc @ (U V.T)` — the intended rotated
   data. A wrong transpose makes distortion **increase**, so a monotone-descent assert + a cross-check
   against `scipy.linalg.orthogonal_procrustes` pin the orientation by construction.
+- **Reusing a prereq's search in a layered/restricted structure (HNSW): write a fresh twin, then
+  cross-check it byte-for-byte.** NSW's `greedy_search` indexes a flat `list[set]` adjacency and
+  `KeyError`s on a node absent from a layer, so HNSW's per-layer beam can't reuse it verbatim — write a
+  near-copy `search_layer` over a per-layer **dict** with `layer_adj.get(c, ())` (seeded from a *set* of
+  entry points). Prove the twin is faithful with `test_search_layer_matches_flat_on_single_layer`: force
+  every node to level 0 and assert `search_layer ≡ greedy_search` on the same flat adjacency — same
+  **ids AND ndist**. That single-layer collapse is the cleanest correctness anchor for any "prereq +
+  hierarchy" topic. Measure a scaling law (HNSW's `top_level ≈ log_M n`) from the **draws alone**
+  (`max` of n geometric level draws), never a 100-graph-build sweep — it's microseconds and seed-cheap.
+  And state the apex honestly: at finite n the realized top layer holds `~n·M^-top_level` nodes, so
+  assert the geometric law **at** the apex plus the O(1) **extrapolation** to the `round(log_M n)` level,
+  not a hardcoded "≤ k nodes".
+- **Cross-index head-to-head = build every index on the prereq's exact dataset + ONE shared truth.**
+  HNSW vs flat-NSW vs IVF runs all three on the *same* `nsw_dataset` cloud with a single
+  `_true_topk(...)` shared across every recall call, compared by **distance computations per query**
+  (graph `ndist`; IVF `candidate_fraction·n + nlist`). The **robust** assertion is intra-family
+  (`test_hnsw_beats_flat_nsw_at_equal_cost`: the hierarchy reaches a recall at ≤ the flat graph's cost);
+  the cross-family verdict (HNSW vs IVF) is stated as **one synthetic cloud, not a universal ranking** —
+  pin the inequality to the *observed* winner after running, per the headline-flip rule.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
