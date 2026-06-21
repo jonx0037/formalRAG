@@ -135,7 +135,7 @@
     {
       "id": "infonce-contrastive-objective",
       "label": "Contrastive Learning for Retrieval: InfoNCE, Temperature, and Negative Sampling",
-      "status": "planned",
+      "status": "published",
       "domain": "neural-retrieval"
     },
     {
