@@ -1,0 +1,192 @@
+---
+title: "Locality-Sensitive Hashing: Collision Probability and the ρ Exponent"
+subtitle: "Hash so that near points collide more often than far ones, and the collision probability — not a heuristic — becomes the index: an exact angular law, the AND/OR S-curve that sharpens it, and a sublinear exponent that holds for any data"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "johnson-lindenstrauss"
+  - "high-dimensional-geometry"
+tags:
+  - "lsh"
+  - "locality-sensitive-hashing"
+  - "simhash"
+  - "random-hyperplane"
+  - "collision-probability"
+  - "amplification"
+  - "rho-exponent"
+  - "sublinear-search"
+domain: "ann-indexing"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "Locality-sensitive hashing rests on one exact theorem and one honestly worst-case guarantee, and the gap between them is the whole story. The exact theorem is the collision law: for random-hyperplane SimHash, two vectors at angle theta collide with probability exactly one minus theta over pi, because a hyperplane separates them iff its normal lands in the wedge of angular measure theta over pi. That is a closed form, not a fit, and it is exact only for the random-hyperplane family — the p-stable family for Euclidean distance obeys a different law entirely. The worst-case guarantee is the query time: tuning the AND/OR amplification to a gap between a near radius and a far radius gives a data structure with query time order n to the rho and space order n to the one-plus-rho, where rho equals log of one over p-one over log of one over p-two and is below one whenever near points collide more than far ones. Three caveats sit on top. First, rho is a bound for the approximate-near-neighbor DECISION problem under a data-INDEPENDENT family, so realized recall on real data is not what the exponent promises, and SimHash's rho is not optimal — data-dependent and cross-polytope hashing achieve a smaller exponent for the same gap. Second, amplification's recall guarantee is probabilistic over the random tables, so any single index can miss a true neighbor that no table happened to bucket with the query. Third, the head-to-head in the laboratory is one verdict on one synthetic normalized cloud, where a data-AWARE index that learns the cloud's structure is expected to dominate the oblivious hash at equal cost; on that low-rank cloud LSH never wins, and past a few dozen tables it does more work than a brute-force scan, because its per-query hashing overhead amortizes only as n grows. LSH's value is the distribution-free guarantee that survives adversarial data, not its constant factors on a friendly cloud."
+videoId: null
+notebookPath: "notebooks/locality-sensitive-hashing/01_locality_sensitive_hashing.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/locality-sensitive-hashing.mdx"
+datePublished: 2026-06-21
+estimatedReadTime: 24
+abstract: "IVF cut the space into Voronoi cells you probe and the graph topics walked a graph; locality-sensitive hashing is the third approximate-nearest-neighbor family and the only one with a sharp, distribution-free theory of its own. The idea is to hash so that near points collide more often than far ones, and to build the index on the collision probability itself. The centerpiece is random-hyperplane SimHash, which is signed random projection — so this topic imports the Johnson-Lindenstrauss machinery rather than reinventing it — and the mathematics has three movements. The first is the exact collision law: two vectors at angle theta collide with probability exactly one minus theta over pi, verified to the third decimal against a Monte Carlo of random hyperplanes. The second is amplification: concatenating k bits is an AND that needs all of them, unioning L independent tables is an OR that needs any of them, and the composite collision probability one minus one-minus-p-to-the-k all to the L is the S-curve whose threshold k and L place and sharpen, trading recall against candidate-set size — and which collapses to the bare hash at k equals L equals one. The third is the headline exponent: rho equals log of one over p-one over log of one over p-two is below one whenever the near collision beats the far one, so query time order n to the rho is sublinear by a family that never looks at the data, and rho falls as the approximation factor widens the near-far gap. A laboratory shows the angular law on the unit circle, the S-curve under amplification, and a cross-index head-to-head where, honestly, the data-aware indexes dominate the oblivious hash on a low-rank cloud."
+connections:
+  - topic: "ivf-voronoi-partitioning"
+    relationship: "IVF and LSH are the two partition-family answers to the same question — how to avoid scanning every vector — and they split on whether the partition reads the data. IVF's Voronoi cells are data-DEPENDENT, learned by k-means from the cloud's own density; LSH's buckets are data-INDEPENDENT, fixed by random hyperplanes that never see a point. The head-to-head in this topic runs both on the identical normalized cloud and the identical ground truth, by distance computations per query, and the oblivious hash pays for that obliviousness exactly as the data-dependent quantizer pays nothing for structure it can exploit"
+  - topic: "hnsw"
+    relationship: "HNSW is the graph member of the same head-to-head: on the shared normalized cloud it reaches recall ninety percent at the lowest cost of the three indexes, and LSH the highest. The contrast is the point — the graph and the inverted file both learn the data, the hash does not, so on a low-rank cloud the structure-aware methods win, and LSH's guarantee is the distribution-free worst case the others cannot promise"
+references:
+  - type: "paper"
+    title: "Approximate Nearest Neighbors: Towards Removing the Curse of Dimensionality"
+    authors: "Indyk & Motwani"
+    year: 1998
+    url: "https://doi.org/10.1145/276698.276876"
+    note: "The origin of locality-sensitive hashing and the rho exponent: an (r1, r2, p1, p2)-sensitive family gives an approximate-near-neighbor structure with query time n to the rho. The VLDB instantiation a year later (Gionis, Indyk & Motwani 1999) made it practical"
+  - type: "paper"
+    title: "Similarity Estimation Techniques from Rounding Algorithms"
+    authors: "Charikar"
+    year: 2002
+    url: "https://doi.org/10.1145/509907.509965"
+    note: "SimHash: one bit per random hyperplane, with the exact collision law one minus theta over pi for the angle between two vectors — the random-hyperplane family this topic builds on, derived from Goemans-Williamson rounding"
+  - type: "paper"
+    title: "Locality-Sensitive Hashing Scheme Based on p-Stable Distributions"
+    authors: "Datar, Immorlica, Indyk & Mirrokni"
+    year: 2004
+    url: "https://doi.org/10.1145/997817.997857"
+    note: "The Euclidean family (E2LSH): hash by a random projection quantized into width-w buckets, a different collision law for L2 distance — the named sibling this topic flags but does not implement"
+  - type: "paper"
+    title: "Near-Optimal Hashing Algorithms for Approximate Nearest Neighbor in High Dimensions"
+    authors: "Andoni & Indyk"
+    year: 2008
+    url: "https://doi.org/10.1145/1327452.1327494"
+    note: "The near-optimal exponent rho approaching one over c squared for Euclidean ANN — the result behind the rigorFlag's claim that SimHash's rho is not optimal, and that data-dependent and cross-polytope hashing do better for the same gap"
+  - type: "documentation"
+    title: "Faiss indexes — IndexLSH and binary indexes"
+    authors: "Johnson, Douze & Jégou"
+    year: 2024
+    url: "https://github.com/facebookresearch/faiss/wiki/Faiss-indexes"
+    note: "The production realization: IndexLSH bit-packs SimHash codes and searches by Hamming distance, the concrete form of the k-bit signatures and bucket lookups this topic measures"
+  - type: "documentation"
+    title: "datasketch — MinHash LSH"
+    authors: "Zhu"
+    year: 2024
+    url: "https://ekzhu.com/datasketch/lsh.html"
+    note: "A widely used Python LSH for Jaccard similarity via MinHash, whose banding parameters are exactly the (k, L) AND/OR amplification of Movement 2 under a different base family"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the collision probability is an expectation over random hyperplanes and amplification multiplies independent events across k bits and L tables, so the concentration and union-bound machinery developed there is exactly what turns the per-bit probabilities p-one and p-two into the number of tables an index must build to hit a target recall with high probability, and what makes the S-curve's threshold sharp rather than gradual"
+formalmlConnections:
+  - topic: "pca-low-rank"
+    site: "formalml"
+    relationship: "LSH is the data-oblivious extreme of dimensionality reduction — random hyperplanes that never see the cloud — and the low-rank structure formalized there is precisely what a data-dependent method exploits and a hash ignores, so the head-to-head's finding that structure-aware indexes dominate the oblivious hash on a low-rank cloud is the same data-dependent-versus-oblivious gap, now measured in recall at equal cost"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import LocalitySensitiveHashingLaboratory from '../../components/viz/LocalitySensitiveHashingLaboratory.tsx';
+
+## Overview & motivation
+
+Two ANN families so far have avoided scanning every vector by *learning the data*. IVF read the cloud's density with k-means and cut it into Voronoi cells you probe; the navigable-graph topics built a structure from the insertion order and walked it. Both look at the points before they answer. Locality-sensitive hashing is the third family, and it makes the opposite bet: **fix the partition before seeing a single vector**, using randomness alone, and lean on a theorem to make it work.
+
+The theorem is the whole design. A hash function is *locality-sensitive* if near points are *more likely* to land in the same bucket than far ones — collision probability is a decreasing function of distance. If you have such a family, retrieval is almost trivial: hash every database vector into a table, hash the query, and scan only the bucket it lands in. The near neighbors are *probably* there because near points *probably* collide. Everything hard is in turning "probably" into a guarantee with a tunable knob, and in paying honestly for the fact that the hash never looked at your data.
+
+<LocalitySensitiveHashingLaboratory client:visible />
+
+The first panel is the exact angular law on the unit circle — random-hyperplane normals colored by whether they separate two vectors, with the collision probability falling linearly in the angle. The second is amplification: the S-curve that the AND/OR construction bends into a sharp threshold. The third is the payoff and the price — the sublinear exponent ρ on the left, and a cross-index head-to-head on the right where, told honestly, the data-aware indexes win.
+
+## Movement 1 — the family and its collision probability
+
+We need a concrete locality-sensitive family, and the cleanest one is the one already half-built in the prerequisite. Random projection multiplies a vector by a random matrix; **SimHash keeps only the sign of each coordinate of that projection**. One random Gaussian vector $\mathbf{h}$ defines one bit, $b(\mathbf{x}) = \mathbf{1}[\langle \mathbf{x}, \mathbf{h}\rangle \ge 0]$ — which side of the hyperplane through the origin with normal $\mathbf{h}$ the point falls on. A $k$-bit signature is $k$ such bits. Because only the sign matters, the $1/\sqrt{k}$ scaling that Johnson–Lindenstrauss applies is irrelevant here: the random hyperplanes *are* the projection rows, reused verbatim.
+
+<TheoremBlock type="definition" number={1} title="A locality-sensitive hash family">
+
+A family $\mathcal{H}$ of hash functions is **$(r_1, r_2, p_1, p_2)$-sensitive** for a distance $d$ if, for $h$ drawn uniformly from $\mathcal{H}$,
+
+$$
+d(\mathbf{x}, \mathbf{y}) \le r_1 \;\Rightarrow\; \Pr[h(\mathbf{x}) = h(\mathbf{y})] \ge p_1, \qquad
+d(\mathbf{x}, \mathbf{y}) \ge r_2 \;\Rightarrow\; \Pr[h(\mathbf{x}) = h(\mathbf{y})] \le p_2.
+$$
+
+The family is useful when $r_1 < r_2$ and $p_1 > p_2$: near points (within $r_1$) collide at least as often as $p_1$, far points (beyond $r_2$) at most as often as $p_2$, and the gap between $p_1$ and $p_2$ is what amplification will widen into a usable filter.
+
+</TheoremBlock>
+
+For SimHash the relevant distance is the **angle**, and the collision probability is not an inequality to be estimated but an exact closed form.
+
+<TheoremBlock type="theorem" number={1} title="The SimHash collision law">
+
+Let $\mathbf{x}, \mathbf{y}$ have angle $\theta = \angle(\mathbf{x}, \mathbf{y}) \in [0, \pi]$, and let $h$ be a single random-hyperplane bit with normal $\mathbf{h}$ drawn from a spherically symmetric distribution. Then
+
+$$
+\Pr[h(\mathbf{x}) = h(\mathbf{y})] = 1 - \frac{\theta}{\pi}.
+$$
+
+The hyperplane *separates* $\mathbf{x}$ and $\mathbf{y}$ — assigns them opposite bits — exactly when its normal falls in the wedge spanned between them, whose angular measure, relative to the full circle of directions, is $\theta/\pi$. So they collide with the complementary probability $1 - \theta/\pi$. The law is linear in the angle, exact for any dimension, and depends on nothing but $\theta$.
+
+</TheoremBlock>
+
+The companion code drives the law directly: it builds pairs of unit vectors at a controlled angle $\theta = \tfrac{\theta}{\pi}\cdot\pi$ and measures the fraction of thousands of random hyperplanes that fail to separate them. At $\theta/\pi = (0.1,\,0.3,\,0.5,\,0.7,\,0.9)$ the measured collision rates are $(0.9009,\,0.7025,\,0.5019,\,0.3029,\,0.1066)$ against the predicted $1 - \theta/\pi = (0.9,\,0.7,\,0.5,\,0.3,\,0.1)$. The points land on the line because the law is exact, not fitted — this is the number the whole index is built on.
+
+## Movement 2 — amplification: AND/OR and the S-curve
+
+A single bit collides with probability $1 - \theta/\pi$, which for any interesting angle is far too gradual to separate near from far: at $\theta = \pi/4$ the collision is $0.75$, at $\theta = \pi/2$ still $0.5$. A useful index needs the collision probability to be *near one* for true neighbors and *near zero* for everything else — a step, not a ramp. Amplification builds that step out of the gradual base law with two compositions.
+
+<TheoremBlock type="theorem" number={2} title="The AND/OR S-curve">
+
+Let $p = 1 - \theta/\pi$ be the base collision probability of a single bit. Concatenate $k$ independent bits into one table key (an **AND**: the keys match only if all $k$ bits agree, probability $p^k$), and maintain $L$ independent such tables (an **OR**: two points are candidates if they collide in *any* table). The probability that $\mathbf{x}$ and $\mathbf{y}$ become candidates is
+
+$$
+g(p) = 1 - \left(1 - p^{\,k}\right)^{L}.
+$$
+
+As a function of $p$ this is an **S-curve**: $k$ slides the threshold rightward and steepens it (a stricter AND), $L$ raises the whole curve (a more forgiving OR). At $k = L = 1$ it collapses to the identity $g(p) = p$ — the bare hash, the byte-for-byte anchor the code checks.
+
+</TheoremBlock>
+
+The two knobs pull in opposite directions, and reading the verified S-curves shows it. At a base $p = 0.85$ (an angle $\theta = 0.15\pi$, the kind of small gap a true neighbor sits at), the $(k=16,\,L=4)$ family collides with probability only $0.2655$ — sixteen bits is a demanding AND — while $(k=8,\,L=8)$ collides at $0.9215$, because eight tables is a forgiving OR. Tuning $(k,L)$ places the steep part of the curve right between the near angle you want to keep and the far angle you want to drop. That is the engineering of an LSH index: choose $k$ to push the threshold past the far radius, then choose $L$ to pull the near radius back above it. The price of a larger $L$ is a larger candidate set — every table contributes its bucket to the union you must then rank exactly.
+
+## Movement 3 — the ρ exponent and sublinear query time
+
+Amplification gives recall; the reason to use LSH at all is what it costs. The headline result of Indyk and Motwani is that the AND/OR knobs can be set so the query touches a *sublinear* number of points, and the exponent that controls it is a clean ratio of the two collision probabilities.
+
+<TheoremBlock type="theorem" number={3} title="The ρ exponent and the query-time bound">
+
+For an $(r_1, r_2, p_1, p_2)$-sensitive family, set $k = \log_{1/p_2} n$ and $L = n^{\rho}$ with
+
+$$
+\rho = \frac{\ln(1/p_1)}{\ln(1/p_2)}.
+$$
+
+Then the $(c, r)$-approximate near-neighbor problem (with $c = r_2/r_1$) is solved with query time $O(n^{\rho})$ and space $O(n^{1+\rho})$, and $\rho < 1$ whenever $p_1 > p_2$. The choice of $k$ makes a random far point's expected collisions $O(1)$ per table; the choice of $L$ makes a near point collide in some table with constant probability. Query time is sublinear, by a family that never examined the data.
+
+</TheoremBlock>
+
+The exponent rewards a wider gap. Fixing the near angle at $\theta_1 = 0.15\pi$ (so $p_1 = 0.85$) and widening the far angle by an approximation factor $c$, the verified $\rho$ falls from $0.7827$ at $c = 1.25$ to $0.4556$ at $c = 2$ to $0.1774$ at $c = 4$: a search willing to accept a four-times-looser "near" is an easy problem, $\rho$ near a fifth, query time close to $n^{1/5}$. An easier approximation is a cheaper search, made quantitative.
+
+What the exponent does **not** say is that LSH wins in practice, and the honest way to see this is to run it against the indexes that learn the data.
+
+<TheoremBlock type="proposition" number={1} title="The head-to-head, on one normalized cloud">
+
+Build LSH, IVF, flat-NSW, and HNSW on the *same* cloud and score them against the *same* ground truth, by distance computations per query. To compare angular SimHash against the Euclidean indexes fairly, L2-normalize the cloud: for unit vectors $\lVert \mathbf{x} - \mathbf{y}\rVert^2 = 2 - 2\cos\theta$, so the Euclidean top-$k$ ranking *is* the angular ranking and the ground truth is shared by construction. Count LSH's cost honestly — the $L\cdot k$ hyperplane projections that hash the query (the analogue of IVF's coarse centroid comparisons) plus one exact distance per candidate.
+
+On this low-rank cloud the data-aware indexes dominate. To reach recall $0.9$, HNSW spends $82$ distance computations per query, IVF spends $113$, and LSH spends $486$ — and past a few dozen tables LSH does *more* work than a brute-force scan of all $500$ vectors. This is a verdict on this cloud, not a universal ranking.
+
+</TheoremBlock>
+
+The proposition reads like a defeat for LSH, and on this data it is — but the reason is instructive. LSH's *candidate* work is small: at recall $0.94$ its buckets surface only about $38$ vectors to rank exactly, fewer than HNSW touches. What sinks it is the hashing overhead — to get recall on a tightly clustered, low-dimensional cloud the oblivious hash needs many tables, and $L\cdot k$ projections at $n = 500$ is nearly a full scan on its own. That overhead amortizes only as $n$ grows, and the dominance of the structure-aware indexes is exactly what you should expect when the data *has* structure to learn. LSH's case is the opposite regime: very high dimension where graphs and inverted files degrade, adversarial or shifting data where no learned partition can be trusted, and the distribution-free worst-case guarantee that $\rho < 1$ provides no matter what the data does.
+
+<FinanceCaseStudy modality={["text"]}>
+
+A production retrieval system over financial filings embeds each chunk into a normalized vector where **cosine similarity is the native metric** — and cosine similarity is exactly angular distance, the regime where SimHash's $1 - \theta/\pi$ law is exact. That makes random-hyperplane LSH the natural data-oblivious baseline: bit-pack each filing's embedding into a $k$-bit signature, bucket by signature, and answer a query by Hamming-near buckets. Its appeal is not raw recall — the head-to-head shows a learned index beats it on a structured corpus — but three operational properties the learned indexes lack. The signatures are *tiny* (a few bytes per document), so a first-stage filter over tens of millions of chunks fits in memory where the full vectors would not; the hash is *update-free*, so a streaming feed of new filings needs no re-training of a quantizer or re-linking of a graph; and the collision guarantee is *distribution-free*, so a sudden regime shift in the embedding distribution — a new asset class, a new document modality — cannot silently degrade it the way a stale k-means partition would. LSH earns its place as the cheap, robust coarse filter beneath a structure-aware reranker, not as the reranker itself.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+The collision law $1 - \theta/\pi$ is exact, but exact *only* for the random-hyperplane family — the p-stable family for Euclidean distance obeys a different law, and quoting the angular law for an L2 index is the wrong-family error. The $O(n^{\rho})$ guarantee is worst-case for the approximate-near-neighbor *decision* problem under a *data-independent* family, so realized recall on real data is not what the exponent promises, and SimHash's $\rho$ is *not optimal*: data-dependent and cross-polytope hashing achieve a smaller exponent for the same gap. Amplification's recall is probabilistic over the random tables, so any single index can miss a true neighbor that no table happened to bucket with the query. And the head-to-head is one verdict on one synthetic normalized cloud, where a data-aware index that learns the cloud's structure is expected to dominate the oblivious hash at equal cost — on that low-rank cloud LSH never wins, and the place to reach for it is the opposite regime: very high dimension, streaming or adversarial data, and the distribution-free guarantee no learned partition can match.
+
+</RigorFlag>
+
+LSH completes the partition-family side of the ANN story: IVF's learned Voronoi cells and LSH's random buckets are the two ways to slice the space without scanning it, one data-dependent and one data-oblivious, and the graph indexes are the third way that abandons a partition for a walk. What remains on the ANN thread is the other axis of richness — when a document is not one vector but many, and a query must be scored against the best match among them, the index must change shape again. **Multi-vector and late-interaction indexing**, where the pruning of that many-to-many match at scale is its own problem, is where the thread continues.

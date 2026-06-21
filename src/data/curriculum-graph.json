@@ -93,7 +93,7 @@
     {
       "id": "locality-sensitive-hashing",
       "label": "Locality-Sensitive Hashing: Collision Probability and the rho Exponent",
-      "status": "planned",
+      "status": "published",
       "domain": "ann-indexing"
     },
     {
