@@ -93,6 +93,24 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   (`test_hnsw_beats_flat_nsw_at_equal_cost`: the hierarchy reaches a recall at ≤ the flat graph's cost);
   the cross-family verdict (HNSW vs IVF) is stated as **one synthetic cloud, not a universal ranking** —
   pin the inequality to the *observed* winner after running, per the headline-flip rule.
+- **Filtered/incremental ANN = node removal from the prereq graph; the over-fetch laws are the exact
+  spine, percolation the honest floor.** Deletion (tombstone, scan `k/(1−δ)` to collect k live) and
+  predicate filtering (post-filter, scan `k/s`) are the SAME negative-binomial law with `s ↔ 1−δ` —
+  build the viz to *show* it: one hyperbola `scan = k/r` vs pass-rate `r`, both measurement sets riding
+  it. Extend the fresh-twin rule to a per-node predicate: `search_layer_filtered` adds ONLY a `live[]`
+  guard (admit to results iff `live[nb]`, still traverse failing nodes) and collapses to the prereq's
+  `search_layer` exactly when all-live — the same byte-for-byte anchor (ids AND ndist).
+- **Network-percolation constant gotcha + connectivity ≠ navigability.** The random-deletion
+  giant-component threshold is `p_c = 1/(M−1)` for a degree-M-**regular** graph (κ=⟨k²⟩/⟨k⟩=M), NOT the
+  Erdős–Rényi `1/M` (κ=M+1, Poisson) — quoting `1/M` for HNSW's near-regular graph is the wrong-ensemble
+  error. VERIFY the theorem on a configuration-model regular graph (where it's exact), then MEASURE on
+  HNSW's real layer-0 (where it only approximates), and flag that a giant component existing ≠ greedy
+  search *finding* the target: recall dies far INSIDE the connected regime, so percolation is the floor,
+  never the binding constraint. The pre/post/in-filter "winner" is a selectivity **crossover**, not a
+  ranking (pre cheapest+exact at low s; post cheapest at high s; in-filter degenerates toward a full
+  scan at very low s), and the intuitive "correlated removal fragments earlier" runs **FALSE** — a
+  spatially coherent (modality) predicate keeps the induced subgraph CONNECTED far below where a random
+  predicate site-percolates apart. Pin every direction to the sim.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
@@ -152,6 +170,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   construction — add a new test of each when introducing a learned rotation.
 - **Verify reference DOIs** with `curl -sI https://doi.org/<doi>` — the `location:` header in the 302
   alone confirms journal/volume/issue/pages (a HEAD request: no redirect-following, no paywalled GET).
+  For conference papers also confirm the **venue + title** via content negotiation
+  (`curl -sL -H "Accept: application/vnd.citationstyles.csl+json" https://doi.org/<doi>`) — the 302
+  location doesn't catch a wrong venue (Filtered-DiskANN is **WWW 2023**, not the NeurIPS 2023 Big-ANN
+  competition; ACORN is SIGMOD/PACMMOD 2024).
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
 - `status` gates only **listings** (homepage / `/topics` / `/paths`) + prereq availability;
@@ -182,9 +204,14 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   and compute drag-end distortion from live points/centroids, not a render-lagging ref. It also flags
   recall/`topk` denominators (`hits/(nq·topk)`), `np.argpartition(d, topk)` when `topk>n` (cap
   `topk=min(topk, n)`), and **tuple-arity mismatches in a fallback `return`** (a 6- vs 7-tuple path — a real
-  HIGH-severity catch). Gemini posts inline ~1–3 min after the push; `mergeable` flips to `UNKNOWN`
-  transiently right then. (`jupyter execute` does *not* write outputs back, so re-running to verify won't
-  dirty the output-free `.ipynb`.)
+  HIGH-severity catch). It also flags **list-comprehension membership filters over sets** (→ native
+  `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del`/`discard` stays safe). But
+  **decline with a posted rationale** the nits that would (a) break a byte-for-byte search twin — caching
+  a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
+  or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
+  every lab shares the `useEffect`+ref idiom (consistency beats a marginal CLS win). Gemini posts inline
+  ~1–3 min after the push; `mergeable` flips to `UNKNOWN` transiently right then. (`jupyter execute` does
+  *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.)
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`.
 
