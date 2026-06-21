@@ -69,6 +69,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   the grand-prereq supplies primitives the direct prereq doesn't re-export, e.g. `finance_dataset`). If a
   topic's chosen scope adds a genuine dependency (Full IVFADC needs `product-quantization` for the residual
   PQ), add the **DAG edge + frontmatter `prerequisites` entry**, not just the node-status flip.
+- **Learned-rotation (OPQ) transpose checkpoint:** the VQ/PQ track applies rotations as `(X−mu) @ R.T`
+  (R's *rows* = basis). A learned Orthogonal Procrustes R-step must return `R = V @ U.T` from
+  `SVD(Xc.T @ Q) = U Σ V.T`, so `apply_rotation` gives `Xc @ R.T = Xc @ (U V.T)` — the intended rotated
+  data. A wrong transpose makes distortion **increase**, so a monotone-descent assert + a cross-check
+  against `scipy.linalg.orthogonal_procrustes` pin the orientation by construction.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
