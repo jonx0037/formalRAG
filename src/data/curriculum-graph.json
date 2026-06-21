@@ -111,7 +111,7 @@
     {
       "id": "filtered-incremental-ann",
       "label": "Filtered and Incremental ANN: Predicate Search, Deletion, and Graph Connectivity",
-      "status": "planned",
+      "status": "published",
       "domain": "ann-indexing"
     },
     {
