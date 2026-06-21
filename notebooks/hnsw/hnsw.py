@@ -249,14 +249,15 @@ def search_hnsw(layers, X: np.ndarray, q: np.ndarray, entry: int, top_level: int
     top_level..1 refines the entry, then a width-ef beam at layer 0 returns the nearest. Returns
     (top-k node ids, TOTAL distance computations across all layers). GUARDS: topk capped at the
     layer-0 occupancy; ef >= 1."""
+    if not layers:
+        return [], 0
     ep = int(entry)
     ndist = 0
     for lev in range(top_level, 0, -1):
         ids, nd = search_layer(X, layers[lev], q, {ep}, ef=1)
         ndist += nd
         ep = ids[0]
-    n0 = len(layers[0]) if layers else 0
-    k = min(topk, n0) if n0 else topk
+    k = min(topk, len(layers[0]))
     ids, nd = search_layer(X, layers[0], q, {ep}, ef=ef)
     ndist += nd
     return ids[:k], ndist
