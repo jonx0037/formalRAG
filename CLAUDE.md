@@ -64,6 +64,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `from vector_quantization_lloyd_max import ...` (the `rank_fusion_rrf`→`bm25` precedent). Reuse the
   prereq's exact dataset and **re-derive any shared baseline** rather than hardcoding it, so a
   cross-topic comparison (PQ's recall vs the flat-VQ ceiling it re-derives) is provably one cloud.
+  When a prereq is **itself** a dependent topic, add **every** ancestor's hyphenated dir and import each
+  underscored module (OPQ & IVF import both `product-quantization` *and* `vector-quantization-lloyd-max` —
+  the grand-prereq supplies primitives the direct prereq doesn't re-export, e.g. `finance_dataset`). If a
+  topic's chosen scope adds a genuine dependency (Full IVFADC needs `product-quantization` for the residual
+  PQ), add the **DAG edge + frontmatter `prerequisites` entry**, not just the node-status flip.
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
@@ -93,6 +98,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   but the corpus *doesn't determine* (e.g. a full-document L2 norm that includes filler terms) go in
   a `viz_constants()` function in the `.py` that prints them in the harness, then are mirrored to the
   `.tsx` — never recomputed in TS (`vector_space_model_tfidf.py` / `probability_ranking_principle.py`).
+- **Cast numpy scalars in `viz_constants()` prints** (`round(float(v), 3)`, `int(...)`) — otherwise arrays
+  render as `np.float64(...)`/`np.int64(...)` and dirty the values you mirror into the `.tsx`.
 - **Pedagogical claims are tests:** the Python harness asserts the limit theorems and the
   length-hijack flip. Don't let prose drift from the verified numbers.
 - **Build + RUN a headline flip before writing it into prose/viz — it can be false under the topic's
@@ -103,6 +110,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   under each topic's scoring variant. **Smoothing/normalization parameters must scale to the toy
   corpus's short docs** — Dirichlet μ≈document length (≈5), not the production μ≈1000–2000, or smoothing
   swamps every doc model toward the collection and the ranking signal vanishes.
+- **An *asymptotic* headline can be false at the scale you first simulate.** Kleinberg's α=d navigability
+  optimum failed at n=900 (2-D lattice: α=0 beat α=2 — the wrong story); it needs large n. The fix was the
+  1-D ring (optimal α=1) at n=20000, whose translation symmetry makes the long-range-offset distribution
+  shared across nodes → construction is **O(n)**, not O(n²). Simulate at the scale where the separation
+  appears, and pick a construction cheap enough to afford it.
 - **A viz that *demonstrates* a phenomenon needs baked toy data that actually exhibits it — assert the
   contrast in the harness, don't assume.** The Lloyd lab's first cloud (3 well-separated blobs) converged
   to one optimum from every seed, falsifying its "Reseed shows local optima" story; 4 corner blobs at k=3
@@ -136,8 +148,12 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
   slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
   and stale refs in d3 drag handlers — guard array-index lookups (`C[labels[i]]`, `colors[a[i] ?? 0]`)
-  and compute drag-end distortion from live points/centroids, not a render-lagging ref. (`jupyter
-  execute` does *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.)
+  and compute drag-end distortion from live points/centroids, not a render-lagging ref. It also flags
+  recall/`topk` denominators (`hits/(nq·topk)`), `np.argpartition(d, topk)` when `topk>n` (cap
+  `topk=min(topk, n)`), and **tuple-arity mismatches in a fallback `return`** (a 6- vs 7-tuple path — a real
+  HIGH-severity catch). Gemini posts inline ~1–3 min after the push; `mergeable` flips to `UNKNOWN`
+  transiently right then. (`jupyter execute` does *not* write outputs back, so re-running to verify won't
+  dirty the output-free `.ipynb`.)
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`.
 
