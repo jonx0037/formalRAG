@@ -51,7 +51,6 @@ export const tracks = [
       'The data structures behind sublinear vector retrieval, at the level of their actual mathematics: IVF Voronoi partitioning, LSH sensitivity theory, navigable small-world graphs and HNSW, multi-vector and filtered ANN.',
     planned: [
       'Locality-Sensitive Hashing: Collision Probability and the ρ Exponent',
-      'Filtered and Incremental ANN: Predicate Search, Deletion, and Graph Connectivity',
       'Multi-Vector ANN: Indexing and Pruning MaxSim at Scale (PLAID)',
     ],
     dependsOnFormalML: false,

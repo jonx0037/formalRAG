@@ -1,0 +1,234 @@
+---
+title: "Filtered and Incremental ANN: Predicate Search, Deletion, and Graph Connectivity"
+subtitle: "Deletion and predicate filtering are the same operation — removing nodes from a navigable graph — so they obey one exact over-fetch law, with percolation as the honest floor beneath it"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "hnsw"
+tags:
+  - "filtered-ann"
+  - "predicate-search"
+  - "incremental-index"
+  - "deletion"
+  - "tombstoning"
+  - "graph-connectivity"
+  - "percolation"
+  - "over-fetch"
+domain: "ann-indexing"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "chart"
+  - "audio"
+rigorFlag: "Filtered and incremental search rests on two exact theorems that are the same theorem twice, and a percolation result that is true but only loosely load-bearing. To return k live results when a fraction delta of nodes are tombstoned, the candidates scanned are negative-binomial with mean k over one minus delta and variance k delta over one minus delta squared; to return k results passing a predicate of selectivity s by post-filtering, the mean fetch is k over s by the identical argument, and under a fetch cap the expected recall falls below one exactly once s drops under k over the cap — a sharp binomial cliff. Both are exact under one idealization: that whether a node is live, or passes the predicate, is independent of its position in the graph. The percolation result is the third clean statement: for a random graph in which every node has degree exactly M, random deletion leaves a giant connected component if and only if the retained fraction exceeds one over M minus one — the regular-graph value, not the Erdos-Renyi one over M. The caveats sit on top, and the first is the heaviest: a giant component existing is necessary but not sufficient for navigability, since greedy beam search returns a local minimum and can miss a target it is still connected to, so the threshold bounds when a path exists, never when search finds it, and recall fails far inside the connected regime. Second, one over M minus one is exact only for the single-degree configuration model; HNSW's capped, correlated, metric graph and deletion-with-repair only approximate it. Third, the independence idealization fails in the direction that hurts: a batch deletion or a correlated predicate removes a spatially, hence topologically, clustered set, so the live or passing fraction near the query differs from the global one and the means become underestimates. Fourth, which of pre-, post-, and in-filtering wins is a crossover measured on one synthetic cloud with one synthetic predicate, not a universal ranking of the strategies."
+videoId: null
+notebookPath: "notebooks/filtered-incremental-ann/01_filtered_incremental_ann.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/filtered-incremental-ann.mdx"
+datePublished: 2026-06-21
+estimatedReadTime: 33
+abstract: "HNSW gave us a graph that is natively incremental on insert and a beam that walks it, but it ignores the two things production indexes actually face: vectors are deleted over time, and queries carry a predicate the index must respect. This topic formalizes both, and its organizing idea is that they are the same operation — removing nodes from a navigable graph. The mathematics has three movements. The first is the exact spine: a tombstoned node stays in the graph as a routing waypoint but is dropped from results, so to return k live results when a fraction delta are dead the number of candidates scanned is negative-binomial with mean k over one minus delta; hard deletion plus a neighbor-repair heuristic recovers the recall that tombstone bloat costs. The second movement is the honest floor: connectivity under random churn is a percolation threshold, p_c equal to one over M minus one for a regular graph, verified on a configuration-model graph and then measured on HNSW's real layer-zero graph, with the load-bearing caveat that connectivity is necessary but not sufficient for navigability — recall fails far inside the connected regime. The third movement is the unification: a filter soft-deletes every failing node for this query, so post-filtering obeys the same law, mean fetch k over s, with a sharp binomial recall cliff; pre-, post-, and in-filtering trade off in a crossover set by selectivity, and the induced subgraph on a random passing set fragments by site percolation while a spatially coherent predicate stays connected far below the same selectivity. An interactive laboratory shows the single over-fetch hyperbola that both deletion and filtering ride, the percolation thresholds, and the filter-strategy crossover."
+connections:
+  - topic: "hnsw"
+    relationship: "this topic takes HNSW's graph as given and asks what insert-and-delete churn and a query predicate do to it. It reuses HNSW's construction, its per-layer beam, and its heuristic neighbor selection verbatim — the in-filter search is a fresh twin of HNSW's per-layer beam that admits only passing nodes to the result while still traversing the rest, and it reduces to HNSW's search exactly when every node is live (the same indices and the same distance count). Layer zero of HNSW is the graph whose percolation under random deletion this topic measures, and the neighbor heuristic is the repair primitive that re-links a deleted node's orphaned neighbors"
+references:
+  - type: "paper"
+    title: "Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs"
+    authors: "Malkov & Yashunin"
+    year: 2020
+    url: "https://doi.org/10.1109/TPAMI.2018.2889473"
+    note: "The prerequisite index, natively incremental on insert: a new point is greedy-inserted one at a time, so growth is free and only deletion is hard — the asymmetry this topic opens on"
+  - type: "paper"
+    title: "FreshDiskANN: A Fast and Accurate Graph-Based ANN Index for Streaming Similarity Search"
+    authors: "Singh, Subramanya, Krishnaswamy & Simhadri"
+    year: 2021
+    url: "https://arxiv.org/abs/2105.09613"
+    note: "The streaming graph index with explicit hard deletion and consolidation — the production realization of Movement 1's delete-and-repair, where a deleted node's in-neighbors are re-linked to its out-neighbors to preserve navigability"
+  - type: "paper"
+    title: "Filtered-DiskANN: Graph Algorithms for Approximate Nearest Neighbor Search with Filters"
+    authors: "Gollapudi, Karia, Sivashankar, Krishnaswamy, Begwani, Raz, et al."
+    year: 2023
+    url: "https://doi.org/10.1145/3543507.3583552"
+    note: "Predicate-aware index construction (FilteredVamana / StitchedVamana): build the graph so the passing subgraph stays navigable, the construction-time answer to Movement 3's induced-subgraph fragmentation. Published at the ACM Web Conference 2023, distinct from the NeurIPS 2023 Big-ANN filtered-search competition"
+  - type: "paper"
+    title: "ACORN: Performant and Predicate-Agnostic Search Over Vector Embeddings and Structured Data"
+    authors: "Patel, Kraft, Guestrin & Zaharia"
+    year: 2024
+    url: "https://doi.org/10.1145/3654923"
+    note: "Predicate-agnostic in-filter traversal via neighbor expansion — search through failing nodes on a graph built denser so it survives arbitrary predicates, the query-time counterpart to Movement 3's in-filter strategy and the reason a denser M buys filtered robustness"
+  - type: "paper"
+    title: "A Critical Point for Random Graphs with a Given Degree Sequence"
+    authors: "Molloy & Reed"
+    year: 1995
+    url: "https://doi.org/10.1002/rsa.3240060204"
+    note: "The giant-component criterion for the configuration model: a giant component exists iff the second-moment ratio kappa exceeds two — the theorem Movement 2's percolation threshold specializes"
+  - type: "paper"
+    title: "Resilience of the Internet to Random Breakdowns"
+    authors: "Cohen, Erez, ben-Avraham & Havlin"
+    year: 2000
+    url: "https://doi.org/10.1103/PhysRevLett.85.4626"
+    note: "The random-deletion percolation threshold p_c = 1/(kappa - 1) on the configuration model, which for a degree-M-regular graph is exactly 1/(M-1) — the formula for connectivity under random churn"
+  - type: "paper"
+    title: "Network Robustness and Fragility: Percolation on Random Graphs"
+    authors: "Callaway, Newman, Strogatz & Watts"
+    year: 2000
+    url: "https://doi.org/10.1103/PhysRevLett.85.5468"
+    note: "The generating-function derivation of site and bond percolation thresholds on random graphs — an independent route to the same Movement 2 threshold"
+  - type: "documentation"
+    title: "hnswlib — Header-only HNSW with mark_deleted and replace-deleted slots"
+    authors: "Malkov et al."
+    year: 2024
+    url: "https://github.com/nmslib/hnswlib"
+    note: "The reference implementation's deletion API: mark_deleted tombstones a node and allow_replace_deleted reuses its slot — the concrete instantiation of Movement 1's soft-delete and the over-fetch it forces"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the over-fetch law is a negative-binomial waiting time and the recall cliff is a binomial tail, so the concentration machinery developed there is exactly what turns the means k over one minus delta and k over s into the high-probability buffer sizes an operator must provision, and what makes the cliff sharp"
+formalmlConnections:
+  - topic: "random-walks"
+    site: "formalml"
+    relationship: "connectivity under random deletion is a percolation question, and the branching-process / random-walk analysis developed there is the engine behind the giant-component threshold: the excess-degree branching ratio M minus one is the offspring mean whose crossing of one marks p_c"
+  - topic: "expander-graphs"
+    site: "formalml"
+    relationship: "what a deletion-and-repair heuristic is trying to preserve is exactly the expansion and short-path structure formalized there — the gap between a graph staying connected and a graph staying navigable, which is the central honest caveat of this topic, is the gap between having a giant component and retaining good expansion"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import FilteredIncrementalANNLaboratory from '../../components/viz/FilteredIncrementalANNLaboratory.tsx';
+
+## Overview & motivation
+
+HNSW handed us a graph and a beam that walks it, and it left two things on the table — the same two things every index in production has to live with. Vectors **arrive and leave**: a corpus is not frozen, documents are added continuously and old ones are superseded or expired. And queries **carry filters**: a search is rarely "nearest neighbors in the whole index," it is "nearest neighbors *among the documents that satisfy this predicate*." A static graph answers neither.
+
+The temptation is to treat these as two separate engineering problems. The mathematics says they are one. Both are **node removal from a navigable graph** — a deletion removes a node permanently, a predicate removes the failing nodes for the duration of one query — and once you see that, the same handful of results covers both. A tombstone is a persistent, global predicate-failure; a query predicate is a per-query tombstone. They obey one over-fetch law, they break against the same connectivity floor, and the strategy that works for one transfers to the other. That unification is the spine of this topic, and it is exact where it matters — recall and cost — with percolation supplying an honest, clearly-bounded floor beneath it.
+
+<FilteredIncrementalANNLaboratory client:visible />
+
+The first panel is the over-fetch law: a single hyperbola that both deletion and filtering ride, with the tombstone and predicate measurements landing on the same curve. The second is connectivity as percolation — the giant component surviving random deletion only above a degree-set threshold. The third is predicate search: the pre-, post-, and in-filter strategies crossing over as selectivity changes, and the induced-subgraph connectivity that decides which one is even possible.
+
+## Movement 1 — insertion is free; deletion is the hard half
+
+HNSW is already an incremental index: `build_hnsw` inserts vectors one at a time, each greedy-descending to its level and linking to a heuristic neighbor set, so a fresh vector costs one insertion and growth is free. The asymmetry is deletion. You cannot simply cut a node out — it may be a routing hub other nodes depend on to cross the graph — so the universal first move is *tombstoning*: mark the node deleted, keep it in the graph as a waypoint, and drop it from results. That keeps routing intact, but it changes the arithmetic of how much you must scan.
+
+<TheoremBlock type="theorem" number={1} title="The tombstone over-fetch law">
+
+Suppose a fraction $\delta$ of the index is tombstoned, and the live/dead status of a candidate is independent of its position in the distance-ranked stream. Then the number of candidates $N_k$ that must be scanned to collect $k$ live results is **negative-binomial**, with
+
+$$
+\mathbb{E}[N_k] = \frac{k}{1-\delta}, \qquad \operatorname{Var}(N_k) = \frac{k\,\delta}{(1-\delta)^2}.
+$$
+
+Equivalently: each scanned candidate is live with probability $1-\delta$, so collecting $k$ live results is a sum of $k$ independent geometric waiting times. The mean over-fetch factor is $1/(1-\delta)$, and the variance — not just the mean — is what sizes the candidate buffer an operator must provision to hit $k$ live with high probability.
+
+</TheoremBlock>
+
+The companion code isolates this on the exact distance-ranked stream, so it measures the law and not any quirk of the graph. To collect $k=10$ live results it scans, at $\delta = (0.1,\,0.25,\,0.5,\,0.7)$, a mean of $(11.14,\,13.33,\,20.09,\,33.85)$ candidates — against the predicted $k/(1-\delta) = (11.11,\,13.33,\,20.0,\,33.33)$. At half the index dead you scan twice as far; the blow-up as $\delta \to 1$ is the cost of letting tombstones accumulate.
+
+Over-fetching is one way to pay that cost. The other is to stop carrying the dead weight at all — **hard deletion with repair**.
+
+<TheoremBlock type="definition" number={1} title="Hard deletion and neighbor repair">
+
+To delete a node, remove it from every layer and excise its incident edges. This orphans its neighbors — each loses an edge and may fall below the degree the graph needs to stay navigable — so *repair* each one: re-link it, by HNSW's own heuristic neighbor selection, to the deleted node's other surviving neighbors (a 2-hop bridge across the hole), then prune back to the degree cap. The repair preserves degree and local connectivity. It is a *heuristic*, with no optimality proof — the same status as the neighbor selection it reuses.
+
+</TheoremBlock>
+
+The two paths are genuinely different in what they cost and what they recover. Naive tombstoning that returns the top $k$ and drops the dead ones — without over-fetching — loses roughly a $\delta$ fraction of its result slots: on the synthetic cloud, deleting $30\%$ of the index drops recall@10 from $1.0$ to about $0.72$. Hard deletion with repair returns a full $k$ of live results directly and reclaims the memory and the wasted distance computations the tombstones cost: the same deletion shrinks the index from $500$ to $362$ nodes, and recall returns to $1.0$. Either over-fetch by the law of Theorem 1, or delete and repair — but a graph that only ever tombstones silently degrades on both recall and cost.
+
+## Movement 2 — connectivity under churn is a percolation threshold
+
+Repair keeps degree up locally, but there is a global question underneath it: as churn removes nodes, does the graph stay in one piece at all? Strip the question to its core — delete nodes at random and ask whether a *giant connected component* survives — and it is exactly bond/site percolation on a random graph, a problem with a clean classical answer.
+
+<TheoremBlock type="theorem" number={2} title="Random-deletion percolation on a regular graph">
+
+For a random graph in the configuration-model ensemble with degree distribution of mean $\langle k\rangle$ and second moment $\langle k^2\rangle$, retain each node independently with probability $p$. A giant connected component survives in the retained subgraph **iff**
+
+$$
+p > p_c = \frac{1}{\kappa - 1}, \qquad \kappa = \frac{\langle k^2\rangle}{\langle k\rangle}.
+$$
+
+For a graph in which **every node has degree exactly $M$**, $\kappa = M$, so
+
+$$
+p_c = \frac{1}{M-1},
+$$
+
+and one may delete up to a fraction $1 - 1/(M-1)$ before the graph fragments. The branching-process reading makes it self-contained: following a random edge, the number of *further* edges out of the node reached is the excess degree $M-1$, so the giant component is the survival of a branching process with offspring mean $p(M-1)$, which exceeds one exactly when $p > 1/(M-1)$.
+
+</TheoremBlock>
+
+The constant is worth getting right, because the celebrated figure is the wrong one here. The Erdős–Rényi (Poisson-degree) graph has $\kappa = M+1$ and threshold $1/M$; the *regular* graph has $\kappa = M$ and threshold $1/(M-1)$. HNSW's degrees are capped and concentrated by the heuristic pruning — far closer to regular than to Poisson — so $1/(M-1)$ is the right idealization, not $1/M$. The companion code verifies it on a near-regular configuration-model graph of degree $8$: with $\kappa = 8.0$ the predicted $p_c = 1/7 \approx 0.143$, and the giant fraction collapses from $0.42$ well above the threshold to $0.002$ well below it. On HNSW's *real* layer-zero graph the law only approximates — measured $\langle k\rangle = 7.36$, $\kappa = 8.78$, predicted $p_c \approx 0.128$ — because the real graph has degree correlations and metric structure the configuration model assumes away.
+
+A denser graph survives more deletion, and that is the operator's lever:
+
+<TheoremBlock type="proposition" number={1} title="Robustness rises with degree; connectivity is not navigability">
+
+At a fixed, punishing retention $p = 0.15$, the giant-component fraction of HNSW's layer-zero graph rises monotonically with the degree $M$ — from $0.016$ at $M=4$ to $0.082$ at $M=32$ — because a larger $M$ lowers $p_c$. But connectivity is *necessary, not sufficient*, for navigability: greedy beam search can return a local minimum and fail to reach a target it is still connected to. Recall collapses far *inside* the connected regime, so the percolation threshold is the floor beneath which nothing works — never the binding constraint on recall.
+
+</TheoremBlock>
+
+That last sentence is the honest heart of Movement 2. Percolation gives a clean theorem about the *easy* failure mode — total fragmentation — while the failure mode that actually bites, recall decaying while the graph is still trivially connected, stays empirical. We keep percolation as the floor it is, and let the over-fetch laws carry the load.
+
+## Movement 3 — predicate search is query-time deletion
+
+Now the unification pays off. A query predicate — "only documents of this type," "only filings after this date" — partitions the index into passing and failing nodes *for this query*. Failing nodes are tombstones that exist only for the duration of the search: keep them as routing waypoints, drop them from results. Everything from Movement 1 transfers, starting with the law itself.
+
+<TheoremBlock type="theorem" number={2} title="The post-filter over-fetch law and the recall cliff">
+
+Let a predicate have **selectivity** $s$ — a fraction $s$ of nodes pass — and let passing be independent of position in the ranked stream. Post-filtering (search normally, then drop failing results) must scan, in expectation,
+
+$$
+\mathbb{E}[N_k] = \frac{k}{s}
+$$
+
+candidates to return $k$ passing results — the *same* law as Theorem 1 with $s \leftrightarrow 1-\delta$. Under a fixed fetch cap $F$, the number of passing results is $\mathrm{Binomial}(F, s)$, so the expected recall falls below one exactly once
+
+$$
+s < \frac{k}{F},
+$$
+
+a sharp **binomial cliff** in the selectivity.
+
+</TheoremBlock>
+
+This is the deletion law again, read in the other direction, and the simulation confirms both halves. The post-filter scan to collect $k=10$ passing results, at $s = (0.05,\,0.1,\,0.2,\,0.4,\,0.8)$, is $(197.9,\,94.0,\,50.8,\,24.9,\,12.5)$ against the predicted $k/s = (200,\,100,\,50,\,25,\,12.5)$. And at a *fixed* beam width, post-filter recall@10 falls off the cliff as selectivity drops — $(0.25,\,0.52,\,0.99,\,1.0,\,1.0)$ across those same selectivities — while pre-filtering (brute-force the passing subset) stays exact throughout. The cliff is why post-filtering alone cannot serve a selective predicate, and it sets up the real decision.
+
+<TheoremBlock type="proposition" number={2} title="The pre/post/in-filter crossover, on one cloud">
+
+Three strategies trade off, and **no one of them dominates** — selectivity picks the winner. On the synthetic cloud (distance computations per query, recall@10):
+
+- **Pre-filter** (brute-force the passing subset) is exact at every selectivity, with cost $s\cdot n$, so it is the *cheapest* at low selectivity — at $s \approx 0.04$ it scans $20$ vectors and returns recall $1.0$, while post-filter sits at recall $0.25$ for $207$ computations.
+- **Post-filter** has roughly constant cost (the graph traversal, $\approx 207$ here) and is the *cheapest* at high selectivity, where its over-fetch is negligible — at $s \approx 0.79$ it reaches recall $1.0$ at $207$ computations against pre-filter's $397$.
+- **In-filter** (traverse through failing nodes, collect only passing) stays exact, but at very low selectivity it must traverse almost the entire graph to find $k$ passing results — at $s \approx 0.04$ it spends $518$ computations, more than a full scan — so it *degenerates toward brute force* exactly where pre-filter is cheapest.
+
+The crossover is the whole story: pre-filter below a selectivity threshold, post-filter above it, in-filter the exact bridge in between — and the reason production systems either switch strategies by estimated selectivity or build denser, predicate-aware graphs.
+
+</TheoremBlock>
+
+Underneath the crossover is the same percolation floor, and here the simulation overturns the intuitive guess.
+
+<TheoremBlock type="proposition" number={3} title="Predicate hardness is about spatial coherence, not selectivity alone">
+
+Consider restricting the graph to the passing nodes — the induced subgraph a naive pre-filter-on-the-graph would search. For a **random** predicate this is site percolation, so the passing subgraph fragments as selectivity falls below $p_c$: its giant fraction drops to $0.13$ at $s \approx 0.05$ and recovers only past $s \approx 0.3$. For a **spatially coherent** predicate — a modality that occupies one contiguous region of the embedding space — the passing set is locally dense and stays connected far below that: its giant fraction is $0.88$ at the same $s \approx 0.05$. So a selective predicate is hard to filter *only when its passing set is also spatially scattered*; a coherent predicate of the same selectivity stays navigable. Hardness is set by spatial coherence, not selectivity alone.
+
+</TheoremBlock>
+
+This direction is the opposite of the natural guess that "correlated removal fragments sooner," and it is why we measure before we claim: a contiguous cluster is internally well-connected, so restricting to it leaves a connected subgraph, while a scattered random subset of the same size percolates apart.
+
+<FinanceCaseStudy modality={["text", "pdf", "chart", "audio"]}>
+
+The production multimodal-financial-RAG system this series draws on is exactly where all three movements bite. It ingests $10$-K and $10$-Q filings, market news, PDF research notes, extracted charts, and earnings-call audio transcripts into one shared embedding space, and it churns constantly: new filings and news arrive every day, and superseded filings are deleted — so the index lives entirely in the incremental-and-deletion regime of Movement 1, where the choice is to over-fetch past the tombstones by $k/(1-\delta)$ or to hard-delete-and-repair and reclaim the budget. Its queries almost always carry a predicate, and the most natural one is *modality*: "answer only from earnings-call audio," "cite only the $10$-K." Modality is the case study's defining structure and its sharpest example of Movement 3, because different modalities occupy different regions of the shared space — audio-derived and text-derived embeddings cluster apart — so a modality filter is a *spatially coherent* predicate. Proposition 3 is then the operational fact that matters: a modality filter, even a selective one, leaves a navigable passing subgraph, so it can be served by restricting the search far more cheaply than its raw selectivity would suggest — whereas an arbitrary scattered metadata filter at the same selectivity would fall off the post-filter cliff and force a strategy switch. The mathematics names the honest dials: the over-fetch factor is exact, the repair is a heuristic monitored for recall, the connectivity floor is real but never the binding constraint, and which filter strategy to run is a selectivity-and-coherence decision the retrieval layer makes per query.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+This topic rests on two exact theorems that are the same theorem twice, and a percolation result that is true but only loosely load-bearing. The over-fetch laws are exact: scanning $k/(1-\delta)$ candidates to collect $k$ live results, and $k/s$ to collect $k$ passing ones, with the binomial recall cliff at $s < k/F$ — all under the single idealization that live or passing status is independent of position in the ranked stream. The percolation threshold $p_c = 1/(M-1)$ is exact for the degree-$M$-regular configuration model. The caveats sit on top. First and heaviest: a giant component existing is necessary but not sufficient for navigability — greedy beam search returns a local minimum and can miss a connected target, so the threshold bounds when a path *exists*, never when search *finds* it, and recall fails far inside the connected regime, which makes percolation the floor and not the binding constraint. Second, $1/(M-1)$ is exact only for the single-degree configuration model; HNSW's capped, correlated, metric graph and the deletion-with-repair that mutates it only approximate it, and the repair heuristic has no optimality proof. Third, the independence idealization behind both over-fetch laws fails in the direction that hurts: a batch deletion or a spatially coherent predicate removes a topologically clustered set, so the live or passing fraction near the query departs from the global one and the means become underestimates — the same coherence that *helps* connectivity (Proposition 3) *breaks* the positional-independence the over-fetch means assume. Fourth, which of pre-, post-, and in-filtering wins, and the magnitude of the coherent-versus-random connectivity gap, are measured on one synthetic low-rank cloud with one synthetic predicate model — statements about this cloud, not universal rankings.
+
+</RigorFlag>
+
+Deletion and predicate filtering, taken together, are the last piece of the approximate-nearest-neighbor mechanics: the index is no longer a frozen set of vectors but a living structure that grows, shrinks, and answers conditioned queries. What this leaves open is the *other* axis of scale — not how the index changes, but how rich each item's representation is. When a document is not one vector but many, and a query must be matched against the best of them, the retrieval problem changes shape again; multi-vector and late-interaction indexing, and the locality-sensitive hashing whose collision probabilities give the partition family its own sharp theory, are where the ANN thread continues.
