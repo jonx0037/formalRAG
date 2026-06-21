@@ -143,12 +143,13 @@ def hard_delete_and_repair(layers, X, deleted, M: int):
         mmax = 2 * M if lev == 0 else M
         # record, per surviving neighbor, the bridge candidates a deletion orphans it from
         bridge: dict[int, set] = {}
-        for d in [k for k in layer if k in dead]:
-            survivors = [u for u in layer[d] if u not in dead]
+        for d in dead.intersection(layer):
+            survivors = layer[d] - dead
             for u in survivors:
                 bridge.setdefault(u, set()).update(w for w in survivors if w != u)
-        # excise the deleted nodes and their incident edges
-        for d in [k for k in layer if k in dead]:
+        # excise the deleted nodes and their incident edges (intersection snapshots the keys, so the
+        # in-loop del is safe)
+        for d in dead.intersection(layer):
             for u in layer[d]:
                 if u in layer:
                     layer[u].discard(d)
@@ -163,7 +164,7 @@ def hard_delete_and_repair(layers, X, deleted, M: int):
                 layer[w].add(u)
             if len(layer[u]) > mmax:                       # prune an over-full neighborhood
                 keep = set(select_neighbors_heuristic(X, u, list(layer[u]), mmax))
-                for r in [r for r in layer[u] if r not in keep]:
+                for r in layer[u] - keep:                  # set-difference snapshot: safe to discard
                     layer[u].discard(r)
                     layer[r].discard(u)
     while len(new_layers) > 1 and not new_layers[-1]:       # drop emptied top layers
