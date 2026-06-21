@@ -64,6 +64,13 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `from vector_quantization_lloyd_max import ...` (the `rank_fusion_rrf`→`bm25` precedent). Reuse the
   prereq's exact dataset and **re-derive any shared baseline** rather than hardcoding it, so a
   cross-topic comparison (PQ's recall vs the flat-VQ ceiling it re-derives) is provably one cloud.
+- **Two-hop prereq import** extends the single-hop rule above: when a topic's prereq is *itself* a
+  dependent topic, the new `.py` adds **both** ancestor hyphenated dirs to `sys.path` and imports
+  both underscored modules — the grand-prereq supplies primitives the direct prereq doesn't
+  re-export. `optimized_product_quantization.py` adds `product-quantization` **and**
+  `vector-quantization-lloyd-max`, then `from product_quantization import …` *and*
+  `from vector_quantization_lloyd_max import …` (`finance_dataset`/`best_codebook`/`assign` live only
+  in the grand-prereq).
 - `rigorFlag` is load-bearing: flag celebrated-but-heuristic results (HNSW scaling, MMR's missing
   1−1/e guarantee, BM25's empirically-tuned k₁/b). Honesty is the differentiator.
 - **`pnpm build` passing ≠ math correct.** KaTeX is non-strict: parse errors render as
@@ -107,6 +114,13 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   contrast in the harness, don't assume.** The Lloyd lab's first cloud (3 well-separated blobs) converged
   to one optimum from every seed, falsifying its "Reseed shows local optima" story; 4 corner blobs at k=3
   fixed it, locked by `test_toy_local_optima` (global < near-miss < stuck).
+- **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
+  with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
+  learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
+  `R = V @ U.T` from `SVD(Xc.T @ Q) = U Σ V.T`, so `apply_rotation` yields `Xc @ R.T = Xc @ (U V.T)` —
+  the intended rotated data. The wrong transpose makes distortion **increase**, so a monotone-descent
+  assert plus a cross-check against `scipy.linalg.orthogonal_procrustes` pin the orientation by
+  construction — add a new test of each when introducing a learned rotation.
 - **Verify reference DOIs** with `curl -sI https://doi.org/<doi>` — the `location:` header in the 302
   alone confirms journal/volume/issue/pages (a HEAD request: no redirect-following, no paywalled GET).
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;

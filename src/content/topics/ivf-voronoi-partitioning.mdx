@@ -1,0 +1,172 @@
+---
+title: "Voronoi Partitioning and the Inverted-File Index"
+subtitle: "A coarse quantizer cuts the database into Voronoi cells so a query scans only the few nearest — and product-quantizing the residual after the partition turns the same bit budget into higher recall"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "high-dimensional-geometry"
+  - "vector-quantization-lloyd-max"
+  - "product-quantization"
+tags:
+  - "inverted-file-index"
+  - "ivf"
+  - "ivfadc"
+  - "voronoi-partitioning"
+  - "coarse-quantizer"
+  - "nprobe"
+  - "approximate-nearest-neighbor"
+  - "residual-quantization"
+domain: "ann-indexing"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "The inverted-file index is a speed-for-recall trade, and the trade must be stated honestly. First, the sqrt(n) speedup is a balanced-cell heuristic, not a worst-case guarantee: it assumes the nlist Voronoi cells hold roughly equal numbers of vectors, but a k-means partition of real data is imbalanced, so list lengths — and therefore query times — vary, and a worst-case query can land in an overfull cell. Second, the index is APPROXIMATE by construction: probing only the nprobe nearest cells misses any true neighbor that lies in a cell whose centroid is not among the query's nprobe nearest, the boundary effect, so recall at nprobe = 1 is strictly below 1 and is recovered only by probing more cells (multi-probe). We demonstrate this direction and never claim exact search short of an exhaustive probe. Third, the residual-variance reduction that makes IVFADC beat flat product quantization is exact under the law of total variance because the Lloyd centroid IS the cell mean at convergence, but the recall gain it produces is a measured DIRECTION on the synthetic finance cloud, not a universal margin — it depends on the cloud, the number of cells, and the code budget. Fourth, choosing nlist (how many cells) and nprobe (how many to probe) is an empirical tuning problem; the sqrt(n) rule of thumb for nlist is a starting point, not an optimum. All recall, fraction-scanned, and variance numbers are measured on the same synthetic cloud the previous quantization topics used, so the comparisons are like-for-like."
+videoId: null
+notebookPath: "notebooks/ivf-voronoi-partitioning/01_ivf_voronoi_partitioning.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/ivf-voronoi-partitioning.mdx"
+datePublished: 2026-06-20
+estimatedReadTime: 34
+abstract: "The quantization track learned to compress a vector so a distance is cheap to estimate, but every method so far still scans the whole database. The inverted-file index is the non-exhaustive half. A coarse quantizer — Lloyd's k-means with nlist centroids — partitions the space into Voronoi cells; each database vector is filed under its nearest centroid into that cell's inverted list; and a query is compared only against the vectors in the nprobe cells nearest to it. We prove the candidate-set reduction (probing nprobe of nlist balanced cells scans about nprobe/nlist of the database, a sqrt(n)-scale speedup at nlist ~ sqrt(n)) and confront the honest catch: the boundary effect, where a query's true nearest neighbor sits across a Voronoi boundary in a cell the query does not probe, so recall at nprobe = 1 is strictly below 1 and is recovered monotonically by probing more cells. The second movement composes the index with product quantization. By the law of total variance the coarse quantizer removes the between-cell variance, so the residual of each vector relative to its cell centroid has strictly smaller variance than the vector itself; product-quantizing that residual — IVFADC, the IndexIVFPQ of production systems — spends the same bit budget on a smaller signal and reaches higher recall than flat product quantization at equal bits. An interactive laboratory traces the recall-versus-scan frontier and the boundary effect, and a tested implementation that imports the k-means and product-quantization code accompanies the derivation."
+connections:
+  - topic: "vector-quantization-lloyd-max"
+    relationship: "the coarse quantizer is literally Lloyd's k-means: the nlist cells are its Voronoi partition, each cell's centroid is the sample mean of its members by the M-step optimality condition proved there, and the companion code imports best_codebook and assign rather than reimplementing them, so the residual-variance identity follows from the centroid-equals-cell-mean fact established in that topic"
+  - topic: "product-quantization"
+    relationship: "IVFADC product-quantizes the coarse-quantization residual, so it imports the additive distortion decomposition, the asymmetric-distance lookup table, and the train/encode routines of that topic and applies them per probed cell — the inverted file supplies the non-exhaustive candidate set, product quantization supplies the cheap distance, and IndexIVFPQ is the composition"
+  - topic: "mips-hardness-and-sublinearity-limits"
+    relationship: "exact maximum-inner-product and nearest-neighbor search is the provably hard scan that topic characterizes, and the inverted file is the practical sublinear escape: it gives up the exactness guarantee for a tunable recall-versus-speed trade, scanning a small fraction of the database at the cost of the boundary-effect misses quantified here"
+  - topic: "high-dimensional-geometry"
+    relationship: "the boundary effect is a high-dimensional phenomenon — as dimension grows, a Voronoi cell has ever more neighboring cells and a query's true nearest neighbor is ever more likely to fall just across a boundary, so the concentration and neighbor-count results developed there explain why nprobe must grow with dimension to hold recall"
+references:
+  - type: "paper"
+    title: "Product Quantization for Nearest Neighbor Search"
+    authors: "Jégou, Douze & Schmid"
+    year: 2011
+    url: "https://doi.org/10.1109/TPAMI.2010.57"
+    note: "Introduced IVFADC: the coarse quantizer with inverted lists, multi-probe search, and product-quantized residuals — the index this topic derives"
+  - type: "paper"
+    title: "The Inverted Multi-Index"
+    authors: "Babenko & Lempitsky"
+    year: 2015
+    url: "https://doi.org/10.1109/TPAMI.2014.2361319"
+    note: "A product-quantized coarse quantizer that yields an exponentially finer Voronoi partition at the same storage — the refinement of the single coarse quantizer derived here, mitigating cell imbalance"
+  - type: "paper"
+    title: "Quantization"
+    authors: "Gray & Neuhoff"
+    year: 1998
+    url: "https://doi.org/10.1109/18.720541"
+    note: "The definitive survey: the nearest-neighbor (Voronoi) quantizer, its cells, and the rate-distortion framing the coarse quantizer is an instance of"
+  - type: "documentation"
+    title: "Faiss: Billion-Scale Similarity Search"
+    authors: "Johnson, Douze & Jégou"
+    year: 2019
+    url: "https://doi.org/10.1109/TBDATA.2019.2921572"
+    note: "How production indexes implement IVFADC as IndexIVFPQ: the coarse k-means quantizer, the inverted lists, the nprobe multi-probe, and the per-cell residual product quantization composed here"
+formalmlPrereqs:
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "the coarse quantizer is k-means, so the Voronoi cells, the alternating assignment/update steps, the centroid-equals-cell-mean optimality condition, and the local-optimum and initialization caveats developed there are exactly the machinery the inverted-file partition is built from and inherits"
+formalmlConnections:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "cell occupancy and the boundary-crossing probability are sums of indicator variables over the database, so the concentration bounds developed there quantify how imbalanced the inverted lists can be and how recall concentrates as nprobe grows — the probabilistic backbone of the speed-versus-recall trade"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import InvertedFileIndexLaboratory from '../../components/viz/InvertedFileIndexLaboratory.tsx';
+
+## Overview & motivation
+
+The quantization track — [Lloyd's codebook](/topics/vector-quantization-lloyd-max), its [product factorization](/topics/product-quantization), and the [rotation that optimizes it](/topics/optimized-product-quantization) — made a single distance cheap to estimate. None of it made search *non-exhaustive*: every method still compares the query against all $n$ database codes. The inverted-file index is the other half. A **coarse quantizer** partitions the space into $n_{\text{list}}$ Voronoi cells, files each vector under its nearest centroid, and lets a query touch only the vectors in the few cells nearest to it. The art is entirely in the trade — how few cells can you probe before you start missing neighbors?
+
+The index has two movements. The first is the *partition*: build the cells, define the inverted lists, and quantify the candidate-set reduction and the recall it costs. The second is the *residual*: having spent a coarse centroid on each vector, product-quantize what the centroid leaves behind, which is cheaper to encode than the vector itself. The laboratory below lets you drag the number of probed cells and watch a true neighbor get found or missed, trace the recall-versus-scan frontier, and see the residual's variance collapse.
+
+<InvertedFileIndexLaboratory client:visible />
+
+The first panel is the partition and its honest catch: the query's true nearest neighbor sits in its third-nearest cell, so it is missed until you probe three. The second panel is the payoff — recall against the fraction of the database scanned. The third is IVFADC: the coarse quantizer removes most of the variance, so the residual product quantizer reaches higher recall at the same bit budget.
+
+## Movement 1 — the partition
+
+Let $X = \{x_1, \dots, x_n\} \subset \mathbb{R}^d$ be the database. Train a coarse quantizer of $n_{\text{list}}$ centroids $\{\mu_1, \dots, \mu_{n_{\text{list}}}\}$ by Lloyd's k-means on $X$. Each centroid owns a Voronoi cell and an inverted list of the vectors assigned to it.
+
+<TheoremBlock type="definition" number={1} title="Coarse quantizer and inverted lists">
+
+The coarse quantizer assigns $x$ to its nearest centroid, $i(x) = \arg\min_j \lVert x - \mu_j \rVert$, partitioning $\mathbb{R}^d$ into the Voronoi cells $V_j = \{z : i(z) = j\}$. The **inverted list** $L_j = \{\,i : i(x_i) = j\,\}$ holds the indices of the database vectors in cell $j$. To search, the query $q$ probes its $n_{\text{probe}}$ nearest centroids and ranks only the vectors in those cells:
+
+$$
+\mathrm{cand}(q) \;=\; \bigcup_{j \in \mathcal{N}_{n_{\text{probe}}}(q)} L_j, \qquad \mathcal{N}_{n_{\text{probe}}}(q) = \text{the } n_{\text{probe}} \text{ centroids nearest } q .
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={1} title="Candidate-set reduction">
+
+Probing $n_{\text{probe}}$ cells scans exactly the total occupancy $\sum_{j \in \mathcal{N}_{n_{\text{probe}}}(q)} |L_j|$ of those cells. If the cells are balanced, $|L_j| \approx n / n_{\text{list}}$, the expected scan is
+
+$$
+\mathbb{E}\,|\mathrm{cand}(q)| \;\approx\; \frac{n_{\text{probe}}}{n_{\text{list}}}\, n,
+$$
+
+so with $n_{\text{list}} \approx \sqrt{n}$ and small $n_{\text{probe}}$ the index scans on the order of $\sqrt{n}$ vectors per query, against $n$ for the exhaustive scan. Probing all $n_{\text{list}}$ cells recovers the exhaustive scan, hence exact search.
+
+</TheoremBlock>
+
+The reduction is real — on the finance cloud with $n_{\text{list}} = 32$, a single probe scans under $4\%$ of the database — but the $\sqrt{n}$ figure rides on the balanced-cell assumption, which a k-means partition of real data only approximates. That is the first honest caveat; the second is sharper.
+
+<TheoremBlock type="theorem" number={2} title="The boundary effect">
+
+The vectors a query actually ranks are those in its probed cells, so the recall at $n_{\text{probe}}$ is the probability that a true neighbor lies in one of the query's $n_{\text{probe}}$ nearest cells. At $n_{\text{probe}} = 1$ this is the probability that the neighbor shares the query's single nearest centroid — strictly below $1$, because a query near a Voronoi boundary has neighbors on the far side, in a cell whose centroid is not the query's nearest. Recall is non-decreasing in $n_{\text{probe}}$ and reaches $1$ at $n_{\text{probe}} = n_{\text{list}}$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+A vector $x_i$ can be returned for query $q$ only if $i \in \mathrm{cand}(q)$, i.e. $i(x_i) \in \mathcal{N}_{n_{\text{probe}}}(q)$. So recall$@k$ equals the fraction of true top-$k$ neighbors whose cell is among the query's $n_{\text{probe}}$ nearest. Adding a cell to the probe set only enlarges $\mathrm{cand}(q)$, so recall cannot decrease in $n_{\text{probe}}$; at $n_{\text{probe}} = n_{\text{list}}$ the candidate set is all of $X$ and the exact distance recovers every neighbor. At $n_{\text{probe}} = 1$, any neighbor $x_i$ with $i(x_i) \ne i(q)$ — a neighbor across the Voronoi boundary separating its cell from the query's — is missed, and such neighbors exist whenever $q$ is closer to a boundary than to its nearest in-cell neighbor, which has positive probability. $\blacksquare$
+
+</TheoremBlock>
+
+On the finance cloud the frontier is steep in the index's favor: recall@10 climbs from $47.5\%$ at a single probe to $98\%$ at eight probes, while the scanned fraction grows from under $4\%$ to about a quarter. The boundary effect is the price of the partition, and multi-probe is how you pay it down.
+
+## Movement 2 — the residual (IVFADC)
+
+The coarse quantizer leaves a residual $r = x - \mu_{i(x)}$: what the cell centroid fails to capture. Instead of throwing it away, encode *it* with product quantization. The reason this helps is a variance identity, and it is exact.
+
+<TheoremBlock type="theorem" number={3} title="Residual variance reduction">
+
+Let $C = i(X)$ be the cell assignment, a random variable over the database. Because the Lloyd centroid is the sample mean of its cell at convergence, $\mu_{i(x)} = \mathbb{E}[x \mid C]$, the residual is the within-cell deviation $r = x - \mathbb{E}[x \mid C]$. By the law of total variance,
+
+$$
+\operatorname{Var}(x) \;=\; \underbrace{\mathbb{E}\big[\operatorname{Var}(x \mid C)\big]}_{\text{within-cell} \,=\, \operatorname{Var}(r)} \;+\; \underbrace{\operatorname{Var}\big(\mathbb{E}[x \mid C]\big)}_{\text{between-cell} \,\ge\, 0},
+$$
+
+so $\operatorname{Var}(r) = \operatorname{Var}(x) - \operatorname{Var}(\mu_{i(x)}) \le \operatorname{Var}(x)$, with strict inequality whenever the cells have distinct means. The coarse quantizer has absorbed the between-cell variance; product quantization then spends its bits on the smaller within-cell signal.
+
+</TheoremBlock>
+
+This is the whole of IVFADC. Build the inverted file, compute each vector's residual against its own cell centroid, and product-quantize the residuals; at search time, for each probed cell $j$, the query's residual $q - \mu_j$ is matched against the stored residual codes by the asymmetric lookup of the previous topic. Because the residual carries less variance — on the finance cloud the coarse quantizer removes $74\%$ of it — the same product-quantization budget reconstructs it more faithfully, and recall rises.
+
+<TheoremBlock type="proposition" number={1} title="IVFADC versus flat product quantization at equal bits">
+
+At a fixed product-quantization budget of $m \log_2 k^\*$ bits, encoding the residual (IVFADC) attains reconstruction distortion at most that of encoding the raw vector (flat product quantization), because the residual has no greater variance in any subspace and product-quantization distortion is monotone in subspace variance. The lower distortion translates into higher retrieval recall.
+
+</TheoremBlock>
+
+On the finance cloud at $64$-bit codes, flat product quantization reaches $75.3\%$ recall@10 and IVFADC reaches $77.1\%$ — the same bits, a smaller signal, more recall. The gain is a measured direction, not a universal constant; its size depends on the cloud, the cell count, and the budget.
+
+<FinanceCaseStudy modality={["text"]}>
+
+A production financial-retrieval index does not scan its corpus. The inverted file is what makes a query against millions of multimodal embeddings touch only the few thousand vectors in the nearest cells, and IVFADC — the `IndexIVFPQ` of Faiss — is the standard realization: a coarse k-means quantizer over the corpus, inverted lists of product-quantized residuals, and an `nprobe` knob that trades latency for recall. On the synthetic finance cloud the two halves compose exactly as the production index does: probing eight of thirty-two cells scans under a third of the database for $98\%$ recall, and residual encoding lifts the $64$-bit recall from $75.3\%$ to $77.1\%$. The boundary effect is the operational reality — raise `nprobe` when recall matters, lower it when latency does — and the cell imbalance is why a real deployment monitors list-length skew rather than assuming the clean $\sqrt{n}$ arithmetic.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+The inverted file trades recall for speed, and the trade is governed by assumptions worth naming. The $\sqrt{n}$ speedup assumes balanced cells; a k-means partition of real data is imbalanced, so inverted-list lengths and query times vary and a query can land in an overfull cell. The index is approximate by construction — probing $n_{\text{probe}}$ cells misses any neighbor across a boundary in an unprobed cell (the boundary effect), so recall at $n_{\text{probe}} = 1$ is strictly below $1$ and recovers only with multi-probe; in high dimensions a cell has more neighbors and the effect worsens, so $n_{\text{probe}}$ must grow with dimension to hold recall. The residual-variance reduction is exact (the Lloyd centroid is the cell mean, so the law of total variance applies with no approximation), but the recall gain it produces is a measured direction on the synthetic finance cloud, not a guaranteed margin. Choosing $n_{\text{list}}$ and $n_{\text{probe}}$ is an empirical tuning problem; the $\sqrt{n}$ rule for $n_{\text{list}}$ is a starting point, not an optimum. Every recall, fraction-scanned, and variance figure is measured on the same synthetic cloud the previous quantization topics used.
+
+</RigorFlag>
+
+The inverted file is the first index here that gives up exactness for speed, and it does so with a single coarse partition. The next index structures keep the goal — touch few vectors, miss few neighbors — but replace the flat partition with a navigable graph, where search is a walk rather than a cell lookup. That is where the small-world topics go.
