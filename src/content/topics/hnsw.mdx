@@ -1,0 +1,200 @@
+---
+title: "HNSW: Hierarchical Navigable Small-World Construction and Search"
+subtitle: "How one randomized idea — a hierarchy of nested graphs — turns the navigable small-world graph's arbitrary entry into a provably logarithmic descent, and the heuristic that keeps each layer navigable"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "navigable-small-world-graphs"
+  - "ivf-voronoi-partitioning"
+tags:
+  - "hnsw"
+  - "hierarchical-navigable-small-world"
+  - "approximate-nearest-neighbor"
+  - "skip-list"
+  - "level-assignment"
+  - "beam-search"
+  - "graph-construction"
+  - "neighbor-heuristic"
+domain: "ann-indexing"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+rigorFlag: "HNSW has one clean, provable theorem and a stack of honest caveats. The clean theorem is the level-assignment law: drawing each node's maximum level as the floor of minus the natural logarithm of a uniform random variable times one over the natural logarithm of M makes the probability that a node reaches level at least ell exactly M to the minus ell, so layer occupancy decays geometrically by a factor of one over M, the top layer holds order-one nodes, and the expected maximum level — hence the expected entry-descent depth — grows like the logarithm base M of the number of nodes. That is exact probability, and we verify the tail law, the geometric decay, and the logarithmic scaling directly from the level draws. The caveats. First, the order-log-n search cost that this descent suggests is proved only for the idealized model in which each layer is itself navigable; on real embedding vectors the per-layer navigability is empirical, inherited from the navigable small-world heuristic of the prerequisite, not guaranteed — the level law is exact, the end-to-end logarithmic search is not a theorem. Second, the neighbor-selection heuristic that distinguishes HNSW — keep a candidate only if no already-kept neighbor is closer to it than it is to the base — has no optimality proof; it is a well-motivated diversity rule, and we show only the direction in which it differs from naive nearest-M, never that it is optimal. Third, recall is empirical and depends jointly on M, the search beam width, the level multiplier, and the entry point; every recall number is measured on a single synthetic low-rank cloud from the prerequisite topic. Fourth, the head-to-head against the inverted file is run on that one synthetic cloud with a shared ground truth, so a statement that one index reaches a given recall at lower cost is a statement about this cloud, not a universal ranking of the two methods."
+videoId: null
+notebookPath: "notebooks/hnsw/01_hnsw.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/hnsw.mdx"
+datePublished: 2026-06-21
+estimatedReadTime: 36
+abstract: "The navigable small-world graph gave us a searchable graph and a beam that walks it, but its search starts at an arbitrary entry and its small-world property is empirical. HNSW adds one structural idea — a randomized hierarchy of nested graphs, the continuous analogue of a skip list — that turns the arbitrary entry into a provably logarithmic descent. The mathematics has three movements. The first is the level-assignment law: each node draws a maximum level as the floor of minus the logarithm of a uniform variable scaled by one over the logarithm of M, which makes the probability of reaching level ell exactly M to the minus ell. From that exact law follow geometric layer occupancy, an order-one top layer, and an expected maximum level — the entry-descent depth — that grows like the logarithm base M of n. This is the provable spine, the analogue of the prerequisite's Kleinberg theorem. The second movement is the heuristic that distinguishes HNSW from linking to the nearest M: admit a candidate only if no already-kept neighbor is closer to it than it is to the base, a diversity rule that preserves the long-range links that keep each layer navigable, with no optimality proof. The third movement builds and searches the hierarchy, reusing the prerequisite's beam restricted to a per-layer adjacency — a fresh per-layer search that, forced to a single layer, is the prerequisite's greedy search exactly — and closes the approximate-nearest-neighbor arc with a head-to-head against the inverted file on one shared cloud. An interactive laboratory steps through the layer pyramid and a query's descent, contrasts the naive and heuristic neighbor sets, and traces the recall-versus-cost frontiers of the graph and partition indexes side by side."
+connections:
+  - topic: "navigable-small-world-graphs"
+    relationship: "HNSW is the navigable small-world graph with a hierarchy bolted on: layer zero of HNSW IS an NSW graph over all the vectors, and the per-layer beam reused at every level is exactly the prerequisite's greedy search — forced to a single layer it reproduces it to the index and the distance-computation count. The hierarchy fixes the one thing the flat graph left open, the arbitrary entry, by descending from a coarse top layer to a query-adapted entry into layer zero"
+  - topic: "ivf-voronoi-partitioning"
+    relationship: "the inverted file and HNSW are the two great families of sublinear vector search — partition the space into Voronoi cells, or walk a graph — and this topic runs them head to head on one shared cloud with a single ground truth, tracing each index's recall against the distance computations it spends; the comparison is the partition-versus-graph trade the capstone's retrieval layer has to make"
+references:
+  - type: "paper"
+    title: "Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs"
+    authors: "Malkov & Yashunin"
+    year: 2020
+    url: "https://doi.org/10.1109/TPAMI.2018.2889473"
+    note: "The HNSW algorithm: the level-assignment law, the heuristic neighbor selection (their Algorithm 4), and the layered construction and search this topic builds and measures — the index most production vector databases run"
+  - type: "paper"
+    title: "Approximate Nearest Neighbor Algorithm Based on Navigable Small World Graphs"
+    authors: "Malkov, Ponomarenko, Logvinov & Krylov"
+    year: 2014
+    url: "https://doi.org/10.1016/j.is.2013.10.006"
+    note: "The flat navigable small-world index that HNSW layers — layer zero of the hierarchy, and the baseline the construction must beat at equal cost"
+  - type: "paper"
+    title: "The Small-World Phenomenon: An Algorithmic Perspective"
+    authors: "Kleinberg"
+    year: 2000
+    url: "https://doi.org/10.1145/335305.335325"
+    note: "The navigability theorem behind why a single layer can be searched by greedy hops at all — the intuition each HNSW layer relies on, established in the prerequisite"
+  - type: "paper"
+    title: "Skip Lists: A Probabilistic Alternative to Balanced Trees"
+    authors: "Pugh"
+    year: 1990
+    url: "https://doi.org/10.1145/78973.78977"
+    note: "The randomized-level data structure HNSW generalizes from a sorted list to a metric space: the geometric level law and the coarse-to-fine descent are the skip list's, lifted to a proximity graph"
+formalmlPrereqs:
+  - topic: "expander-graphs"
+    site: "formalml"
+    relationship: "the hierarchy's promise is a graph with logarithmic-depth descent and bounded degree, and the expansion, spectral-gap, and short-path machinery developed there is the graph-theoretic foundation for why a sparse layered graph can reach any node in few hops"
+formalmlConnections:
+  - topic: "random-walks"
+    site: "formalml"
+    relationship: "the entry-descent is a deterministic walk down the layers, and the hitting-time and mixing analysis developed there is the process-level frame for how many steps a coarse-to-fine descent needs to reach a query-adapted entry"
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the expected maximum level is the maximum of n independent geometric level draws, and the concentration bounds developed there are exactly what pin that maximum to the logarithm base M of n — the statement that the descent depth grows logarithmically and concentrates"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import HNSWLaboratory from '../../components/viz/HNSWLaboratory.tsx';
+
+## Overview & motivation
+
+The navigable small-world graph left us with a working index and one loose end. Its search is a greedy beam that walks the graph, and it works — but it starts at a *fixed* entry node, an arbitrary first-inserted hub that has nothing to do with the query, and from there the beam has to grind across the whole graph to reach the query's neighborhood. The graph's navigability, too, is an empirical property of the insertion order, not something the search exploits structurally. HNSW fixes both with a single idea borrowed from a classic data structure: a *hierarchy*.
+
+A skip list speeds up a sorted linked list by stacking it into express lanes — a sparse top list for long jumps, denser lists below for fine positioning — with each element promoted to a random height. HNSW does the same to the navigable small-world graph. Every vector is assigned a random *level*; layer $0$ holds all of them and is an ordinary NSW graph, and each higher layer holds a geometrically thinning random subset. Search enters at the lone hub on top, descends greedily through the sparse upper layers to land at an entry *adapted to the query*, and only then runs the familiar beam at layer $0$. The laboratory below steps through the layer pyramid and one query's descent, contrasts the two ways to choose a node's neighbors, and traces the recall-versus-cost frontiers of HNSW, the flat graph, and the inverted file on one shared cloud.
+
+<HNSWLaboratory client:visible />
+
+The first panel is the pyramid: step from the lone apex hub down to the full layer $0$ and watch the graph thin geometrically while a query descends. The second is the heuristic that keeps each layer navigable — naive nearest-$M$ versus the diversity rule. The third is the recall-versus-cost frontier, where the hierarchy's cheaper entry shows up as a curve that reaches a given recall at fewer distance computations than the flat graph it layers.
+
+## Movement 1 — the hierarchy and the level-assignment law
+
+The hierarchy is built from one random choice per node. When a vector is inserted, it draws a maximum level
+
+$$
+L = \left\lfloor -\ln(U)\, m_L \right\rfloor, \qquad U \sim \mathrm{Uniform}(0,1), \quad m_L = \frac{1}{\ln M},
+$$
+
+and is inserted into the graph at every layer $0, 1, \dots, L$. The multiplier $m_L = 1/\ln M$ is the one choice that makes the level distribution clean, and everything the hierarchy promises follows from it as exact probability — this is the provable spine of HNSW, the counterpart of Kleinberg's theorem for the flat graph.
+
+<TheoremBlock type="theorem" number={1} title="The level-assignment law">
+
+With $m_L = 1/\ln M$, the level $L = \lfloor -\ln(U)\, m_L \rfloor$ of a node satisfies, for every integer $\ell \ge 0$,
+
+$$
+P(L \ge \ell) = M^{-\ell}, \qquad P(L = \ell) = M^{-\ell}\left(1 - \tfrac{1}{M}\right).
+$$
+
+Consequently the expected number of nodes present at layer $\ell$ is $n\,M^{-\ell}$ — occupancy decays geometrically by the factor $1/M$ — the top non-empty layer holds $O(1)$ nodes, and the expected maximum level over $n$ nodes is
+
+$$
+\mathbb{E}\!\left[\max_{1 \le i \le n} L_i\right] = \log_M n + O(1).
+$$
+
+The expected number of layers a search must descend before reaching layer $0$ therefore grows like $\log_M n$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+
+The event $L \ge \ell$ is $-\ln(U)\,m_L \ge \ell$, i.e. $\ln U \le -\ell/m_L = -\ell \ln M$, i.e. $U \le M^{-\ell}$. Since $U$ is uniform on $(0,1)$ and $M^{-\ell} \le 1$, this has probability exactly $M^{-\ell}$, which gives the survival law; differencing consecutive tails gives the per-level mass $P(L=\ell) = M^{-\ell} - M^{-(\ell+1)}$. Each of the $n$ nodes is present at layer $\ell$ independently with probability $M^{-\ell}$, so the expected occupancy is $n\,M^{-\ell}$; this falls below $1$ once $\ell > \log_M n$, which is why the top layer is $O(1)$. The maximum of $n$ independent geometric levels concentrates one level above where the expected count drops through $1$, giving $\log_M n + O(1)$. $\blacksquare$
+
+</TheoremBlock>
+
+The companion code draws three hundred thousand levels and confirms the tail law to the place where it matters: $P(L \ge 1,2,3) = (0.1257,\, 0.0155,\, 0.0021)$ against the theoretical $(0.125,\, 0.0156,\, 0.00195) = M^{-\ell}$ for $M = 8$. In a graph actually built on $500$ vectors the layer occupancies are $500 \to 49 \to 10$ — each layer about an eighth of the one below, exactly the geometric decay — and the realized top layer holds about $n/M^{\,\text{top}}$ nodes, with the genuine $O(1)$ apex sitting at the $\log_M n$ level. The scaling is the headline:
+
+<TheoremBlock type="proposition" number={1} title="The descent depth grows logarithmically">
+
+As the database grows from $200$ to $1000$ vectors, the mean maximum level rises from about $2.3$ to about $3.2$, tracking $\log_M n$ (from $2.55$ to $3.32$) within a constant. Because the maximum level depends only on the level draws, not on the constructed graph, this is measured from the law itself: the entry-descent depth is logarithmic in $n$.
+
+</TheoremBlock>
+
+That $O(\log n)$ descent depth, paired with the bounded per-layer degree the construction enforces, is the *intuition* for HNSW's celebrated logarithmic search. We keep the word intuition deliberately: the level law is exact, but the end-to-end search cost also depends on each layer being navigable, which on real vectors is empirical — the honest line we hold throughout.
+
+## Movement 2 — choosing a node's neighbors
+
+A skip list's express lanes are trivially correct because the data is sorted. A graph has no order, so the one design choice that makes or breaks navigability is *which* neighbors each node keeps. Linking to the nearest $M$ is the obvious rule, and it is the wrong one: the nearest $M$ to a point tend to cluster on one side of it, so the graph fills with short, redundant edges and loses the long-range links that let a greedy walk cross the space. HNSW's fix is a small, sharp heuristic.
+
+<TheoremBlock type="definition" number={1} title="Heuristic neighbor selection (Malkov–Yashunin, Algorithm 4)">
+
+Given a base node and a candidate set, scan the candidates in order of increasing distance to the base and keep a candidate $c$ only if, for every already-kept neighbor $r$,
+
+$$
+d(c, r) \ge d(c, \text{base}).
+$$
+
+In words: admit $c$ unless some neighbor we already kept is closer to $c$ than $c$ is to the base — in which case that neighbor already "covers" $c$'s direction, and a link to $c$ would be redundant. Stop at $M$ kept neighbors.
+
+</TheoremBlock>
+
+The rule trades a little distance for a lot of diversity. On the toy cloud, the naive rule keeps the four strict-nearest neighbors of a base node — all in the same blob — while the heuristic drops the redundant near ones and keeps a spread-out set that reaches into other clusters, preserving exactly the long-range links the small-world property needs. The companion code measures the direction: the heuristic's kept set has strictly larger mean pairwise spread than the naive set on the same candidates. It is a *heuristic*, with no optimality proof, and the topic flags it as such — but it is the single design decision that most distinguishes HNSW from a naive layered graph.
+
+## Movement 3 — building and searching the hierarchy
+
+Construction and search both reuse the prerequisite's machinery, restricted to one layer at a time.
+
+<TheoremBlock type="definition" number={2} title="HNSW construction and search">
+
+**Construction.** Insert the vectors in random order. A new point draws its level $L$, greedy-descends with beam width $1$ from the global entry through every layer above $L$ to find a query-adapted entry, then at each layer from $\min(L, \text{top})$ down to $0$ runs a beam of width $\mathrm{ef}_{\text{construction}}$, selects neighbors from the result by the heuristic of Definition 1, and links bidirectionally — capping degree at $M$ per upper layer and $2M$ at layer $0$, re-running the heuristic to shrink any over-full neighborhood. If the new point's level exceeds the current top, it becomes the entry point.
+
+**Search.** From the single top entry, greedy-descend with beam width $1$ through layers $\text{top}, \dots, 1$, handing each layer's nearest node down as the next layer's entry; then run a beam of width $\mathrm{ef}$ at layer $0$ and return the $k$ nearest. The total cost is the distance computations summed over all layers.
+
+</TheoremBlock>
+
+The per-layer beam is *not* a new algorithm — it is the prerequisite's greedy beam search over a per-layer adjacency, seeded from the entry handed down from above. That this reuse is faithful is the cleanest correctness check in the topic:
+
+<TheoremBlock type="proposition" number={2} title="One layer of HNSW is the flat graph's search, exactly">
+
+Collapse the hierarchy to a single layer — force every node to level $0$ — and HNSW's per-layer beam returns the same neighbor indices *and* the same distance-computation count as the prerequisite's greedy search on the identical flat adjacency, for every query and every beam width. The hierarchy is the only new thing; the search is unchanged.
+
+</TheoremBlock>
+
+What the hierarchy buys is a cheaper entry, and the payoff is robust because it is *intra-graph* — HNSW against the very flat NSW it layers, on the same cloud:
+
+<TheoremBlock type="proposition" number={3} title="The hierarchy reaches a given recall at lower cost">
+
+On the synthetic cloud of $500$ vectors, HNSW attains recall@10 of $1.0$ at about $92$ distance computations per query, while the flat navigable small-world graph needs about $134$ to reach the same recall. Sweeping the beam width $\mathrm{ef}$, the HNSW frontier sits at or below the flat-graph frontier at every recall level: the upper layers replace a long beam search from a fixed hub with a short descent to a query-adapted entry. Recall is non-decreasing in $\mathrm{ef}$, and at a wide beam both reach the exact answer.
+
+</TheoremBlock>
+
+Finally the arc closes. The inverted file and HNSW are the two families of sublinear search, and we can now run them against each other honestly — built on the *same* cloud, scored against the *same* ground truth, each measured by the distance computations it spends.
+
+<TheoremBlock type="proposition" number={4} title="Graph versus partition, on one cloud">
+
+On the shared cloud, sweeping HNSW's beam width against the inverted file's number of probed cells, both indexes reach the exact answer at full cost — HNSW's recall climbs to $1.0$, and the inverted file is exact once it probes every cell. At a matched budget the graph is ahead *here*: at the $92$ distance computations where HNSW reaches recall $1.0$, the inverted file reaches about $77\%$. This is a property of one synthetic low-rank cloud with a shared ground truth, not a universal ranking — on data whose geometry suits Voronoi partitioning the order can reverse.
+
+</TheoremBlock>
+
+<FinanceCaseStudy modality={["text"]}>
+
+HNSW is the index a production vector database most likely runs — the `hnswlib` and FAISS-HNSW implementations are the default behind a great many retrieval systems, including the one this series draws its finance case study from. For a corpus of millions of financial-document embeddings, the hierarchy is what makes the entry into the graph cost a logarithmic descent rather than a long walk from a fixed hub, and the three construction-and-search parameters are the operator's real dials: $M$ sets the degree and the memory, $\mathrm{ef}_{\text{construction}}$ trades build time for graph quality, and $\mathrm{ef}_{\text{search}}$ is the latency-versus-recall knob turned per query — the graph-search counterpart of the inverted file's number of probes. The mathematics names the honest operational facts. The level law is exact, so the logarithmic descent depth is real and the memory is predictable; but per-layer navigability on real embeddings is empirical, the neighbor heuristic is a heuristic, and recall is monitored rather than promised. On the synthetic cloud the whole trade is visible in miniature — a beam of sixteen recovers the full recall at under a fifth of the database, and the hierarchy reaches it at a third less work than the flat graph — and the graph-versus-partition comparison is exactly the choice the capstone's retrieval layer has to make.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+HNSW rests on one exact theorem and several measured directions. The level-assignment law is exact: $P(L \ge \ell) = M^{-\ell}$, the geometric layer occupancy, the $O(1)$ apex, and the $\log_M n$ expected descent depth all follow from it, and we verify each directly from the level draws. The caveats sit on top of that spine. First, the end-to-end logarithmic *search* cost the descent suggests is proved only for an idealized model in which each layer is itself navigable; on real embedding vectors the per-layer navigability is empirical, inherited from the navigable small-world heuristic of the prerequisite, so the level law is a theorem but the logarithmic search is not. Second, the neighbor-selection heuristic that defines HNSW — keep a candidate only if no already-kept neighbor is closer to it than it is to the base — has no optimality proof; we show only the direction in which it differs from naive nearest-$M$, never that it is optimal. Third, recall is empirical and depends jointly on $M$, the beam width $\mathrm{ef}$, the level multiplier $m_L$, and the entry point; every recall number is measured on a single synthetic low-rank cloud. Fourth, the head-to-head against the inverted file is run on that one cloud with a shared ground truth, so the statement that the graph reaches a given recall at lower cost is a statement about this cloud, not a universal ranking of graph against partition.
+
+</RigorFlag>
+
+The hierarchy closes the opening the flat graph left — the arbitrary entry becomes a logarithmic descent — and with the inverted file beside it, the two families of sublinear vector search are now both on the table. What remains is the messier reality production indexes face: vectors that arrive and are deleted over time, and queries that carry a filter the index must respect. Keeping a navigable graph connected under insertion and deletion, and searching it under a predicate, is where the next topic goes.
