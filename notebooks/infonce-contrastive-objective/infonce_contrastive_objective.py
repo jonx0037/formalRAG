@@ -124,13 +124,15 @@ def info_nce_loss(z_q: np.ndarray, z_pos: np.ndarray, Z_neg: np.ndarray,
 def info_nce_loss_batch(Zq: np.ndarray, Zk: np.ndarray, tau: float) -> float:
     """In-batch-negative InfoNCE over a batch of B (query, positive) pairs: Zq[i] is query
     i, Zk[i] its positive, and every other Zk[j != i] is a negative for query i. The mean
-    over rows of the (N+1=B)-way cross-entropy. GUARDS: tau > 0, B >= 2 (need >= 1
-    negative). Uses the BxB logit matrix and a row-wise logsumexp."""
+    over rows of the (N+1=B)-way cross-entropy. GUARDS: tau > 0, matching Zq/Zk batch sizes,
+    B >= 2 (need >= 1 negative). Uses the BxB logit matrix and a row-wise logsumexp."""
     if not (tau > 1e-8):
         raise ValueError(f"temperature tau must be > 1e-8, got {tau}")
     Zq = normalize(np.atleast_2d(Zq))
     Zk = normalize(np.atleast_2d(Zk))
     B = Zq.shape[0]
+    if Zk.shape[0] != B:
+        raise ValueError(f"Zq and Zk must have the same batch size, got {B} and {Zk.shape[0]}")
     if B < 2:
         raise ValueError(f"in-batch negatives need B >= 2 rows, got {B}")
     S = (Zq @ Zk.T) / tau                       # (B, B); diagonal = positives
@@ -276,7 +278,7 @@ def _make_pairs(m: int, d: int, seed: int) -> tuple[np.ndarray, np.ndarray]:
 def optimize_align_unif(m: int = 24, d: int = 3, t: float = 2.0, lam: float = 1.0,
                         steps: int = 400, lr: float = 0.5, seed: int = 0):
     """Minimize L_align + lam * L_unif directly by projected GD on the sphere. Returns the
-    final configuration Z and its (alignment, uniformity)."""
+    final configuration Z and the partner involution."""
     Z, pair = _make_pairs(m, d, seed)
     for _ in range(steps):
         _, g = _align_unif_grad(Z, pair, t, lam)
@@ -592,14 +594,19 @@ def test_alignment_uniformity_decomposition() -> None:
 
 def test_temperature_tradeoff_directions() -> None:
     """Movement 3 corollary: lower temperature buys uniformity (a more spread, higher-kappa-
-    equivalent configuration) at the cost of alignment. Directions pinned to the observed
-    run across the temperature grid."""
+    equivalent configuration), and never at a discount to alignment. Uniformity is the moving
+    signal across this mid-tau range; the positive pairs stay fully aligned (alignment ~ 0) on
+    this easy toy, the cost to alignment only surfacing at extreme low tau where the optimization
+    destabilizes. Directions pinned to the observed run."""
     rows = align_unif_vs_tau((0.1, 0.2, 0.5), m=24, d=3, t=UNIF_T, steps=400, lr=0.5, seed=6)
     aligns = [r["alignment"] for r in rows]      # tau increasing
     unifs = [r["uniformity"] for r in rows]
-    # Lower tau -> tighter alignment (smaller) and lower uniformity loss (more spread).
-    assert aligns[0] <= aligns[-1] + 1e-6, f"lower tau should not worsen alignment: {aligns}"
+    # Uniformity is the clean monotone signal: lower tau -> more spread (lower uniformity loss).
     assert unifs[0] <= unifs[-1] + 1e-6, f"lower tau should not worsen uniformity: {unifs}"
+    # Alignment is fully converged (~0) across this range, so the most we can require is that
+    # lower tau does not give BETTER alignment than higher tau -- the cost DIRECTION (Wang & Liu's
+    # tolerance dilemma), never a discount. A "<=" here would silently encode the wrong claim.
+    assert aligns[0] >= aligns[-1] - 1e-6, f"lower tau must not improve alignment over higher tau: {aligns}"
     print(f"  [ok] temperature trade-off: alignment {aligns}, uniformity {unifs} "
           f"(tau = 0.1, 0.2, 0.5)")
 
