@@ -1,0 +1,249 @@
+---
+title: "Contrastive Learning for Retrieval: InfoNCE, Temperature, and Negative Sampling"
+subtitle: "How a dual encoder is taught to place a query near its answer and far from everything else — one loss read three ways: a mutual-information lower bound, a tug-of-war between alignment and uniformity on the hypersphere, and a temperature-sharpened gradient that the hardest negative dominates"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "hypersphere-vmf-geometry"
+  - "the-retrieval-problem"
+tags:
+  - "infonce"
+  - "contrastive-learning"
+  - "mutual-information"
+  - "alignment-uniformity"
+  - "temperature"
+  - "negative-sampling"
+  - "dense-retrieval"
+  - "noise-contrastive-estimation"
+domain: "neural-retrieval"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "audio"
+rigorFlag: "Three readings of InfoNCE are exact and three of its promises are softer than they look. The mutual-information reading is a lower BOUND, and a loose one: the CPC inequality I(q; d+) >= log(N+1) - L is tight only at the optimal critic and is ceilinged at log(N+1), so on a finite batch the bound saturates and a smaller loss past that point buys representation quality the information number cannot see — more negatives raise the ceiling, which is the honest reason large batches help, not a free lunch. The alignment-uniformity decomposition (Wang & Isola 2020) is an ASYMPTOTIC limit as the number of negatives grows; at finite N the clean split into a pull on positives and a spread toward the uniform sphere is an approximation, and the uniformity term's convergence to the exact uniform measure of the hypersphere topic is a large-N statement with finite-N constants. The temperature is the sharpest caveat: tau controls how hardness-aware the gradient is — small tau concentrates almost all the repulsion on the single nearest negative — but the right tau is EMPIRICAL, traded off against tolerance to genuinely similar positives (Wang & Liu 2021), and no theorem here picks it. Two more joints. The contrastive setup assumes TRUE negatives; in retrieval the sampled negatives include false negatives — unlabeled relevant documents punished as if irrelevant — so the gradient is biased by the sampling, not just the loss. And cosine logits inherit the hypersphere caveats: real encoder embeddings are anisotropic, so the on-sphere geometry the decomposition assumes is itself a model. The proved core — InfoNCE as (N+1)-way cross-entropy, the CPC bound, the asymptotic decomposition, and the softmax-weighted gradient — holds exactly; the saturation, the finite-N split, and the temperature trade-off are the empirical edges, and the laboratory's numbers are a deterministic synthetic von Mises-Fisher stand-in, not a trained dual encoder."
+videoId: null
+notebookPath: "notebooks/infonce-contrastive-objective/01_infonce_contrastive_objective.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/infonce-contrastive-objective.mdx"
+datePublished: 2026-06-21
+estimatedReadTime: 33
+abstract: "The hypersphere topic told us where dense embeddings live; this one tells us how they are taught. Contrastive learning trains a dual encoder to place a query near its relevant document and far from everything else, and the loss that does it — InfoNCE — is the foundation of the neural-retrieval track. We read one loss three ways. First, InfoNCE is an (N+1)-way cross-entropy whose minimization is a lower bound on the mutual information between query and positive, the Contrastive Predictive Coding result of van den Oord, Li, and Vinyals (2018) — a bound ceilinged at log(N+1), which is the formal reason more negatives help and the honest reason the information story saturates. Second, as the number of negatives grows the loss splits, on the unit hypersphere of the previous topic, into alignment — positives pulled together — and uniformity — every embedding pushed toward the exact uniform distribution we already characterized, with temperature playing the role of an inverse von Mises-Fisher concentration (Wang & Isola, 2020). Third, the gradient is a softmax-weighted repulsion over the negatives: the hardest negative, the one nearest the query, dominates, and temperature controls how sharply — small temperature focuses almost all the push on a single negative, a hardness-awareness that is powerful and, past a point, brittle (Wang & Liu, 2021). A laboratory draws the query, positive, and negatives on the sphere with the gradient weights live, the mutual-information bound against its log(N+1) ceiling, and the alignment-uniformity decomposition as the temperature varies; a tested, deterministic notebook owns every number it shows."
+connections:
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "this is where the contrastive objective lands geometrically: the alignment-uniformity decomposition of InfoNCE pushes embeddings toward the exact uniform distribution on the sphere that topic characterized, and the temperature tau acts as an inverse von Mises-Fisher concentration — low temperature trains tight, high-kappa clusters, the precise sense in which that topic said tau is like one over kappa, so the cluster tightness it taught us to measure is the quantity this loss optimizes"
+  - topic: "the-retrieval-problem"
+    relationship: "the retrieval-problem defined relevance as a similarity functional and showed that on the sphere cosine, dot product, and Euclidean ranking coincide; InfoNCE is how that similarity functional is LEARNED — the loss turns the cosine logit between an L2-normalized query and document into the training signal that makes relevant pairs score high, so this topic supplies the encoder behind the scores that topic took as given"
+  - topic: "matryoshka-nested-representations"
+    relationship: "Matryoshka representation learning nests a contrastive objective at multiple truncation lengths, applying an InfoNCE-style loss to every prefix of the embedding; the temperature and negative-sampling analysis here is exactly what governs each of those nested losses, so the nested-dimension trick is this objective replicated down a ladder of dimensions"
+  - topic: "high-dimensional-geometry"
+    relationship: "the uniformity term of the decomposition spreads embeddings toward the uniform sphere whose near-orthogonality and equatorial concentration that topic established; the one-over-d variance and near-orthogonality it proved are what maximal uniformity converges to, so the contrastive loss is, in its uniformity half, training toward the high-dimensional geometry that topic described"
+references:
+  - type: "paper"
+    title: "Representation Learning with Contrastive Predictive Coding"
+    authors: "van den Oord, Li & Vinyals"
+    year: 2018
+    url: "https://arxiv.org/abs/1807.03748"
+    note: "The InfoNCE loss and the proof that minimizing it maximizes a lower bound on mutual information, ceilinged at log(N+1) — Movement 1 and Theorem 1, and the source of the saturation caveat"
+  - type: "paper"
+    title: "Understanding Contrastive Representation Learning through Alignment and Uniformity on the Hypersphere"
+    authors: "Wang & Isola"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.10242"
+    note: "The asymptotic decomposition of InfoNCE into alignment and uniformity on the sphere, the geometric heart of Theorem 2 and the direct bridge to the hypersphere-vMF topic"
+  - type: "paper"
+    title: "Dense Passage Retrieval for Open-Domain Question Answering"
+    authors: "Karpukhin, Oguz, Min, Lewis, Wu, Edunov, Chen & Yih"
+    year: 2020
+    url: "https://doi.org/10.18653/v1/2020.emnlp-main.550"
+    note: "The retrieval framing: a dual encoder trained with in-batch-negative InfoNCE, the canonical instantiation of this objective for dense retrieval and the source of the in-batch-negative practice"
+  - type: "paper"
+    title: "A Simple Framework for Contrastive Learning of Visual Representations"
+    authors: "Chen, Kornblith, Norouzi & Hinton"
+    year: 2020
+    url: "https://arxiv.org/abs/2002.05709"
+    note: "SimCLR: the normalized temperature-scaled cross-entropy (NT-Xent) form of InfoNCE and the empirical demonstration that the temperature is a critical, tuned hyperparameter — Movement 3"
+  - type: "paper"
+    title: "Understanding the Behaviour of Contrastive Loss"
+    authors: "Wang & Liu"
+    year: 2021
+    url: "https://arxiv.org/abs/2012.09740"
+    note: "The hardness-aware temperature analysis: small temperature concentrates the gradient on the hardest negatives, and the uniformity-tolerance dilemma that makes the right temperature empirical — the gradient theorem and the third rigorFlag caveat"
+  - type: "paper"
+    title: "Improved Deep Metric Learning with Multi-class N-pair Loss Objective"
+    authors: "Sohn"
+    year: 2016
+    url: "https://proceedings.neurips.cc/paper/2016/hash/6b180037abbebea991d8b1232f8a8ca9-Abstract.html"
+    note: "The N-pair loss, the multi-negative softmax objective that InfoNCE generalizes — the immediate ancestor of the (N+1)-way cross-entropy form"
+  - type: "paper"
+    title: "Noise-contrastive estimation: A new estimation principle for unnormalized statistical models"
+    authors: "Gutmann & Hyvarinen"
+    year: 2010
+    url: "https://proceedings.mlr.press/v9/gutmann10a.html"
+    note: "Noise-contrastive estimation, the founding principle of learning by discriminating data from noise that InfoNCE descends from — the NCE in InfoNCE"
+  - type: "documentation"
+    title: "Sentence-Transformers — losses (MultipleNegativesRankingLoss)"
+    authors: "Reimers & Gurevych"
+    year: 2024
+    url: "https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html"
+    note: "The production realization: MultipleNegativesRankingLoss is in-batch-negative InfoNCE with a scale (inverse temperature), the concrete form a finance encoder is trained with"
+formalmlPrereqs:
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "InfoNCE is a mutual-information lower bound and is literally a cross-entropy, so the entropy quantities developed there are exactly what this topic optimizes and measures: the loss is the conditional cross-entropy of an (N+1)-way classifier, the gradient-weight entropy that tracks how hardness-aware the update is rises toward log N, and the ceiling log(N+1) is an entropy bound — none of these statements is even expressible without the entropy machinery from that topic"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "the mutual information the CPC bound lower-bounds is I(q; d+) = E KL(p(d|q) || p(d)), and the optimal critic that makes the bound tight is the density ratio p(d|q)/p(d) whose log is the pointwise term of that divergence, so the entire Movement 1 argument is a statement about the KL divergence between the conditional and the marginal that topic defines"
+formalmlConnections:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "this topic is the retrieval-specific instance of the contrastive representation learning studied there; the alignment-uniformity geometry, the anisotropy that breaks it, and the role of negatives are properties of learned representations in general, and the dual-encoder objective here is the concrete loss whose representations that topic analyzes in the abstract"
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the mutual-information bound is estimated by a Monte-Carlo average over batches, and how fast that estimate concentrates on its expectation — and how many negatives a target bound needs — is a concentration statement, the same machinery that governs how tightly the softmax weights cluster on the hardest negatives as the temperature falls"
+formalstatisticsConnections:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "the InfoNCE loss is the negative log-likelihood of an (N+1)-way softmax classifier that must pick the positive, so minimizing it is maximum-likelihood estimation of a conditional categorical model, and the gradient that puts softmax weight on each negative is precisely the score function of that likelihood specialized to the contrastive setup"
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the softmax over candidate similarities is the categorical exponential family with natural parameters the scaled cosine logits, so the temperature is an inverse natural-parameter scale and the InfoNCE gradient — the positive's indicator minus the softmax-weighted average of the candidates — is the exponential-family score, the mean-parameter-minus-expected-feature form that topic develops"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import InfoNCEContrastiveLaboratory from '../../components/viz/InfoNCEContrastiveLaboratory.tsx';
+
+## Overview & motivation
+
+Two topics have brought us to the edge of dense retrieval without saying the one thing that makes it work. [The retrieval problem](/topics/the-retrieval-problem) defined relevance as ranking by a similarity functional and showed that on the unit sphere the cosine, dot-product, and Euclidean rankings all coincide. [Hypersphere geometry](/topics/hypersphere-vmf-geometry) then told us that L2-normalized embeddings *live* on that sphere, and that a topical cluster is a von Mises–Fisher distribution whose concentration we can measure. What neither topic said is where those embeddings come from. They are not handed down. They are **trained** — and the loss that trains them is the subject of this topic and the foundation of everything in neural retrieval that follows.
+
+The setup is the one every dense retriever shares. We want an encoder that maps a query and its relevant document to nearby points and maps the query far from everything else. Contrastive learning makes that goal a loss directly: show the model a query, its true positive, and a batch of negatives, and ask it to pick the positive out of the lineup. The loss that scores how well it does — **InfoNCE** — is, underneath, the same softmax cross-entropy that trains any classifier, with the candidates playing the role of classes. The interest is not in the formula but in what it secretly optimizes, and we will read it three ways: as a bound on mutual information, as a competition between two geometric forces on the sphere, and as a gradient whose sharpness one number controls.
+
+<InfoNCEContrastiveLaboratory client:visible />
+
+The first panel is the gradient itself — the query, its positive, and a spread of negatives on the unit circle, each negative pushed away with a force equal to its softmax weight, which the temperature slider sharpens onto the hardest one. The second is the information bound: the mutual information InfoNCE certifies against the ceiling that caps it, climbing and then saturating as the negatives grow. The third is the geometry — a random initialization and the single configuration that both minimizing InfoNCE and minimizing alignment-plus-uniformity converge to, with temperature tuning where on the sphere the trained cloud settles.
+
+## The contrastive setup and notation
+
+Fix a query $q$ with a single relevant document, the **positive** $d^+$, and a set of $N$ irrelevant documents, the **negatives** $\{d_i^-\}_{i=1}^{N}$. An encoder maps each to a vector, and because dense retrievers L2-normalize, every vector is a unit vector $\hat q, \hat d \in S^{d-1}$ — we are working on the sphere of the previous topic from the start. The **score** of a candidate is the temperature-scaled cosine similarity
+
+$$
+s(q, d) = \frac{\langle \hat q, \hat d\rangle}{\tau} = \frac{\cos\theta_{qd}}{\tau},
+$$
+
+where $\theta_{qd}$ is the angle between query and document and $\tau > 0$ is the **temperature**, a positive scale we will return to. The score is exactly the similarity functional [the retrieval problem](/topics/the-retrieval-problem) took as given; the difference now is that it is something we *train*, and the temperature is the dial that controls how harshly differences in similarity are amplified before the softmax sees them.
+
+<TheoremBlock type="definition" number={1} title="The contrastive setup and the InfoNCE loss">
+
+Given a query $q$, its positive $d^+$, and $N$ negatives $\{d_i^-\}$, all encoded to unit vectors, the **InfoNCE loss** is the negative log-probability that an $(N{+}1)$-way softmax assigns to the positive:
+
+$$
+\mathcal{L}_{\text{InfoNCE}} = -\,\mathbb{E}\!\left[\log \frac{e^{\langle \hat q, \hat d^+\rangle / \tau}}{e^{\langle \hat q, \hat d^+\rangle / \tau} + \sum_{i=1}^{N} e^{\langle \hat q, \hat d_i^-\rangle / \tau}}\right].
+$$
+
+This is the cross-entropy of a classifier whose "classes" are the $N{+}1$ candidates and whose label is "the positive." In practice the negatives are taken **in-batch**: for a batch of paired queries and positives, every other pair's positive serves as a negative, so a batch of size $B$ supplies $N = B - 1$ negatives at no extra encoding cost.
+
+</TheoremBlock>
+
+Three properties anchor the formula before we read it more deeply, and the notebook asserts each. Adding a constant to every score leaves the loss unchanged — only *differences* of scores matter, the usual softmax invariance. As $\tau \to \infty$ the scores wash out and the loss approaches the value of a uniform guess, $\log(N{+}1)$; for the lab's eight candidates that ceiling is $\log 8 \approx 2.0794$. And when the positive sits far above every negative, the loss falls to zero — the classifier is certain and correct. With the object in hand, we ask what minimizing it accomplishes.
+
+## Movement 1 — InfoNCE is a mutual-information lower bound
+
+The first reading is the one that named the loss. van den Oord, Li, and Vinyals introduced InfoNCE as an estimator for **mutual information**: the claim is that pushing the loss down pushes up a guaranteed lower bound on $I(q; d^+)$, the number of nats the query and its positive share.
+
+<TheoremBlock type="theorem" number={1} title="The CPC mutual-information bound">
+
+Let the positive pair $(q, d^+)$ be drawn from the joint $p(q, d)$ and the $N$ negatives independently from the marginal $p(d)$. Then
+
+$$
+I(q; d^+) \;\ge\; \log(N{+}1) - \mathcal{L}_{\text{InfoNCE}}.
+$$
+
+Equivalently, minimizing InfoNCE maximizes a lower bound on the mutual information — but a bound that can never exceed $\log(N{+}1)$, no matter how good the encoder.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof sketch">
+
+The loss is minimized when the critic inside the softmax is proportional to the **density ratio** $f(q, d) \propto p(d \mid q) / p(d)$ — the optimal $(N{+}1)$-way classifier scores each candidate by how much more likely it is under the query than under the marginal. Substitute that optimal critic, writing $r_0 = p(d^+ \mid q)/p(d^+)$ for the positive's ratio and $r_i = p(d_i^- \mid q)/p(d_i^-)$ for the negatives'. The loss becomes $\mathcal{L} = \mathbb{E}\big[\log\big(1 + r_0^{-1}\textstyle\sum_{i} r_i\big)\big]$. Each negative is drawn from $p(d)$, so it has expectation $\mathbb{E}_{d \sim p(d)}[\,p(d\mid q)/p(d)\,] = 1$, and by the law of large numbers the sum of $N$ of them concentrates on its mean $N$ — exactly so as $N \to \infty$. Replacing the sum by $N$ and then *dropping* the additive positive term gives the chain $\log\!\big(1 + N r_0^{-1}\big) \ge \log\!\big(N r_0^{-1}\big) = \log N - \log r_0$, and since $\mathbb{E}[\log r_0] = \mathbb{E}\big[\log \tfrac{p(d^+\mid q)}{p(d^+)}\big] = I(q; d^+)$ by definition of the mutual information, taking expectations yields $\mathcal{L} \ge \log N - I(q; d^+)$. Counting the positive among the $N{+}1$ candidates sharpens this to the $\log(N{+}1)$ form of the statement; rearranging gives the bound. The slack enters at the law-of-large-numbers step and the dropped term, and closes only as $N \to \infty$. $\blacksquare$
+
+</TheoremBlock>
+
+The ceiling is the honest part of the story, and the notebook makes it visible by estimating the bound on a problem where the truth is known. Take $q$ and $d$ jointly Gaussian with correlation $\rho$; then the mutual information is exactly $I = -\tfrac12\ln(1-\rho^2)$, and choosing $\rho$ so that $I = 2.0$ nats, we can watch the bound chase it. Using the *Bayes-optimal* critic — so we measure the bound itself, not some encoder's approximation of it — the certified information climbs from $0.579$ nats with a single negative ($N{+}1 = 2$ candidates), to $1.437$ at eight candidates, to $1.970$ at $256$, approaching the true $2.0$ but never arriving. At the smallest batch the ceiling $\log 2 \approx 0.693$ is *itself below the truth*: with two candidates the bound cannot certify two nats of shared information no matter how perfect the encoder. This is not a slack to be tuned away — it is structural. **More negatives raise the ceiling**, which is the precise, unromantic reason large batches improve contrastive retrieval, and the reason the mutual-information story saturates exactly in the small-batch regime practitioners live in.
+
+## Movement 2 — alignment and uniformity on the sphere
+
+The information reading explains why negatives help but says little about the *geometry* the loss produces. The second reading, due to Wang and Isola, is geometric, and it lands precisely on the sphere of the previous topic. As the number of negatives grows, the loss separates into two interpretable forces.
+
+<TheoremBlock type="theorem" number={2} title="The alignment–uniformity decomposition">
+
+On the unit sphere, as the number of negatives $N \to \infty$, minimizing InfoNCE is equivalent to minimizing the sum of two terms:
+
+$$
+\mathcal{L}_{\text{align}} = \mathbb{E}\,\lVert \hat q - \hat d^+ \rVert^2
+\qquad\text{and}\qquad
+\mathcal{L}_{\text{unif}} = \log\,\mathbb{E}\,e^{-t\lVert \hat x - \hat y\rVert^2}.
+$$
+
+**Alignment** pulls positive pairs together; **uniformity** — a Gaussian potential over independent pairs $\hat x, \hat y$ — pushes all embeddings apart. The uniformity term is minimized by the **uniform distribution on $S^{d-1}$**: the very $\kappa \to 0$ von Mises–Fisher law, the maximum-entropy distribution on the sphere, that the [hypersphere topic](/topics/hypersphere-vmf-geometry) singled out.
+
+</TheoremBlock>
+
+The connection to the prior topic is exact, not analogical. There we learned that a tight cluster is a high-$\kappa$ vMF and that the uniform sphere is its $\kappa \to 0$ limit, with mean resultant length zero. Here, uniformity is *defined* as the spread that drives the configuration toward that same uniform law, and **temperature plays the role of an inverse concentration**, $\tau \sim 1/\kappa$: low temperature trains tight, high-$\kappa$ clusters of positives, high temperature loose ones. The cluster tightness the previous topic taught us to measure is the quantity this loss optimizes.
+
+The notebook makes the decomposition executable by optimizing a small cloud of paired points on the sphere two ways and comparing where they land. From a random initialization — alignment $1.892$, uniformity $-2.065$, mean resultant length $0.164$ — minimizing alignment-plus-uniformity directly drives the configuration to alignment $0.0$ and uniformity $-2.238$ with mean resultant $0.001$; minimizing the in-batch InfoNCE loss instead reaches alignment $0.0$ and uniformity $-2.239$ with mean resultant $0.002$. The two endpoints coincide: InfoNCE collapses the positive pairs *and* spreads the cloud to the uniform sphere, reaching the same place the explicit two-term objective does. That the mean resultant length falls essentially to zero is the previous topic's signature of uniformity — the cloud has become the $\kappa \to 0$ vMF — recovered as the fixed point of a loss that never mentions it.
+
+## Movement 3 — temperature and the hard-negative gradient
+
+The third reading is the most operational, and the cleanest to prove. It explains what the temperature actually *does* to the learning signal, and why one negative usually matters far more than the rest.
+
+<TheoremBlock type="theorem" number={3} title="The InfoNCE gradient is a softmax-weighted repulsion">
+
+Write $p_i = \operatorname{softmax}(s/\tau)_i$ for the softmax weight of candidate $i$. The gradient of the single-positive loss with respect to the scores is
+
+$$
+\frac{\partial \mathcal{L}}{\partial s^+} = -\frac{1 - p^+}{\tau}, \qquad
+\frac{\partial \mathcal{L}}{\partial s_i^-} = +\frac{p_i}{\tau}.
+$$
+
+Each negative is pushed away with force proportional to its own softmax weight $p_i$, so the **hardest** negative — the one with the highest similarity to the query — dominates the gradient. The temperature controls how sharply: as $\tau \to 0$ the weight collapses onto the single nearest negative, and as $\tau \to \infty$ it spreads uniformly across all of them.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+The loss is $\mathcal{L} = -\log p^+$ where $p^+ = e^{s^+/\tau} / \sum_j e^{s_j/\tau}$. Differentiating the log-softmax is standard: $\partial(-\log p^+)/\partial s_k = (p_k - \mathbf{1}[k = +])/\tau$, since the $1/\tau$ comes from the chain rule through $s/\tau$ and the $\mathbf{1}[k=+]$ from the numerator. For the positive this is $(p^+ - 1)/\tau = -(1-p^+)/\tau$; for a negative it is $+p_i/\tau$. The gradient with respect to the query embedding then inherits these weights, $\partial \mathcal{L}/\partial \hat q = \tfrac1\tau \sum_i (p_i - \mathbf{1}[i=+])\,\hat d_i$, so a hard negative with large $p_i$ literally contributes more to the update direction. $\blacksquare$
+
+</TheoremBlock>
+
+The temperature panel of the lab puts numbers on the sharpening. Over a fixed spread of eight negatives, the single largest gradient weight falls from $0.949$ at $\tau = 0.05$ — almost the entire push on one negative — to $0.511$ at $\tau = 0.2$ to $0.194$ at $\tau = 1.0$, near the uniform $1/8$. Read the same motion as entropy: the weight distribution's Shannon entropy rises from $0.216$ nats at $\tau = 0.05$ to $1.355$ at $\tau = 0.2$ to $2.029$ at $\tau = 1.0$, climbing toward the uniform ceiling $\log 8 \approx 2.079$. Low temperature is a hardness-aware loss that spends almost all its gradient on the toughest distractor; high temperature treats all negatives alike. The gradient structure is exact and proved. Which temperature is *right* is not: a temperature low enough to focus on hard negatives is also low enough to punish a genuinely relevant document that merely looks like a negative, the uniformity-versus-tolerance trade-off that makes $\tau$ a tuned hyperparameter rather than a derived one.
+
+<TheoremBlock type="proposition" number={1} title="What the laboratory measures">
+
+The three panels run on a deterministic synthetic setup, not a trained encoder: the negatives in Panel A are a fixed spread of cosine similarities, the bound in Panel B is a Monte-Carlo estimate on the Gaussian joint with the Bayes-optimal critic, and the configurations in Panel C are gradient-descent optima on a small sphere. Every measured number — the bound curve, the alignment and uniformity values, the finance hard-negative share — is owned by the companion notebook and mirrored here to the decimal; the laboratory recomputes only the closed forms (the softmax weights, the ceiling $\log(N{+}1)$, and $\kappa \approx 1/\tau$).
+
+</TheoremBlock>
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf", "audio"]}>
+
+A production retrieval system over financial documents does not download a generic embedding model and hope. It *fine-tunes* a dual encoder on its own corpus with exactly the InfoNCE loss of this topic, and the training pairs are mined for free from the data: a passage from a 10-K's risk-factors section paired with the analyst question it answers, an earnings-call sentence paired with the headline that quoted it, a chart caption paired with the table row it summarizes. Each such pair is a positive; every other document in the same training batch is an in-batch negative — which is why a larger batch is not merely faster but *better*, raising the $\log(N{+}1)$ ceiling on the mutual information the encoder can capture (Theorem 1).
+
+Two of the system's design choices are this topic's theorems made operational. The first is **temperature**. The team sets the scale of `MultipleNegativesRankingLoss` — sentence-transformers' name for in-batch InfoNCE, where the scale is an inverse temperature — low enough to sharpen the gradient onto the hardest negatives, because by Theorem 3 a small $\tau$ concentrates the repulsion exactly on the nearest distractors: the near-duplicate boilerplate that pads every filing, the recurring legal disclaimers. We can watch this in a synthetic stand-in where each sector is a vMF cluster and each company a tight sub-cluster: the query's positive sits at cosine $0.896$, a same-sector different-company document — a *hard* negative — at $0.569$, and an other-sector document at only $0.441$. At $\tau = 0.05$ the same-sector hard negatives capture a $0.94$ share of the gradient, with the single hardest taking $0.71$; at $\tau = 1.0$ that share falls to $0.28$, the push smeared across everything. Low temperature routes the learning signal onto exactly the documents the retriever most needs to learn to separate.
+
+But the team does not push $\tau$ lower still, and the second design choice is why. By the same Theorem 3, too small a temperature punishes a passage that is *genuinely* similar — two filings from the same sector that really do answer the same question — as if it were a hard negative, collapsing the tolerance a retriever needs. This is sharpened by **false negatives**: because positives are mined heuristically, an in-batch negative is sometimes an unlabeled relevant document, and the loss penalizes it anyway. The mitigation — de-duplication and a similarity threshold on mined negatives — is an admission that the clean theory assumes true negatives the data does not always supply. The payoff is measurable in the geometry the previous topic taught us to read: after fine-tuning, each subtopic's vMF concentration $\hat\kappa$ *rises* (alignment has tightened the themes) while inter-cluster cosine stays near zero (uniformity has kept distinct themes apart) — the two halves of Theorem 2 acting on a real corpus.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+The three readings are exact; three of their promises are not. The mutual-information bound is a *lower* bound and a loose one, tight only at the optimal critic and ceilinged at $\log(N{+}1)$, so on a finite batch it saturates and a smaller loss past that point buys quality the information number cannot see — more negatives raise the ceiling, the honest reason large batches help. The alignment-uniformity decomposition is *asymptotic* in the negative count; at finite $N$ the clean split, and the uniformity term's convergence to the exact uniform sphere measure, are approximations with finite-$N$ constants. The temperature's gradient structure is exact, but the *right* temperature is empirical, traded off against tolerance to genuinely similar positives, and no theorem here picks it. Two further joints sit underneath. The setup assumes *true* negatives; in retrieval the sampled negatives include false negatives — unlabeled relevant documents punished as irrelevant — so the gradient is biased by the sampling, not just the loss. And the cosine logits inherit the hypersphere's isotropy assumption: real encoder embeddings are anisotropic, so the on-sphere geometry the decomposition pictures is itself a model. The laboratory's numbers are a deterministic synthetic von Mises–Fisher stand-in, chosen so the phenomena are legible, not a trained dual encoder.
+
+</RigorFlag>
+
+InfoNCE is the objective; the machinery that optimizes it is where the neural-retrieval track goes next. The architecture is a **dense dual encoder** — separate query and document towers trained with exactly this loss — and the engineering that makes it work is **negative sampling**: in-batch negatives are cheap but weak, hard negatives are powerful but risk the false-negative trap this topic flagged, and mining them well is a topic of its own. Beyond the single-vector match, **late-interaction retrieval** generalizes the cosine logit to a many-to-many comparison between every query token and every document token, trained with the same contrastive principle. Each of those builds directly on the loss read three ways here.

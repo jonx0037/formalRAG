@@ -61,7 +61,6 @@ export const tracks = [
     description:
       'Learned representations for retrieval, defined by training objectives and expressivity claims: InfoNCE contrastive training, dense dual encoders, late interaction and learned sparse, cross-encoders, distillation, and cross-modal alignment.',
     planned: [
-      'Contrastive Learning for Retrieval: InfoNCE, Temperature, and Negative Sampling',
       'Hard-Negative Mining and Debiased Contrastive Training (ANCE)',
       'Dense Retrieval and Dual Encoders (DPR)',
       'How Many Dimensions Does Relevance Need? Sign-Rank and Margin Complexity',
