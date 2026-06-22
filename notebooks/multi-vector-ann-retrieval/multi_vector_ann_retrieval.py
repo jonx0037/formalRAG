@@ -371,6 +371,30 @@ def _cost_at_recall(rows, r_target: float):
     return min(costs) if costs else None
 
 
+def keep_sweep(docs: np.ndarray, queries: np.ndarray, topk: int = TOPK, keep_grid=KEEP_GRID,
+               seed: int = 0):
+    """A clean single-knob frontier for the viz: at full nprobe (probe every cell, so the candidate set
+    is fixed at every document), walk the prune depth `keep` and report the cost and BOTH recalls — the
+    deployed PQ-compressed rerank and the exact-token rerank. The exact curve climbs monotonically to
+    recall 1.0 at keep=N (the collapse anchor); the PQ curve approaches it and plateaus below (the lossy
+    residual gap). Same cost for both (same #reranked). Returns a list of row dicts."""
+    truth = brute_topk(queries, docs, topk)
+    idx_pq = plaid_index(docs, seed=seed)
+    idx_ex = plaid_index(docs, seed=seed, exact=True)
+    m_q, m_d = queries.shape[1], docs.shape[1]
+    rows = []
+    for keep in keep_grid:
+        pq = [np.array(plaid_search(queries[q], idx_pq, idx_pq["nlist"], keep, topk)[0])
+              for q in range(len(queries))]
+        ex = [np.array(plaid_search(queries[q], idx_ex, idx_ex["nlist"], keep, topk)[0])
+              for q in range(len(queries))]
+        reranked = min(keep, docs.shape[0])
+        rows.append({"keep": int(keep), "cost": float(m_q * idx_pq["nlist"] + m_q * m_d * reranked),
+                     "recall_pq": round(_recall(pq, truth, topk), 4),
+                     "recall_exact": round(_recall(ex, truth, topk), 4)})
+    return rows
+
+
 def head_to_head(docs: np.ndarray, queries: np.ndarray, topk: int = TOPK,
                  nprobe_grid=NPROBE_GRID, keep_grid=KEEP_GRID, seed: int = 0):
     """Build the PLAID index on the SAME (docs, queries); re-derive ONE shared ground truth from the
@@ -424,7 +448,7 @@ def viz_toy(seed: int = 3):
         for t in range(4):
             out.append(sample_vmf(n_per, topic_mu[t], 12.0, seed=int(rng.integers(1 << 31))))
         return np.vstack(out)
-    pool = draw(4)                                               # 16 tokens for training centroids
+    pool = draw(6)                                               # 24 tokens for training centroids
     doc = np.vstack([sample_vmf(2, topic_mu[0], 12.0, seed=int(rng.integers(1 << 31))),
                      sample_vmf(2, topic_mu[2], 12.0, seed=int(rng.integers(1 << 31)))])   # 4 tokens
     query = np.vstack([sample_vmf(1, topic_mu[0], 12.0, seed=int(rng.integers(1 << 31))),
@@ -433,7 +457,26 @@ def viz_toy(seed: int = 3):
     return pool, query, doc, topic_mu
 
 
-def toy_bound_sweep(nlist_grid=(2, 3, 4, 6, 8)):
+TOY_K_GRID = (2, 4, 8)
+
+
+def toy_geometry_sweep(k_grid=TOY_K_GRID):
+    """Per-K geometry of the 2-D toy for Panels A & B: for each #centroids K, the trained centroids and
+    the pool/doc token assignments. The .tsx recomputes the residual lines, the centroid-MaxSim grid,
+    the per-cell error, and the Cauchy-Schwarz bound from these baked centroids + the baked query/doc
+    (all closed forms) — only the k-means centroids themselves are baked. Returns per-K row dicts."""
+    pool, _, doc, _ = viz_toy()
+    rows = []
+    for K in k_grid:
+        C = coarse_quantizer(pool, K, seed=0)
+        pool_lab, _ = assign(pool, C)
+        doc_lab, _ = assign(doc, C)
+        rows.append({"K": int(K), "centroids": [[round(float(v), 3) for v in c] for c in C],
+                     "pool_assign": pool_lab.tolist(), "doc_assign": doc_lab.tolist()})
+    return rows
+
+
+def toy_bound_sweep(nlist_grid=TOY_K_GRID):
     """For the toy doc, sweep the number of centroids K: train K centroids on the pool, substitute the
     doc tokens by their centroids, and report the true vs centroid MaxSim, the max per-cell error, the
     max per-cell Cauchy-Schwarz bound ||q||*||r||, and the mean residual energy. More centroids ->
@@ -631,6 +674,23 @@ def test_plaid_vs_centroid_on_one_cloud() -> None:
           f"{h['centroid']['cost']:.0f}; PLAID climbs to {best_plaid:.3f} by reranking")
 
 
+def test_toy_bound_tightens_with_k() -> None:
+    """Panels A/B (the geometry the viz shows must exhibit the phenomenon). As the number of centroids K
+    grows, the residual norms shrink, so the Cauchy-Schwarz bound and the centroid-MaxSim approximation
+    error both tighten and the centroid score approaches the true MaxSim. Asserts the contrast, not the
+    decimals (viz_constants bakes those)."""
+    sweep = toy_bound_sweep()
+    bounds = [r["max_bound"] for r in sweep]
+    energies = [r["residual_energy"] for r in sweep]
+    full = sweep[0]["full"]
+    assert bounds[-1] < bounds[0], f"bound should tighten as K grows: {bounds}"
+    assert energies[-1] < energies[0], f"residual energy should fall as K grows: {energies}"
+    assert abs(sweep[-1]["centroid"] - full) < abs(sweep[0]["centroid"] - full), \
+        "centroid-MaxSim should approach the true MaxSim as K grows"
+    print(f"  [ok] Panels A/B: bound tightens with #centroids K={list(TOY_K_GRID)} -> max_bound "
+          f"{bounds} and residual energy {energies} both fall")
+
+
 def test_storage_collapse() -> None:
     """Movement 1 / 4 (Proposition 1). The storage law: raw multi-vector is m_d x a single-vector index;
     PLAID's per-token footprint (centroid id + PQ residual code) is far below the raw float vector, so
@@ -688,47 +748,31 @@ def viz_constants() -> None:
     (recall/cost frontier), Panel D (storage). numpy scalars are cast to float/int."""
     fmt2 = lambda a: [[round(float(v), 3) for v in row] for row in a]
 
-    # --- Panels A & B: the 2-D toy ---
+    # --- Panels A & B: the 2-D toy (per-K geometry baked; .tsx recomputes grids/bounds as closed forms) ---
     pool, query, doc, topic_mu = viz_toy()
-    K_show = 4
-    C = coarse_quantizer(pool, K_show, seed=0)
-    pool_lab, _ = assign(pool, C)
-    cids, _ = assign(doc, C)
-    Dc = C[cids]
-    grid_true = query @ doc.T
-    grid_centroid = query @ Dc.T
-    qnorm = np.linalg.norm(query, axis=1)
-    rnorm = np.linalg.norm(doc - Dc, axis=1)
+    geom = toy_geometry_sweep()
     sweep = toy_bound_sweep()
-
     print("=== PANEL A & B — 2-D token toy (geometry + centroid-MaxSim grid + bound) ===")
     print(f"  POOL_2D = {fmt2(pool)}")
-    print(f"  POOL_TOPIC = {topic_mu.shape[0]}  TOPIC_MU_2D = {fmt2(topic_mu)}")
-    print(f"  K_SHOW = {K_show}  CENTROIDS_2D = {fmt2(C)}  POOL_ASSIGN = {pool_lab.tolist()}")
-    print(f"  QUERY_2D = {fmt2(query)}  DOC_2D = {fmt2(doc)}  DOC_ASSIGN = {cids.tolist()}")
-    print(f"  SIM_GRID_TRUE = {fmt2(grid_true)}")
-    print(f"  SIM_GRID_CENTROID = {fmt2(grid_centroid)}")
-    print(f"  Q_NORMS = {[round(float(v), 3) for v in qnorm]}  R_NORMS = {[round(float(v), 3) for v in rnorm]}")
-    print(f"  TRUE_MAXSIM = {round(float(grid_true.max(axis=1).sum()), 3)}  "
-          f"CENTROID_MAXSIM = {round(float(grid_centroid.max(axis=1).sum()), 3)}")
-    print(f"  BUDGET_TRADE (sweep over #centroids K) = {sweep}")
+    print(f"  TOPIC_MU_2D = {fmt2(topic_mu)}")
+    print(f"  QUERY_2D = {fmt2(query)}  DOC_2D = {fmt2(doc)}")
+    print(f"  TRUE_MAXSIM = {round(float((query @ doc.T).max(axis=1).sum()), 3)}")
+    print(f"  GEOM_SWEEP (per K: centroids, pool_assign, doc_assign) = {geom}")
+    print(f"  BUDGET_TRADE (per K: full/centroid MaxSim, max_err, max_bound, residual_energy) = {sweep}")
 
-    # --- Panel C: the frontier on the real 16-D corpus ---
+    # --- Panel C: the single-knob keep-sweep frontier on the real 16-D corpus ---
     docs, queries, _ = token_corpus()
     h = head_to_head(docs, queries)
-    # a compact frontier: best recall per cost, sorted
-    plaid = sorted(h["plaid"], key=lambda r: (r["cost"], -r["recall"]))
+    sweep = keep_sweep(docs, queries)
+    knee = next((r["keep"] for r in sweep if r["recall_pq"] >= 0.90), sweep[-1]["keep"])
     print("=== PANEL C — recall/cost frontier (16-D corpus, one shared truth) ===")
     print(f"  N_DOCS = {h['n_docs']}  NLIST = {h['nlist']}  TOPK = {h['topk']}  "
           f"M_Q = {QUERY_TOKENS}  M_D = {TOKENS_PER_DOC}")
     print(f"  BRUTE = {{'recall': {round(h['brute']['recall'], 4)}, 'cost': {round(h['brute']['cost'], 1)}}}")
     print(f"  CENTROID_ONLY = {{'recall': {round(h['centroid']['recall'], 4)}, "
           f"'cost': {round(h['centroid']['cost'], 1)}}}")
-    print("  FRONTIER_PLAID = [")
-    for r in plaid:
-        print(f"    {{'nprobe': {r['nprobe']}, 'keep': {r['keep']}, "
-              f"'recall': {round(r['recall'], 4)}, 'cost': {round(r['cost'], 1)}}},")
-    print("  ]")
+    print(f"  KNEE_KEEP = {knee}")
+    print(f"  KEEP_SWEEP (full nprobe; exact rerank -> 1.0 = collapse anchor, PQ rerank plateaus) = {sweep}")
 
     # --- Panel D: storage (representative ColBERT scale, consistent with the late-interaction lab) ---
     s = storage_collapse(m_d=COLBERT_TOKENS, dim=COLBERT_DIM, nlist=REP_NLIST,
@@ -749,6 +793,7 @@ def _run_all() -> None:
     test_recall_monotone_in_keep()
     test_plaid_beats_brute_at_equal_recall()
     test_plaid_vs_centroid_on_one_cloud()
+    test_toy_bound_tightens_with_k()
     test_storage_collapse()
     print("\nfinance case study:")
     finance_demo()

@@ -1,0 +1,215 @@
+---
+title: "Multi-Vector ANN: Indexing and Pruning MaxSim at Scale (PLAID)"
+subtitle: "Late interaction kept one vector per token and paid for it in storage and scan; PLAID serves it by reusing the two ANN prerequisites — cluster every token into shared centroids (IVF), compress each residual (PQ), approximate MaxSim by the centroid it landed in and prune with a Cauchy–Schwarz bound — a heuristic cascade whose one exact statement is that probing everything and pruning nothing recovers brute-force MaxSim"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "late-interaction-learned-sparse"
+  - "product-quantization"
+  - "ivf-voronoi-partitioning"
+tags:
+  - "plaid"
+  - "colbertv2"
+  - "multi-vector-ann"
+  - "late-interaction"
+  - "maxsim"
+  - "centroid-pruning"
+  - "residual-compression"
+  - "ivfadc"
+  - "cascade-retrieval"
+domain: "ann-indexing"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+rigorFlag: "PLAID is a heuristic cascade with exactly one exact statement, and the honesty is in saying which is which. The collapse anchor is a theorem: probing every cell, pruning nothing, decompressing every residual, and scoring full MaxSim on all survivors recovers brute-force late-interaction scoring exactly (to floating point) — the cascade is a strict superset whose extreme setting is the ground truth. The centroid-MaxSim approximation error is exactly Cauchy–Schwarz: the per-pair gap between the true token inner product and the centroid-substituted one is the inner product of the query token with the residual, bounded in magnitude by the product of their norms. But that is a PER-PAIR bound on one inner product, and it does NOT directly control what the cascade depends on — the per-query-token maximum (a max of approximated terms is not the approximated max), the argmax token each query token selects, or the end-to-end recall ordering after pruning. The bound says when an approximation is tight, not when the ranking is preserved; we prove the bound and then flag, bluntly, that small per-pair error does not imply correct top-k — which is precisely why a final exact rerank is needed. The recall-versus-cost frontier is one synthetic token cloud, not a universal ranking: the knee position, the centroid-only ceiling, and the depth at which the cascade catches brute MaxSim depend on the cloud, the number of centroids, the residual budget, and the prune depth, and a different corpus moves all of them. The centroids are trained by k-means over synthetic token embeddings reused from / built on the late-interaction, IVF, and PQ topics — designed token clouds, not a trained ColBERT encoder — so every number illustrates the mechanism, not a benchmark. And the storage win is the resolution of late interaction's flagged 32x cost, not its erasure: a centroid id plus a compressed residual shrinks the per-token footprint by roughly an order of magnitude, but the index is still many vectors per document, and the compression is lossy by construction."
+videoId: null
+notebookPath: "notebooks/multi-vector-ann-retrieval/01_multi_vector_ann_retrieval.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/multi-vector-ann-retrieval.mdx"
+datePublished: 2026-06-22
+estimatedReadTime: 30
+abstract: "Late interaction lifted the single-vector rank ceiling by keeping one contextual vector per token, and the previous topic flagged the bill: an index roughly thirty-two times the size of a single-vector index, and a candidate-generation step that is now a multi-vector nearest-neighbor problem. This topic is how that bill is paid. PLAID, the optimized engine behind ColBERTv2, serves MaxSim at scale by reusing the two ANN prerequisites verbatim. First, representation: cluster every token embedding in the corpus into a single shared set of centroids — the inverted-file coarse quantizer — and store each token as its nearest centroid identifier plus a product-quantized residual, exactly IVFADC applied at the token level. Second, the centroid-MaxSim approximation: because tokens share centroids, the inner product of a query token with a document token can be approximated by its inner product with that token's centroid, computed once per centroid and reused across the whole corpus; the approximation error is exactly Cauchy–Schwarz, the inner product of the query token with the residual, bounded by the product of their norms. Third, the cascade: generate candidates by probing token inverted lists, prune them by the cheap centroid-MaxSim score, then decompress residuals and compute full MaxSim only on the survivors. The one exact statement is the collapse anchor — probe everything, prune nothing, rerank fully, and the cascade is brute-force MaxSim to floating point — and everything above it is a heuristic speed-for-recall trade we measure honestly on a frontier. A laboratory shows the token-to-centroid-plus-residual geometry, the centroid-MaxSim grid with its per-cell error bound, the recall-versus-cost frontier, and the storage collapse; a tested notebook that imports the IVF, PQ, and late-interaction code owns every number."
+connections:
+  - topic: "late-interaction-learned-sparse"
+    relationship: "this topic serves the scoring function that one defined and pays the bill that one flagged: MaxSim, the sum over query tokens of the best-matching document-token inner product, is exactly what PLAID approximates and prunes; the per-token storage cost flagged there at thirty-two times a single-vector index is the problem solved here by centroid identifiers and compressed residuals; and the collapse anchor proved here — probe-all, prune-nothing, rerank-fully recovers brute MaxSim — is the indexing counterpart of that topic's m=1 MaxSim-equals-dot-product anchor, so the two topics are the expressivity gain and its serving engine"
+  - topic: "ivf-voronoi-partitioning"
+    relationship: "PLAID's representation is the inverted-file index applied at the token level: the shared centroids are a coarse k-means quantizer trained over all corpus token embeddings, each token is filed under its nearest centroid into that centroid's inverted list, and candidate generation probes the query tokens' nearest centroid lists — the same Voronoi partition, candidate-set reduction, and boundary effect, with the new twist that tokens across all documents share one centroid set so the query-token-to-centroid scores are computed once and reused, which is exactly what makes centroid-MaxSim cheap"
+  - topic: "product-quantization"
+    relationship: "each token's residual against its centroid is stored as a product-quantized code, so PLAID is IVFADC at the token level: it imports the additive distortion decomposition, the asymmetric-distance lookup, and the residual-variance reduction of that topic, and the centroid-MaxSim approximation is precisely the coarse-quantization term while the decompressed-residual rerank is the residual term — the same coarse-plus-residual decomposition that made IVFADC beat flat product quantization, now decomposing a MaxSim score instead of a Euclidean distance"
+  - topic: "navigable-small-world-graphs"
+    relationship: "the graph indexes are the other answer to the same candidate-generation problem PLAID solves with a partition: where a navigable small-world graph walks to a query's neighbors, PLAID's token candidate generation probes inverted lists, and both feed the same downstream rerank — the centroid-MaxSim prune and full-MaxSim rerank here are the multi-vector analogue of a graph index's beam-then-rerank, candidate generation and exact scoring kept as separate cascade stages"
+references:
+  - type: "paper"
+    title: "PLAID: An Efficient Engine for Late Interaction Retrieval"
+    authors: "Santhanam, Khattab, Potts & Zaharia"
+    year: 2022
+    url: "https://arxiv.org/abs/2205.09707"
+    note: "The engine this topic derives: centroid interaction (the centroid-MaxSim approximation used to prune), centroid pruning, and residual decompression staged into a multi-step cascade over a token IVFADC index, cutting ColBERTv2 latency several-fold at equal quality; CIKM 2022"
+  - type: "paper"
+    title: "ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction"
+    authors: "Santhanam, Khattab, Saad-Falcon, Potts & Zaharia"
+    year: 2022
+    url: "https://arxiv.org/abs/2112.01488"
+    note: "Introduced the centroid-plus-residual token compression PLAID serves: cluster all token embeddings into shared centroids, store each token as its centroid id plus a compressed residual — the representation this topic builds, cutting late interaction's storage six-to-ten-fold; NAACL 2022"
+  - type: "paper"
+    title: "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT"
+    authors: "Khattab & Zaharia"
+    year: 2020
+    url: "https://arxiv.org/abs/2004.12832"
+    note: "The original late-interaction architecture and the MaxSim operator this topic approximates and prunes: one contextual vector per token, scored by the sum over query tokens of the maximum inner product to any document token; SIGIR 2020"
+  - type: "paper"
+    title: "Product Quantization for Nearest Neighbor Search"
+    authors: "Jégou, Douze & Schmid"
+    year: 2011
+    url: "https://doi.org/10.1109/TPAMI.2010.57"
+    note: "IVFADC — the coarse k-means quantizer with inverted lists and product-quantized residuals — the index PLAID applies at the token level: the centroid is the coarse term and the compressed residual the fine term of the same decomposition, now of a MaxSim score; IEEE TPAMI 2011"
+  - type: "documentation"
+    title: "Billion-Scale Similarity Search with GPUs (Faiss)"
+    authors: "Johnson, Douze & Jégou"
+    year: 2021
+    url: "https://doi.org/10.1109/TBDATA.2019.2921572"
+    note: "How production indexes implement the IndexIVFPQ token store PLAID is built on — the coarse k-means quantizer, the inverted lists, and the per-cell residual product quantization the centroid-MaxSim cascade reuses; IEEE Transactions on Big Data 2021"
+formalmlPrereqs:
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "the shared centroids are k-means run over every token embedding in the corpus, so the Voronoi cells, the centroid-equals-cell-mean optimality condition, and the local-optimum and initialization caveats developed there are exactly the machinery the token partition is built from — and the centroid-equals-cell-mean fact is what makes the centroid a meaningful stand-in for its tokens in the centroid-MaxSim approximation"
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "storing a token as a centroid identifier plus a product-quantized residual is a constrained-complexity quantizer trading rate (the bits of the centroid id and the residual code) against distortion (the residual energy the centroid-MaxSim approximation pays for), so the rate-distortion functional and the high-rate framing proved there are the information-theoretic account of why a token compresses to far fewer bits than its raw vector with a controlled MaxSim error"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import MultiVectorANNLaboratory from '../../components/viz/MultiVectorANNLaboratory.tsx';
+
+## Overview & motivation
+
+The [previous topic](/topics/late-interaction-learned-sparse) lifted a ceiling and left a bill. A [dual encoder](/topics/dense-retrieval-dual-encoders) pools each text into one vector, and the relevance patterns it can represent are bounded by the sign-rank of the relevance matrix; late interaction routes around that by keeping one contextual vector per *token* and scoring a query against a document by **MaxSim**, the sum over query tokens of the best-matching document token. The expressivity is real, and so is the cost it flagged: a document is now a *set* of vectors, so the index is roughly **thirty-two times** the size of a single-vector index, and candidate generation is itself a multi-vector nearest-neighbor problem that an ordinary index does not solve.
+
+This topic is how that bill is paid. **PLAID** — the optimized engine behind ColBERTv2 — serves MaxSim at scale by reusing the two ANN prerequisites almost verbatim. Cluster every token in the corpus into one shared set of centroids: that is the [inverted-file coarse quantizer](/topics/ivf-voronoi-partitioning). Store each token as its nearest centroid identifier plus a [product-quantized](/topics/product-quantization) residual: that is IVFADC, applied at the token level. Then approximate MaxSim by the centroid each token landed in — cheap, because the centroids are shared — prune the candidates by that approximate score, and recompute full MaxSim only on the survivors. The plan has three parts: the **representation**, the **centroid-MaxSim approximation and its bound**, and the **cascade** that puts them together.
+
+<MultiVectorANNLaboratory client:visible />
+
+The first panel is the representation: a token cloud, its shared centroids, and the residual each token leaves behind, with the number of centroids as a dial. The second is the centroid-MaxSim approximation: a query-by-document-token grid showing the true score against the centroid substitution, with the per-cell Cauchy–Schwarz bound and the cells where the cheap approximation picks the *wrong* best match. The third is the cascade frontier — recall against distance computations for brute MaxSim, centroid-only pruning, and the full PLAID cascade. The fourth is storage: the thirty-two-fold index collapsing back down to roughly a single-vector index. One statement here is exact — the collapse anchor — and everything above it is a heuristic trade we measure honestly.
+
+## Notation: tokens, centroids, residuals, and the MaxSim being served
+
+Carry the multi-vector notation from the previous topic. A query $q$ is a set of token vectors $\{q_1, \dots, q_{m_q}\} \subset \mathbb{R}^d$, a document $d$ a set $\{d_1, \dots, d_{m_d}\} \subset \mathbb{R}^d$, and late interaction scores the pair by
+
+$$
+S(q, d) \;=\; \sum_{i=1}^{m_q} \max_{1 \le j \le m_d} \langle q_i, d_j\rangle.
+$$
+
+PLAID adds one shared object: a set of **centroids** $\mathcal{C} = \{c_1, \dots, c_K\}$, trained by k-means over *all* token embeddings in the corpus. Each token is assigned to its nearest centroid, $c(d_j) = \arg\min_{c \in \mathcal{C}} \|d_j - c\|$, leaving a **residual** $r_j = d_j - c(d_j)$. The residual is product-quantized to a code; decoding it gives $\hat r_j$ and a reconstructed token $\hat d_j = c(d_j) + \hat r_j$. We write $\tilde S(q, d) = \sum_i \max_j \langle q_i, c(d_j)\rangle$ for the **centroid-MaxSim** approximation — MaxSim with each document token replaced by the centroid it landed in.
+
+## Movement 1 — representation: token IVFADC and the shared-centroid trick
+
+Every token embedding in the corpus goes into one k-means. This is the IVF coarse quantizer of the prerequisite, but at *token* granularity and shared across documents, and it is exactly right here for a reason worth stating: ColBERT L2-normalizes its token vectors, so for unit vectors $\|a - b\|^2 = 2 - 2\langle a, b\rangle$, and minimizing Euclidean distortion is maximizing cosine similarity. The L2 k-means the IVF topic built *is* cosine clustering on the sphere — no separate spherical procedure is needed. Each token is then stored as its centroid identifier plus a product-quantized residual, the IVFADC scheme of the [product-quantization topic](/topics/product-quantization) lifted from a single-vector database to a token database.
+
+<TheoremBlock type="definition" number={1} title="The token IVFADC representation">
+
+Train centroids $\mathcal{C} = \{c_1, \dots, c_K\}$ by k-means over the union of all corpus tokens. File each token $d_j$ under its nearest centroid $c(d_j)$, forming inverted lists $L_k = \{(d, j) : c(d_j) = c_k\}$, and product-quantize its residual $r_j = d_j - c(d_j)$ to a code of $m \log_2 k^\*$ bits. A document is then stored as the bag of its tokens' centroid identifiers (one per token, $\lceil \log_2 K\rceil$ bits each) together with their residual codes.
+
+</TheoremBlock>
+
+The shared centroid set is the engineering hinge, not an incidental detail. Because every token in the corpus is quantized against the *same* $\mathcal{C}$, the inner product $\langle q_i, c(d_j)\rangle$ depends on the document token only through *which* centroid it was assigned to. So a single table of query-token-to-centroid scores, of size $m_q \times K$, is computed once per query and read off for every document — the move that makes the next movement's approximation cheap. The first panel of the laboratory shows the geometry: tokens on the unit circle, the shared centroids, and the residual line each token leaves; raising the number of centroids $K$ shrinks those residuals (mean residual energy falling from $0.57$ at $K = 2$ to $0.05$ at $K = 8$ on the toy cloud), which is the quantity the bound will turn on.
+
+<TheoremBlock type="proposition" number={1} title="The storage collapse">
+
+Per token, the representation stores $\lceil \log_2 K\rceil + m \log_2 k^\*$ bits — a centroid identifier and a residual code — in place of the $d \cdot 32$ bits of a raw float vector. At a representative ColBERT scale ($d = 128$, $32$ tokens per document, $K = 2^{16}$ centroids, $m = 16$ residual subspaces with $k^\* = 256$), a single-vector index costs $4096$ bits per document, a raw multi-vector index costs $131{,}072$ bits — the flagged $32\times$ — and the PLAID index costs $4608$ bits: about $1.1\times$ a single-vector index, a $28\times$ compression of the raw multi-vector store.
+
+</TheoremBlock>
+
+This is the resolution the previous topic deferred. Late interaction's storage cost was real and flagged; centroid identifiers and compressed residuals collapse the thirty-two-fold index back down to roughly the footprint of a single-vector index, as the fourth panel shows directly. The win is mitigation, not erasure — the index is still many vectors per document, and the residual codes are lossy — but the order of magnitude is recovered.
+
+## Movement 2 — the centroid-MaxSim approximation and its Cauchy–Schwarz bound
+
+With each token quantized to a centroid, the cheap score is immediate: replace every document token by its centroid and compute MaxSim on the substitutes. Because the $m_q \times K$ query-to-centroid table is shared, $\tilde S(q, d)$ costs nothing per document beyond a gather and a max. The question is how good the approximation is, and here there is one clean, exact answer.
+
+<TheoremBlock type="theorem" number={1} title="The centroid-MaxSim approximation error is exactly Cauchy–Schwarz">
+
+For any query token $q_i$ and document token $d_j$ with residual $r_j = d_j - c(d_j)$,
+
+$$
+\langle q_i, d_j\rangle - \langle q_i, c(d_j)\rangle \;=\; \langle q_i, r_j\rangle, \qquad \big|\langle q_i, r_j\rangle\big| \;\le\; \lVert q_i\rVert\,\lVert r_j\rVert.
+$$
+
+Moreover, since $x \mapsto \max_j x_j$ is $1$-Lipschitz in the supremum norm, the per-query-token error is at most $\lVert q_i\rVert \max_j \lVert r_j\rVert$, and summing over query tokens,
+
+$$
+\big|\,S(q, d) - \tilde S(q, d)\,\big| \;\le\; \sum_{i=1}^{m_q} \lVert q_i\rVert \, \max_{1 \le j \le m_d} \lVert r_j\rVert.
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Substitute $d_j = c(d_j) + r_j$ into the inner product and use bilinearity: $\langle q_i, d_j\rangle = \langle q_i, c(d_j)\rangle + \langle q_i, r_j\rangle$, so the per-pair error is $\langle q_i, r_j\rangle$, bounded by $\lVert q_i\rVert\lVert r_j\rVert$ by Cauchy–Schwarz. For the document-level bound, fix $i$ and let $a_j = \langle q_i, d_j\rangle$, $\tilde a_j = \langle q_i, c(d_j)\rangle$; then $|\max_j a_j - \max_j \tilde a_j| \le \max_j |a_j - \tilde a_j| = \max_j |\langle q_i, r_j\rangle| \le \lVert q_i\rVert \max_j \lVert r_j\rVert$. Summing the per-token bounds over $i$ gives the result. $\blacksquare$
+
+</TheoremBlock>
+
+The bound says the approximation is tight exactly when the residuals are small, and the residual norm is the k-means distortion inherited from the IVF coarse quantizer — so *more centroids* means a tighter approximation, the dial the second panel makes interactive. The notebook verifies the inequality directly: the per-pair gap never exceeds $\lVert q_i\rVert\lVert r_j\rVert$, and the document-level bound holds for every query–document pair tested. There is also a clean degenerate check, the first of two collapse anchors: when each document token is replaced by its centroid, $\tilde S$ is just MaxSim on the substituted document, which the notebook asserts equals the *imported* MaxSim routine to within floating-point error.
+
+What the bound does **not** do is the load-bearing honesty of this topic.
+
+<TheoremBlock type="proposition" number={2} title="The bound controls scores, not the ranking">
+
+A uniform additive bound on scores does not preserve the top-$k$ set. Two documents whose true MaxSim scores differ by less than $2$ times the bound can swap order under $\tilde S$, and within a single query token a maximum over $\varepsilon$-perturbed values can select a *different* argmax than the maximum over the true values. Small per-pair error therefore does not imply correct ranking.
+
+</TheoremBlock>
+
+This is visible in the second panel: cells where the centroid approximation's best match disagrees with the true best match are flagged, and they appear even when every per-cell error sits comfortably inside its bound. The consequence is structural — it is *why* the cascade cannot stop at the cheap score. The centroid-MaxSim is a good enough signal to *prune* with, but the surviving candidates must be reranked exactly. That is the third movement.
+
+## Movement 3 — the cascade, and the collapse anchor
+
+PLAID stages the work into three steps, each a coarsening of the one below it. **Stage 1**, candidate generation: for each query token, probe its nearest centroid lists (the IVF probe, at token level) and collect every document owning a token in those cells. **Stage 2**, centroid pruning: score each candidate by the cheap $\tilde S$ and keep the top few. **Stage 3**, rerank: decompress the survivors' residuals — $\hat d_j = c(d_j) + \hat r_j$ via the imported product-quantization decoder — and compute full MaxSim, the imported routine, only on them. The single exact statement is what happens when every relaxation is turned off.
+
+<TheoremBlock type="theorem" number={2} title="Collapse to brute-force MaxSim">
+
+If Stage 1 probes every cell, Stage 2 prunes nothing, and Stage 3 reranks on the exact (uncompressed) tokens, the cascade returns the brute-force MaxSim ranking exactly — recall $1.0$ and the identical top-$k$ ordering.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Each relaxation is a strict superset of a smaller set. Probing all $K$ cells generates every document that owns any token, which is every document, so the candidate set is complete. Pruning nothing keeps all candidates. Reranking on the exact tokens computes the true $S(q, d)$ for each survivor, so the returned top-$k$ is the top-$k$ of the true scores over the whole corpus — brute-force MaxSim. $\blacksquare$
+
+</TheoremBlock>
+
+The notebook reads this off directly: probe-all, prune-nothing, exact rerank reproduces the imported MaxSim ranking with recall $1.0$ and the same ordering on every query. It is the indexing counterpart of two anchors the track already used — the IVF fact that probing all cells recovers exact search, and the late-interaction fact that MaxSim at one vector per item is the dual-encoder dot product. Above the anchor, the cascade trades recall for cost, and the third panel traces the trade.
+
+<TheoremBlock type="proposition" number={3} title="The recall–cost frontier (demonstrated)">
+
+On one synthetic token cloud ($120$ documents, $8$ tokens each, $32$ centroids), with cost measured as distance computations per query: brute MaxSim reaches recall $1.0$ at $3840$ computations; centroid-only pruning, which never reranks, plateaus at recall $0.78$ at about thirty times lower cost; and the PLAID cascade reaches recall $0.9$ at $1408$ computations — roughly $2.7\times$ cheaper than brute — at a prune depth of about $40$ survivors. With an *exact* rerank, recall is provably non-decreasing in the prune depth and climbs to $1.0$ at full depth (the collapse anchor); with the deployed lossy product-quantized rerank it plateaus just below, the gap being the residual compression.
+
+</TheoremBlock>
+
+Two curves in the third panel make the structure honest. The dashed PLAID curve, exact rerank, climbs monotonically to the brute line as the prune depth grows — Proposition 3's provable half, and the collapse anchor reached interactively at full depth. The solid PLAID curve, the product-quantized rerank that is actually deployed, tracks it closely and then plateaus a little below recall $1.0$: that residual gap is precisely the lossy compression of Movement 1, the price of the storage collapse. The robust reading is intra-family — the cascade reaches a high recall at far fewer computations than brute, because it ends in the same exact MaxSim on a small survivor set. The cross-comparison against centroid-only is a statement about *this* cloud, not a universal ranking; a different corpus, centroid count, residual budget, or prune depth moves the knee.
+
+<TheoremBlock type="proposition" number={4} title="What the laboratory measures">
+
+The panels run on deterministic synthetic setups, not a trained ColBERT. Panels A and B use a small two-dimensional cloud of unit-norm tokens whose centroids are k-means over the pool; the centroid-MaxSim grid, the per-cell errors, and the Cauchy–Schwarz bounds are closed forms of those baked tokens, recomputed in the figure from the centroids alone. Panel C's recall and cost numbers come from the full cascade on a sixteen-dimensional von Mises–Fisher token corpus with one shared brute-MaxSim ground truth. Panel D's storage figures are the bit law at a representative ColBERT scale. Every measured number is owned by the companion notebook, which imports the IVF, PQ, and late-interaction code and re-derives the brute-MaxSim baseline rather than hardcoding it, and is mirrored here to the decimal.
+
+</TheoremBlock>
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf"]}>
+
+A production late-interaction leg over filings, transcripts, and analyst notes cannot store or scan raw ColBERT token vectors — that was the previous topic's flagged cost, and at corpus scale it is decisive. PLAID is what makes the leg deployable. The corpus's tokens cluster into a shared centroid vocabulary; each token compresses to an identifier plus a residual code, collapsing a thirty-two-fold index back to roughly a single-vector footprint. A query's tokens probe their nearest centroid lists to generate candidate filings, the centroid-MaxSim score throws out most of them cheaply, and full MaxSim reranks the few survivors. The combinatorial query the previous case study could only answer with one vector per token — *"issuers exposed to both rising rates and supply-chain disruption,"* where one query token must land on the rate passage and another on the supply-chain passage of the same filing — is now affordable to serve, because the expensive exact scoring touches a handful of documents, not the corpus.
+
+The cascade's knobs are operational levers. The prune depth is the recall–latency dial, the multi-vector analogue of IVF's `nprobe`: raise it when a missed filing is costly, lower it when latency binds. And the honest failure mode is exactly Proposition 2 made operational — the centroid-MaxSim prune can discard a filing whose *true* MaxSim was high if its tokens' residuals were large, because the cheap score got its rank wrong. The per-pair bound does not protect the top-$k$, so a system that cares about recall raises the prune depth rather than trusting the approximate score, and accepts the residual gap to brute as the price of serving late interaction at all.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+PLAID is a heuristic cascade with exactly one exact statement, and the honesty is in saying which is which. The collapse anchor (Theorem 2) is a theorem: probing every cell, pruning nothing, and reranking on exact tokens recovers brute-force MaxSim to floating point, because the cascade is a strict superset whose extreme setting is the ground truth. The centroid-MaxSim error (Theorem 1) is exactly Cauchy–Schwarz, the inner product of the query token with the residual, bounded by the product of their norms and lifted to a document-level bound through the $1$-Lipschitz maximum. But that bound is on *scores*, and it does not control what the cascade depends on — the per-query-token maximum, the argmax token each query token selects, or the recall ordering after pruning (Proposition 2): small per-pair error does not imply a correct top-$k$, which is the whole reason a final exact rerank exists. The recall-versus-cost frontier (Proposition 3) is one synthetic von Mises–Fisher token cloud, not a universal ranking — the knee, the centroid-only ceiling, and the depth at which the cascade catches brute MaxSim all move with the corpus, the centroid count, the residual budget, and the prune depth. The centroids are k-means over synthetic tokens reused from the hypersphere, IVF, PQ, and late-interaction topics, designed clouds rather than a trained ColBERT encoder, so every number illustrates the mechanism, not a benchmark. And the storage win is mitigation, not erasure: a centroid identifier plus a compressed residual shrinks the per-token footprint by roughly an order of magnitude, but the index is still many vectors per document and the compression is lossy by construction — the recall gap in the third panel is that loss, made visible.
+
+</RigorFlag>
+
+PLAID closes the arc the ANN and late-interaction tracks opened: the coarse partition, the residual quantizer, and the MaxSim score, which arrived as three separate topics, are here one engine, and the expressivity late interaction bought with storage is made servable without giving the storage back. The same coarse-plus-residual decomposition that let IVFADC beat flat product quantization on Euclidean distance now decomposes a MaxSim score; the same candidate-generation problem the navigable-small-world graphs solve by walking, PLAID solves by probing. Where the served retriever is composed with the rest of the stack — fused with a learned-sparse lexical leg, reranked by a cross-encoder, grounded into generation — is the subject of the capstone, the production multimodal financial RAG system the whole series has been building toward.

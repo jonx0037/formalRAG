@@ -165,7 +165,7 @@
     {
       "id": "multi-vector-ann-retrieval",
       "label": "Multi-Vector ANN: Indexing and Pruning MaxSim at Scale (PLAID)",
-      "status": "planned",
+      "status": "published",
       "domain": "ann-indexing"
     },
     {

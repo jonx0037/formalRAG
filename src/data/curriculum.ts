@@ -49,9 +49,7 @@ export const tracks = [
     layer: 'Retrieval Mechanics',
     description:
       'The data structures behind sublinear vector retrieval, at the level of their actual mathematics: IVF Voronoi partitioning, LSH sensitivity theory, navigable small-world graphs and HNSW, multi-vector and filtered ANN.',
-    planned: [
-      'Multi-Vector ANN: Indexing and Pruning MaxSim at Scale (PLAID)',
-    ],
+    planned: [],
     dependsOnFormalML: false,
   },
   {
