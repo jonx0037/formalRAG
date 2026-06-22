@@ -197,6 +197,26 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   max-pool backprop is a gather/scatter through each query token's argmax doc token (`take_along_axis`
   + `np.add.at`). When no clean theorem exists (multi-vector sign-rank is open, LIMIT defers it), state
   the escape as a **demonstrated proposition**, not a theorem, and pin the rigorFlag.
+  Its **multi-vector-ANN successor** (`multi-vector-ann-retrieval`, PLAID): the topic *is* "reuse the two
+  ANN prereqs" — cluster ALL tokens with the IVF `coarse_quantizer` (on UNIT-normalized tokens: L2
+  k-means == cosine clustering **at the objective level** — assert the distance identity
+  `‖a−b‖²=2−2⟨a,b⟩`, NOT an assignment equality, since Lloyd cell means aren't unit-norm), residual-PQ
+  each token (IVFADC at token level), approximate MaxSim by the centroid, prune, then rerank survivors
+  with the **imported** `maxsim_score`. **Cheap-prune + lossy-rerank cascade gotchas:** (1) recall-
+  monotone-in-`keep` is a theorem ONLY under an **exact** rerank (superset of survivors → exact top-k
+  can only gain true neighbors); the deployed **lossy-PQ** rerank can DIP (a false positive with a high
+  *approximate* score displaces a true neighbor) — that dip *is* the score-vs-ranking gap, so assert
+  monotonicity on an `exact=True` index, *demonstrate* the lossy frontier. (2) The Cauchy–Schwarz error
+  `|⟨q,d⟩−⟨q,c(d)⟩|=|⟨q,r⟩|≤‖q‖‖r‖` (lift to the doc score via the 1-Lipschitz max) is a bound on
+  **scores, not the ranking** — state it as the load-bearing rigorFlag, it's *why* the exact rerank
+  exists. (3) The collapse anchor (probe-all + prune-nothing + exact rerank == brute MaxSim, recall 1.0
+  + identical ordering) needs an **`exact=True` index mode** storing original tokens — PQ is lossy and
+  can't reach 1.0; bake BOTH frontier curves (exact → the brute line = collapse anchor; PQ plateaus
+  below, the gap = compression loss). **Storage panel:** bake **representative ColBERT-scale** numbers
+  (d=128, 32 tokens, K=2¹⁶) so the "32× raw multi-vector → ~1× a single-vector index" story matches the
+  late-interaction lab — NOT the small retrieval toy's params (which give a confusing <1× artifact). For
+  a K-slider viz, bake only the per-K **centroids** (k-means isn't a closed form) and recompute the
+  grid/error/bound in TS from them.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
