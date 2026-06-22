@@ -300,7 +300,9 @@ def stage2_prune(Q: np.ndarray, candidates, index: dict, keep: int):
     if not cand:
         return []
     keep = min(max(keep, 1), len(cand))
-    scores = np.array([centroid_maxsim(Q, index["doc_cids"][d], index["C"]) for d in cand])
+    cand_arr = np.array(cand)
+    Dc = index["C"][index["doc_cids"][cand_arr]]                # (n_cand, m_d, d): centroid-substituted docs
+    scores = maxsim_matrix(Q[None, ...], Dc)[0]                 # vectorized centroid-MaxSim over candidates
     order = np.argsort(-scores, kind="stable")[:keep]
     return [cand[i] for i in order]
 
@@ -334,8 +336,7 @@ def centroid_only_search(Q: np.ndarray, index: dict, topk: int = TOPK):
     rerank. Returns (topk_doc_ids, cost) with cost = m_q*nlist (the Q.C table; the gathers are
     bookkeeping). A ceiling that never reaches recall 1 — it never reranks."""
     m_q = Q.shape[0]
-    scores = np.array([centroid_maxsim(Q, index["doc_cids"][d], index["C"])
-                       for d in range(index["n_docs"])])
+    scores = centroid_maxsim_matrix(Q[None, ...], index)[0]     # vectorized centroid-MaxSim over all docs
     kk = min(topk, index["n_docs"])
     top = np.argsort(-scores, kind="stable")[:kk]
     return top.tolist(), float(m_q * index["nlist"])

@@ -302,10 +302,10 @@ export default memo(function MultiVectorANNLaboratory() {
   return (
     <div data-lab="multi-vector-ann" style={{ border: '1px solid var(--color-border)', borderRadius: '0.6rem', padding: '1rem 1.1rem', margin: '1.4rem 0', background: 'var(--color-bg)' }}>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
-        <button style={pill(panel === 'represent')} onClick={() => setPanel('represent')}>A · token → centroid + residual</button>
-        <button style={pill(panel === 'approx')} onClick={() => setPanel('approx')}>B · centroid-MaxSim + bound</button>
-        <button style={pill(panel === 'cascade')} onClick={() => setPanel('cascade')}>C · recall / cost frontier</button>
-        <button style={pill(panel === 'storage')} onClick={() => setPanel('storage')}>D · storage</button>
+        <button type="button" style={pill(panel === 'represent')} onClick={() => setPanel('represent')}>A · token → centroid + residual</button>
+        <button type="button" style={pill(panel === 'approx')} onClick={() => setPanel('approx')}>B · centroid-MaxSim + bound</button>
+        <button type="button" style={pill(panel === 'cascade')} onClick={() => setPanel('cascade')}>C · recall / cost frontier</button>
+        <button type="button" style={pill(panel === 'storage')} onClick={() => setPanel('storage')}>D · storage</button>
       </div>
 
       <div ref={formulaRef} style={{ margin: '0.4rem 0 0.8rem', minHeight: '2.2rem' }} />
