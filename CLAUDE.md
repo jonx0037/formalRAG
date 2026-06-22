@@ -168,6 +168,16 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   is near-orthogonal in expectation at high d (κ=12, d=64 → cosine ~0.03), so a same-cluster "hard
   negative" isn't actually hard. Size κ so same-cluster cosine clearly beats inter-cluster and assert it
   — InfoNCE's finance toy needed κ_sector≈60 at d=32, not κ=12 at d=64.
+- **Rank-ceiling / expressivity toys (DPR, embedding-dimension-lower-bounds): one item per cluster
+  forces rank = cluster count, making the ceiling demonstrable.** Build `S = Q Pᵀ` with ONE document
+  per company → `rank(S) = #companies` exactly; a naive same-company corpus gives a *gradual* recall
+  climb with no clean ceiling. Size the within-cluster κ so same-cluster items stay genuinely near
+  (κ_sector≈60 at d=32), so resolving them needs nearly all the rank and recovery sits **below** full
+  rank (recall@1 recovered at d=6 < rank=8). Assert the **contrast** (recall@1 monotone in d, <0.5 at
+  d=1, =1.0 at d≥recover, exact reconstruction at d=rank), not the decimals — `viz_constants()` bakes
+  those; a `/tmp` design-agent estimate drifts from the shipped `.py` (D_RECOVER moved 5→6), the `.py`
+  owns the numbers. Reuse the prereq's **loss** as a byte-for-byte anchor (`inbatch_loss_via_gram` ==
+  imported `info_nce_loss_batch`, <1e-12), the same twin rule as a reused search routine.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
@@ -209,8 +219,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `gemini-code-assist` review — fetch its nits with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments`
   (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
   medium-priority robustness/perf/a11y ones before merging. It reliably flags **unguarded denominators**
-  (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` — add
-  those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
+  (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` (incl.
+  `k≤0` on a recall fn and an empty matrix before `np.linalg.svd`) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
   slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
   and stale refs in d3 drag handlers — guard array-index lookups (`C[labels[i]]`, `colors[a[i] ?? 0]`)
   and compute drag-end distortion from live points/centroids, not a render-lagging ref. It also flags
@@ -223,12 +233,19 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
   or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
   every lab shares the `useEffect`+ref idiom (consistency beats a marginal CLS win). Gemini posts inline
-  ~1–3 min after the push; `mergeable` flips to `UNKNOWN` transiently right then. (`jupyter execute` does
+  ~1–3 min after the push; `mergeable` flips to `UNKNOWN` transiently right then. A separate **Vercel
+  Agent Review** check also runs but is often `NEUTRAL` (*skipped — insufficient credit*), which is NOT a
+  failure; gemini stays the inline reviewer, and `mergeStateStatus` shows `UNSTABLE` transiently while the
+  preview redeploys after a push. Gemini also flags a **nested `arr.map(r => r.map(...))` that returns a
+  bare array** (wrap each row in `<g key={i}>` — heatmap/grid labs hit this). (`jupyter execute` does
   *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.)
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`. `maximum-likelihood` / `exponential-families` are **formalStatistics** slugs,
   not formalML; `shannon-entropy`, `kl-divergence`, `representation-learning`, `concentration-inequalities`
-  are the formalML info-theory/representation slugs. Confirm with `ls ../<sibling>/src/content/topics/<slug>.mdx`.
+  are the formalML info-theory/representation slugs. formalML's Eckart–Young / low-rank slugs are
+  **`svd`** (full E–Y–M proof) and **`pca-low-rank`** — `singular-value-decomposition` and
+  `matrix-factorization` do NOT exist; `pca-dimensionality-reduction` is an **in-site** formalRAG slug.
+  Confirm with `ls ../<sibling>/src/content/topics/<slug>.mdx`.
 
 ## Cross-site & sibling repos
 
