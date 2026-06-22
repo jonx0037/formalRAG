@@ -255,16 +255,18 @@ function Heatmap({ M, label, diag, highlightRow }: { M: number[][]; label: strin
   const n = M.length, cell = 30, pad = 4, S = n * cell + 2 * pad;
   return (
     <svg viewBox={`0 0 ${S} ${S + 16}`} role="img" aria-label={label} style={{ width: '100%', height: 'auto', display: 'block' }}>
-      {M.map((row, i) =>
-        row.map((v, j) => {
-          const isDiag = diag && i === j;
-          return (
-            <rect key={`${i}-${j}`} x={pad + j * cell} y={pad + i * cell} width={cell - 1.5} height={cell - 1.5} rx={2}
-              fill={isDiag ? POS_COLOR : ACCENT} opacity={isDiag ? 0.55 + 0.4 * tone(v) : tone(v)}
-              stroke={isDiag ? POS_COLOR : (highlightRow === i ? HARD_COLOR : 'none')} strokeWidth={isDiag ? 1.4 : (highlightRow === i ? 1.6 : 0)} />
-          );
-        })
-      )}
+      {M.map((row, i) => (
+        <g key={i}>
+          {row.map((v, j) => {
+            const isDiag = diag && i === j;
+            return (
+              <rect key={`${i}-${j}`} x={pad + j * cell} y={pad + i * cell} width={cell - 1.5} height={cell - 1.5} rx={2}
+                fill={isDiag ? POS_COLOR : ACCENT} opacity={isDiag ? 0.55 + 0.4 * tone(v) : tone(v)}
+                stroke={isDiag ? POS_COLOR : (highlightRow === i ? HARD_COLOR : 'none')} strokeWidth={isDiag ? 1.4 : (highlightRow === i ? 1.6 : 0)} />
+            );
+          })}
+        </g>
+      ))}
       <text x={S / 2} y={S + 12} textAnchor="middle" fontSize={9.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">{label}</text>
     </svg>
   );

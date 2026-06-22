@@ -122,9 +122,11 @@ def score_matrix(Q: np.ndarray, G: np.ndarray) -> np.ndarray:
 
 def best_rank_d(S: np.ndarray, d: int) -> np.ndarray:
     """The best rank-d approximation of S in Frobenius (and spectral) norm: the truncated SVD
-    S_d = sum_{i<d} sigma_i u_i v_i^T (Eckart-Young-Mirsky). GUARD: d is clamped to
-    [1, min(S.shape)]."""
+    S_d = sum_{i<d} sigma_i u_i v_i^T (Eckart-Young-Mirsky). GUARDS: empty S -> empty; d is
+    clamped to [1, min(S.shape)]."""
     S = np.asarray(S, dtype=float)
+    if S.size == 0:
+        return np.empty_like(S)
     d = max(1, min(int(d), min(S.shape)))
     U, s, Vt = np.linalg.svd(S, full_matrices=False)
     return (U[:, :d] * s[:d]) @ Vt[:d]
@@ -134,8 +136,12 @@ def realize_dual_encoder(M: np.ndarray, d: int) -> tuple[np.ndarray, np.ndarray]
     """Factor a target matrix M into d-dimensional dual-encoder embeddings (Q, G) with
     Q G^T = best_rank_d(M, d): from the thin SVD M = U S V^T, set Q = U_d sqrt(S_d) and
     G = V_d sqrt(S_d). When rank(M) <= d this reconstructs M EXACTLY (the realizability
-    direction); when rank(M) > d it returns the optimal rank-d surrogate. GUARD: d clamped."""
+    direction); when rank(M) > d it returns the optimal rank-d surrogate. GUARDS: empty M ->
+    empty (Q, G); d clamped."""
     M = np.asarray(M, dtype=float)
+    if M.size == 0:
+        dd = max(1, int(d))
+        return np.zeros((M.shape[0], dd)), np.zeros((M.shape[1], dd))
     d = max(1, min(int(d), min(M.shape)))
     U, s, Vt = np.linalg.svd(M, full_matrices=False)
     root = np.sqrt(s[:d])
@@ -161,11 +167,11 @@ def cross_encoder_oracle(M: np.ndarray) -> np.ndarray:
 
 def topk_recall(S: np.ndarray, truth: np.ndarray, k: int) -> float:
     """Recall@k of a score matrix: the fraction of query rows whose relevant document
-    truth[i] appears among the row's k highest scores. GUARDS: no queries -> 0.0; k capped at
-    the number of documents."""
+    truth[i] appears among the row's k highest scores. GUARDS: no queries -> 0.0; k <= 0 -> 0.0;
+    k capped at the number of documents."""
     S = np.atleast_2d(S)
     nq, nd = S.shape
-    if nq == 0 or nd == 0:
+    if nq == 0 or nd == 0 or k <= 0:
         return 0.0
     k = min(int(k), nd)
     truth = np.asarray(truth)
