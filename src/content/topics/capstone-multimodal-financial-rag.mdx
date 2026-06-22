@@ -1,0 +1,236 @@
+---
+title: "Capstone: The Mathematics of a Production Multimodal Financial RAG System"
+subtitle: "The retrieval stack arrived as a dozen separate topics — lexical scoring, dense MIPS, IVF and PQ and HNSW, late interaction served by PLAID, reciprocal-rank fusion; this capstone composes the published stack into one finance pipeline and proves the three laws that govern it end to end — cascade recall multiplies across stages, hybrid fusion gains exactly when its legs de-correlate, and a fixed compute budget is allocated across heterogeneous per-modality legs by water-filling — with the single exact statement that a full-budget pipeline recovers brute-force retrieval, and everything above it a heuristic speed-for-recall trade measured honestly on a finance frontier"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "multi-vector-ann-retrieval"
+  - "rank-fusion-rrf"
+  - "filtered-incremental-ann"
+  - "hnsw"
+  - "optimized-product-quantization"
+tags:
+  - "capstone"
+  - "production-rag"
+  - "cascade-retrieval"
+  - "hybrid-fusion"
+  - "water-filling"
+  - "budget-allocation"
+  - "multimodal-rag"
+  - "financial-nlp"
+  - "end-to-end-recall"
+domain: "rag-information-theory"
+pipelineStage: "rerank"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "chart"
+  - "news"
+rigorFlag: "This capstone is a composition with exactly one exact statement and three measured laws, and the honesty is saying which is which. EXACT: a full-budget pipeline — probe every cell, prune nothing, rerank by exact MaxSim — recovers brute-force retrieval to floating point (recall 1.0), the collapse anchor that pins every relaxation as a strict superset. MEASURED LAW 1 (cascade): end-to-end recall is the PRODUCT of per-stage retentions only under stage independence; the real legs share corpus geometry, so a true neighbor missed by candidate generation is often missed by the rerank too — positive dependence, which by FKG/Harris makes the independent product a conservative LOWER bound the realized recall sits above (verified across both signs of a copula before the direction was written). The over-fetch 1/∏rᵢ is the algebraic reciprocal of the composite retention, one negative-binomial law on the product, not a multiplication of per-stage scan counts. MEASURED LAW 2 (fusion): reciprocal-rank fusion beats its best leg, and the gain GROWS as the legs de-correlate — demonstrated on one finance corpus, not a theorem; 'fused ≥ best leg' is false in general, and the dominated-leg flip needs a false positive CO-ENDORSED by both legs (under c=60 a lone top vote loses to two mid votes). The coverage ceiling is the only exact (upper) bound, and it is vacuous under domination, so it does not explain the flip. MEASURED LAW 3 (budget): allocating a fixed compute budget across legs to maximize the separable model ∏ gᵢ(cᵢ) is concave maximization solved by water-filling — equalize the marginal LOG-recall per cost — but concavity is empirical on the measured curves, the separable product is itself the Movement-1 lower bound, and the equal-marginal condition also follows from the un-logged product (the log buys separability and a global optimum, not the existence of equal-marginal). The corpus is one shared synthetic token cloud, designed multi-view documents rather than a trained multimodal encoder, so every number illustrates the mechanism, not a benchmark. Multimodality here is SYSTEMS-LEVEL — independent per-modality legs feeding fusion; the cross-modal alignment that would replace them with a joint embedding is named as future work, not derived. And the generation, grounding, and evaluation layer above retrieval — pointwise mutual information, conformal factuality, determinantal context selection, GraphRAG, retrieval distillation — is named as the unbuilt upper curriculum, not linked."
+videoId: null
+notebookPath: "notebooks/capstone-multimodal-financial-rag/01_capstone_multimodal_financial_rag.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/capstone-multimodal-financial-rag.mdx"
+datePublished: 2026-06-22
+estimatedReadTime: 34
+abstract: "The retrieval half of a production RAG system arrived as a dozen topics; this capstone composes the published stack — lexical scoring, dense MIPS, IVF/PQ/HNSW candidate generation, PLAID-served late interaction, reciprocal-rank fusion — into one finance pipeline and proves the three laws that govern it end to end. Cascade recall multiplies across independent stages, a conservative lower bound the correlated real legs sit above; hybrid fusion beats its best leg by a margin that grows as the legs de-correlate, and fails when a false positive is co-endorsed by two legs; and a fixed compute budget is allocated across heterogeneous per-modality legs by water-filling, equalizing the marginal recall-per-cost. The one exact statement is the collapse anchor — a full-budget pipeline is brute-force retrieval — and a tested notebook that imports the fusion, PLAID, IVF, and over-fetch code owns every number on the finance frontier. The generation and grounding layer above retrieval is named as future work, not derived."
+connections:
+  - topic: "multi-vector-ann-retrieval"
+    relationship: "the served late-interaction leg and the collapse-anchor pattern this capstone generalizes: PLAID's probe-all/prune-nothing/exact-rerank recovers brute MaxSim, and the capstone's full-budget pipeline recovers brute-force retrieval the same way; the exact MaxSim of that topic is the neutral end-scorer the whole pipeline approximates and reranks toward"
+  - topic: "rank-fusion-rrf"
+    relationship: "the fusion engine, lifted from two legs to the multimodal multi-leg case: RRF's rank-only scale-invariant score is imported verbatim, and that topic's Kendall-tau geometry is the de-correlation axis along which the fusion gain is measured; the capstone adds the multimodal complementarity story and the co-endorsed dominated-leg flip"
+  - topic: "filtered-incremental-ann"
+    relationship: "the over-fetch k/r negative-binomial law is the per-stage spine the cascade composes: end-to-end the front-end over-fetch is 1/∏rᵢ, one negative-binomial law on the composite retention, and that topic's positional-independence caveat is lifted from one stage to the whole pipeline"
+  - topic: "hnsw"
+    relationship: "the graph ANN leg, the other answer to the candidate-generation problem the cascade's first stage solves; its navigability and the recall-versus-distance-computations cost model feed the same budget the water-filling allocates"
+  - topic: "optimized-product-quantization"
+    relationship: "the compression/storage accounting behind the served index's footprint: the centroid-id-plus-residual representation collapses the raw multi-vector store, the storage panel's 32x-to-1x story, and prices the per-leg index the budget movement allocates over"
+references:
+  - type: "paper"
+    title: "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods"
+    authors: "Cormack, Clarke & Buettcher"
+    year: 2009
+    url: "https://doi.org/10.1145/1571941.1572114"
+    note: "The fusion rule the capstone imports and lifts to the multimodal multi-leg case: RRF(d) = Σ 1/(c + rₗ(d)), depending only on ranks, hence scale-invariant; SIGIR 2009"
+  - type: "paper"
+    title: "A Cascade Ranking Model for Efficient Ranked Retrieval"
+    authors: "Wang, Lin & Metzler"
+    year: 2011
+    url: "https://doi.org/10.1145/2009916.2009934"
+    note: "The cascade-ranking model this movement formalizes: a sequence of increasingly expensive stages, each pruning candidates for the next, with the end-to-end recall and cost the composition of the per-stage trade-offs; SIGIR 2011"
+  - type: "paper"
+    title: "PLAID: An Efficient Engine for Late Interaction Retrieval"
+    authors: "Santhanam, Khattab, Potts & Zaharia"
+    year: 2022
+    url: "https://arxiv.org/abs/2205.09707"
+    note: "The served late-interaction leg of the pipeline: the centroid-pruning, residual-decompression cascade over a token IVFADC index whose recall-versus-cost the budget movement allocates; CIKM 2022"
+  - type: "paper"
+    title: "ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction"
+    authors: "Santhanam, Khattab, Saad-Falcon, Potts & Zaharia"
+    year: 2022
+    url: "https://arxiv.org/abs/2112.01488"
+    note: "The centroid-plus-residual token compression behind the storage panel's 32x-to-1x collapse; NAACL 2022"
+  - type: "paper"
+    title: "Product Quantization for Nearest Neighbor Search"
+    authors: "Jégou, Douze & Schmid"
+    year: 2011
+    url: "https://doi.org/10.1109/TPAMI.2010.57"
+    note: "IVFADC — the coarse k-means quantizer with inverted lists and product-quantized residuals — the index every candidate-generation leg is built on; IEEE TPAMI 2011"
+  - type: "documentation"
+    title: "Pyserini: A Python Toolkit for Reproducible Information Retrieval Research with Sparse and Dense Representations"
+    authors: "Lin, Ma, Lin, Yang, Pradeep & Nogueira"
+    year: 2021
+    url: "https://doi.org/10.1145/3404835.3463238"
+    note: "The reference system for the hybrid lexical-plus-dense retrieval the fusion movement formalizes — a production reproducibility toolkit that fuses sparse and dense legs; SIGIR 2021"
+formalmlPrereqs:
+  - topic: "lagrangian-duality"
+    site: "formalml"
+    relationship: "the water-filling theorem is a budget-constrained concave maximization solved by its Lagrangian: the shared multiplier λ is the water level, equalizing the marginal log-recall per cost across active stages, with the inactive-stage and boundary conditions exactly the KKT complementary slackness developed there"
+  - topic: "convex-analysis"
+    site: "formalml"
+    relationship: "log-concavity of each stage's gain curve is what makes Σ log gᵢ − λ Σ cᵢ concave and the KKT point a global maximum; the convexity machinery is the premise the budget movement verifies numerically on the measured curves rather than assuming"
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "each leg's retention-versus-cost curve is a rate-distortion curve — more compute (rate) buys more recall (less distortion) with diminishing returns — and the storage panel's centroid-id-plus-residual account is the constrained-complexity quantizer that functional prices"
+formalmlConnections:
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "every candidate-generation leg is built on k-means: the IVF coarse quantizer and the PLAID centroids that the lexical, dense, and late-interaction legs share, so the Voronoi-cell and centroid-equals-cell-mean facts underwrite the whole served index"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import CapstoneLaboratory from '../../components/viz/CapstoneLaboratory.tsx';
+
+## Overview & motivation
+
+Every prior topic in this series built one organ of a retriever. The [probabilistic-IR track](/topics/bm25-binary-independence-model) built the lexical leg; the [dense dual encoder](/topics/dense-retrieval-dual-encoders) and [late interaction](/topics/late-interaction-learned-sparse) built the neural legs; [IVF](/topics/ivf-voronoi-partitioning), [product quantization](/topics/product-quantization), and [HNSW](/topics/hnsw) built the index; [PLAID](/topics/multi-vector-ann-retrieval) served late interaction at scale; [reciprocal-rank fusion](/topics/rank-fusion-rrf) combined heterogeneous rankings; the [over-fetch laws](/topics/filtered-incremental-ann) priced the cost of recall. A production multimodal financial RAG system is what you get when these organs are wired into one body, and the wiring has mathematics of its own — not a new primitive, but the *composition* of the ones already built.
+
+This capstone proves the three laws that govern the composed pipeline. They are deliberately honest about their status: one is an exact theorem, the rest are measured propositions, and the difference is the whole point. We have built the retrieval half of the stack; the generation, grounding, and evaluation layer above it — pointwise mutual information between query and answer, conformal factuality, determinantal context selection, GraphRAG, retrieval distillation — is the unbuilt upper curriculum, named here but not yet derived. What we can compose now is everything from ingest through rerank, and that is enough to see the system as a single object.
+
+<CapstoneLaboratory client:visible />
+
+## Notation: the served pipeline and one shared truth
+
+A query $q$ enters a pipeline of stages $S_1, \dots, S_L$ — candidate generation, fusion and pruning, rerank — each a lossy map that keeps some documents and discards others. The exact end-scorer is brute-force MaxSim, $S(q, d) = \sum_i \max_j \langle q_i, d_j\rangle$, and its top-$k$ defines the *ground truth*: the true neighbors of $q$ are the $k$ documents that the full, uncompressed scorer would return. This choice matters. Because the truth is the exact scorer and not any one cheap leg, no candidate-generation leg is privileged — the oracle is the act of reranking everything, not any single retriever — which is exactly what lets the legs genuinely complement and lets a full-budget pipeline reach recall $1$.
+
+The corpus is one shared multi-view document set. Each document is a bag of unit-norm token vectors (the token view), seen three ways: a lexical leg matches a window of the tokens' quantized centroid identifiers (BM25 over a centroid vocabulary), a dense leg pools a disjoint window into a single vector (cosine MIPS), and a late-interaction leg scores a third window by cheap centroid-MaxSim. Three partial views of one document — the systems-level shape of multimodality, where a text leg, a transcript leg, and a chart leg each observe part of a filing and fusion recombines them. The cross-modal *alignment* that would map them into one joint embedding is a separate, future topic; here the legs are independent retrievers feeding fusion.
+
+## Movement 1 — cascade recall composition
+
+Fix a query and one true top-$k$ neighbor $x^\*$. Let $A_i$ be the event that $x^\*$ survives stage $i$ given it entered, and $r_i = \Pr[A_i] \in (0, 1]$ the stage's per-neighbor retention. The neighbor reaches the output exactly when it survives every stage.
+
+<TheoremBlock type="definition" number={1} title="The served cascade and its retentions">
+
+The pipeline is the composition $S_L \circ \dots \circ S_1$ of $L$ filters. Stage $S_1$ generates candidates (a token-IVF probe), $S_2$ fuses the legs and prunes to a survivor set, and $S_3$ reranks the survivors by exact MaxSim. A true neighbor is *recalled* iff it lies in the final top-$k$; its end-to-end retention is $\Pr\!\big[\bigcap_{i=1}^{L} A_i\big]$, and the per-stage retentions $r_i$ are measured against the shared MaxSim truth.
+
+</TheoremBlock>
+
+The first law is the one every engineer half-knows and half-misstates.
+
+<TheoremBlock type="theorem" number={1} title="The product law and its over-fetch (exact under independence)">
+
+If the survival events $\{A_i\}$ are mutually independent, then end-to-end retention is the product
+
+$$
+R \;=\; \prod_{i=1}^{L} r_i,
+$$
+
+exactly, and to leave $k$ surviving true neighbors the front end must inject $k / \prod_i r_i$ of them in expectation. This over-fetch is a *single* negative-binomial law (the imported $k/r$ scan law of the [filtered-ANN topic](/topics/filtered-incremental-ann)) applied to the composite retention $\prod_i r_i$; the equality $\prod_i (1/r_i) = 1/\prod_i r_i$ is algebraic, not a multiplication of $L$ separate physical scan counts, because the intermediate stages are not independently re-ranked streams.
+
+</TheoremBlock>
+
+On the measured pipeline the three retentions are $1.000$, $0.922$, $0.922$ — candidate generation loses nothing at this breadth, fusion and rerank each drop a little — so the product is $0.851$ and the over-fetch a modest $1.18\times$. But the product law is exact only under an idealization, the same positional-independence assumption the over-fetch topic flagged for a single stage, now lifted to the whole pipeline. Real queries violate it, and the direction in which they violate it is the load-bearing claim.
+
+<TheoremBlock type="proposition" number={1} title="Positive dependence makes the product a lower bound (FKG/Harris)">
+
+If the survival events are positively associated — each $A_i$ an increasing event in a shared query-easiness latent, so that a query easy for one stage is easy for all — then
+
+$$
+R_{\text{true}} \;=\; \Pr\!\Big[\textstyle\bigcap_i A_i\Big] \;\ge\; \prod_i r_i,
+$$
+
+with equality at independence; negative association reverses the inequality. Under the positive dependence real pipelines exhibit, the independent product *under-states* true recall — it is a conservative lower bound — and provisioning the front end at $k / \prod_i r_i$ over-provisions, which is the safe direction.
+
+</TheoremBlock>
+
+The temptation is to guess the wrong sign: surely correlated failures *lose more*? They do not. Positive correlation piles the failures onto the same hard queries, which fail anyway, so fewer *distinct* documents are lost than independence predicts and true recall sits *above* the product. The argument is FKG/Harris — increasing events on a positively-associated law have $\Pr[\bigcap] \ge \prod \Pr$ — but because the intuition is so easy to invert, the notebook does not trust it: it generates dependence with a bivariate-normal survival copula and sweeps the correlation across both signs. The gap $R_{\text{true}} - \prod r_i$ runs from $-0.102$ at strong negative dependence through $-0.002$ at independence to $+0.167$ at strong positive dependence, monotone, with equality pinned at $\rho = 0$ — the first panel makes the slider live. The measured pipeline obliges: its realized recall, $0.922$, sits above its own product, $0.851$, exactly as a lower bound should.
+
+## Movement 2 — hybrid fusion gain
+
+The pipeline's middle stage fuses heterogeneous legs. Fix a query with true-relevant set $\mathcal{R}$ at depth $k$, let $A_L = \mathcal{R} \cap \mathrm{top}_k(L)$ be the relevant documents leg $L$ surfaces, and $\rho_L = |A_L| / |\mathcal{R}|$ its recall. The fused ranking is $\mathrm{RRF}(d) = \sum_L 1/(c + r_L(d))$ with $c = 60$, [reciprocal-rank fusion](/topics/rank-fusion-rrf) imported verbatim. The question is when fusing helps, and the honest answer is *a condition, not a guarantee*.
+
+<TheoremBlock type="proposition" number={2} title="The coverage ceiling (exact upper bound)">
+
+For any fusion rule emitting a list of depth at least $|\bigcup_L A_L|$,
+
+$$
+\rho_{\text{fused}} \;\le\; \frac{|\bigcup_L A_L|}{|\mathcal{R}|},
+$$
+
+since a relevant document no leg places in range cannot be retrieved. Disjoint coverage maximizes the ceiling. But the ceiling is *vacuous* — equal to $1$ — whenever a single leg already covers $\mathcal{R}$, so it bounds the gain from above and does **not** explain the failure below.
+
+</TheoremBlock>
+
+<TheoremBlock type="proposition" number={3} title="Fused ≥ best leg is false; the flip needs co-endorsement">
+
+There exist legs for which $\rho_{\text{fused}} < \max_L \rho_L$. Under $c = 60$ a single top-rank vote contributes $1/61 \approx 0.0164$, weaker than two mid-rank votes at $\approx 1/63 + 1/65 \approx 0.0313$, so a false positive overtakes a true neighbor only when it is **co-endorsed by both legs**. Concretely, a strong leg ranking $r_1, r_2, r_3$ first but also placing a false positive $x_1$ at rank $4$, fused with a noisy leg ranking $x_1, x_2$ on top and burying $r_3$, yields a fused top-$3$ of $\{r_1, x_1, r_2\}$: recall $2/3 < 1$. Remove $x_1$ from the strong leg — no co-endorsement — and $r_3$ survives, recall back to $1$.
+
+</TheoremBlock>
+
+This is the topic's headline-flip discipline made literal. The naive expectation — a noisy leg drowns out a good one — is right in spirit and wrong in mechanism, and the notebook builds and runs the counterexample before the prose is allowed to claim anything. A lone loud vote is not enough under RRF's near-uniform weights; it takes a conspiracy of two. The second panel reconstructs the RRF scores live and shows $r_3$ falling past the top-$3$ cut.
+
+What survives the scrutiny is the conditional gain.
+
+<TheoremBlock type="proposition" number={4} title="The fusion gain under complementarity (demonstrated)">
+
+On the multimodal finance corpus, where each leg observes a different partial view and so recalls true neighbors the others miss, the fused recall strictly exceeds the best single leg, $0.547 \to 0.580$ (a gain of $+0.032$), and the gain grows with leg de-correlation: from $0$ at a cloned, redundant leg to $+0.03$ at disjoint coverage. Inter-leg Kendall-$\tau$ is a *proxy* for that coverage disjointness — neither necessary nor sufficient on its own — and the gain is one cloud's number, not a universal ranking.
+
+</TheoremBlock>
+
+The complementarity is not incidental; it is engineered and it is the real multimodal story. When the three legs were three approximations of one scalar truth, they formed a quality ladder — each strictly better than the last — and no fusion could beat the best, because the worse legs added only noise. Making each leg a partial *view* of the document, blind to what the others see, is what gives fusion something to recombine. That is precisely the value a lexical leg adds over a dense one in a real financial retriever: it surfaces the exact tokens — tickers, line-item names, dollar figures — that a paraphrase-trained embedding smears, documents the dense leg never had.
+
+## Movement 3 — end-to-end budget allocation
+
+The whole pipeline runs on a budget. Each stage $i$ buys retention $g_i(c_i)$ by spending compute $c_i$, and the costs must share a unit — distance-computations per query — or a single budget is meaningless. A sparse lexical match touches a few centroid-id terms; a dense leg is one pooled dot product; late-interaction MaxSim scores every query token against every document token, an order of magnitude more per document. The system-design question is how to spend a fixed budget $B$ across these unequal stages.
+
+<TheoremBlock type="theorem" number={2} title="Water-filling: equalize the marginal log-recall">
+
+Model end-to-end recall by the separable product $R(c) = \prod_i g_i(c_i)$ and maximize it subject to $\sum_i c_i \le B$. Because $R > 0$ and monotone, $\arg\max R = \arg\max \sum_i \log g_i(c_i)$, a separable objective; if each $\log g_i$ is concave the Lagrangian $\sum_i \log g_i(c_i) - \lambda \sum_i c_i$ is concave, so any stationary point is the global maximum, and at every active stage
+
+$$
+\frac{g_i'(c_i)}{g_i(c_i)} \;=\; \lambda,
+$$
+
+the marginal *log*-recall equalized across stages — water-filling — with $g_i'(0)/g_i(0) \le \lambda$ on inactive stages and $\lambda$ fixed by the active-budget identity.
+
+</TheoremBlock>
+
+Two honesties belong with this theorem. First, the equal-marginal condition is not bought by the logarithm. The un-logged product has $\partial R / \partial c_i = g_i' \prod_{j \ne i} g_j = g_i' \,(R / g_i)$, and the common scalar $R$ cancels, so $g_i' / g_i = \lambda$ falls out of the product directly; what the log buys is *separability* — decoupling the stationarity equations — and, with concavity, a *global* optimum. Second, the separable model $\prod_i g_i$ is the Movement-1 object: measured stage-by-stage against the global truth and multiplied, it is a conservative lower bound on the true coupled-pipeline recall, which unions the legs and does at least as well. We optimize the bound, honestly labeled.
+
+<TheoremBlock type="proposition" number={5} title="Water-filling beats uniform and all-in-one (demonstrated); the anchor">
+
+On the finance curves at the demo budget, water-filling reaches $R = 0.268$ — scanning the cheap lexical and dense legs deep and the expensive late-interaction leg shallow, with the marginal log-recall leveled across stages — against $0.154$ for naive uniform splitting and a mere $0.031$ for pouring the budget into any single leg, where a starved factor tanks the product. Concavity holds on the measured operating grid (verified, not assumed), and at full budget every $g_i \to 1$, so $R \to 1$: the collapse anchor.
+
+</TheoremBlock>
+
+That anchor is the one exact statement of the entire capstone. Probe every cell, prune nothing, rerank by exact MaxSim, and the pipeline *is* brute-force retrieval — recall $1.0$, the same probe-all/prune-nothing collapse the [PLAID topic](/topics/multi-vector-ann-retrieval) proved for its cascade, here for the whole stack. Everything above it — the product law, the fusion gain, the water-filling allocation — is a heuristic speed-for-recall trade we measure rather than guarantee.
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf", "chart", "news"]}>
+
+The production system this series has tracked retrieves over a heterogeneous financial corpus: 10-K and 10-Q filing text, earnings-call transcripts derived from call audio, chart captions and table rows, and news headlines. Each modality enters as its own leg — BM25F over the filing and transcript text, a dense dual encoder over passage embeddings, the PLAID-served late-interaction leg over token tensors — and the three laws above are exactly the levers the system is tuned on.
+
+The cascade law sets the over-fetch: to deliver ten grounded passages after fusion and a cross-encoder rerank, the candidate stage must fetch $10 / \prod_i r_i$, and because the legs are positively dependent across stages — a filing missed by the dense leg's coarse recall is often missed by the rerank too — the independent product is the conservative budget, never caught short. The fusion law sets which legs to combine: the lexical leg earns its place precisely where the dense leg is weakest, on the exact tokens a paraphrase model smears — a CUSIP, a GAAP line-item name, a basis-point figure — so fusing them gains exactly when the query is lexical-or-semantic rather than one or the other, and the dominated-leg flip is the warning against bolting on a redundant or noisy leg. The budget law sets the operating point: a fixed latency budget, allocated across IVF probe depth, fusion breadth, and rerank survivor count, is spent by equalizing the marginal recall-per-millisecond — the deep, cheap lexical scan and the shallow, expensive late-interaction rerank the water-filling prescribes. None of it is a benchmark; the corpus here is a designed synthetic cloud, and the numbers illustrate the mechanism a real system instantiates.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+The capstone has exactly one exact statement — the collapse anchor, a full-budget pipeline recovers brute-force retrieval to floating point — and three measured laws, and the discipline is saying which is which. The cascade product is exact only under stage independence; under the positive dependence real pipelines exhibit it is a conservative lower bound (FKG/Harris, verified across both signs of a copula before the direction was written), and the over-fetch is one negative-binomial law on the composite retention, not a product of physical scan counts. The fusion gain is demonstrated on one corpus and conditional on leg complementarity; "fused ≥ best leg" is false in general, the dominated-leg flip needs a co-endorsed false positive, and the coverage ceiling — the one exact, upper bound — is vacuous under domination, so it does not explain the flip. The water-filling allocation is exact on the separable, log-concave, common-cost-unit model with an interior optimum; concavity is empirical on the measured curves, the separable product is itself the Movement-1 lower bound, and the equal-marginal condition follows from the un-logged product too (the log buys separability and a global optimum, not equal-marginal). The corpus is one shared synthetic token cloud — designed multi-view documents, not a trained multimodal encoder — so every number illustrates a mechanism, not a benchmark. Multimodality is systems-level: independent per-modality legs feeding fusion, with the cross-modal alignment that would replace them by a joint embedding named as future work, not derived. And the layer above retrieval — the information theory of what retrieval adds to generation, conformal factuality, determinantal context selection, GraphRAG, and retrieval distillation — is the unbuilt upper curriculum the series turns to next.
+
+</RigorFlag>

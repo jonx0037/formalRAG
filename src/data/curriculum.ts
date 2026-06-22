@@ -120,7 +120,6 @@ export const tracks = [
       'Context Selection: Submodular Coverage, MMR, and Determinantal Point Processes',
       'Multi-Hop and Iterative Retrieval as Search over an Evidence Space',
       'GraphRAG: Community Detection and the Modularity of Knowledge',
-      'Capstone: Architecture and Mathematics of a Production Multimodal Financial RAG System',
     ],
     dependsOnFormalML: true,
   },
