@@ -122,9 +122,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   wait ~0.5–1 s for hydration first — otherwise clicks no-op against un-hydrated markup. A
   React-controlled range slider ignores a synthesized `input` event (state won't change); drive it with
   a **real keyboard interaction** (`focus()` then `ArrowRight`) and assert the readout updated.
-  Hydration tell-tales: the React JSX (buttons, list, *empty* `<svg>`) is in the SSR DOM, but
-  D3-drawn `<rect>/<circle>` children and `katex.render()` output (a post-load `.katex` count bump)
-  appear only *after* hydration — assert on those before clicking.
+  Hydration tell-tales: these labs render their SVG **declaratively in JSX** (not D3), so the
+  `<rect>/<circle>` content IS in the SSR DOM — rect presence is **not** a hydration tell. Use the
+  lab's `katex.render()` formula output (a post-load `.katex` count bump), and wait ~1–1.5 s (0.5 s
+  was too short for a panel switch) before the **first** click — assert on the katex bump first.
   **Scope DOM assertions to the lab container** — the topic page has other SVGs (DAG/connection graphs)
   that inflate document-wide `circle`/`path`/`text` counts. Hydration is per-load: a fresh navigation
   needs another `scrollIntoView` before any click, **tab/panel switches included** (not just sliders).
@@ -178,6 +179,12 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   those; a `/tmp` design-agent estimate drifts from the shipped `.py` (D_RECOVER moved 5→6), the `.py`
   owns the numbers. Reuse the prereq's **loss** as a byte-for-byte anchor (`inbatch_loss_via_gram` ==
   imported `info_nce_loss_batch`, <1e-12), the same twin rule as a reused search routine.
+  Its **sign-rank successor** (`embedding-dimension-lower-bounds`): exact sign-rank is intractable
+  (∃ℝ-complete / NP-hard) — don't compute it, demonstrate the GAP (full rank by eigenvalues + a
+  convex-position rank-3 realization) plus a **Forster** spectral lower bound (`sign-rank ≥
+  √(mn)/‖M‖`, `=√N` for a Hadamard pattern); assert the contrast. **Vectorize** any free-embedding /
+  qrel realizability optimizer's multi-positive row loss (one shared per-row `NegSum`) — a per-query
+  Python loop over a `C(n,2)`-query all-pairs corpus busts the <60 s budget (57 s→4 s here).
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
@@ -201,10 +208,15 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - `status` gates only **listings** (homepage / `/topics` / `/paths`) + prereq availability;
   `getStaticPaths` builds a page for *every* topic, so the full MDX renders at its URL regardless of
   status (a draft "stub" shows a notice only because its *body* is one).
+  Gotcha: a merged topic left at `status: draft` while its graph node is `published` still renders at
+  its URL but is **hidden from every listing** — verify the flip landed at ship.
 - **Sync local `main` first.** `gh pr merge` updates *origin*, not local `main` — before branching each
   topic run `git fetch origin && git checkout main && git merge --ff-only origin/main`. The tell that
   you're on a stale base: a "published" topic shows as a draft stub with an orphaned `__pycache__/` and
   no `.py`/`.ipynb` (its source was merged on a branch you don't have yet).
+  And commit CLAUDE.md learnings **inside the topic PR or a dedicated chore PR** — a post-merge local
+  `docs: learnings` commit strands on the topic branch after the topic PR merges (the DPR one had to
+  be cherry-picked).
 - **Multiple topics in one session = feature branches off `main`.** They merge in any order *only if*
   each depends solely on already-published prereqs. If a batch topic lists a **sibling** as prereq (e.g.
   pseudo-relevance-feedback needs query-likelihood), sequence them: re-sync `main` only **after** its
@@ -228,7 +240,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `topk=min(topk, n)`), and **tuple-arity mismatches in a fallback `return`** (a 6- vs 7-tuple path — a real
   HIGH-severity catch). It also flags **list-comprehension membership filters over sets** (→ native
   `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del dict[k]` (intersection over a
-  dict's keys) or set `.discard(x)` stays safe). But
+  dict's keys) or set `.discard(x)` stays safe). It also flags **unused imports** and a hand-rolled
+  sigmoid `1/(1+e^{-z})` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). But
   **decline with a posted rationale** the nits that would (a) break a byte-for-byte search twin — caching
   a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
   or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
