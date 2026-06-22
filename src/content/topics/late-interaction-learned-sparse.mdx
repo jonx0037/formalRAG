@@ -1,26 +1,203 @@
 ---
 title: "Late Interaction and Learned Sparse Retrieval: ColBERT and SPLADE"
+subtitle: "A single pooled vector hits a sign-rank ceiling; keep one vector per token and score by MaxSim, or expand into a high-dimensional sparse lexical space, and the ceiling lifts — two different escapes from the bottleneck the previous topic proved, one provable reduction and one honestly empirical gain"
 status: "draft"
 difficulty: "advanced"
+prerequisites:
+  - "dense-retrieval-dual-encoders"
+  - "bm25-binary-independence-model"
+  - "embedding-dimension-lower-bounds"
 tags:
   - "colbert"
   - "splade"
   - "late-interaction"
+  - "maxsim"
+  - "learned-sparse"
+  - "multi-vector"
+  - "flops-regularizer"
+  - "vocabulary-mismatch"
 domain: "neural-retrieval"
-financeCaseStudy: false
-abstract: "Token-level MaxSim late interaction (ColBERT) and learned sparse expansion (SPLADE) — the learned generalization of BM25 living in the inverted-index world."
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+rigorFlag: "One result is proved; the headline is honestly empirical, and the gap matters. MaxSim reducing to the dual-encoder dot product at one vector per item is proved exactly, and MaxSim being a max of linear forms (not a bilinear form, so not bound by the rank ceiling) is immediate — but that the escape happens at a SMALL number of vectors is a best-case DEMONSTRATION by free-embedding optimization, not a theorem: there is no known multi-vector sign-rank lower bound, and the LIMIT paper that proved the single-vector ceiling explicitly defers the multi-vector case. The single-vector baseline here is re-derived with the SAME optimizer as the MaxSim model (one cloud), so the gap is the multi-vector effect and not a difference between optimizers, but the absolute critical-n values are optimizer-dependent best cases, not the true capacities. SPLADE's FLOPS regularizer is an empirically effective heuristic, not derived, and its relation to BM25 is conceptual — a learned re-weighting and expansion in the same lexical space — not a formal generalization. The token embeddings and the MLM logits driving SPLADE expansion are synthetic stand-ins reused from / built on the InfoNCE, DPR, and BM25 topics, not trained transformers. Late interaction's expressivity is bought with storage: one vector per token, here 32 times a single-vector index; PLAID's centroid pruning (a downstream topic) mitigates but does not erase it."
+videoId: null
+notebookPath: "notebooks/late-interaction-learned-sparse/01_late_interaction_learned_sparse.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/late-interaction-learned-sparse.mdx"
+datePublished: 2026-06-22
+estimatedReadTime: 28
+abstract: "The previous topic proved a single pooled embedding has a sign-rank ceiling: relevance patterns it cannot represent below a critical dimension. This topic covers the two architectures that escape it. Late interaction (ColBERT) keeps one vector per token and scores a query against a document by MaxSim, the sum over query tokens of the best-matching document token. Because MaxSim is a max of inner products rather than a single bilinear form, the rank ceiling does not apply; we prove the one clean boundary fact — with one vector per item MaxSim is exactly the dual-encoder dot product — and then demonstrate, honestly flagged as empirical, that a model with two vectors per document realizes the all-pairs relevance pattern a single vector provably cannot. Learned sparse retrieval (SPLADE) takes the other route: it expands each text into a high-dimensional sparse vector over the vocabulary, living in BM25's inverted index, with a FLOPS regularizer controlling sparsity. It fixes the vocabulary mismatch BM25 cannot, retrieving a relevant document whose terms the query never mentions. A laboratory shows the MaxSim grid, the single-vector wall and its multi-vector escape, and SPLADE's expansion and its sparsity trade-off; a tested notebook owns every number; and the two escapes map onto the two failure modes a single-vector financial retriever hits."
+connections:
+  - topic: "embedding-dimension-lower-bounds"
+    relationship: "that topic proved the single-vector sign-rank ceiling this one escapes: it established that a pooled embedding cannot realize relevance patterns above a critical complexity at a fixed dimension, and this topic reuses its all-pairs construction and its qrel loss to show that keeping many vectors per document (MaxSim) lifts exactly that wall, so the two topics are the impossibility result and its architectural answer"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "late interaction is the dual encoder with the pooling removed: instead of one vector per text it keeps one per token, and MaxSim reduces exactly to the dual-encoder dot product when each text has a single token vector, so this topic's central reduction is DPR's score as the degenerate case and the multi-vector model as its generalization"
+  - topic: "bm25-binary-independence-model"
+    relationship: "SPLADE is the learned successor to BM25 in the same inverted-index world: it replaces BM25's fixed term statistics with neural term weights and expansions over the vocabulary, scoring by a sparse dot product, so this topic develops the learned sparse retriever as a re-weighting and expansion of the bag-of-terms model BM25 formalized"
+  - topic: "inverted-index-dynamic-pruning"
+    relationship: "SPLADE's sparse vocabulary vectors are served by exactly the inverted index and dynamic-pruning machinery that topic builds: a learned sparse query is a weighted term query over postings lists, so the FLOPS regularizer that keeps SPLADE sparse is what keeps the inverted-index traversal and WAND-style pruning efficient"
+references:
+  - type: "paper"
+    title: "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT"
+    authors: "Khattab & Zaharia"
+    year: 2020
+    url: "https://arxiv.org/abs/2004.12832"
+    note: "The original late-interaction architecture and the MaxSim operator this topic formalizes: one contextual vector per token, scored by the sum over query tokens of the maximum similarity to any document token; SIGIR 2020"
+  - type: "paper"
+    title: "ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction"
+    authors: "Santhanam, Khattab, Saad-Falcon, Potts & Zaharia"
+    year: 2022
+    url: "https://arxiv.org/abs/2112.01488"
+    note: "Residual compression and denoised (cross-encoder-distilled) supervision that cut late interaction's storage 6-10x — the practical answer to the per-token storage cost this topic flags; NAACL 2022"
+  - type: "paper"
+    title: "SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking"
+    authors: "Formal, Piwowarski & Clinchant"
+    year: 2021
+    url: "https://arxiv.org/abs/2107.05720"
+    note: "The learned sparse model: log(1 + ReLU(MLM logit)) term weights max-pooled over the input, with a FLOPS regularizer controlling sparsity — the lexical escape and the FLOPS objective this topic uses; SIGIR 2021"
+  - type: "paper"
+    title: "SPLADE v2: Sparse Lexical and Expansion Model for Information Retrieval"
+    authors: "Formal, Lassance, Piwowarski & Clinchant"
+    year: 2021
+    url: "https://arxiv.org/abs/2109.10086"
+    note: "Pooling and distillation improvements to SPLADE, cited for the learned-sparse lineage this topic summarizes"
+  - type: "paper"
+    title: "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective (SPLADE++)"
+    authors: "Formal, Lassance, Piwowarski & Clinchant"
+    year: 2022
+    url: "https://arxiv.org/abs/2205.04733"
+    note: "SPLADE++: distillation and hard-negative training bringing learned sparse retrieval to BM25-comparable latency, the mature form of the lexical escape; SIGIR 2022"
+  - type: "paper"
+    title: "PLAID: An Efficient Engine for Late Interaction Retrieval"
+    authors: "Santhanam, Khattab, Potts & Zaharia"
+    year: 2022
+    url: "https://arxiv.org/abs/2205.09707"
+    note: "Serving late interaction at scale via centroid pruning and residual compression — the engineering this topic points to for the multi-vector ANN topic that follows; CIKM 2022"
+  - type: "paper"
+    title: "On the Theoretical Limitations of Embedding-Based Retrieval"
+    authors: "Weller, Boratko, Naim & Lee"
+    year: 2025
+    url: "https://arxiv.org/abs/2508.21038"
+    note: "The LIMIT result: the single-vector sign-rank ceiling this topic escapes, and the explicit statement that multi-vector models like ColBERT escape it empirically while a formal multi-vector bound is left open — the source of this topic's central rigorFlag; ICLR 2026"
+formalmlPrereqs:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "both escapes leave the rank world that topic defines: the single-vector ceiling is a statement about the rank and sign-rank of a bilinear score matrix, proved with the truncated-SVD machinery of Eckart-Young; MaxSim escapes precisely by not being a bilinear form (a max of inner products has no such rank), so the SVD topic is the rank framing this topic departs from to characterize what late interaction buys"
 ---
 
-import NamedSection from '../../components/ui/NamedSection.astro';
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import LateInteractionLaboratory from '../../components/viz/LateInteractionLaboratory.tsx';
 
-<NamedSection id="status" title="On the roadmap">
+## Overview & motivation
 
-This topic is part of the formalRAG curriculum and is **not yet published** — it is
-currently a stub so that links from neighboring topics resolve. See the
-[curriculum roadmap](/paths) for where it sits in the dependency graph.
+The [previous topic](/topics/embedding-dimension-lower-bounds) closed with a wall. A [dual encoder](/topics/dense-retrieval-dual-encoders) pools each text into a single vector and scores by an inner product, and the relevance patterns such a model can represent are bounded by the sign-rank of the relevance matrix — for combinatorial patterns, a dimension that grows faster than any fixed embedding can follow. That is a property of the **single pooled vector**, not of neural retrieval. This topic is about the two architectures that route around it.
 
-In the meantime, the published pilot topic
-[BM25 and the Binary Independence Model](/topics/bm25-binary-independence-model)
-demonstrates the three-pillar treatment this topic will receive.
+The first keeps the dense geometry but **drops the pooling**. Instead of one vector per document, late interaction (ColBERT) keeps one vector per *token*, and scores a query against a document by **MaxSim**: each query token finds its best-matching document token, and the matches are summed. The second keeps the lexical, inverted-index world of [BM25](/topics/bm25-binary-independence-model) but **learns the weights**. SPLADE expands each text into a high-dimensional *sparse* vector over the vocabulary, with neural term weights and expansions, scored by a sparse dot product. Both escape the single-vector ceiling, by different mechanisms — one by becoming a max of many inner products rather than one, the other by living in a space whose dimension is the vocabulary size — and the honesty of this topic is in being precise about what is proved (a clean reduction) and what is demonstrated (the escape itself).
 
-</NamedSection>
+<LateInteractionLaboratory client:visible />
+
+The first panel is the MaxSim grid: a query's tokens against a document's tokens, with each query token's best match highlighted, and the contrast to a single pooled vector. The second is the escape — the single-vector wall from the previous topic and the same all-pairs pattern realized by a two-vector MaxSim model at the same per-vector dimension. The third is SPLADE: a query's learned expansion into vocabulary terms it never mentioned, and the sparsity–quality trade-off the FLOPS regularizer controls.
+
+## Notation: tokens, MaxSim, and the sparse vocabulary
+
+A dual encoder maps a text to one vector. A **multi-vector** encoder maps a text to a *set* of vectors, one per token: a query $q$ becomes $\{q_1, \dots, q_{m_q}\} \subset \mathbb{R}^d$ and a document $d$ becomes $\{d_1, \dots, d_{m_d}\} \subset \mathbb{R}^d$. Late interaction scores the pair by
+
+$$
+S(q, d) \;=\; \sum_{i=1}^{m_q} \max_{1 \le j \le m_d} \langle q_i, d_j\rangle,
+$$
+
+the **MaxSim** operator: every query token contributes the similarity of its single best-matching document token. A learned sparse encoder instead maps a text to a vector $w \in \mathbb{R}^{|V|}_{\ge 0}$ over the vocabulary $V$, almost all of whose entries are zero, and scores by the ordinary dot product $\langle w_q, w_d\rangle$ — a weighted term-overlap, computed in an inverted index. Throughout, $\langle \cdot, \cdot\rangle$ is the inner product and $\|w\|_0 = |\{j : w_j \ne 0\}|$ counts the nonzero (active) entries.
+
+## Movement 1 — MaxSim, and the m = 1 collapse
+
+The first thing to establish is the bridge back to the dual encoder, because it is the one statement here we can prove exactly, and it pins MaxSim as a strict generalization of the score the previous topics used.
+
+<TheoremBlock type="theorem" number={1} title="MaxSim reduces to the dot product at one vector per item">
+
+If a query and a document each have a single token vector, $m_q = m_d = 1$, then $S(q, d) = \langle q_1, d_1\rangle$ — exactly the dual-encoder score of [DPR](/topics/dense-retrieval-dual-encoders).
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+With $m_d = 1$ the inner maximum is over a single index, so $\max_{1 \le j \le 1}\langle q_1, d_j\rangle = \langle q_1, d_1\rangle$. With $m_q = 1$ the outer sum has one term, $S(q,d) = \langle q_1, d_1\rangle$, which is the dual encoder's inner-product score. $\blacksquare$
+
+</TheoremBlock>
+
+The notebook makes this the load-bearing anchor: it builds a MaxSim score matrix with one vector per item and asserts it equals the *imported* DPR dot-product matrix to within floating-point error. Late interaction is therefore not a different kind of score; it is the dual encoder with the pooling step removed, and the pooling is exactly what the rank ceiling was about. The reason MaxSim escapes that ceiling is structural.
+
+<TheoremBlock type="proposition" number={1} title="MaxSim is a max of linear forms, not a bilinear form">
+
+For fixed document vectors, $S(q, d) = \sum_i \max_j \langle q_i, d_j\rangle$ is a sum of pointwise maxima of linear functions of the query tokens — a piecewise-linear, convex function of each $q_i$. It is **not** a bilinear form $q^\top W d$ in pooled vectors, so the rank-$\le d$ bound that constrains a dual encoder's score matrix does not apply to it.
+
+</TheoremBlock>
+
+The rank ceiling of the previous topics was a fact about matrices $S = Q G^\top$: a product through a $d$-dimensional bottleneck has rank at most $d$. MaxSim breaks the product. Each query token picks a *different* document token to match, so the score is a maximum over $m_d$ linear scorers, and a maximum of linear functions is not linear — it is the building block of piecewise-linear expressivity, the same primitive a one-hidden-layer max-network uses. The laboratory's first panel shows this concretely: three query tokens against four document tokens, each query token's maximum landing on a *distinct* document token (cosines $0.978$, $0.995$, $0.940$) for a MaxSim of $2.913$, where a single pooled document vector — the average of the four token vectors — scores $0$, because it cannot point at three different things at once.
+
+## Movement 2 — multi-vector escapes the single-vector wall
+
+Proposition 1 says MaxSim *can* exceed the rank ceiling. Whether it *does*, at a useful number of vectors, is a separate and harder question — and here we are careful, because the honest answer is that it is demonstrated, not proved.
+
+<TheoremBlock type="proposition" number={2} title="The multi-vector escape (demonstrated)">
+
+On the all-pairs relevance pattern of the [embedding-dimension topic](/topics/embedding-dimension-lower-bounds) — one query per document pair, relevant to both — a MaxSim model with two vectors per document realizes, at per-vector dimension $d = 4$, corpora that a single vector cannot. With free, perfectly optimized embeddings and the *same* optimizer for both, the single-vector model's row-order accuracy collapses past a critical corpus size ($1.0$ through $8$ documents, then $0.93$ at $10$ and $0.86$ at $12$) while the two-vector MaxSim model stays at $1.0$ throughout; its critical $n$ is at least $12$ against the single vector's $8$.
+
+</TheoremBlock>
+
+The comparison is deliberately a single cloud: the single-vector baseline is the *same* MaxSim optimizer run with one vector per item, so the gap is the effect of the extra vectors and not a difference between two pieces of code — the $m = 1$ case is, by Theorem 1, literally the dual encoder. We state this as a proposition about what the laboratory measures, not as a theorem, and the honest accounting below is blunt about why: there is **no known multi-vector sign-rank lower bound**. The paper that proved the single-vector ceiling explicitly leaves the multi-vector case open, and the critical-$n$ values here are best-case demonstrations on free embeddings, optimizer-dependent, not the true capacities. What is solid is the direction — more vectors per document lift the wall — and the mechanism, Proposition 1.
+
+The escape is not free, and the cost is storage. A single-vector index keeps one vector per document; late interaction keeps one per token, so at a representative $32$ tokens per document and a $128$-dimensional per-token embedding the index is $32\times$ larger — in the laboratory's figures, $128{,}000$ floats become $4{,}096{,}000$. ColBERTv2's residual compression and PLAID's centroid pruning, the subject of the multi-vector ANN topic that follows, are the engineering that makes this affordable; here it is the honest price of the expressivity.
+
+## Movement 3 — SPLADE, the lexical escape
+
+The other escape never enters the dense low-dimensional space at all. It goes the opposite way: into the vocabulary, a space of tens of thousands of dimensions, kept tractable by sparsity.
+
+<TheoremBlock type="definition" number={1} title="The SPLADE representation and the FLOPS regularizer">
+
+For input tokens $t_1, \dots, t_n$ and a model that produces a logit $\ell_{ij}$ for vocabulary term $j$ at position $i$, the SPLADE weight of term $j$ is
+
+$$
+w_j \;=\; \max_{1 \le i \le n} \log\!\big(1 + \mathrm{ReLU}(\ell_{ij})\big),
+$$
+
+a non-negative, log-saturated, max-pooled activation over the vocabulary. Sparsity is trained in by the **FLOPS regularizer** $\mathcal{L}_{\text{FLOPS}} = \sum_{j \in V} \bar{a}_j^{\,2}$, where $\bar{a}_j$ is the mean weight of term $j$ over a batch — the expected number of nonzero query–document term products, the quantity that sets the cost of an inverted-index traversal.
+
+</TheoremBlock>
+
+Two things distinguish this from BM25. The $\log(1 + \mathrm{ReLU}(\cdot))$ activation is a *learned* re-weighting: the model decides each term's importance from context, where BM25 reads it off corpus statistics. And the max over positions allows **expansion** — a term can receive weight even if it never appears in the text, because some input token activated its logit. Expansion is the cure for the disease BM25 cannot treat: **vocabulary mismatch**, when a query and a relevant document mean the same thing in different words. The laboratory's third panel makes it concrete on the finance corpus. The query *"borrowing costs"* shares **no term** with the on-point filing, which speaks of *interest*, *rate*, and *exposure*; BM25 scores that filing exactly $0$ and cannot rank it at all. SPLADE expands the query into $\{\text{interest}: 1.39,\ \text{rate}: 1.25,\ \text{exposure}: 0.92,\ \text{margin}: 0.69\}$ — every weight a learned expansion, none of them a literal query term — and retrieves the filing at rank one.
+
+Sparsity is the knob that makes this deployable, and it trades against quality. Raising the pruning threshold removes low-weight terms, so the active-term count and the FLOPS value both fall ($\|w\|_0$ from $100$ down to $79$ active entries across the corpus, FLOPS from $16.1$ to $12.0$ in the laboratory's sweep) — but past a point the bridging expansion terms themselves are pruned, and the vocabulary-mismatch fix breaks. That is the entire engineering tension of learned sparse retrieval: expand enough to bridge mismatches, stay sparse enough to keep the inverted index fast.
+
+## Serving at scale, and the relation to the rest of the track
+
+Both escapes have a serving story this topic only points at. A learned sparse query is a weighted term query, so SPLADE rides exactly the inverted index and the [dynamic-pruning](/topics/inverted-index-dynamic-pruning) machinery already built — the FLOPS regularizer is what keeps that traversal cheap. Late interaction needs a different engine: with many vectors per document, even the candidate-generation step is a multi-vector nearest-neighbor problem, solved by centroid pruning and residual compression (PLAID). That multi-vector ANN problem is its own topic; here it is enough to know the escape from the rank ceiling creates a new indexing problem the next topics solve.
+
+<TheoremBlock type="proposition" number={3} title="What the laboratory measures">
+
+The panels run on deterministic synthetic setups, not trained transformers. Panel A's token vectors are designed unit vectors; its MaxSim and pooled scores are exact. Panel B's escape curve and critical-$n$ values come from free-embedding optimization with the *same* optimizer for the single-vector ($m=1$) and MaxSim ($m=2$) models, reusing the all-pairs construction and the qrel loss of the embedding-dimension topic. Panel C's SPLADE weights come from a synthetic association matrix standing in for an MLM head, scored over BM25's actual finance-corpus vocabulary. Every measured number — the escape accuracies, the critical-$n$, the expansion weights, the sparsity trade-off — is owned by the companion notebook and mirrored here to the decimal; the laboratory recomputes only closed forms (the active-term counts and the MaxSim of the baked token vectors).
+
+</TheoremBlock>
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf"]}>
+
+The two escapes are the two answers to the two ways a single-vector financial retriever fails. The first failure is **combinatorial**, and the embedding-dimension topic measured it: analyst queries that ask for a *combination* of documents — *"issuers exposed to both rising rates and supply-chain disruption"* — induce relevance patterns whose sign-rank outruns any fixed embedding dimension, and a single pooled vector that perfectly answers single-company retrieval cannot answer them. Late interaction is the dense answer. Because each query token matches its own best document token, a query that names two distinct risk concepts can have one token land on the rate-exposure passage and another on the supply-chain passage of the *same* filing — a many-to-many match a single pooled vector, which must average both concepts into one direction, cannot make. The escape demonstrated on the all-pairs pattern is exactly this token-level conjunction.
+
+The second failure is **lexical mismatch**, and it is older than embeddings. A filing discloses *"net interest margin sensitivity"*; an analyst asks about *"borrowing costs"*. They are about the same risk, share no words, and BM25 — for all its calibration — scores their overlap at zero. SPLADE is the lexical answer: it expands the query into the filing's own vocabulary (*interest*, *rate*, *exposure*) and retrieves it, while staying in the inverted index the production system already runs, so the FLOPS regularizer keeps the expanded queries cheap enough to serve. A production retrieval stack over filings, transcripts, and analyst notes therefore tends to run *both* — a late-interaction dense leg for combinatorial semantic queries and a learned-sparse lexical leg for term-level precision and mismatch — fused into one ranking, because the single-vector retriever has exactly the two blind spots these two architectures were built to cover.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+One result here is proved and the headline is honestly empirical. MaxSim reducing to the dual-encoder dot product at one vector per item (Theorem 1) is exact, and MaxSim being a max of linear forms rather than a bilinear form (Proposition 1) — hence not bound by the rank ceiling — is immediate. But that the escape happens at a *small* number of vectors (Proposition 2) is a best-case demonstration by free-embedding optimization, not a theorem: there is no known multi-vector sign-rank lower bound, and the LIMIT paper that proved the single-vector ceiling explicitly defers the multi-vector case. The single-vector baseline is re-derived with the *same* optimizer as the MaxSim model, so the measured gap is the multi-vector effect and not a difference between optimizers — but the absolute critical-$n$ values are optimizer-dependent best cases, not true capacities. SPLADE's FLOPS regularizer is an empirically effective heuristic, not derived from a principle, and its relation to BM25 is conceptual — a learned re-weighting and expansion in the same lexical space — not a formal generalization. The token embeddings and the MLM logits driving SPLADE expansion are synthetic stand-ins built on the InfoNCE, DPR, and BM25 topics, not trained transformers, so the finance numbers are illustrations of the mechanisms, not benchmark results. And the expressivity of late interaction is bought with storage: one vector per token, $32\times$ a single-vector index in the laboratory's figures, which ColBERTv2 and PLAID mitigate but do not erase.
+
+</RigorFlag>
+
+Late interaction lifts the rank ceiling and, in doing so, creates a new problem: a document is now a *set* of vectors, and retrieving over many such sets at scale is a multi-vector nearest-neighbor problem that ordinary single-vector indexes do not solve. That problem — centroid pruning, residual compression, the PLAID engine — is where the track goes next, the indexing counterpart to the expressivity gain proved here. The cross-encoder, which this topic and DPR both kept invoking as the rank-free but un-precomputable extreme, is the other branch: where late interaction keeps the matching cheap by deferring it to a sum of token dot products, a cross-encoder pays a full joint forward pass for the most expressive score of all.
