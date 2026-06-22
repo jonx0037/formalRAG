@@ -1,0 +1,267 @@
+---
+title: "How Many Dimensions Does Relevance Need? Sign-Rank and Margin Complexity"
+subtitle: "Rank says how many dimensions suffice to fit the scores; sign-rank says how many dimensions relevance actually needs to get the order right — far fewer for benign patterns, unboundedly many for combinatorial qrels, and the reason a single-vector embedding has a ceiling no amount of training removes"
+status: "draft"
+difficulty: "advanced"
+prerequisites:
+  - "dense-retrieval-dual-encoders"
+tags:
+  - "sign-rank"
+  - "dimension-complexity"
+  - "margin-complexity"
+  - "embedding-dimension"
+  - "forster-bound"
+  - "communication-complexity"
+  - "limit-dataset"
+  - "expressivity-lower-bound"
+domain: "neural-retrieval"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+rigorFlag: "Two results are proved here in full; everything else is cited or measured, and the honesty is load-bearing. The signed-identity gap (full rank n, sign-rank at most 3) is proved both directions — the rank by eigenvalues, the sign-rank by a convex-position construction — and Forster's bound applied to a Hadamard matrix (sign-rank at least sqrt(N)) is proved from the orthogonality of its rows; Forster's general theorem itself is cited, not reproved. The 'rank <= d' framing inherited from DPR is OUR exposition (Eckart-Young governs approximation in rank, the wrong norm for a sign pattern); the LIMIT result states its bound in sign-rank directly. Sign-rank is the right measure but computing it is intractable — deciding sign-rank <= 3 is complete for the existential theory of the reals, the strict +/-1 case NP-hard — so we compute it only for tiny matrices and use Forster lower bounds elsewhere; many sign-rank lower bounds are existential, proving hard patterns exist without exhibiting one. Margin complexity and sign-rank are polynomially related with a log-N slack, NOT equal, and the exact margin complexity is a semidefinite program we describe but do not solve (we report achievable margins by projected gradient). The free-embedding critical n is an EMPIRICAL best-case optimization, not a closed-form theorem. The wall is specific to SINGLE-VECTOR dot-product retrieval; multi-vector late interaction, cross-encoders, and sparse lexical retrieval are not bound by it. All finance numbers are measured on the synthetic von Mises-Fisher cloud reused from the InfoNCE and DPR topics, not a trained encoder."
+videoId: null
+notebookPath: "notebooks/embedding-dimension-lower-bounds/01_embedding_dimension_lower_bounds.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/embedding-dimension-lower-bounds.mdx"
+datePublished: 2026-06-22
+estimatedReadTime: 30
+abstract: "DPR proved an upper bound: a d-dimensional dual encoder realizes exactly the relevance matrices of rank at most d. But rank is the wrong complexity for a relevance pattern, which is a sign pattern — relevant or not, the row-wise order, not the scores. This topic asks the tight question DPR deferred: how many dimensions does relevance actually need? The answer is the sign-rank, the smallest dimension in which the pattern is linearly realizable irrespective of magnitudes, and its robust cousin the margin complexity. We show rank and sign-rank are genuinely different — the signed identity has full rank n but sign-rank 3 — proving the gap both directions, and we prove a closed-form lower bound: Forster's spectral bound makes a Hadamard relevance pattern need at least sqrt(N) dimensions. We then connect to retrieval through the LIMIT theorem, which pins the minimum embedding dimension of a qrel matrix to the sign-rank of its signed form, and show by free, perfectly optimized embeddings that the largest realizable all-pairs corpus grows only polynomially in d — so at any fixed dimension some combinatorial relevance pattern is unrepresentable. A laboratory makes the rank/sign-rank gap, the Forster wall, and the free-embedding wall visible; a tested notebook owns every number; and the finance flip shows the embedding dimension that perfectly solves single-company retrieval failing combinatorial multi-company queries."
+connections:
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "DPR proved the upper bound this topic completes: a d-dimensional dual encoder realizes exactly the relevance matrices of rank at most d, with the truncated SVD the best approximation below that rank. That bound says how many dimensions SUFFICE for the real-valued scores; this topic supplies the tight LOWER bound — the sign-rank and margin complexity of how many dimensions the relevance PATTERN needs — and reuses DPR's finance matrix and its byte-for-byte in-batch loss anchor, so the two topics are the two halves of the dual encoder's expressivity story"
+  - topic: "pca-dimensionality-reduction"
+    relationship: "PCA reads Eckart-Young as the optimal low-rank approximation of a data matrix in Frobenius norm; this topic shows that exactly that norm is the wrong one for a relevance pattern, since a sign/threshold pattern can have a small Frobenius error while still flipping the order, so the truncated SVD that is optimal for PCA is not optimal for getting relevance signs right — the same theorem, now exhibited as a mismatch"
+  - topic: "mips-hardness-and-sublinearity-limits"
+    relationship: "MIPS hardness is a lower bound on the COST of exact inner-product search given the vectors; this topic is a lower bound on the DIMENSION of the vectors themselves, so the two are the curriculum's two impossibility results for single-vector retrieval — one says exact search cannot be made truly sublinear, the other says a fixed dimension cannot represent every relevance pattern, and both are reasons production retrieval approximates and combines architectures"
+  - topic: "infonce-contrastive-objective"
+    relationship: "InfoNCE is a soft-margin objective, so the quantity it actually optimizes is not the bare sign pattern but the margin with which queries separate their relevant documents; margin complexity, the robust cousin of sign-rank developed here, is therefore the capacity measure most faithful to a contrastively trained encoder, making this topic the expressivity counterpart to InfoNCE's training story"
+  - topic: "late-interaction-learned-sparse"
+    relationship: "late interaction is the architectural escape from the single-vector ceiling this topic proves: replacing one pooled dot product with a token-level MaxSim over many vectors per document lifts the relevance matrix out of the sign-rank bound that limits a single embedding, so the wall proved here is precisely the motivation for the multi-vector architecture that follows"
+references:
+  - type: "paper"
+    title: "On the Theoretical Limitations of Embedding-Based Retrieval"
+    authors: "Weller, Boratko, Naim & Lee"
+    year: 2025
+    url: "https://arxiv.org/abs/2508.21038"
+    note: "The LIMIT result: the minimum embedding dimension to realize a binary qrel matrix equals the sign-rank of its signed form up to one, and even free, perfectly optimized embeddings hit a polynomial wall in the all-pairs construction; the source of the retrieval-specific framing and the LIMIT dataset, accepted at ICLR 2026"
+  - type: "paper"
+    title: "A linear lower bound on the unbounded error probabilistic communication complexity"
+    authors: "Forster"
+    year: 2002
+    url: "https://doi.org/10.1016/S0022-0000(02)00019-3"
+    note: "Forster's spectral lower bound on sign-rank, sign-rank(M) >= sqrt(mn) / ||M||, the first linear lower bound on unbounded-error communication complexity; the closed-form lower bound this topic proves for Hadamard patterns; the DOI resolves to the Journal of Computer and System Sciences 65(4)"
+  - type: "paper"
+    title: "Probabilistic communication complexity"
+    authors: "Paturi & Simon"
+    year: 1986
+    url: "https://doi.org/10.1016/0022-0000(86)90046-2"
+    note: "The identity that the unbounded-error randomized communication complexity of a sign matrix equals log of its sign-rank up to an additive constant, the bridge that recasts the embedding-dimension lower bound as a communication lower bound; the DOI resolves to the Journal of Computer and System Sciences 33(1)"
+  - type: "paper"
+    title: "Complexity measures of sign matrices"
+    authors: "Linial, Mendelson, Schechtman & Shraibman"
+    year: 2007
+    url: "https://doi.org/10.1007/s00493-007-2160-5"
+    note: "Margin complexity, the gamma_2 norm and its semidefinite characterization, and the inequality chain relating margin complexity to sign-rank with a logarithmic slack; the source for the margin-complexity movement; the DOI resolves to Combinatorica 27(4)"
+  - type: "paper"
+    title: "Sign rank versus VC dimension"
+    authors: "Alon, Moran & Yehudayoff"
+    year: 2017
+    url: "https://arxiv.org/abs/1503.07648"
+    note: "The separation between sign-rank and VC dimension — sign matrices of bounded VC dimension whose sign-rank is nonetheless large — the precise statement of why a low-complexity concept class can still demand a high embedding dimension, cited for the sign-rank versus VC-dimension connection"
+  - type: "paper"
+    title: "The sign-rank of AC^0"
+    authors: "Razborov & Sherstov"
+    year: 2010
+    url: "https://doi.org/10.1137/080744037"
+    note: "The first exponential sign-rank lower bound for an explicit (AC^0) sign matrix, the constructive frontier behind the rigor flag that most sign-rank lower bounds are existential; the DOI resolves to the SIAM Journal on Computing 39(5)"
+formalmlPrereqs:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the rank world this topic departs from is the Eckart-Young-Mirsky theorem proved in that topic: the truncated SVD is the optimal rank-d approximation in Frobenius norm, the upper bound DPR built on. Here we show that exact theorem optimizes the wrong norm for a relevance sign pattern, so the SVD topic supplies the precise object — best rank-d approximation — whose mismatch with sign-recovery is the conceptual pivot of this topic"
+  - topic: "vc-dimension"
+    site: "formalml"
+    relationship: "sign-rank and VC dimension are two complexity measures of a sign pattern that can diverge sharply: there exist classes of bounded VC dimension whose sign-rank is large, so a concept class that is easy to learn in the sample-complexity sense can still require a high embedding dimension. That topic develops VC dimension as the combinatorial capacity of a hypothesis class; this topic places sign-rank beside it as the geometric capacity, and the gap between them is why low learning complexity does not imply low embedding dimension"
+formalmlConnections:
+  - topic: "generalization-bounds"
+    site: "formalml"
+    relationship: "margin complexity is one over the best margin with which a sign pattern separates, and margin is exactly the quantity the margin-based generalization bounds of that topic turn into sample-complexity guarantees; so the robust capacity measure this topic uses to ask how many dimensions relevance needs is the same margin that topic uses to bound how many examples a classifier needs, two readings of one geometric gap"
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "that topic characterizes the geometry an InfoNCE-optimal encoder converges to; the sign-rank ceiling here is the algebraic limit on what any single-vector representation of that kind can encode, so it bounds the relevance patterns the learned representation geometry can realize at all — the lower-bound shadow of the representation story"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import EmbeddingDimensionLaboratory from '../../components/viz/EmbeddingDimensionLaboratory.tsx';
+
+## Overview & motivation
+
+[Dense retrieval](/topics/dense-retrieval-dual-encoders) left us with a clean upper bound. Stack the scores of every query against every document into a relevance matrix; a $d$-dimensional dual encoder can realize any such matrix of rank at most $d$, and below that rank the truncated SVD — Eckart–Young — is the best it can do. That theorem answers *how many dimensions suffice to reproduce the scores*. It is not the question a retrieval engineer actually has, which is sharper and more practical: how many dimensions does **relevance** need — not to match the real-valued scores, but to get the *order* right, to put every relevant document above every irrelevant one?
+
+These are different questions, and the gap between them is the whole subject of this topic. Relevance is a **sign pattern**: for each query, a partition of the corpus into relevant and not. What a single-vector retriever must reproduce is that pattern of signs, and the smallest dimension in which a pattern of signs is linearly realizable is its **sign-rank**, not its rank. The two can be wildly different. We will see a relevance pattern of full rank $n$ whose sign-rank is $3$ — most of the rank is wasted on magnitudes the ranking never uses — and, going the other way, patterns whose sign-rank is forced upward without bound, so that no fixed embedding dimension can represent them at all. The second kind is not a pathology: it is what *combinatorial* relevance looks like, the queries a real analyst asks, and it is the reason a single-vector embedding has a ceiling that no amount of training, data, or scale removes.
+
+<EmbeddingDimensionLaboratory client:visible />
+
+The first panel is the rank/sign-rank gap: a full-rank relevance pattern whose signs are reproduced by a model of much lower rank, with the achievable margin appearing only once the dimension clears the sign-rank. The second is a closed-form wall — Forster's spectral lower bound forcing a Hadamard relevance pattern to need at least $\sqrt{N}$ dimensions. The third is the retrieval wall: the largest corpus whose all-pairs relevance pattern a $d$-dimensional model can realize, even with perfect embeddings, growing only polynomially in $d$.
+
+## Notation: relevance as a sign pattern
+
+Fix $m$ queries and $n$ documents. A **qrel matrix** $A \in \{0,1\}^{m \times n}$ records relevance: $A_{ij} = 1$ when document $j$ is relevant to query $i$. Its signed form is $M = 2A - \mathbf{1} \in \{-1, +1\}^{m \times n}$, with $+1$ for relevant and $-1$ for not. A single-vector retriever realizes this pattern if it can place query embeddings $x_i$ and document embeddings $y_j$ in some $\mathbb{R}^d$ so that, within each query's row, every relevant document outscores every irrelevant one — equivalently, so that the score matrix $B = X Y^\top$ has the right signs against a per-row threshold. Absorbing the threshold into an extra constant coordinate, the clean object is the **sign-rank**.
+
+<TheoremBlock type="definition" number={1} title="Sign-rank (dimension complexity)">
+
+For a sign matrix $M \in \{-1, +1\}^{m \times n}$, the **sign-rank** is
+
+$$
+\operatorname{rank}_\pm(M) \;=\; \min\big\{ \operatorname{rank}(B) \;:\; B \in \mathbb{R}^{m \times n},\ \operatorname{sign}(B_{ij}) = M_{ij}\ \text{for all } i,j \big\}.
+$$
+
+It is the smallest inner dimension $d$ in which the pattern $M$ is linearly realizable as $\operatorname{sign}(X Y^\top)$ with $X \in \mathbb{R}^{m \times d}$, $Y \in \mathbb{R}^{n \times d}$ — the dimension the relevance *pattern* needs, with the score *magnitudes* free.
+
+</TheoremBlock>
+
+Throughout, $\|M\|_2$ is the spectral norm (largest singular value) and $\operatorname{rank}(M)$ the ordinary rank. The contrast in one line: rank constrains the matrix of scores; sign-rank constrains only their signs, so it is never larger than the rank — a matrix realizes its own signs at $d = \operatorname{rank}(M)$ — and is usually strictly smaller.
+
+## Movement 1 — rank is the wrong complexity ⇒ sign-rank
+
+The cleanest way to see that rank and sign-rank are different measures is a single pattern on which they disagree maximally.
+
+<TheoremBlock type="theorem" number={1} title="The signed identity: full rank, sign-rank three">
+
+Let $M = 2 I_n - J_n \in \{-1,+1\}^{n \times n}$ be the **signed identity**: $+1$ on the diagonal, $-1$ off it. Then for every $n \ge 3$, $\operatorname{rank}(M) = n$ while $\operatorname{rank}_\pm(M) \le 3$. The relevance pattern "each query's own document, and no other" therefore needs only three dimensions, however many documents there are.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+*Rank.* $J_n$, the all-ones matrix, has eigenvalues $n$ (once) and $0$ (with multiplicity $n-1$), so $M = 2 I_n - J_n$ has eigenvalues $2 - n$ (once) and $2$ (with multiplicity $n-1$). For $n \ge 3$ both values are nonzero, so all $n$ eigenvalues are nonzero and $\operatorname{rank}(M) = n$.
+
+*Sign-rank.* We exhibit a rank-$3$ realization geometrically. Place the $n$ queries at points $p_1, \dots, p_n \in \mathbb{R}^2$ in strictly convex position — the vertices of a regular $n$-gon. Each $p_j$ is then a vertex of the convex hull, so there is a line $\ell_j$ with $p_j$ strictly on its positive side and every other $p_i$ strictly on its negative side; write $\ell_j$ as $\{z : \langle a_j, z\rangle + b_j = 0\}$ with $\langle a_j, p_i\rangle + b_j > 0 \iff i = j$. Lift each query to $x_i = (p_i, 1) \in \mathbb{R}^3$ and each document to $y_j = (a_j, b_j) \in \mathbb{R}^3$. Then
+
+$$
+(X Y^\top)_{ij} \;=\; \langle x_i, y_j\rangle \;=\; \langle a_j, p_i\rangle + b_j,
+$$
+
+which is positive exactly when $i = j$ and negative otherwise — precisely $\operatorname{sign}(X Y^\top) = M$. Since $X \in \mathbb{R}^{n \times 3}$ and $Y \in \mathbb{R}^{n \times 3}$, the realizing matrix has rank at most $3$, so $\operatorname{rank}_\pm(M) \le 3$. $\blacksquare$
+
+</TheoremBlock>
+
+The proof is the whole intuition. Rank counts independent directions in the *scores*; sign-rank counts the dimensions the *geometry* needs to separate each point from the rest, and $n$ points in convex position separate with a two-dimensional picture plus one affine coordinate. The notebook confirms it numerically: for the $4 \times 4$ signed identity it finds an explicit rank-$3$ matrix matching all sixteen signs and fails to find any rank-$2$ one (the sign-rank is in fact exactly $3$, a classical value we cite rather than belabor). The laboratory's first panel shows the same gap as a margin: the pattern is unrealizable below three dimensions — the achievable margin is zero — and at $d = 3$ a positive margin appears, widening as $d$ grows.
+
+This already overturns the reflex that "more relevance structure means more dimensions." A relevance matrix can be full rank and yet, as a pattern, demand only a constant dimension. The sign-rank, not the rank, is the honest answer to *how many dimensions relevance needs* — and the rest of the topic is about when that answer is small, when it is provably large, and what it means for retrieval.
+
+## Movement 2 — a closed-form lower bound: Forster on Hadamard
+
+The signed identity is the easy direction: a pattern that *looks* expensive but is cheap. The hard and more consequential direction is a pattern that is genuinely expensive — one whose sign-rank we can lower-bound by a closed form, with no optimization and no guessing. The tool is a spectral inequality of Forster.
+
+<TheoremBlock type="theorem" number={2} title="Forster's spectral lower bound (cited)">
+
+For every sign matrix $M \in \{-1, +1\}^{m \times n}$,
+
+$$
+\operatorname{rank}_\pm(M) \;\ge\; \frac{\sqrt{m\,n}}{\|M\|_2}.
+$$
+
+A small spectral norm forces a large sign-rank: a pattern whose energy is spread evenly across all singular directions cannot be realized in few dimensions.
+
+</TheoremBlock>
+
+Forster's theorem is proved by a balancing argument — every sign matrix admits a realization whose query and document points are in near-isotropic position, and isotropy plus the unit-modulus entries bound the spectral norm from below in terms of the dimension. The argument is delicate and we cite it. What we *do* prove is its sharpest consequence, on the matrix that saturates it.
+
+<TheoremBlock type="theorem" number={3} title="Hadamard patterns need √N dimensions">
+
+Let $H \in \{-1, +1\}^{N \times N}$ be a Hadamard matrix (orthogonal rows, $H H^\top = N I$). Then $\|H\|_2 = \sqrt{N}$ and therefore
+
+$$
+\operatorname{rank}_\pm(H) \;\ge\; \frac{\sqrt{N \cdot N}}{\sqrt{N}} \;=\; \sqrt{N}.
+$$
+
+A relevance pattern shaped like $H$ provably needs at least $\sqrt{N}$ dimensions, with no appeal to optimization.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+The rows of $H$ are orthogonal and each has squared norm $N$, so $H H^\top = N I_N$. Hence every eigenvalue of $H H^\top$ equals $N$, every singular value of $H$ equals $\sqrt{N}$, and in particular $\|H\|_2 = \sqrt{N}$. Substituting $m = n = N$ and $\|H\|_2 = \sqrt{N}$ into Forster's bound gives $\operatorname{rank}_\pm(H) \ge N / \sqrt{N} = \sqrt{N}$. $\blacksquare$
+
+</TheoremBlock>
+
+This is the first genuinely *negative* result of the curriculum's expressivity track: an explicit family of relevance patterns whose required dimension grows without bound, $\sqrt{N}$ at $N$ documents, provably, in closed form. The laboratory's second panel walks the Sylvester–Hadamard matrices $N = 2, 4, 8, 16$ and shows the bound $\sqrt{N}$ rising; the notebook corroborates it from the other side, failing to realize $H_{16}$ in three dimensions when the bound says four are required. Where the signed identity showed sign-rank far *below* the rank, Hadamard shows it can be a hard floor — and crucially, a floor we can certify without solving an intractable problem.
+
+### Eckart–Young is the wrong norm
+
+It is worth saying precisely why DPR's rank story does not already answer this. The truncated SVD is optimal for the **Frobenius** norm: $M_d = \arg\min_{\operatorname{rank} B \le d} \|M - B\|_F$. But Frobenius error weights large-magnitude entries, and a relevance pattern cares only about signs against a per-row threshold. A rank-$d$ approximation can have small Frobenius error and still flip the signs of the small entries that decide a close ranking; conversely the signs can be entirely correct at a rank where the Frobenius error is still large. The notebook makes this concrete on the signed identity: the Frobenius-optimal rank-$3$ truncation does *not* reproduce every sign, while a rank-$3$ realization built for the signs does. Approximating in rank and realizing a sign pattern are different objectives, and the SVD solves the first. This is the load-bearing reason sign-rank, not rank, is the relevant complexity — and it is `rigorFlag` territory, because the "rank $\le d$" framing we inherited is exposition, not the tight measure.
+
+## Movement 3 — margin complexity: the dimension for a usable gap
+
+Sign-rank is honest but austere: it asks only that the signs come out right, allowing scores to sit arbitrarily close to the threshold. A retriever trained by a contrastive (soft-margin) loss does not get to live on that knife edge — it needs a *gap*, a margin by which relevant beats irrelevant, or noise and finite samples will flip the order. The capacity measure that respects this is the **margin complexity**.
+
+<TheoremBlock type="definition" number={2} title="Margin complexity">
+
+For a realization $\operatorname{sign}(X Y^\top) = M$, its margin is $\min_{ij} M_{ij}\langle x_i, y_j\rangle / (\|x_i\|\,\|y_j\|)$, the smallest normalized gap by which any entry has the correct sign. Writing $\mathrm{m}(M)$ for the largest margin over all realizations in any dimension, the **margin complexity** is $\mathrm{mc}(M) = 1/\mathrm{m}(M)$.
+
+</TheoremBlock>
+
+Margin complexity and sign-rank are close relatives but not the same number. Linial, Mendelson, Schechtman, and Shraibman tie them together through the $\gamma_2$ norm — a quantity with a semidefinite-programming characterization, hence *computable*, unlike sign-rank itself — by the inequalities $\mathrm{mc}(M) \le \gamma_2(M)$ and $\operatorname{rank}_\pm(M) \le O(\mathrm{mc}(M)^2 \log N)$. The direction that matters for retrieval is the second read backward: a *large* margin (small $\mathrm{mc}$) forces a *small* sign-rank, but a small sign-rank does **not** promise a usable margin — a pattern can be realizable in few dimensions only by hugging the threshold. For a model that must generalize from finite data, margin complexity is therefore the more faithful measure of how many dimensions relevance needs, and it is never smaller than the sign-rank story suggests.
+
+The laboratory's first panel shows exactly this shape on the signed identity: zero margin below the sign-rank (no correct realization exists), then a positive margin at $d = 3$ that *grows* as $d$ increases. More dimensions do not just make the pattern realizable; they make it robustly so. We report the achievable margins found by projected gradient — an honest lower bound on the best margin at each dimension — and leave the exact $\gamma_2$ value as the semidefinite program it is, described but not solved.
+
+## Movement 4 — the retrieval theorem and the free-embedding wall
+
+The abstract story becomes a statement about retrieval through a recent result of Weller, Boratko, Naim, and Lee — the *LIMIT* paper — which pins the embedding dimension a qrel matrix demands directly to its sign-rank.
+
+<TheoremBlock type="theorem" number={4} title="The qrel dimension is the sign-rank (cited)">
+
+For a binary qrel matrix $A \in \{0,1\}^{m \times n}$, let $d^\star(A)$ be the smallest embedding dimension in which a single-vector model can rank, within every query's row, all relevant documents above all irrelevant ones. Then
+
+$$
+\operatorname{rank}_\pm(2A - \mathbf{1}) - 1 \;\le\; d^\star(A) \;\le\; \operatorname{rank}_\pm(2A - \mathbf{1}).
+$$
+
+The minimum embedding dimension of a relevance pattern is its sign-rank, up to one.
+
+</TheoremBlock>
+
+The sandwich turns every sign-rank fact into a retrieval fact. Forster's Hadamard bound becomes: a qrel whose signed form is Hadamard cannot be realized below $\sqrt{N}$ dimensions, period. And it lets us *measure* the wall on a concrete construction. Take the **all-pairs** qrel: $n$ documents, one query for every unordered pair $\{i,j\}$, relevant to exactly documents $i$ and $j$. This is the densest top-$2$ pattern, and the experiment that isolates the architecture from every confound is to optimize the embeddings **freely** — drop the encoder, drop the training data, let $X$ and $Y$ be unconstrained parameters fit directly to the qrel — and find the largest document count a given dimension can realize.
+
+<TheoremBlock type="proposition" number={1} title="The free-embedding wall (measured)">
+
+Let the **critical $n$** at dimension $d$ be the largest $n$ whose all-pairs qrel is realizable by free embeddings in $\mathbb{R}^d$. The notebook measures it growing slowly with $d$ — on its grid, $4, 4, 6, 12, 16$ at $d = 2, 3, 4, 5, 6$ — and confirms that beyond the critical $n$ the best achievable row-order accuracy drops below one. Even with *perfect*, freely optimized embeddings, each dimension admits only a bounded combinatorial corpus.
+
+</TheoremBlock>
+
+This is the practical face of the sign-rank ceiling. The all-pairs pattern over many documents has a sign-rank that climbs faster than any fixed $d$ can follow, so at a chosen embedding dimension there is always a corpus size past which some combination of relevant documents is simply unrepresentable — not poorly trained, *unrepresentable*. The LIMIT authors extrapolate the same growth to the dimensions production systems use and find the critical corpus, even for an idealized embedder, lands well below web scale. The wall is real, it is best-case, and it is the property of a single vector per document; we return to the escape below.
+
+## The communication-complexity bridge
+
+One last reframing explains why the limit is fundamental rather than an artifact of how we fit embeddings. Sign-rank is not only a geometric quantity — it is an *information* quantity. Paturi and Simon proved that the unbounded-error randomized communication complexity of a sign matrix $M$ — the number of bits two parties, holding the row and the column respectively, must exchange to decide $M_{ij}$ with *any* advantage over a coin flip — equals $\log_2 \operatorname{rank}_\pm(M)$ up to an additive constant. The embedding dimension a relevance pattern needs is, up to a logarithm, the number of bits its relevance decision contains. A pattern that needs many dimensions needs them because its relevance is genuinely information-rich, not because the optimizer was weak — which is why no amount of training removes the wall.
+
+<TheoremBlock type="proposition" number={2} title="What the laboratory measures">
+
+The three panels run on deterministic synthetic setups, not a trained transformer. Panel A is the signed identity, its rank and a found rank-$3$ realization, with the achievable margin by dimension. Panel B is the Sylvester–Hadamard family with $\|H\|_2 = \sqrt{N}$ and the Forster bound $\sqrt{N}$, both closed form. Panel C is the free-embedding critical-$n$ curve on the all-pairs construction, with the finance flip beside it. Every measured number — the realization, the margins, the critical-$n$ values, the flip — is owned by the companion notebook and mirrored here to the decimal; the laboratory recomputes only closed forms, the Forster bound $\sqrt{N}$ and the all-pairs query count $\binom{n}{2}$.
+
+</TheoremBlock>
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf"]}>
+
+A production retrieval system over financial filings, earnings calls, and analyst notes embeds every passage as one vector and answers a query by inner-product search — and its embedding dimension is a representational budget the sign-rank theory prices exactly. The previous topic's task is the benign case. "Find this company's filings" is a low-sign-rank pattern: queries cluster by issuer and sector, each relevant set is small and *aligned* with the geometry, and a modest dimension separates it cleanly. On DPR's synthetic finance corpus — four sectors, two companies each, one document per company — single-company retrieval recovers full recall@1 at embedding dimension $d = 6$, comfortably below the rank-$8$ ceiling. So far the dimension budget is generous.
+
+Now ask the questions analysts actually ask. "Which issuers are exposed to *both* rising rates *and* supply-chain disruption?" "Find filings that discuss *both* the pension shortfall *and* the buyback." These are **combinatorial** relevance patterns: each query is relevant to a *combination* of documents, and as the combinations multiply the qrel's signed form approaches the all-pairs construction whose sign-rank climbs without bound. The flip is stark and the notebook measures it: build the all-pairs combinatorial qrel over a larger but comparable corpus of $24$ companies, and the embedding dimension that *perfectly* solved single-company retrieval — $d = 6$ — can no longer realize it. Row-order accuracy stalls below one; the pattern is realized only at a strictly larger dimension. The same budget that was generous for simple relevance is *insufficient* for combinatorial relevance, on the same kind of corpus.
+
+The engineering lesson is that the embedding dimension is not a free knob to be raised at will — the wall climbs faster than you can pay for it — so the architecture must change. A multi-vector late-interaction retriever escapes the single-vector sign-rank bound by scoring many vectors per document; a sparse lexical leg ([BM25](/topics/bm25-binary-independence-model)) answers the conjunctive "both X and Y" queries that single-vector dense retrieval is provably bad at; and a reranker can fix the residual order on a short candidate list. The production system is multi-architecture not by fashion but because a single embedding has a ceiling this topic proves, and the combinatorial queries that matter most in finance are exactly the ones that hit it.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+Two results here are proved in full and the rest is cited or measured. The signed-identity gap is proved both directions — the rank by an eigenvalue computation, the sign-rank $\le 3$ by a convex-position construction — and Forster's bound applied to a Hadamard matrix is proved from the orthogonality of its rows; Forster's *general* theorem, the balancing argument behind $\operatorname{rank}_\pm(M) \ge \sqrt{mn}/\|M\|_2$, is cited, not reproved, as is the LIMIT sandwich pinning the qrel dimension to the sign-rank. The "rank $\le d$" framing inherited from DPR is our exposition: Eckart–Young governs approximation in rank, the wrong norm for a sign pattern, which is exactly the mismatch Movement 2 exhibits. Sign-rank is the right measure but it is intractable to compute — deciding $\operatorname{rank}_\pm \le 3$ is complete for the existential theory of the reals, and the strict $\pm 1$ case is NP-hard — so we compute it exactly only for tiny matrices and otherwise rely on Forster lower bounds; many sign-rank lower bounds are existential, proving that hard patterns exist without exhibiting one, with Razborov–Sherstov's $\mathrm{AC}^0$ bound the explicit-construction frontier. Margin complexity and sign-rank are polynomially related with a $\log N$ slack, *not* equal, and the exact margin complexity is a semidefinite program we describe but do not solve — the laboratory reports achievable margins found by projected gradient, an honest lower bound on the best margin at each dimension. The free-embedding critical $n$ is an empirical best-case optimization, not a closed-form theorem; it shows the wall by demonstration where Forster-on-Hadamard proves a wall in closed form. The ceiling is specific to single-vector dot-product retrieval: multi-vector late interaction, cross-encoders, and sparse lexical retrieval are not bound by it. And every finance number is measured on the synthetic von Mises–Fisher cloud reused from the InfoNCE and DPR topics, not a trained encoder.
+
+</RigorFlag>
+
+The dimension lower bound is the deepest impossibility result in the dense-retrieval track, and it points directly at the architectures that route around it. **Late interaction** replaces a single pooled vector with a token-level comparison, lifting the relevance matrix out of the sign-rank bound proved here — the explicit escape, and the next topic in this track. **Cross-encoders**, which DPR kept invoking as the rank-free counterpoint, pay a quadratic cost to fuse query and document and so are not factorizations at all. And the [evaluation track](/topics/the-retrieval-problem) measures *where* the wall bites: the metrics that follow are how you detect, on real qrels, that a single embedding has run out of dimensions.
