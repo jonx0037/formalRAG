@@ -62,7 +62,6 @@ export const tracks = [
       'Learned representations for retrieval, defined by training objectives and expressivity claims: InfoNCE contrastive training, dense dual encoders, late interaction and learned sparse, cross-encoders, distillation, and cross-modal alignment.',
     planned: [
       'Hard-Negative Mining and Debiased Contrastive Training (ANCE)',
-      'How Many Dimensions Does Relevance Need? Sign-Rank and Margin Complexity',
       'Late Interaction and Learned Sparse Retrieval: ColBERT and SPLADE',
       'Cross-Encoders and the Reranking Cascade',
       'Knowledge Distillation for Retrieval: Teacher–Student Transfer (MarginMSE)',
