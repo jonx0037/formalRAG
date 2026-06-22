@@ -297,7 +297,7 @@
     {
       "id": "capstone-multimodal-financial-rag",
       "label": "Capstone: Architecture and Mathematics of a Production Multimodal Financial RAG System",
-      "status": "planned",
+      "status": "published",
       "domain": "rag-information-theory"
     }
   ],
@@ -611,10 +611,6 @@
       "target": "graphrag-community-detection"
     },
     {
-      "source": "graphrag-community-detection",
-      "target": "capstone-multimodal-financial-rag"
-    },
-    {
       "source": "rank-fusion-rrf",
       "target": "capstone-multimodal-financial-rag"
     },
@@ -623,27 +619,15 @@
       "target": "capstone-multimodal-financial-rag"
     },
     {
-      "source": "conformal-factuality",
-      "target": "capstone-multimodal-financial-rag"
-    },
-    {
-      "source": "context-selection-submodular-dpp",
-      "target": "capstone-multimodal-financial-rag"
-    },
-    {
       "source": "hnsw",
       "target": "capstone-multimodal-financial-rag"
     },
     {
-      "source": "cross-modal-alignment",
-      "target": "capstone-multimodal-financial-rag"
-    },
-    {
-      "source": "retrieval-distillation",
-      "target": "capstone-multimodal-financial-rag"
-    },
-    {
       "source": "filtered-incremental-ann",
+      "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "multi-vector-ann-retrieval",
       "target": "capstone-multimodal-financial-rag"
     }
   ]

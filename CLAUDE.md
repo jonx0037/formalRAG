@@ -217,6 +217,34 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   late-interaction lab — NOT the small retrieval toy's params (which give a confusing <1× artifact). For
   a K-slider viz, bake only the per-K **centroids** (k-means isn't a closed form) and recompute the
   grid/error/bound in TS from them.
+  Its **capstone successor** (`capstone-multimodal-financial-rag`): a SYNTHESIS topic — its novelty is
+  **composition, not a new primitive** (imports BM25, dense, MaxSim/PLAID, IVF, PQ, RRF, the over-fetch
+  law; reimplements none). Its declared graph prereqs included **5 UNBUILT upper-layer nodes** (graphrag,
+  conformal-factuality, context-selection-DPP, cross-modal-alignment, retrieval-distillation); scope to
+  the **published** stack, re-point the edges to published nodes, and **name-not-link** the
+  generation/grounding/eval layer. **Fusion gain is structurally impossible if the legs are a quality
+  ladder** — three monotone approximations of ONE scalar truth (pooled-cosine < centroid-MaxSim < …) make
+  the best leg dominate and fusion only adds noise (gain < 0). Make each leg a **partial VIEW** (disjoint
+  token windows: lexical/dense/late-interaction see different tokens) so each recalls neighbors the others
+  miss — the real multimodal story, and the only thing that gives RRF something to recombine. **The
+  dominated-leg flip needs CO-ENDORSEMENT:** under RRF `c=60` a lone top vote (`1/61≈0.0164`) is weaker
+  than two mid votes (`~2/63≈0.031`), so the naive "one noisy leg drowns the good one" instance does NOT
+  flip — the false positive must be ranked decently by BOTH legs. Build+RUN it; the obvious counterexample
+  is false. **Cascade FKG direction:** positive stage dependence ⇒ the independent product `∏rᵢ` is a
+  conservative **LOWER** bound on true recall (not upper — correlated failures pile onto already-hard
+  queries, losing fewer DISTINCT docs); verify with a bivariate-normal survival copula across BOTH signs,
+  and use **illustrative middling retentions** (0.6, 0.5) for the demo — the MEASURED `r₁≈1` leaves no room
+  for FKG to bite (vacuous ±0.001 gaps). The over-fetch `1/∏rᵢ` is the **algebraic reciprocal** of the
+  composite retention (one neg-binomial on `∏rᵢ`), NOT a product of L physical scan-counts. **Water-filling
+  needs real per-doc COST ASYMMETRY** (lexical 4 : dense 16 : late-interaction 256 comps) or uniform is
+  already optimal and WF==uniform (vacuous); but cost-asymmetry + a saturating curve pushes cheap legs to
+  the depth ceiling — **drop the retention=1 grid point** so capped channels sit ABOVE the water level
+  (clean KKT, marginals level). The "no equal-marginal without the log" claim is **FALSE**: `∂R/∂cᵢ =
+  gᵢ'·(R/gᵢ)` shares the common `R` that cancels; the log buys **separability + a global optimum**, not the
+  existence of equal-marginal. Ground truth = MaxSim `brute_topk` (NEUTRAL: no candidate-gen leg is the
+  oracle, so the legs complement and the full-budget collapse reaches recall 1.0). DOI gotcha: cascade
+  ranking (Wang/Lin/Metzler, SIGIR 2011) is **`10.1145/2009916.2009934`** (the `…2010022` variant 404s);
+  RRF is Cormack et al. SIGIR 2009 `10.1145/1571941.1572114`.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
