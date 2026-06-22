@@ -72,7 +72,7 @@ import sys
 from itertools import combinations
 
 import numpy as np
-from scipy.linalg import svd as scipy_svd
+from scipy.special import expit
 
 # Established cross-topic pattern: add EACH ancestor's HYPHENATED dir to the path, import the
 # UNDERSCORED module. The direct prerequisite is the dual encoder (DPR); but DPR's grand-prereqs
@@ -85,7 +85,6 @@ for _dir in ("hypersphere-vmf-geometry", "the-retrieval-problem",
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from hypersphere_vmf_geometry import normalize, sample_vmf            # noqa: E402
 from infonce_contrastive_objective import info_nce_loss_batch         # noqa: E402
 from dense_retrieval_dual_encoders import (                           # noqa: E402
     dpr_finance_matrix,
@@ -131,8 +130,8 @@ def _sign_realize_grad(X: np.ndarray, Y: np.ndarray, M: np.ndarray, margin0: flo
     (loss, gX, gY) with B re-used by the caller."""
     B = X @ Y.T
     z = margin0 - M * B                          # want z < 0 everywhere
-    # softplus(z) = log(1 + e^z); d/dB = -M (.) sigmoid(z) / (mn).
-    sig = 1.0 / (1.0 + np.exp(-z))
+    # softplus(z) = log(1 + e^z); d/dB = -M (.) sigmoid(z) / (mn). expit is the stable sigmoid.
+    sig = expit(z)
     loss = float(np.mean(np.logaddexp(0.0, z)))
     dB = -(M * sig) / M.size
     return loss, dB @ Y, dB.T @ X
