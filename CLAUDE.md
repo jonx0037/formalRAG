@@ -180,7 +180,7 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   owns the numbers. Reuse the prereq's **loss** as a byte-for-byte anchor (`inbatch_loss_via_gram` ==
   imported `info_nce_loss_batch`, <1e-12), the same twin rule as a reused search routine.
   Its **sign-rank successor** (`embedding-dimension-lower-bounds`): exact sign-rank is intractable
-  (∃ℝ-complete / NP-hard) — don't compute it, demonstrate the GAP (full rank by eigenvalues + a
+  (∃ℝ-complete / NP-hard) — don't compute it, demonstrate the gap (full rank by eigenvalues + a
   convex-position rank-3 realization) plus a **Forster** spectral lower bound (`sign-rank ≥
   √(mn)/‖M‖`, `=√N` for a Hadamard pattern); assert the contrast. **Vectorize** any free-embedding /
   qrel realizability optimizer's multi-positive row loss (one shared per-row `NegSum`) — a per-query
@@ -241,7 +241,7 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   HIGH-severity catch). It also flags **list-comprehension membership filters over sets** (→ native
   `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del dict[k]` (intersection over a
   dict's keys) or set `.discard(x)` stays safe). It also flags **unused imports** and a hand-rolled
-  sigmoid `1/(1+e^{-z})` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). But
+  sigmoid `1 / (1 + np.exp(-z))` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). But
   **decline with a posted rationale** the nits that would (a) break a byte-for-byte search twin — caching
   a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
   or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
