@@ -70,7 +70,7 @@ const CEIL_COLOR = '#6a8caf';
 const MUTED = '#9aa3ad';
 
 const f1 = (v: number) => v.toFixed(1);
-const clampIdx = (i: number, n: number) => Math.max(0, Math.min(i, n - 1));
+const clampIdx = (i: number, n: number) => Math.max(0, Math.min(Math.round(i), n - 1));
 
 function Readout({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (

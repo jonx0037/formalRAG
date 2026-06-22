@@ -164,7 +164,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - **A viz that *demonstrates* a phenomenon needs baked toy data that actually exhibits it — assert the
   contrast in the harness, don't assume.** The Lloyd lab's first cloud (3 well-separated blobs) converged
   to one optimum from every seed, falsifying its "Reseed shows local optima" story; 4 corner blobs at k=3
-  fixed it, locked by `test_toy_local_optima` (global < near-miss < stuck).
+  fixed it, locked by `test_toy_local_optima` (global < near-miss < stuck). In a ranking demo where
+  scores can all be **zero** (a pruned/empty SPLADE query), top-1 is decided by insertion order, so a
+  "retrieved correctly" assert passes spuriously — require top-1 **and a positive score**
+  (`top_id == gold and top_score > 0`). A learned-sparse demo also needs **document-side** expansion,
+  not just identity activations, or the sparsity (FLOPS/L0) trade-off is flat and shows nothing.
 - **vMF cluster toys: two `vMF(μ,κ)` draws have expected cosine ≈ `A_d(κ)²`.** A κ that "looks tight"
   is near-orthogonal in expectation at high d (κ=12, d=64 → cosine ~0.03), so a same-cluster "hard
   negative" isn't actually hard. Size κ so same-cluster cosine clearly beats inter-cluster and assert it
@@ -185,6 +189,14 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   √(mn)/‖M‖`, `=√N` for a Hadamard pattern); assert the contrast. **Vectorize** any free-embedding /
   qrel realizability optimizer's multi-positive row loss (one shared per-row `NegSum`) — a per-query
   Python loop over a `C(n,2)`-query all-pairs corpus busts the <60 s budget (57 s→4 s here).
+  Its **late-interaction successor** (`late-interaction-learned-sparse`): to show architecture B
+  (multi-vector MaxSim) escapes a limit architecture A (single vector) hits, run BOTH through the
+  **SAME optimizer** — B's, with the degenerate setting *being* A (`realize_qrel_maxsim` m=1 vs m=2),
+  never A's separately-tuned one — or you compare optimizers, not architectures; anchor the degenerate
+  case by proving it scoring-identical (MaxSim at m=1 == the imported DPR dot product, <1e-12). MaxSim's
+  max-pool backprop is a gather/scatter through each query token's argmax doc token (`take_along_axis`
+  + `np.add.at`). When no clean theorem exists (multi-vector sign-rank is open, LIMIT defers it), state
+  the escape as a **demonstrated proposition**, not a theorem, and pin the rigorFlag.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
