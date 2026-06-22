@@ -224,8 +224,8 @@ def leg_rankings(corpus: dict, q: int) -> dict[str, list[int]]:
 
 def recall_at_k(ranking, relevant: set, k: int = TOPK) -> float:
     """Set-coverage recall@k: |top_k(ranking) ∩ relevant| / min(k, |relevant|). GUARDS: empty
-    relevant -> 0.0; k capped at len(ranking)."""
-    if not relevant:
+    relevant or k <= 0 -> 0.0; k capped at len(ranking)."""
+    if not relevant or k <= 0:
         return 0.0
     kk = min(k, len(ranking))
     hit = len(set(ranking[:kk]) & relevant)
@@ -267,8 +267,8 @@ def over_fetch_factor(stage_retentions) -> float:
 
 def measure_stage_retention(found_ids, relevant: set, k: int = TOPK) -> float:
     """The per-stage empirical retention r_i: fraction of the top-k truth a stage's output set keeps.
-    Denominator min(k, |relevant|)-guarded."""
-    if not relevant:
+    Denominator min(k, |relevant|)-guarded; empty relevant or k <= 0 -> 0.0."""
+    if not relevant or k <= 0:
         return 0.0
     return len(set(found_ids) & relevant) / min(k, len(relevant))
 
@@ -529,6 +529,9 @@ def marginal_log_recall(alloc: dict, curves: dict) -> dict:
     stage) — the readout that LEVELS OUT (equalizes) at the water-filling optimum."""
     out = {}
     for s, grid in curves.items():
+        if len(grid) < 2:                                    # need two points for a finite difference
+            out[s] = 0.0
+            continue
         j = alloc[s]
         if j == 0:
             (c0, g0), (c1, g1) = grid[0], grid[1]
