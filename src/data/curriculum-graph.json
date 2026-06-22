@@ -147,7 +147,7 @@
     {
       "id": "dense-retrieval-dual-encoders",
       "label": "Dense Retrieval and Dual Encoders (DPR)",
-      "status": "planned",
+      "status": "published",
       "domain": "neural-retrieval"
     },
     {
