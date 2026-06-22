@@ -1,0 +1,211 @@
+---
+title: "Dense Retrieval and Dual Encoders: Architecture, Expressivity, and the Cost of Negatives"
+subtitle: "Why a query tower and a document tower trained to a separable score let you precompute every document, collapse retrieval to a single maximum-inner-product lookup, and represent exactly the relevance patterns of rank at most d by Eckart–Young — and why one batch of 2B encodings secretly buys B² training comparisons"
+status: "draft"
+difficulty: "advanced"
+prerequisites:
+  - "infonce-contrastive-objective"
+  - "vector-space-model-tfidf"
+tags:
+  - "dense-retrieval"
+  - "dual-encoder"
+  - "bi-encoder"
+  - "dpr"
+  - "low-rank-approximation"
+  - "eckart-young"
+  - "in-batch-negatives"
+  - "maximum-inner-product-search"
+domain: "neural-retrieval"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+rigorFlag: "The architecture results are exact and three of the topic's promises are softer than they look. The expressivity theorem is an UPPER bound, not a measure: a d-dimensional dual encoder can realize any relevance matrix of rank at most d, and the truncated SVD gives the optimal rank-d approximation by Eckart-Young-Mirsky — but rank is not the right complexity for a SIGN pattern. The quantity that says how many dimensions relevance actually NEEDS is the sign-rank (equivalently margin complexity), which can be far smaller or, for adversarial patterns, force d well above the apparent rank; the tight statement is deferred to the embedding-dimension topic, and 'rank <= d suffices' should never be read as 'd dimensions are necessary.' The in-batch-negative cost law — 2B encodings yield a B-by-B Gram matrix and B-squared-minus-B negative comparisons — is exact arithmetic, but the negatives it produces are SHARED across the batch and therefore correlated, not the independent draws the InfoNCE bound assumes, and because positives are mined heuristically some in-batch negatives are false negatives, unlabeled relevant documents the loss punishes anyway. The separability-implies-precomputability-implies-MIPS chain is exact for the dual-encoder factorization, but it is exactly what a cross-encoder gives up: any architecture that scores a fused query-document pair cannot be precomputed, so the reduction to MIPS is a property of the factorization, not of neural retrieval in general. Finally, the encoder in the laboratory is a synthetic von Mises-Fisher / projected-gradient stand-in reused from the InfoNCE topic, not a trained transformer, and the BM25-hard-negative recipe DPR is famous for is an EMPIRICAL engineering choice whose mining theory belongs to the negative-sampling topic; the cost figures and the rank-d reconstruction errors are measured on that synthetic cloud."
+videoId: null
+notebookPath: "notebooks/dense-retrieval-dual-encoders/01_dense_retrieval_dual_encoders.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/dense-retrieval-dual-encoders.mdx"
+datePublished: 2026-06-21
+estimatedReadTime: 31
+abstract: "InfoNCE told us how a dual encoder is trained; this topic asks what that architecture can represent and what it costs. A dual encoder is two towers, a query encoder and a document encoder, whose relevance score is the separable inner product of their outputs. We show that separability is the whole game: because the score factorizes, every document vector can be precomputed and stored once, and a query at serving time reduces to a single argmax over inner products — maximum-inner-product search, the problem the MIPS-hardness topic analyzes. We then ask the expressivity question. Stacking the scores into a query-by-document relevance matrix, a d-dimensional dual encoder can realize exactly the matrices of rank at most d; the Eckart-Young-Mirsky theorem makes the truncated SVD the optimal rank-d approximation to any target, so d is a clean upper bound on what the architecture can express, and retrieval accuracy collapses when d falls below the relevance pattern's intrinsic rank. We flag honestly that rank is an upper bound, not the tight sign-rank measure of how many dimensions relevance needs. Finally we account for training cost: a batch of B query-document pairs costs 2B encoder forward passes but produces a B-by-B Gram matrix of similarities, yielding B-squared-minus-B in-batch negatives at no extra encoding cost — the quadratic-utility-from-linear-cost law that makes in-batch-negative training the default. A laboratory reuses the InfoNCE finance encoder to show the precompute-then-MIPS path, the rank-d reconstruction of a relevance matrix, and the in-batch Gram trick; a tested notebook owns every number."
+connections:
+  - topic: "infonce-contrastive-objective"
+    relationship: "InfoNCE owns the loss that trains the two towers, including in-batch negatives as a free source of negatives and the hard-negative gradient; this topic takes that loss as given and accounts for the architecture it trains — why the score must be separable, why that makes documents precomputable, and why those same in-batch negatives are free, the B-by-B Gram matrix that 2B encodings produce"
+  - topic: "mips-hardness-and-sublinearity-limits"
+    relationship: "the separable dual-encoder score lets every document vector be precomputed, so serving a query is exactly argmax over inner products — a maximum-inner-product-search instance; this topic produces that MIPS instance and hands off to the hardness topic, which proves why exact high-dimensional MIPS has no truly-sublinear worst-case algorithm and why the rest of the curriculum approximates, a reduction this topic relies on but never reproves"
+  - topic: "vector-space-model-tfidf"
+    relationship: "the vector-space model scored a query against documents by the similarity of sparse term vectors it did not learn; a dual encoder keeps the vector-similarity scoring but replaces the hand-built sparse vectors with two learned dense towers, so this topic is the learned successor to that one — the same geometry of scores, now trained end to end rather than counted from term frequencies"
+  - topic: "pca-dimensionality-reduction"
+    relationship: "both topics turn on Eckart-Young: there the truncated SVD is the variance-optimal projection of an embedding cloud, here it is the optimal rank-d approximation of a relevance matrix, so the same low-rank machinery that decides how few dimensions an embedding can be squeezed into decides what relevance patterns a d-dimensional dual encoder can represent at all"
+  - topic: "late-interaction-learned-sparse"
+    relationship: "late interaction relaxes the single-vector bottleneck this topic establishes: ColBERT replaces one dot product between pooled vectors with a token-level MaxSim over many vectors per document, trading the clean precompute-then-MIPS path for higher expressivity, so it is the architectural escape from the rank-d ceiling proved here"
+references:
+  - type: "paper"
+    title: "Dense Passage Retrieval for Open-Domain Question Answering"
+    authors: "Karpukhin, Oguz, Min, Lewis, Wu, Edunov, Chen & Yih"
+    year: 2020
+    url: "https://doi.org/10.18653/v1/2020.emnlp-main.550"
+    note: "The dual-encoder DPR architecture: two BERT towers, in-batch-negative training, the BM25 hard-negative recipe, and a FAISS MIPS index at serving — the canonical instantiation this topic formalizes; the DOI resolves to the ACL Anthology EMNLP 2020 main proceedings"
+  - type: "paper"
+    title: "The Approximation of One Matrix by Another of Lower Rank"
+    authors: "Eckart & Young"
+    year: 1936
+    url: "https://doi.org/10.1007/BF02288367"
+    note: "The Eckart-Young theorem: the truncated SVD is the optimal low-rank approximation in Frobenius norm, the engine of the rank-d expressivity result; Mirsky later extended it to all unitarily invariant norms; the DOI resolves to Psychometrika"
+  - type: "paper"
+    title: "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks"
+    authors: "Reimers & Gurevych"
+    year: 2019
+    url: "https://doi.org/10.18653/v1/D19-1410"
+    note: "The bi-encoder versus cross-encoder distinction made explicit: a siamese bi-encoder precomputes sentence vectors for fast similarity search where a cross-encoder must jointly encode each pair — the separability-versus-expressivity trade-off this topic proves"
+  - type: "paper"
+    title: "Representation Learning with Contrastive Predictive Coding"
+    authors: "van den Oord, Li & Vinyals"
+    year: 2018
+    url: "https://arxiv.org/abs/1807.03748"
+    note: "InfoNCE / CPC, the loss the dual encoder is trained with — cited here for the in-batch-negative cost framing and the log(N+1) ceiling that explains why the Gram trick's quadratic negatives matter, with the loss itself developed in the InfoNCE topic"
+  - type: "documentation"
+    title: "Faiss: A library for efficient similarity search"
+    authors: "Johnson, Douze & Jégou"
+    year: 2021
+    url: "https://doi.org/10.1109/TBDATA.2019.2921572"
+    note: "FAISS, the library DPR uses to serve the precomputed document vectors as a MIPS index — the concrete realization of the precompute-then-argmax serving path, handing off to the MIPS-hardness topic for why the index must be approximate"
+formalmlPrereqs:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the rank-d expressivity theorem is the Eckart-Young-Mirsky theorem applied to a relevance matrix: that topic proves the truncated SVD is the optimal rank-d approximation in both Frobenius and spectral norms, which is exactly the statement that a d-dimensional dual encoder best-approximates any target relevance matrix by its top-d singular structure, so the entire architecture-expressivity argument here is that theorem specialized to query-document scores"
+formalmlConnections:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "that topic shows InfoNCE-optimal encoders converge to a simplex equiangular tight frame, a low-rank geometric object; the dual-encoder factorization here is the concrete retrieval architecture whose learned representations sit in that frame, so the rank-d ceiling this topic proves is the algebraic shadow of the representation geometry that topic characterizes in the abstract"
+  - topic: "pca-low-rank"
+    site: "formalml"
+    relationship: "PCA reads Eckart-Young as the optimal linear projection that maximizes retained variance, the dual view of the optimal-approximation statement this topic uses; the same truncated-SVD object that gives PCA its best k-dimensional projection gives the dual encoder its best rank-d relevance matrix, so the two topics apply one theorem to the data matrix and to the relevance matrix respectively"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import DenseDualEncoderLaboratory from '../../components/viz/DenseDualEncoderLaboratory.tsx';
+
+## Overview & motivation
+
+[Contrastive learning](/topics/infonce-contrastive-objective) gave us a loss that teaches an encoder to place a query near its relevant document and far from everything else. It left one question deliberately unasked: what *kind* of encoder, and what does that choice buy and cost? This topic answers it. The architecture nearly every dense retriever uses is the **dual encoder** — two towers, a query encoder $E_Q$ and a document encoder $E_P$, whose relevance score is the inner product of their outputs. The choice looks innocuous. It is the most consequential decision in the whole pipeline.
+
+The reason is a single structural fact: the score *separates*. Query and document never interact until one inner product at the very end. That separability is what we will follow through three movements. First, it is exactly what lets a system precompute every document offline and answer a query with a single maximum-inner-product lookup — the bridge to the entire approximate-nearest-neighbor track, and to the [hardness of MIPS](/topics/mips-hardness-and-sublinearity-limits). Second, it imposes a hard expressivity ceiling: stack the scores into a relevance matrix and a $d$-dimensional dual encoder can only realize matrices of rank at most $d$, with the truncated SVD — Eckart–Young — the best it can do below that rank. Third, it makes training cheap in a precise, countable way: a batch of $B$ pairs yields a $B \times B$ Gram matrix of similarities, so $2B$ encoder passes buy $B(B-1)$ negative comparisons. The loss is the previous topic's; here we read the matrix that loss consumes as the object the architecture produces.
+
+<DenseDualEncoderLaboratory client:visible />
+
+The first panel toggles the dual encoder against a cross-encoder and watches the query-time cost: the dual encoder is flat in the corpus size because its documents are precomputed, the cross-encoder linear because it must re-score every pair. The second is the rank ceiling — a relevance matrix with finance-sector block structure and its best rank-$d$ reconstruction, with recall collapsing as $d$ drops below the intrinsic rank. The third is the Gram trick: the $B \times B$ matrix whose diagonal is the positives, with the quadratic count of negatives appearing from a linear number of encodings.
+
+## The dual encoder and notation
+
+Fix a query $q$ and a corpus of documents $\mathcal{C} = \{d_1, \dots, d_n\}$. A **dual encoder** is a pair of maps $E_Q, E_P$ into a shared space $\mathbb{R}^d$, and it scores a query–document pair by the inner product of their embeddings,
+
+$$
+s(q, d) = \langle E_Q(q),\, E_P(d)\rangle.
+$$
+
+Because dense retrievers L2-normalize, the embeddings are unit vectors and the score is the cosine similarity [the retrieval problem](/topics/the-retrieval-problem) took as the relevance functional — but now the vectors are *learned*, by the [InfoNCE](/topics/infonce-contrastive-objective) loss of the previous topic, rather than counted from term frequencies as in the [vector-space model](/topics/vector-space-model-tfidf). The defining property is **separability**: the query appears only through $E_Q(q)$, the document only through $E_P(d)$, and they meet exactly once. Contrast a **cross-encoder**, which scores a *fused* input, $s(q,d) = h([q ; d])$, letting query and document attend to each other at every layer. The cross-encoder is strictly more expressive — and, as we are about to see, strictly more expensive. Throughout, $\|M\|_F = (\sum_{ij} M_{ij}^2)^{1/2}$ denotes the Frobenius norm and $\operatorname{rank}(M)$ the rank of a matrix $M$.
+
+## Movement 1 — separability ⇒ precomputability ⇒ MIPS
+
+The first consequence of separability is the one that makes dense retrieval deployable at all. Because the document side of the score does not depend on the query, it can be computed before any query arrives.
+
+<TheoremBlock type="theorem" number={1} title="Factorization reduces retrieval to MIPS">
+
+Let a dual encoder score $s(q,d) = \langle E_Q(q), E_P(d)\rangle$, and stack the corpus into the matrix $P \in \mathbb{R}^{n \times d}$ whose $j$-th row is $E_P(d_j)$. Then for every query $q$,
+
+$$
+\operatorname*{top\text{-}k}_{j}\, s(q, d_j) \;=\; \operatorname*{top\text{-}k}_{j}\, \big(P\,E_Q(q)\big)_j,
+$$
+
+so retrieval is exactly **maximum-inner-product search** over the matrix $P$. Because $P$ does not depend on $q$, it is computed once, offline; the only query-time work is one encode $E_Q(q)$ and one MIPS over $P$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+By the definition of the matrix–vector product, the $j$-th coordinate of $P\,E_Q(q)$ is $\langle E_P(d_j), E_Q(q)\rangle = s(q, d_j)$. The top-$k$ documents are determined entirely by the order of these coordinates, and every coordinate is one entry of the single product $P\,E_Q(q)$. The matrix $P$ is a function of the corpus alone — the query enters only through the vector $E_Q(q)$ it multiplies — so $P$ can be built and stored before any query is seen, and answering a query touches the encoder once. $\blacksquare$
+
+</TheoremBlock>
+
+This is one line, but it is the entire architectural justification for dense retrieval, so we prove it rather than assert it. Its force is in what it makes possible downstream. The precomputed matrix $P$ is precisely the object the approximate-nearest-neighbor track indexes: inverted file partitions, navigable graphs, and product quantization are all sublinear MIPS structures over a fixed $P$ that exists *only because* the score factorized. The laboratory's first panel makes the cost gap concrete: a dual encoder's query-time work is constant in the corpus size — one query encode plus an index lookup — while a cross-encoder, unable to precompute anything, must run a joint forward pass for every one of the $|\mathcal{C}|$ documents. At a Wikipedia-scale index of twenty-one million passages, that is one encode versus twenty-one million. The reduction also inherits an honest ceiling: [MIPS hardness](/topics/mips-hardness-and-sublinearity-limits) shows exact high-dimensional inner-product search has no truly sublinear worst-case algorithm, which is why the index must approximate — but that is a property of the MIPS instance this movement *produces*, not something it can wish away.
+
+## Movement 2 — the rank-d expressivity ceiling
+
+Separability buys precomputability. It also charges a price, and the price is expressivity. Collect the scores of every query against every document into a relevance matrix; the dual encoder can only ever produce matrices of a bounded rank.
+
+<TheoremBlock type="theorem" number={2} title="The rank ceiling of a dual encoder">
+
+Let $Q \in \mathbb{R}^{m \times d}$ stack $m$ query embeddings and $G \in \mathbb{R}^{n \times d}$ stack $n$ document embeddings, so the realizable score matrix is $S = Q G^\top$. Then $\operatorname{rank}(S) \le d$. Conversely, a target relevance matrix $M$ is realized **exactly** by some $d$-dimensional dual encoder, $M = Q G^\top$, if and only if $\operatorname{rank}(M) \le d$.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+($\Rightarrow$) $S = Q G^\top$ is a product of matrices with inner dimension $d$, and the rank of a product is at most the inner dimension: $\operatorname{rank}(S) \le \min(\operatorname{rank} Q, \operatorname{rank} G) \le d$.
+
+($\Leftarrow$) Suppose $\operatorname{rank}(M) = r \le d$. Take a thin singular value decomposition $M = U \Sigma V^\top$ with $U \in \mathbb{R}^{m \times r}$, $\Sigma \in \mathbb{R}^{r \times r}$ diagonal and positive, and $V \in \mathbb{R}^{n \times r}$. Set $Q = U \Sigma^{1/2}$ and $G = V \Sigma^{1/2}$, padding each with $d - r$ zero columns to width $d$. Then $Q G^\top = U \Sigma^{1/2}\Sigma^{1/2} V^\top = U \Sigma V^\top = M$, an exact $d$-dimensional realization. If instead $\operatorname{rank}(M) > d$, then $\operatorname{rank}(Q G^\top) \le d < \operatorname{rank}(M)$ for *every* factorization, so $M$ is unrealizable. $\blacksquare$
+
+</TheoremBlock>
+
+When the target relevance pattern has rank above $d$, the dual encoder cannot match it — and the best it can do has a name. By the **Eckart–Young–Mirsky theorem** (proved in formalML's [SVD topic](/topics/svd), which we cite rather than reprove), the closest rank-$d$ matrix to $M$ in Frobenius norm is the truncated SVD $M_d = \sum_{i \le d} \sigma_i u_i v_i^\top$, with error $\|M - M_d\|_F = \big(\sum_{i > d} \sigma_i^2\big)^{1/2}$ — exactly the energy in the discarded singular values. The dual encoder's reach is therefore the top-$d$ singular structure of the relevance matrix, and nothing more.
+
+The laboratory's second panel turns this into something you can watch. We build a synthetic finance relevance matrix — four market sectors, each split into two companies, one document per company — so the score matrix has intrinsic rank $8$, the company count. Its singular values fall in two groups: the four largest, $4.86, 3.63, 2.78, 1.84$, are the **sectors**; the next four, $0.86, 0.62, 0.55, 0.34$, are the finer **within-sector company splits**. Truncating to a low dimension keeps the sectors and discards the company distinctions, so the best rank-$d$ dual encoder confuses companies inside a sector. Recall@1, measured over all thirty-two queries, climbs from $0.25$ at $d = 1$ — barely better than guessing which of four sectors — through $0.78$ at $d = 3$, and recovers to a perfect $1.0$ only at $d = 6$, with exact reconstruction at $d = 8 = \operatorname{rank}$. Below the intrinsic rank the relevance pattern is *literally unrepresentable*; the collapse is a theorem, not a tuning artifact.
+
+A cross-encoder has no such ceiling. Because it scores the fused pair rather than a product of separate embeddings, it can realize a full-rank relevance pattern a dual encoder of the same width cannot — the expressivity the bi-encoder trades away for precomputability. (How that extra power is spent in a retrieve-then-rerank cascade is the subject of a later topic; here it is only the rank-free counterpoint.) One caveat is load-bearing, and we state it plainly: $\operatorname{rank}(M) \le d$ says how many dimensions *suffice* to realize a real-valued score matrix. The dimension relevance actually *needs* to get the top-$k$ ordering right is governed by the **sign-rank** (equivalently the margin complexity) of the relevance pattern, which can be far smaller than the rank, or for adversarial patterns far larger. That tight measure is a topic of its own; the rank ceiling here is a clean upper bound, not the last word.
+
+## Movement 3 — in-batch negatives and the B²-from-2B Gram trick
+
+The previous topic noted that in-batch negatives are "free." This movement is the accounting that proves it, and it falls straight out of the same factorization. Training proceeds on batches of paired examples, and the architecture turns each batch into a matrix of similarities for almost nothing.
+
+<TheoremBlock type="theorem" number={3} title="In-batch negatives from a Gram matrix">
+
+For a batch of $B$ pairs $(q_i, d_i^+)$, stack the query embeddings $Q \in \mathbb{R}^{B \times d}$ and the document embeddings $G \in \mathbb{R}^{B \times d}$, and form the Gram matrix $S = Q G^\top \in \mathbb{R}^{B \times B}$. Then row $i$ is an $(N{+}1 = B)$-way InfoNCE problem with the positive $S_{ii}$ on the diagonal and the other $B - 1$ documents as negatives, and the batch loss
+
+$$
+\mathcal{L} = \frac{1}{B}\sum_{i=1}^{B} \Big[\log\!\textstyle\sum_{j} e^{S_{ij}/\tau} - S_{ii}/\tau\Big]
+$$
+
+is exactly the in-batch InfoNCE loss of the previous topic. From only $2B$ encoder forward passes ($B$ queries and $B$ documents), the batch supplies $B(B-1) = \Theta(B^2)$ negative comparisons.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Row $i$ of $S/\tau$ is the vector of temperature-scaled logits of query $i$ against all $B$ in-batch documents, with its positive on the diagonal. The negative log-softmax probability of the positive, $-\log\operatorname{softmax}(S_{i\cdot}/\tau)_i = \log\sum_j e^{S_{ij}/\tau} - S_{ii}/\tau$, is the $(N{+}1)$-way cross-entropy that defines the InfoNCE loss; averaging over the $B$ rows gives $\mathcal{L}$. For the count, each of the $B$ rows contributes its $B - 1$ off-diagonal entries as negatives, for $B(B-1)$ negative comparisons in total, while the encoder is invoked once per query and once per document, $2B$ times. $\blacksquare$
+
+</TheoremBlock>
+
+The companion notebook makes the reuse literal: it never reimplements the loss, only re-reads the Gram matrix the architecture produces, and asserts its row-wise $\log\sum\exp$-minus-diagonal value equals the *imported* InfoNCE batch loss to within floating-point error. The counting is the headline. A batch of $B = 8$ pairs costs $16$ encoder passes and yields $56$ negatives; $B = 64$ costs $128$ passes and yields $4{,}032$ negatives — the negatives grow as $B^2$ while the encoding grows as $B$, quadratic utility from linear cost. This is the entire reason in-batch-negative training is the default, and combined with Movement 1 of the previous topic — that more negatives raise the $\log(N{+}1)$ ceiling on the mutual information — it is why larger training batches are not just faster but *better*. The loss has a symmetric form too, $\mathcal{L}_{\text{sym}} = \tfrac12(\mathcal{L}(q \to d) + \mathcal{L}(d \to q))$, the second direction being the same loss on the transposed Gram matrix.
+
+The trick is not free of subtlety, and the honesty matters. The in-batch negatives are **shared** across the batch — the same $B$ documents serve as negatives for every query — so they are correlated rather than the independent draws the mutual-information bound assumes, and because the positives are mined heuristically, some in-batch "negatives" are **false negatives**: unlabeled documents that really are relevant to another query, which the loss punishes anyway. Choosing better, harder negatives without falling into that trap is the work of the negative-sampling topic that follows; here we have only established what the in-batch matrix costs and contains.
+
+<TheoremBlock type="proposition" number={1} title="What the laboratory measures">
+
+The three panels run on a deterministic synthetic setup, not a trained transformer. Panel A's cost curve is the exact arithmetic of the two architectures; Panel B's relevance matrix and its rank-$d$ reconstructions are built from the InfoNCE topic's von Mises–Fisher finance geometry (four sectors, two companies each, one document per company), with recall measured over thirty-two queries; Panel C's Gram matrix is one batch of that same geometry. Every measured number — the singular values, the recall-by-dimension curve, the Gram entries, the in-batch loss — is owned by the companion notebook and mirrored here to the decimal; the laboratory recomputes only closed forms (the per-query cost, $B(B-1)$ and $2B$, and the truncated-SVD reconstruction from the baked singular vectors).
+
+</TheoremBlock>
+
+## Finance case study
+
+<FinanceCaseStudy modality={["text", "pdf"]}>
+
+A production retrieval system over financial filings, earnings calls, and analyst notes is a dual encoder, and its three architectural choices are this topic's three movements made operational. The first is **the index**. Every passage in the corpus — every chunked 10-K paragraph, every transcript window — is encoded once by the document tower into a vector and written to a FAISS index; a user's question is encoded once by the query tower at search time and answered by a single maximum-inner-product lookup. Nothing about the documents is recomputed per query, which is the only reason the system can serve a multi-million-passage corpus at interactive latency (Movement 1). A cross-encoder reranker may sit *behind* this stage, rescoring the top few hundred hits where its quadratic cost is affordable, but it can never be the first stage.
+
+The second choice is **the embedding dimension**, and Movement 2 sets the stakes. The relevance structure of a financial corpus is genuinely high-rank: rates, credit, FX, and equity are distinct neighborhoods, but within rates the curve desk and the swaps desk must also be told apart, and within a single issuer one filing answers a duration question while another answers a covenant question. In the synthetic stand-in, the four sectors are the four largest singular values and the eight companies push the intrinsic rank to $8$; a query's own document sits at cosine $\approx 0.95$, a same-sector different-company document — the hard case — at $\approx 0.56$, and a cross-sector document near $0$. Choose an embedding dimension below the relevance pattern's rank and the encoder *cannot* separate same-sector companies no matter how long it trains: recall@1 on the synthetic matrix is stuck at $0.25$ at $d = 1$ and only recovers to $1.0$ at $d = 6$. Picking $d$ is choosing how much of that structure the architecture is even allowed to represent.
+
+The third choice is **the training batch**, and Movement 3 prices it. The team fine-tunes with in-batch-negative InfoNCE, so a batch of $B$ (question, passage) pairs yields a $B \times B$ Gram matrix and $B(B-1)$ negatives from $2B$ encodings — which is why the engineering effort goes into the largest batch the hardware allows. The honest caveat is the false-negative trap this topic flagged: two filings from the same sector that genuinely answer the same analyst question will appear as in-batch negatives to each other, and the loss will wrongly push them apart, so the pipeline de-duplicates and thresholds mined negatives before training. The clean theory assumes true negatives the data does not always supply.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+The architecture results are exact; three of their promises are softer than they look. The expressivity theorem is an *upper* bound, not a measure: a $d$-dimensional dual encoder realizes any relevance matrix of rank at most $d$, and the truncated SVD is the optimal rank-$d$ approximation by Eckart–Young–Mirsky — but rank is not the right complexity for a *sign* pattern. How many dimensions relevance actually *needs* to get the top-$k$ ordering right is the sign-rank (equivalently margin complexity), which can be far smaller than the apparent rank or, for adversarial patterns, far larger; the tight statement is deferred to the embedding-dimension topic, and "rank $\le d$ suffices" must never be read as "$d$ dimensions are necessary." The in-batch-negative cost law — $2B$ encodings yield a $B \times B$ Gram matrix and $B(B-1)$ negatives — is exact arithmetic, but those negatives are *shared* across the batch and therefore correlated, not the independent draws the InfoNCE bound assumes, and some are false negatives. The separability ⇒ precomputability ⇒ MIPS chain is exact for the dual-encoder factorization, but it is exactly what a cross-encoder gives up: any architecture that scores a fused pair cannot be precomputed, so the reduction to MIPS is a property of the factorization, not of neural retrieval in general. Finally, the encoder in the laboratory is a synthetic von Mises–Fisher / projected-gradient stand-in reused from the InfoNCE topic, not a trained transformer, and the BM25-hard-negative recipe DPR is famous for is an empirical engineering choice whose mining theory belongs to the next topic; the cost figures and rank-$d$ reconstruction errors are measured on that synthetic cloud.
+
+</RigorFlag>
+
+The dual encoder is the architecture; the engineering that makes it competitive is where the track goes next. **Negative sampling** — mining hard negatives without falling into the false-negative trap this topic flagged — turns the in-batch matrix from a cheap source of weak negatives into a strong training signal. The **cross-encoder** that this topic kept invoking as the rank-free, un-precomputable counterpoint becomes the reranker in a retrieve-then-rerank cascade. And **late interaction** escapes the single-vector rank ceiling entirely, replacing one pooled dot product with a token-level comparison between many vectors per document. Each builds on the architecture, the expressivity ceiling, and the cost law established here.
