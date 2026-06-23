@@ -92,10 +92,8 @@ const dcg = (grades: number[], gain: (g: number) => number, disc: (i: number) =>
   grades.reduce((s, g, i) => s + gain(g) * disc(i + 1), 0);
 const idcg = (grades: number[], gain: (g: number) => number, disc: (i: number) => number) =>
   dcg([...grades].sort((a, b) => b - a), gain, disc);
-const ndcg = (grades: number[], ideal: number[], gain: (g: number) => number, disc: (i: number) => number) => {
-  const denom = idcg(ideal, gain, disc);
-  return denom > 0 ? dcg(grades, gain, disc) / denom : 0;
-};
+// NDCG = DCG/IDCG is computed inline in Panel A (where DCG@10 and IDCG@10 are also shown), so no
+// separate helper — keeping the ratio at its one call site avoids recomputing dcg/idcg twice.
 const headMass = (disc: (i: number) => number, k: number, n: number) => {
   let head = 0, total = 0;
   for (let i = 1; i <= n; i++) { const d = disc(i); total += d; if (i <= k) head += d; }

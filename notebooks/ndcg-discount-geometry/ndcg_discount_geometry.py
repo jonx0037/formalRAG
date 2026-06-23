@@ -539,11 +539,13 @@ def test_rearrangement_inequality() -> None:
         grades = sorted(c["grades"][q].values(), reverse=True)
         gvec = np.array([gain_exponential(g) for g in grades], dtype=float)
         dvec = np.array([discount_log2(i) for i in range(1, len(gvec) + 1)], dtype=float)
-        ideal = float(np.sum(np.sort(gvec)[::-1] * dvec))
+        # IDCG/worst via the inner-product helper; pin it to the elementwise np.sum form once.
+        ideal = dcg_of_gain_sequence(list(np.sort(gvec)[::-1]), discount_log2)
+        assert abs(ideal - float(np.sum(np.sort(gvec)[::-1] * dvec))) < 1e-12, q
         for _ in range(40):
             perm = rng.permutation(gvec)
             assert float(np.sum(perm * dvec)) <= ideal + 1e-12, q
-        worst = float(np.sum(np.sort(gvec) * dvec))            # ascending gains = anti-sorted = minimum
+        worst = dcg_of_gain_sequence(list(np.sort(gvec)), discount_log2)   # ascending gains = anti-sorted = minimum
         assert worst <= ideal + 1e-12
         if len(set(grades)) > 1:
             assert worst < ideal - 1e-9, (q, worst, ideal)     # strict when grades differ
