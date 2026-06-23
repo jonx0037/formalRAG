@@ -1,0 +1,349 @@
+---
+title: "NDCG: Graded Relevance and Discount Geometry"
+subtitle: "Set metrics treat relevance as a yes-or-no flag; NDCG keeps the degree of a match and the position it lands. We build the discounted cumulative gain over the same three retrieval legs, prove the ideal ranking is optimal by the rearrangement inequality, read the geometry of the logarithmic discount against the rank-biased alternative, and carry the estimator framing straight over — a reported NDCG gap is not a real one until it clears sampling noise, and the gain and discount you chose are conventions that can flip the verdict"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "set-metrics-precision-recall-map-mrr"
+tags:
+  - "ndcg"
+  - "discounted-cumulative-gain"
+  - "graded-relevance"
+  - "rank-discount"
+  - "rank-biased-precision"
+  - "retrieval-evaluation"
+  - "rearrangement-inequality"
+  - "estimator-variance"
+  - "financial-nlp"
+domain: "retrieval-evaluation"
+pipelineStage: "evaluate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "audio"
+rigorFlag: "NDCG's two design choices are CONVENTIONS, not derived quantities, and the honesty is naming them. The GAIN function — linear g versus exponential 2^g - 1 (the common modern default, which over-weights the top grades) — and the DISCOUNT — the celebrated 1/log2(i+1) versus the geometric p^(i-1) — are choices, and on the constructed examples here each one REVERSES which system wins. The logarithmic discount in particular is a HEURISTIC: unlike the geometric discount of rank-biased precision, which carries a closed user model (the reader examines rank i with probability p^(i-1) and stops with probability 1-p, so the expected number of documents examined is 1/(1-p)), the log discount has no such interpretation; it is chosen for its slow, heavy-tailed decay. NDCG without a cutoff is consistent — optimizing it drives toward a Bayes-optimal ranking — but TRUNCATED NDCG@k can be inconsistent (Wang et al., COLT 2013), so the cutoff is not free. Relevance itself is GRADED by global tertiles of an exact-MaxSim oracle score over synthetic vMF tokens — a neutral stand-in for human editorial judgments, engineered so that the documents graded at least 1 are exactly the binary relevant set the prerequisite topic used. And every NDCG here is a sample mean over a FINITE, FIXED query set: it has a standard error std/sqrt(n), so a gap within the confidence interval is not yet real — the closest pair of legs (lexical and dense) differs by only 0.05 in mean NDCG and their 95% intervals overlap across all forty queries, a gap that would need roughly 185 queries to resolve. The per-query NDCG are bounded and skewed, so the normal-approximation interval is approximate (we cross-check it with the bootstrap), and the proper paired significance test is the next topic."
+videoId: null
+notebookPath: "notebooks/ndcg-discount-geometry/01_ndcg_discount_geometry.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/ndcg-discount-geometry.mdx"
+datePublished: 2026-06-22
+estimatedReadTime: 27
+abstract: "Binary relevance throws away how relevant a document is: a perfect 10-K disclosure and a tangential transcript snippet both count as one hit. NDCG keeps the difference. A document carries a graded relevance, its gain is a function of that grade, and a hit deep in the ranking is discounted by its position — so discounted cumulative gain rewards putting the most relevant documents highest. Normalizing by the ideal cumulative gain gives NDCG in [0,1]. We build the metric over the same three legs and exact-MaxSim oracle the rest of the evaluation layer uses, grading relevance by global tertiles of the oracle score so the graded set nests the binary one exactly. The rigorous core is the rearrangement inequality: writing DCG as an inner product of the gains in ranked order with a decreasing discount vector, the ideal ranking — gains sorted descending — maximizes it, which is why the normalizer is the ideal and NDCG lands in [0,1]; under linear gain and the log discount the construction reduces exactly to the NDCG the BM25 notebook already computed. The discount is a geometry on rank positions, and its shape matters: the logarithmic discount keeps weight deep down where the geometric rank-biased discount, with its clean user model, concentrates it in the head. Both the gain and the discount are conventions, and built-and-run examples show each one reversing the verdict between two systems. Finally NDCG is an estimator, with the same standard error and the same overlapping-interval caveat as MAP: a tested notebook owns every number the page reports."
+connections:
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "the direct prerequisite and the source of every reused part: this topic imports that topic's shared corpus, its three retrieval legs (BM25, dense dual encoder, late interaction), its exact-MaxSim ground truth, and its estimator machinery (standard error, the bootstrap, the projected confidence interval), generalizing binary relevance to graded and precision-at-a-rank to gain-at-a-rank"
+  - topic: "bm25-binary-independence-model"
+    relationship: "the lexical leg whose ranking we score, and the source of the twin check: the BM25 notebook already implemented an NDCG with linear gain and the log2 discount, and this topic's NDCG reduces to it exactly when the gain is linear — the byte-for-byte cross-check that anchors the implementation"
+  - topic: "rank-fusion-rrf"
+    relationship: "that topic compared fused rankings by NDCG@10 to argue a hybrid beats either leg; this topic defines that NDCG from first principles — graded gain, the rank discount, normalization by the ideal — so the comparison it relied on is now built rather than borrowed"
+references:
+  - type: "paper"
+    title: "Cumulated Gain-Based Evaluation of IR Techniques"
+    authors: "Järvelin & Kekäläinen"
+    year: 2002
+    url: "https://doi.org/10.1145/582415.582418"
+    note: "The original (N)DCG: cumulated gain, the logarithmic discount, and normalization by the ideal gain vector — with linear gain as the first convention; ACM TOIS 20(4)"
+  - type: "paper"
+    title: "Rank-Biased Precision for Measurement of Retrieval Effectiveness"
+    authors: "Moffat & Zobel"
+    year: 2008
+    url: "https://doi.org/10.1145/1416950.1416952"
+    note: "The geometric discount p^(i-1) derived from an explicit user model (persistence p, expected documents examined 1/(1-p)) — the clean alternative whose interpretation the log discount lacks; ACM TOIS 27(1)"
+  - type: "paper"
+    title: "A Theoretical Analysis of NDCG Type Ranking Measures"
+    authors: "Wang, Wang, Li, He, Chen & Liu"
+    year: 2013
+    url: "https://proceedings.mlr.press/v30/Wang13.html"
+    note: "The consistency result and its limits: NDCG with a smooth gain is consistent for the full list, but truncated NDCG@k can be inconsistent — the honest caveat on the cutoff; COLT 2013 (PMLR v30)"
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapter 8: graded relevance, discounted cumulative gain, and normalized DCG, with the exponential gain 2^g - 1 and the log discount as the standard learning-to-rank convention"
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "mean NDCG is a sample mean, and the 'metric as estimator' framing — a point estimate of an unknown population quantity, carrying bias and variance — is exactly the estimator theory that topic develops; the standard error std/sqrt(n) it uses to decide whether two NDCG values differ is its central tool applied to a ranking metric"
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "the 95% interval mean NDCG ± 1.96·SE that decides whether two legs are distinguishable is the normal (Wald) confidence interval that topic constructs by inverting a test, and the overlapping-intervals read used here is the crude dual of the paired test the next topic sharpens"
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "this topic ends where that one begins: two legs whose NDCG confidence intervals overlap across all forty queries cannot yet be told apart, and deciding whether the small observed gap is real — a paired test on the per-query NDCG differences, with its null, power, and p-value — is the significance machinery that closes the question the variance here only opens"
+  - topic: "bootstrap"
+    site: "formalstatistics"
+    relationship: "the per-query NDCG are bounded in [0,1] and skewed, so the normal-approximation standard error is itself approximate; the nonparametric bootstrap that topic develops resamples the per-query scores to estimate the standard error without a normality assumption, the cross-check used here and agreeing to within roughly a sixth"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the claim that a sample mean of bounded per-query NDCG concentrates around its expectation at a rate set by the query count is a concentration inequality — Chebyshev gives the 1/sqrt(n) interval from the variance alone and the sub-Gaussian (Hoeffding) bound sharpens it for the bounded scores, which makes the shrinking confidence interval a guarantee rather than a hope"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import NDCGLaboratory from '../../components/viz/NDCGLaboratory.tsx';
+
+## From sets to grades
+
+[Set metrics](/topics/set-metrics-precision-recall-map-mrr) scored a ranking against a *set* of
+relevant documents: a document is in $R_q$ or it is not. That binary judgment throws away something
+real. Asked for a company's interest-rate exposure, a retriever might surface the exact hedging
+paragraph from a 10-K, a sentence that merely mentions rates in passing, and an off-topic disclosure.
+The first is *perfectly* on point, the second *marginally* so, the third irrelevant — yet precision
+and recall see only "relevant, relevant, not." **Graded relevance** keeps the distinction: each
+document carries a grade $g \in \{0, 1, 2, 3\}$, from irrelevant to perfect.
+
+To keep every number a measurement rather than an illustration, we reuse the prerequisite's apparatus
+wholesale — the same shared corpus of $N = 120$ documents and $Q = 40$ queries, the same three real
+legs (BM25, a pooled dense dual encoder, and late interaction), and the same **exact-MaxSim oracle**
+as the neutral ground truth. The one new ingredient is the grade itself.
+
+<TheoremBlock type="definition" number={1} title="Graded relevance from the oracle">
+For each query, the oracle's top-$K$ documents (with $K = 10$, the same set the prerequisite called
+$R_q$) are assigned a grade by **global tertiles** of their exact-MaxSim score: the top third of those
+scores grade $3$, the middle third grade $2$, the bottom third grade $1$; every other document grades
+$0$. Writing $g_q(d)$ for the grade of document $d$ on query $q$, the relevant set is recovered exactly
+as $\{\,d : g_q(d) \ge 1\,\} = R_q$.
+</TheoremBlock>
+
+That last equality is deliberate: the graded judgments *nest* the binary ones, so this topic measures
+the same retrievers against the same documents the set-metric topic did — only now with a degree
+attached. Across the forty queries the grades come out in balanced thirds (134 at grade 3, 133 at
+grade 2, 133 at grade 1), so no single grade dominates the signal.
+
+<NDCGLaboratory client:visible />
+
+The lab above is the topic in miniature; we return to each of its four panels in turn. The arc:
+attach a gain to each grade and a discount to each rank, sum them into DCG, normalize by the best
+attainable ordering — then read the geometry of the discount, watch the conventions flip a verdict,
+and admit that the resulting number is still a noisy estimate.
+
+## Gain and discount: the two design choices
+
+A hit is worth something for *being relevant* and something for *being near the top*. NDCG multiplies
+the two: a document of grade $g$ at rank $i$ contributes $\mathrm{gain}(g)\cdot\mathrm{discount}(i)$.
+Both factors are design choices, and naming them honestly is half the topic.
+
+<TheoremBlock type="definition" number={2} title="Gain and discount functions">
+A **gain function** maps a grade to a reward. The two standard choices are
+$$
+\mathrm{gain}_{\text{lin}}(g) = g, \qquad \mathrm{gain}_{\text{exp}}(g) = 2^{g} - 1.
+$$
+Linear gain treats grade $2$ as worth twice grade $1$; exponential gain (the common modern default)
+makes grade $3$ worth $7$ and grade $1$ worth $1$, sharply rewarding the surfacing of a single perfect
+document. A **discount function** down-weights later ranks. The celebrated choice is the logarithmic
+discount, alongside two comparisons,
+$$
+\mathrm{disc}_{\log}(i) = \frac{1}{\log_2(i+1)}, \qquad
+\mathrm{disc}_{\text{geo}}(i) = p^{\,i-1}, \qquad
+\mathrm{disc}_{\text{rec}}(i) = \frac{1}{i},
+$$
+each evaluated at the $1$-indexed rank $i$, so rank $1$ is undiscounted under $\mathrm{disc}_{\log}$.
+</TheoremBlock>
+
+Neither gain nor discount is forced by any axiom — they are conventions, and the last section shows
+each one reversing a verdict. The logarithmic discount is the most heuristic of the lot: it is chosen
+for its slow, heavy-tailed decay, not derived from a model of how anyone reads a result list. The
+geometric discount, by contrast, comes with a story, which we take up in the discount-geometry panel.
+
+## DCG, IDCG, NDCG
+
+With a gain and a discount fixed, the rest is bookkeeping. Let $\pi$ be the ranking, so $\pi(i)$ is the
+document at rank $i$, with grade $g_{\pi(i)}$.
+
+<TheoremBlock type="definition" number={3} title="Discounted, ideal, and normalized cumulative gain">
+The **discounted cumulative gain** at cutoff $k$ is
+$$
+\mathrm{DCG@}k \;=\; \sum_{i=1}^{k} \mathrm{gain}(g_{\pi(i)})\,\mathrm{disc}(i).
+$$
+The **ideal DCG** is the largest DCG attainable by any ordering of the documents,
+$\mathrm{IDCG@}k = \max_{\pi'} \mathrm{DCG@}k(\pi')$, obtained by sorting the grades in descending order
+and discounting in place. The **normalized DCG** is their ratio,
+$$
+\mathrm{NDCG@}k \;=\; \frac{\mathrm{DCG@}k}{\mathrm{IDCG@}k} \;\in\; [0, 1],
+$$
+equal to $1$ exactly when the top $k$ is an ideal ordering.
+</TheoremBlock>
+
+Normalization is what makes NDCG comparable across queries: a query with six perfect documents and a
+query with one have very different DCG ceilings, and dividing by each query's own IDCG puts both on
+$[0,1]$. Panel A shows the worked query (which has an ideal grade profile $[3,2,2,2,2,2,1,1,1,1]$):
+the bars are each leg's gains in the order it ranked them, the dashed outline is the ideal, and the
+shaded fraction is NDCG. That a maximum over orderings is *achieved by sorting* is the claim the next
+section proves — it is not a definition we may simply assert.
+
+## The ideal ranking is optimal: the rearrangement inequality
+
+Why is the normalizer the *sorted* ranking? Read DCG as an inner product. Fix the multiset of gains a
+query's documents carry and stack them in ranked order as a vector $\mathbf{g}_\pi$; stack the
+discounts as $\mathbf{d} = (\mathrm{disc}(1), \mathrm{disc}(2), \dots)$, a strictly decreasing
+sequence. Then $\mathrm{DCG} = \langle \mathbf{g}_\pi, \mathbf{d}\rangle$, and the question "which
+ranking maximizes DCG" becomes "which pairing of gains with a fixed decreasing weight vector maximizes
+the inner product."
+
+<TheoremBlock type="theorem" number={1} title="The ideal ranking maximizes DCG (rearrangement inequality)">
+Let $\mathbf{d}$ be a strictly decreasing discount vector and let the documents carry gains
+$a_1, \dots, a_n$. Over all orderings, $\langle \mathbf{g}_\pi, \mathbf{d}\rangle$ is **maximized** by
+placing the gains in descending order (largest gain at rank $1$) and **minimized** by ascending order.
+Hence $\mathrm{IDCG}$ is exactly the descending-gain ranking, and $\mathrm{NDCG} \in [0,1]$ with
+equality iff the ranking is ideal on the top $k$.
+
+*Proof.* Suppose an ordering places gains out of order: some rank $i < j$ has $a_{\pi(i)} < a_{\pi(j)}$
+while $\mathrm{disc}(i) > \mathrm{disc}(j)$. Swapping the two documents changes the inner product by
+$$
+\big(a_{\pi(j)} - a_{\pi(i)}\big)\big(\mathrm{disc}(i) - \mathrm{disc}(j)\big) \;>\; 0,
+$$
+a product of two positive factors, so the swap strictly increases DCG. Any non-descending arrangement
+therefore admits an improving swap; only the descending arrangement admits none, so it is the unique
+maximizer (up to ties among equal gains). The same argument with the inequality reversed shows the
+ascending arrangement is the minimizer. $\square$
+</TheoremBlock>
+
+This is the rigorous spine of the metric: the normalizer is not a convention but a theorem, and it is
+the elementary rearrangement inequality — pair large with large. The notebook checks it directly,
+confirming that across the corpus no random permutation of a query's gains beats the descending order
+and the ascending order is strictly worst whenever the grades are not all equal.
+
+The construction also pins the implementation. Under **linear gain and the logarithmic discount**,
+$\mathrm{NDCG@}k$ here is identical — to better than $10^{-12}$ on every leg, query, and cutoff — to
+the `ndcg_at_k` the [BM25 notebook](/topics/bm25-binary-independence-model) computed long before this
+topic existed. The dependent's metric reduces exactly to the prerequisite's, which is the byte-for-byte
+twin that anchors the code.
+
+## Discount geometry
+
+The discount is a fixed *measure* on rank positions, and its **shape** — the topic's namesake — decides
+what the metric cares about. Two readings make the geometry concrete: how much total weight sits in the
+head, and how steeply the value of a position falls.
+
+<TheoremBlock type="definition" number={4} title="Head mass and marginal value">
+For a discount over $n$ positions, the **head mass** at cutoff $k$ is the fraction of total discount
+weight in the top $k$,
+$$
+M_k \;=\; \frac{\sum_{i=1}^{k}\mathrm{disc}(i)}{\sum_{i=1}^{n}\mathrm{disc}(i)},
+$$
+and the **marginal value** of rank $i$ is $\mathrm{disc}(i) - \mathrm{disc}(i+1)$, the worth lost in a
+one-rank demotion.
+</TheoremBlock>
+
+Over the full $N = 120$ positions, the three discounts concentrate their weight very differently in the
+top ten: the geometric discount ($p = 0.85$) puts $M_{10} = 0.80$ of its mass there, the reciprocal
+discount $0.55$, and the logarithmic discount only $0.19$. The log discount has a **heavy tail** — it
+keeps caring about documents deep in the list — where the geometric discount is **light-tailed**,
+spending almost everything at the top. The marginal value tells the same story locally: every discount
+loses the most between ranks $1$ and $2$ and flattens with depth, so a demotion off the top is the most
+expensive move and a demotion deep down barely registers. That single factor,
+$\mathrm{disc}(i) - \mathrm{disc}(i+1)$, is one half of the *swap sensitivity*
+$\Delta = \Delta_{\text{gain}}\cdot\Delta_{\text{disc}}$ that pairwise learning-to-rank methods such as
+LambdaRank weight their gradients by — the gain side of which we will meet in a later topic.
+
+The geometric discount earns its shape from a model the logarithmic one cannot claim.
+
+<TheoremBlock type="proposition" number={1} title="The rank-biased user model">
+Under the geometric discount, model a reader who examines rank $i$ and then continues to rank $i+1$
+with probability $p$, stopping with probability $1-p$. The probability of reaching rank $i$ is
+$p^{\,i-1}$ — exactly $\mathrm{disc}_{\text{geo}}(i)$ — and the expected number of documents examined is
+$$
+\mathbb{E}[\text{documents examined}] \;=\; \sum_{i=1}^{\infty} p^{\,i-1} \;=\; \frac{1}{1-p}.
+$$
+At $p = 0.85$ that is $6.67$ documents.
+</TheoremBlock>
+
+This is the honest contrast the rigor flag insists on: rank-biased precision's discount *is* a user
+model, with a tunable patience $p$ and a closed expectation; the logarithmic discount is picked for its
+heavy tail and its convenient algebra, with no such interpretation. Panel B lets you slide $p$ and
+watch the geometric curve sweep from steep (impatient reader, weight pinned to rank 1) to nearly flat
+(patient reader), against the fixed logarithmic and reciprocal curves.
+
+## NDCG as an estimator
+
+Here the prerequisite's central lesson carries over without a change of substance. A leg's mean NDCG is
+not a property of the retriever; it is the **sample mean** of forty per-query NDCG values, and a
+different forty queries would give a different number. Under exponential gain and the log discount the
+three legs again form a quality ladder — lexical $0.72$, dense $0.77$, late interaction $0.88$ — but
+those are estimates, and estimates have standard errors.
+
+<TheoremBlock type="definition" number={5} title="Mean NDCG as an estimator with standard error">
+Treat the per-query scores $\mathrm{NDCG}_1, \dots, \mathrm{NDCG}_Q$ as a sample with mean
+$\widehat{\mathrm{NDCG}}$ and sample standard deviation $\hat\sigma$. The **standard error** is
+$$
+\widehat{\mathrm{SE}} = \frac{\hat\sigma}{\sqrt{Q}}, \qquad
+\text{95\% CI} = \widehat{\mathrm{NDCG}} \pm 1.96\,\widehat{\mathrm{SE}},
+$$
+and it shrinks like $1/\sqrt{Q}$: quadrupling the query count halves the interval.
+</TheoremBlock>
+
+We reuse the prerequisite's machinery verbatim — the per-query scores are fed to the same
+`metric_summary`, and the $1/\sqrt{n}$ rate is the same
+[concentration inequality](https://www.formalml.com/topics/concentration-inequalities), verified
+empirically by resampling. Panel D is the payoff, and it tells two stories. The **clearest** pair —
+lexical versus late interaction, a $0.16$ gap — separates by $n = 15$ queries: you can confidently
+report a winner. The **closest** pair — lexical versus dense, a mere $0.05$ gap — has intervals that
+**overlap across all forty queries** and would need roughly $185$ to separate. Below that, the honest
+report is "indistinguishable on this query set," not a leaderboard delta.
+
+<RigorFlag>
+The normal-approximation interval is itself an approximation: the per-query NDCG are bounded in $[0,1]$
+and skewed, not Gaussian, and across legs they are *paired* (the same queries), which the
+independent-interval overlap test ignores — so it is conservative. We cross-check the standard error
+with the [bootstrap](https://www.formalstatistics.com/topics/bootstrap), which resamples the per-query
+scores without the normality assumption and agrees to within roughly a sixth. Overlapping intervals are
+a *crude* read; the proper instrument is a paired
+[significance test](https://www.formalstatistics.com/topics/hypothesis-testing) on the per-query
+differences, the subject of the next topic. This one only establishes that the variance is there.
+</RigorFlag>
+
+## Convention sensitivity and consistency
+
+Because the gain and the discount are choices, the verdict can move with them — and we build and run
+the flip before stating it. On this corpus the three legs are a quality ladder under *every*
+convention, so there is no aggregate reversal; but the convention reverses the per-query verdict on
+five leg-pair-and-query instances, and two minimal constructed examples flip it starkly.
+
+<TheoremBlock type="proposition" number={2} title="The convention can reverse the verdict (demonstrated)">
+**Gain flip.** One query with one perfect document ($g = 3$) and three marginal ones ($g = 1$). A
+"headline" ranking puts the perfect document at rank 1 and buries the rest; a "broad" ranking puts the
+three marginal documents in the top three and the perfect one at rank 4. Under exponential gain the
+headline ranking wins, $\mathrm{NDCG} = 0.82$ versus $0.60$; under linear gain the broad ranking wins,
+$0.75$ versus $0.66$.
+
+**Discount flip.** One query with three equally relevant documents. A "top-heavy" ranking lands one at
+rank 1 and misses the rest within the cutoff; a "deep" ranking lands all three at ranks 2–4. Under a
+steep geometric discount ($p = 0.5$) the top-heavy ranking wins, $0.57$ versus $0.50$; under the
+heavy-tailed logarithmic discount the deep ranking wins, $0.73$ versus $0.47$.
+
+In each case neither ranking is "better" in any absolute sense — the metric's convention decides, and a
+reported NDCG that does not state its gain and discount is underspecified.
+</TheoremBlock>
+
+The mechanism is exactly the geometry above. Exponential gain steepens the *grade* axis, so planting
+the one perfect document at the top outweighs several marginal ones; a steep discount steepens the
+*rank* axis, so a single hit at rank 1 outweighs three hits just below. Choose the convention to match
+the task — a known-item search wants steep everything, a recall-oriented sweep wants the heavy tail —
+and report which you chose.
+
+<RigorFlag>
+A last caveat on the cutoff. NDCG over the *full* list, with a smooth gain, is **consistent**:
+optimizing it drives toward a Bayes-optimal ranking. Truncated $\mathrm{NDCG@}k$ need not be — Wang et
+al. (COLT 2013) exhibit gain-and-discount-and-cutoff combinations where minimizing NDCG@k regret does
+not minimize ranking error. The truncation that makes NDCG@10 practical is therefore not free, and the
+choice of gain and discount is load-bearing for more than the leaderboard.
+</RigorFlag>
+
+<FinanceCaseStudy title="Grading a filings-and-transcripts retriever" modality={["text", "audio"]}>
+The production system this series tracks retrieves over 10-K and 10-Q filing text and earnings-call
+transcripts, and graded relevance is the natural fit: for "interest-rate exposure," the dedicated
+hedging disclosure is a grade-3 answer, a passage that mentions rates among other risks is a grade-2,
+a one-line aside is a grade-1, and the rest is grade-0. The choice of gain then encodes what the desk
+wants. An analyst who needs the *single* authoritative disclosure is served by exponential gain, which
+rewards a retriever for planting that grade-3 document at the very top even if it misses some marginal
+context; a research sweep assembling everything on a theme is better matched by linear gain and the
+log discount's heavy tail, which keeps crediting relevant material deep in the list. Picking the wrong
+convention rewards the wrong retriever — and even the right comparison is provisional: with only forty
+evaluation queries, a five-point NDCG gap can sit entirely inside the sampling error, so the
+disciplined report is a confidence interval, and a decision to switch retrievers waits on a paired
+significance test, not a single number. The corpus here is a synthetic vMF token cloud standing in for
+those documents; every value illustrates the mechanism, not a benchmark.
+</FinanceCaseStudy>

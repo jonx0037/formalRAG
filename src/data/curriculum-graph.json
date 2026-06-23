@@ -219,7 +219,7 @@
     {
       "id": "ndcg-discount-geometry",
       "label": "NDCG: Graded Relevance and Discount Geometry",
-      "status": "planned",
+      "status": "published",
       "domain": "retrieval-evaluation"
     },
     {
