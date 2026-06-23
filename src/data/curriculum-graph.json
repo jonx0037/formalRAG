@@ -255,7 +255,7 @@
     {
       "id": "pmi-retrieval-value",
       "label": "Pointwise Mutual Information: What Retrieval Adds to Generation, in Bits",
-      "status": "planned",
+      "status": "published",
       "domain": "rag-information-theory"
     },
     {

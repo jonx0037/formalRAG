@@ -1,0 +1,358 @@
+---
+title: "Pointwise Mutual Information: What Retrieval Adds to Generation, in Bits"
+subtitle: "Generation begins with an answer prior p(a|q) and a retrieved document sharpens it to a posterior p(a|q,d); the log-ratio of the two is the pointwise mutual information of that document for that answer — positive for a relevant filing, negative for a distractor that costs bits — and its average is the conditional mutual information I(A;D|Q), the entropy retrieval removes, the same quantity the dense encoder's InfoNCE objective maximized a lower bound on"
+status: "draft"
+difficulty: "advanced"
+prerequisites:
+  - "dense-retrieval-dual-encoders"
+  - "set-metrics-precision-recall-map-mrr"
+tags:
+  - "pointwise-mutual-information"
+  - "mutual-information"
+  - "information-gain"
+  - "entropy-reduction"
+  - "kl-divergence"
+  - "infonce-lower-bound"
+  - "retrieval-value"
+  - "financial-nlp"
+domain: "rag-information-theory"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+videoId: null
+notebookPath: "notebooks/pmi-retrieval-value/01_pmi_retrieval_value.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/pmi-retrieval-value.mdx"
+datePublished: 2026-06-23
+estimatedReadTime: 30
+abstract: "Retrieval is usually scored by whether the right documents came back — recall, average precision, the set-metric family. This topic scores it by a different, information-theoretic question: how many bits does a retrieved document add to the generator's answer? Generation begins with a prior over answers conditioned on the query alone, p(a|q), which is uncertain, with entropy H(A|Q). A retrieved document d sharpens it to a posterior p(a|q,d). The pointwise mutual information pmi(a;d|q) = log p(a|q,d)/p(a|q) is, for a particular answer a, the log-factor by which the document moved the odds — the literal log of a Radon–Nikodym density ratio. Its expectation over the posterior is the per-document information gain, the KL divergence KL(p(·|q,d) ‖ p(·|q)) ≥ 0, and averaging over documents and queries gives the conditional mutual information I(A;D|Q) = H(A|Q) − H(A|Q,D): the entropy retrieval removes, the bits it adds, verified three ways. We then make four points the set-metric layer could not see. A relevant filing has positive pmi on the true answer; a plausible distractor has negative pmi — it costs bits, dragging the posterior toward a wrong answer. A second document that merely repeats the first adds almost nothing — diminishing returns are the chain rule of mutual information, not a heuristic. The dense encoder we trained was, all along, maximizing an InfoNCE lower bound on this very I(Q;D), so retrieval value and contrastive training measure the same quantity from two directions. And bits-added is orthogonal to recall: on an easy corpus where every gold filing is retrieved, recall reads 'perfect' for every query while the bits actually delivered vary widely. The answer model is a synthetic von Mises–Fisher exponential-family stand-in, not a transformer, so every bit is exact for the model and illustrative of a real generator; a tested notebook owns every number."
+connections:
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "the direct prerequisite supplies both the encoder and the corpus this topic measures: the same von Mises–Fisher finance geometry (four sectors, two companies each, one filing per company) induces the answer model here, and the dual encoder whose rank-d ceiling that topic proved is exactly the retriever whose per-document bits we now quantify — the score it ranks by and the information it adds are two readings of one inner product"
+  - topic: "infonce-contrastive-objective"
+    relationship: "that topic proved InfoNCE is a lower bound on the mutual information I(q;d⁺) ceilinged at log(N+1); this topic measures that same mutual information directly as the bits retrieval adds, so the contrastive loss the encoder minimized and the retrieval value we compute are the same quantity approached from opposite sides — training maximized a lower bound on exactly the I(Q;D) this topic estimates, and the log(N+1) saturation reappears as the ceiling on certifiable bits"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "that topic scored retrieval by whether the relevant set came back — recall, AP, MAP over the same legs and corpus; this topic shows bits-added is a DIFFERENT axis: on an easy corpus where the gold filing is always retrieved, recall reads 1.0 for every query while the information actually delivered varies, so presence is not contribution"
+  - topic: "probability-ranking-principle"
+    relationship: "the probability ranking principle ranks documents by probability of relevance to minimize expected loss; pointwise mutual information gives the information-theoretic relevance score behind that ordering — ranking by how much each document sharpens the answer posterior is ranking by bits, so this topic supplies the bits-based relevance signal the ranking principle assumes exists and orders by"
+  - topic: "query-likelihood-language-models"
+    relationship: "the query-likelihood model scores a document by the probability it generates the query, P(q|d); pointwise mutual information is the symmetric log-ratio relating that generative score to relevance, since pmi(q;d) = log P(q|d)/P(q) is the query-likelihood log-odds, so this topic reframes the language-model relevance score that topic built as the bits a document carries about the query"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "the capstone wired a full filings-and-transcripts RAG pipeline and measured it with recall@k; this topic adds the information-theoretic axis that pipeline never reported — how many bits each retrieved passage adds to the generated answer — and exhibits the distractor that costs bits, the redundant passage that adds none, and the gap between a passage's rank and its information value"
+references:
+  - type: "paper"
+    title: "A Mathematical Theory of Communication"
+    authors: "Shannon"
+    year: 1948
+    url: "https://doi.org/10.1002/j.1538-7305.1948.tb01338.x"
+    note: "The founding paper: entropy H as the bits of uncertainty in a source, mutual information as the entropy a channel removes — the H(A|Q) − H(A|Q,D) = I(A;D|Q) identity this topic instantiates is Shannon's; Bell System Technical Journal 27 (1948)"
+  - type: "book"
+    title: "Elements of Information Theory"
+    authors: "Cover & Thomas"
+    year: 2006
+    url: "https://doi.org/10.1002/047174882X"
+    note: "The standard reference for entropy, KL divergence, mutual information, the chain rule I(A;D₁,D₂|Q) = I(A;D₁|Q) + I(A;D₂|Q,D₁) behind the saturation panel, and pmi as the log density-ratio whose expectation is MI; 2nd edition, Wiley"
+  - type: "paper"
+    title: "Word Association Norms, Mutual Information, and Lexicography"
+    authors: "Church & Hanks"
+    year: 1990
+    url: "https://aclanthology.org/J90-1003/"
+    note: "The origin of pointwise mutual information as an NLP association score: log P(x,y)/(P(x)P(y)) for word co-occurrence — the same pmi we apply to (answer, document) pairs; Computational Linguistics 16(1)"
+  - type: "paper"
+    title: "Representation Learning with Contrastive Predictive Coding"
+    authors: "van den Oord, Li & Vinyals"
+    year: 2018
+    url: "https://arxiv.org/abs/1807.03748"
+    note: "InfoNCE / CPC: minimizing the loss maximizes a lower bound on the mutual information between query and positive, I(q;d⁺) ≥ log(N+1) − L — the bound this topic measures against, and the source of the log(N+1) saturation ceiling on certifiable bits"
+  - type: "paper"
+    title: "On Variational Bounds of Mutual Information"
+    authors: "Poole, Ozair, van den Oord, Alemi & Tucker"
+    year: 2019
+    url: "https://arxiv.org/abs/1905.06922"
+    note: "The unifying treatment of variational MI bounds — the bias–variance tradeoff of MI estimators, InfoNCE as a low-variance lower bound, and why estimating MI from samples is hard — the methodological caveat behind this topic's MI-estimation rigor flag; ICML 2019"
+  - type: "paper"
+    title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"
+    authors: "Lewis, Perez, Piktus, Petroni, Karpukhin, Goyal, Küttler, Lewis, Yih, Rocktäschel, Riedel & Kiela"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.11401"
+    note: "The RAG architecture: a retriever marginalizes a generator p(a|q) = Σ_d p(d|q) p(a|q,d) over retrieved documents — the prior-to-posterior sharpening this topic measures the bits of, with p(a|q,d) the per-document posterior; NeurIPS 2020"
+  - type: "book"
+    title: "Information Theory, Inference, and Learning Algorithms"
+    authors: "MacKay"
+    year: 2003
+    url: "https://www.inference.org.uk/itila/book.html"
+    note: "Entropy and mutual information from a Bayesian-inference viewpoint, and Fano's inequality lower-bounding answer error by the conditional entropy H(A|Q,D) — the bridge to the retriever-as-noisy-channel topic; Cambridge University Press, freely available"
+formalmlPrereqs:
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the bit is defined there: H(A|Q) is the Shannon entropy of the answer prior, H(A|Q,D) the conditional entropy after the document, and the headline I(A;D|Q) = H(A|Q) − H(A|Q,D) is the entropy-reduction identity that topic proves — none of this topic's 'bits retrieval adds' is statable without the entropy and conditional-entropy machinery developed there"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "the per-document information gain is exactly the KL divergence KL(p(·|q,d) ‖ p(·|q)) ≥ 0 that topic defines, and pointwise mutual information pmi(a;d|q) = log p(a|q,d)/p(a|q) is the pointwise integrand of that divergence — so a document's bits are the expected log density-ratio, and Gibbs' inequality (KL ≥ 0) is what guarantees the average gain is nonnegative even though a single pmi can be negative"
+formalmlConnections:
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "rate–distortion asks the fewest bits needed to answer within a tolerated error; a retriever that adds I(A;D|Q) bits is buying down the distortion (answer error) the generator would otherwise incur, so retrieval value is a point on the rate–distortion tradeoff that topic characterizes — how many bits of retrieved evidence buy how much reduction in expected answer loss"
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "the information bottleneck compresses an input to keep only what predicts a target, max I(Z;Y) − β I(Z;X); a retriever that maximizes the bits I(A;D|Q) a document adds about the answer while limiting how many documents it reads is the same tradeoff, so context selection is a bottleneck problem and this topic supplies its relevance term I(A;D|Q)"
+formalcalculusPrereqs:
+  - topic: "radon-nikodym"
+    site: "formalcalculus"
+    relationship: "pointwise mutual information is literally the logarithm of a Radon–Nikodym derivative: pmi(a;d|q) = log [dp(·|q,d)/dp(·|q)](a), the density of the posterior answer measure with respect to the prior answer measure — so the bits a document carries are the log of the density-ratio that topic constructs, and absolute continuity of the posterior with respect to the prior is exactly its hypothesis"
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "entropy and mutual information are expectations — H(A|Q) = −Σ p log p in the discrete answer model here, the integral ∫ −p log p dμ in general — so the bits this topic sums are the area-under-the-curve construction that topic develops, with the discrete sum the partition the integral is the limit of"
+formalstatisticsConnections:
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the synthetic answer model p(a|q,d) is a softmax — the categorical exponential family with natural parameters the scaled similarity logits — so pointwise mutual information is a difference of log-partition-shifted natural parameters, and the closed-form bits this topic computes are exponential-family identities that topic develops, the same family the InfoNCE softmax belonged to"
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "estimating I(A;D|Q) from samples is estimating a functional of an unknown distribution, and the plug-in and variational MI estimators this topic names are maximum-likelihood and M-estimators whose bias and variance that topic analyzes — the MI-estimation caveat in the rigor flag is the finite-sample estimator theory developed there"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import PMIRetrievalValueLaboratory from '../../components/viz/PMIRetrievalValueLaboratory.tsx';
+
+## From "did the right document come back" to "how many bits did it add"
+
+The evaluation layer scored retrieval by **presence**. A metric is a sample mean of per-query scores
+([set metrics](/topics/set-metrics-precision-recall-map-mrr)): recall asks what fraction of the relevant
+documents were returned, average precision weights them by rank. These are estimators of *whether the right
+documents came back*, and they are the right question when the failure mode is a missing document.
+
+But a retrieval-augmented generator does not consume a recall number. It consumes the **documents**, and it
+produces an **answer**. The question that matters for generation is not whether a document was returned but
+what it *did* to the answer — and the natural unit for that is the **bit**. Generation begins, before any
+retrieval, with a distribution over answers conditioned on the query alone, the prior $p(a \mid q)$. It is
+uncertain: an analyst's question may pin a sector but not the specific company, so the prior spreads its
+mass and carries entropy $H(A \mid Q)$. A retrieved document $d$ sharpens that distribution to a posterior
+$p(a \mid q, d)$, and the amount of uncertainty it removes is measured in bits.
+
+> Retrieval value is **entropy reduction**: the bits a document removes from the answer's uncertainty. Per
+> answer it is the pointwise mutual information $\operatorname{pmi}(a; d \mid q) = \log_2 p(a \mid q,d)/p(a
+> \mid q)$; on average it is the conditional mutual information $I(A;D \mid Q) = H(A\mid Q) - H(A\mid Q,D)$.
+
+<PMIRetrievalValueLaboratory client:visible />
+
+The lab above is the topic in four panels, and we take each in turn: the prior sharpening into a posterior
+as a document is retrieved, with the bits removed and the pmi at the true answer read off; the histogram
+where a relevant filing's pmi is positive and a distractor's is negative; the diminishing returns of a
+redundant second document; and the InfoNCE bound the encoder maximized, beside the recall axis that bits
+are orthogonal to.
+
+## The answer model: a prior, a posterior, and the log-ratio between them
+
+To measure bits we need probabilities, and a retriever gives us geometry — query and document directions
+and the inner products between them. We turn the geometry into an answer model in the way
+[retrieval-augmented generation](https://arxiv.org/abs/2005.11401) does: a retrieval distribution over
+documents, a per-document answer distribution, and a prior that is the **marginal** of the two. We reuse
+the [dense-retrieval](/topics/dense-retrieval-dual-encoders) finance geometry — four sectors, two companies
+each, one filing per company — so the answer prototypes $\mu_a$ *are* the company filing directions, and
+the answer to a query is which company it concerns.
+
+<TheoremBlock type="definition" number={1} title="The answer prior, posterior, and pointwise mutual information">
+Let the answer space be the $K$ companies with unit prototypes $\mu_a$, and let $q, d$ be unit query and
+document vectors. The **retrieval distribution** is the dual-encoder MIPS softmax
+$$
+p(d \mid q) = \operatorname{softmax}_d\!\big(\langle q, \mu_d\rangle / \tau_{\mathrm{doc}}\big),
+$$
+the **per-document answer posterior** sums the query's and the document's evidence in log-space,
+$$
+p(a \mid q, d) = \operatorname{softmax}_a\!\big((\langle q, \mu_a\rangle + \langle d, \mu_a\rangle)/\tau\big),
+$$
+and the **prior is the RAG marginal** over which document is retrieved,
+$$
+p(a \mid q) = \sum_d p(d \mid q)\, p(a \mid q, d).
+$$
+The **pointwise mutual information** of document $d$ for answer $a$ is the log-ratio
+$$
+\operatorname{pmi}(a; d \mid q) = \log_2 \frac{p(a \mid q, d)}{p(a \mid q)}
+  = \log_2 \Big[\tfrac{dp(\cdot \mid q, d)}{dp(\cdot \mid q)}\Big](a),
+$$
+the logarithm of the Radon–Nikodym derivative of the posterior answer measure with respect to the prior
+answer measure. The marginal definition of the prior is load-bearing — it is what makes the mutual
+information identity below close exactly, rather than approximately.
+</TheoremBlock>
+
+The orientation of pmi is the whole point: it is **positive** when a document raises an answer's
+probability above its prior and **negative** when it lowers it. A document is not uniformly informative;
+it carries different bits about different answers, and — as we will see — it can carry *negative* bits
+about the true one.
+
+## Information gain and the bits retrieval adds
+
+Average pmi over the posterior and you get the **per-document information gain**, the KL divergence from
+prior to posterior; average that over which document is retrieved and over queries and you get the
+**conditional mutual information** — the bits retrieval adds. The
+[Shannon entropy](https://formalml.com/topics/shannon-entropy) and the
+[KL divergence](https://formalml.com/topics/kl-divergence) are developed in full on formalML; here we
+assemble them into one identity and verify it three ways.
+
+<TheoremBlock type="theorem" number={1} title="Retrieval value is entropy reduction">
+For a fixed query $q$, with the prior the marginal of the posterior,
+$$
+\underbrace{\sum_{a,d} p(a,d\mid q)\,\log_2\frac{p(a,d\mid q)}{p(a\mid q)\,p(d\mid q)}}_{\text{joint sum}}
+\;=\;
+\underbrace{\sum_d p(d\mid q)\,\mathrm{KL}\big(p(\cdot\mid q,d)\,\big\|\,p(\cdot\mid q)\big)}_{\text{expected gain}}
+\;=\;
+\underbrace{H(A\mid q) - H(A\mid q,D)}_{\text{entropy reduction}}
+\;\ge\; 0,
+$$
+and averaging over queries gives $I(A;D\mid Q) = H(A\mid Q) - H(A\mid Q,D) \ge 0$, the bits retrieval adds.
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+Write $p(a,d\mid q) = p(d\mid q)\,p(a\mid q,d)$. Because the prior is the marginal, $p(a\mid q) = \sum_d
+p(d\mid q)\,p(a\mid q,d)$, the ratio inside the joint sum is $p(a,d\mid q)/(p(a\mid q)p(d\mid q)) = p(a\mid
+q,d)/p(a\mid q)$, so the joint sum collapses to $\sum_d p(d\mid q)\sum_a p(a\mid q,d)\log_2\frac{p(a\mid
+q,d)}{p(a\mid q)} = \sum_d p(d\mid q)\,\mathrm{KL}(p(\cdot\mid q,d)\,\|\,p(\cdot\mid q))$, the expected-gain
+form. Expanding the logarithm as $\log_2 p(a\mid q,d) - \log_2 p(a\mid q)$ and using the marginal once more
+turns the same expression into $-\sum_d p(d\mid q)\sum_a p(a\mid q,d)\log_2\frac{1}{p(a\mid q,d)} + \sum_a
+p(a\mid q)\log_2\frac{1}{p(a\mid q)} = H(A\mid q) - H(A\mid q,D)$. Nonnegativity is Gibbs' inequality: each
+$\mathrm{KL} \ge 0$, so the $p(d\mid q)$-weighted average is too. The notebook computes all three forms and
+asserts they agree — they coincide to machine precision (maximum pairwise disagreement $0$ to the printed
+precision), with $H(A\mid Q) = 2.06$ bits dropping to $H(A\mid Q,D) = 0.88$ bits, a gain of $I(A;D\mid Q) =
+1.18$ bits.
+</TheoremBlock>
+
+The three forms are not three approximations that happen to be close; they are one number written three
+ways, and the proof is what guarantees it. The entropy-reduction form is the slogan — *retrieval removes
+uncertainty* — the expected-gain form is the per-document decomposition the next sections lean on, and the
+joint sum is the definition of mutual information itself.
+
+## A relevant filing adds bits; a distractor costs them
+
+The expected gain $\mathrm{KL}(\text{posterior}\,\|\,\text{prior})$ is always nonnegative — *any* document
+that moves the belief has positive gain in the Shannon sense. But the gain is an average over answers, and
+the **pointwise** pmi at a *particular* answer need not be positive. The answer that matters is the true
+one, $a^\star$, and there the sign is diagnostic.
+
+<TheoremBlock type="proposition" number={1} title="The sign of pmi at the true answer">
+A relevant filing — the gold company's own document — raises the posterior on $a^\star$ above the prior, so
+$\operatorname{pmi}(a^\star; d_{\mathrm{rel}} \mid q) > 0$. A plausible **distractor** — a different
+company's filing in the same sector — sharpens the posterior onto the *wrong* company, lowering the
+probability of $a^\star$, so $\operatorname{pmi}(a^\star; d_{\mathrm{distr}} \mid q) < 0$, even though the
+distractor's information gain $\mathrm{KL}(\text{posterior}\,\|\,\text{prior}) > 0$ — it moves belief, just
+toward the wrong answer. A document that costs bits at the truth is a document that, in expectation, makes
+the generator *more* likely to be wrong.
+</TheoremBlock>
+
+This is a proposition about the toy, not a theorem about relevance labels, and it is one we *run* rather
+than assume: across the query set the mean pmi at the true answer is $+0.98$ bits for relevant filings and
+$-1.11$ bits for distractors, and $96.9\%$ of distractors land on the negative side (Panel B). The point of
+[pmi as a word-association score](https://aclanthology.org/J90-1003/) was always that the sign carries
+meaning — co-occurrence above chance is positive, below chance negative — and the same sign here separates
+evidence that helps the generator from evidence that misleads it. It is also the precise sense in which a
+high-recall retriever can hurt: returning a fluent, on-topic, *wrong* passage is returning negative bits.
+
+## Diminishing returns: a redundant document adds almost nothing
+
+If one document adds bits, do two add twice as many? Only if the second is *new*. The bits a sequence of
+documents adds obey the chain rule of mutual information, and redundancy makes the later terms vanish.
+
+<TheoremBlock type="proposition" number={2} title="Saturation is the chain rule of mutual information">
+The information two documents add about the answer decomposes as
+$$
+I(A; D_1, D_2 \mid Q) = I(A; D_1 \mid Q) + I(A; D_2 \mid Q, D_1).
+$$
+When $D_2$ is **redundant** with $D_1$ — the same filing again — the conditional term $I(A; D_2 \mid Q,
+D_1)$ is near zero: the posterior is already where $D_1$ put it, and a second copy barely moves it.
+A **novel** $D_2$ — a different filing — leaves the conditional term large.
+</TheoremBlock>
+
+Measured as belief movement $\mathrm{KL}(\text{new}\,\|\,\text{old})$, the gold filing moves the posterior
+$0.67$ bits from the prior; a *second identical copy* then adds only $0.09$ bits, while a *different* filing
+adds $0.44$ (Panel C). The marginal value of evidence diminishes with redundancy — which is exactly why a
+context window should be filled with *diverse* passages rather than the top-$k$ near-duplicates a similarity
+search returns. Quantifying that diversity gain is a submodular-coverage problem, the subject of context
+selection, the topic this one points forward to.
+
+## The encoder maximized a lower bound on these bits
+
+The dense encoder did not learn its geometry by accident. It was trained by
+[contrastive learning](/topics/infonce-contrastive-objective), and the InfoNCE objective it minimized is,
+up to sign, a **lower bound on the mutual information** between a query and its positive document — the same
+$I(Q;D)$ whose answer-side payoff this topic measures.
+
+<TheoremBlock type="corollary" number={1} title="InfoNCE is a lower bound on I(Q;D), ceilinged at log(N+1)">
+For an in-batch problem with one positive and $N$ negatives, the InfoNCE loss $\mathcal{L}$ satisfies
+$$
+I(Q;D) \;\ge\; \log(N+1) - \mathcal{L}.
+$$
+The bound can never exceed its ceiling $\log(N+1)$ — even a perfect critic ($\mathcal{L}\to 0$) certifies at
+most $\log(N+1)$ bits — so it **saturates**: certifying more information requires more in-batch negatives,
+not just a better encoder.
+</TheoremBlock>
+
+The ceiling is the load-bearing caveat, and Panel D shows it directly: as the batch grows from two
+candidates to eight, the bound climbs but stays strictly under the rising $\log_2(N{+}1)$ line. So the
+encoder's training and the retriever's value are two views of one quantity — training pushed $\mathcal{L}$
+down to maximize a lower bound on $I(Q;D)$, and the bits a retrieved document adds to the answer are that
+information cashed out at generation time. (The bound is loose, and the empirical $\log(N{+}1) - \mathcal{L}$
+from a finite batch is a notoriously unreliable point estimate of the true MI — the
+[variational-bounds](https://arxiv.org/abs/1905.06922) literature is a catalogue of the bias; the robust
+statement is the saturation, not a number.)
+
+## Bits added is a different axis from recall
+
+Return finally to the set-metric layer. On this corpus retrieval is easy: the gold filing is the
+query's nearest company prototype, so it is always rank one, and **recall@k and average precision are
+saturated at $1.0$ for every query**. By the set-metric reading, every query is equally, perfectly served.
+
+Yet the bits retrieval adds range from $0.68$ to $1.60$ across those same queries (Panel D, right). The
+variation is real — an ambiguous query whose prior was spread wide gains more than one whose prior already
+leaned toward the answer — and recall is blind to it. Recall measures **presence**: did the document come
+back. Mutual information measures **contribution**: how much did it change the answer. They are different
+axes, and an evaluation that reports only the first cannot see what retrieval actually did for generation.
+
+<RigorFlag>
+Every "bit" here is measured against a **synthetic answer model**, not a real LLM generator. The answer
+distributions $p(a\mid q)$ and $p(a\mid q,d)$ are a softmax over a small fixed answer set induced from the
+same von Mises–Fisher finance geometry the dense-retrieval topic used (four sectors, two companies each,
+one filing per company) — an exponential-family stand-in chosen so that pmi, the per-document KL
+information gain, and the conditional mutual information all have closed forms the notebook owns to the
+decimal. A transformer's $p(a\mid q,\text{context})$ is intractable and would have to be **estimated**, with
+its own variance. Four further joints. **MI estimation from samples is hard and biased**: the variational
+bounds we name — InfoNCE among them — are the practical tools, and InfoNCE is a *lower* bound ceilinged at
+$\log(N{+}1)$, so a measured "bits added" from a finite batch saturates exactly as the dense-encoder topic's
+bound did; the identity $I = H(A\mid Q) - H(A\mid Q,D)$ holds for the true distributions, not their
+finite-sample estimates. **The "distractor costs bits" claim is about $\operatorname{pmi}(a^\star; d\mid q) <
+0$ for the true answer** under this model — a property of (answer, document) pairs, not of relevance labels;
+pmi can be negative for a relevant document too when the answer set is coarse. **Saturation is chain-rule
+arithmetic**, exact for the model, but real second documents are neither perfectly redundant nor
+independent. And **bits-added is a different axis from recall** by construction here: recall is saturated
+because retrieval is easy, which is the cleanest way to show the dissociation, not a defect. Queries are
+sector-ambiguous synthetic vMF draws, not natural language.
+</RigorFlag>
+
+<FinanceCaseStudy title="How many bits does each retrieved filing add to the answer?" modality={["text", "pdf"]}>
+An analyst asks which company in the energy sector took a specific impairment charge. Before retrieval the
+generator's prior spreads over the sector's companies — it knows the sector from the question but not the
+name, an answer entropy of roughly a bit. A relevant **10-K** passage that names the charge sharpens the
+posterior onto the right company and adds positive bits; a same-sector **10-Q** from a *different* company
+that discusses a similar charge is a distractor — it sharpens the posterior onto the wrong name and *costs*
+bits at the truth, the information-theoretic signature of a confident hallucination. A second copy of the
+boilerplate risk-factors section adds essentially nothing: the posterior is already placed. And the passage
+the similarity search ranked first — the one with the highest cosine to the query — may add fewer bits than
+a lower-ranked disclosure that actually resolves the ambiguity, because rank measures lexical and semantic
+proximity, not the reduction in answer uncertainty. The numbers here come from a synthetic vMF stand-in for
+that pipeline, not a benchmark; the *mechanism* is what the case study illustrates.
+</FinanceCaseStudy>
+
+## What retrieval adds, in one line
+
+The evaluation layer asked whether the right documents came back; this topic asks how many **bits** they add
+to the answer. The answer is the conditional mutual information $I(A;D\mid Q) = H(A\mid Q) - H(A\mid Q,D)$,
+assembled from a prior $p(a\mid q)$, a posterior $p(a\mid q,d)$, and the pointwise log-ratio
+$\operatorname{pmi}(a;d\mid q)$ between them. The pieces carry the lessons forward: a distractor with negative
+pmi is the seed of the **faithfulness** question — when does retrieved evidence ground an answer versus
+mislead it; the chain rule and diminishing returns are the relevance term in **context selection**; and the
+prior-to-posterior sharpening, read as a channel, is the **retriever as a noisy channel** whose recall and
+precision bound the bits it can deliver — Fano's inequality lower-bounds the answer error by the residual
+entropy $H(A\mid Q,D)$. The dense encoder maximized a lower bound on exactly these bits. We now have the unit
+the rest of the information-theory layer is measured in.

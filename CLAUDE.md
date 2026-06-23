@@ -429,6 +429,45 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   Refs verified: CRC arXiv 2208.02814; Mohri–Hashimoto (per-claim back-off) arXiv 2402.10978; C-RAG (Kang et al.)
   arXiv 2402.03181; Tibshirani et al. covariate-shift arXiv 1904.06019; RCPS Bates et al. `10.1145/3478535`;
   Angelopoulos–Bates gentle intro arXiv 2107.07511; Lei et al. (split-conformal) JASA `10.1080/01621459.2017.1307116`.
+  Its **information-theory-keystone successor** (`pmi-retrieval-value`): the ROOT of the rag-information-theory
+  layer (entry from the eval layer; unblocks BOTH `faithfulness-groundedness` and `retriever-as-noisy-channel`,
+  whose DAG edges already exist — ship = node `planned→published` + drop the title from `curriculum.ts`
+  tracks[8].planned, no edge add). Measures "what retrieval adds, in bits" via a SYNTHETIC ANSWER MODEL over
+  the imported dense-retrieval finance geometry (`dpr_finance_matrix`: 4 sectors × 2 companies, one filing per
+  company → the company filing IS the answer prototype). **The prior MUST be the RAG marginal**
+  `p(a|q)=Σ_d p(d|q)p(a|q,d)` (Lewis et al. 2020), NOT a free softmax — only then do the three MI forms
+  (joint-sum, expected-KL, entropy-reduction `H(A|Q)−H(A|Q,D)`) agree (measured 0 to printed precision; a free
+  prior gave 0.887 vs 0.957). Build the hot path as `prior = pdq @ post` and pin `answer_prior` to it with a
+  `<1e-12` test (keeps the user-written canonical def consistent without a Gemini "unused" flag). **REUSE the
+  prereq geometry but BUILD a topic-specific query set** — `dpr_finance_matrix`'s own queries are κ=350
+  company-tight → prior entropy ≈0 → the bits headline goes vacuous; draw SECTOR-ambiguous queries around the
+  sector mean at κ_query≈30 (the tuned-query exception the contract allows), gold = nearest in-sector company,
+  `test_prior_genuinely_uncertain` (H(A|Q)>0.5 bit) guards it. `TAU=TAU_DOC=0.2` (additive-logits posterior
+  `softmax((⟨q,μ_a⟩+⟨d,μ_a⟩)/τ)`); τ≳0.5 flips the distractor sign positive. **PROP 1 (the headline):** a
+  relevant filing gives `pmi(a*;d|q)>0`, a same-sector distractor `<0` (costs bits at the truth) while its
+  `KL(post‖prior)>0` — assert the sign split + margin, not decimals (mean_rel +0.98 > 0 > mean_distr −1.11,
+  96.9% negative). **InfoNCE COR gotcha — assert ONLY the ceiling/saturation, never "bound ≤ measured MI":** the
+  empirical `log(N+1)−L` from a finite batch can EXCEED any single MI estimate (bound 1.84 > retrieval-channel
+  I(Q;D) 0.82 here) and the two are different MIs — so the robust, load-bearing claim is `bound ≤ log(N+1)` (the
+  CLAUDE.md InfoNCE rigorFlag), shown as a bound curve rising to its rising ceiling; import `info_nce_loss_batch`,
+  never reimplement. **Bits ≠ recall via SATURATED recall, NOT a KL-movement ordering:** on this easy corpus the
+  gold is always rank-1 so `recall@k≡1.0`/`MAP≡1.0` (import `recall_at_k`/`average_precision` from set-metrics to
+  show it) while per-query bits `H(A|Q)−H(A|Q,D)` vary 0.68–1.60 — assert recall_min==recall_max==1 AND
+  bits_max−bits_min>0.5. (An alternative "max-KL doc ≠ top-ranked doc" framing is muddy — KL belief-movement
+  rewards a surprising WRONG far-sector doc — so don't headline it.) **Saturation (PROP 2):** belief movement
+  KL(new‖old) of a 2nd IDENTICAL filing (0.09) ≪ standalone (0.67) ≈ a 2nd DIFFERENT filing (0.44); chain rule
+  cited, demonstrated not proven; forward-edge `context-selection-submodular-dpp` named in prose only (unbuilt).
+  Cross-site (all slugs `ls`-verified): `formalmlPrereqs` shannon-entropy + kl-divergence; `formalcalculusPrereqs`
+  radon-nikodym (pmi = log of an RN derivative) + riemann-integral; `formalmlConnections` rate-distortion +
+  information-bottleneck; `formalstatisticsConnections` exponential-families + maximum-likelihood. formalML has NO
+  `mutual-information`/`channel-capacity` slug → name in prose. In-site `connections[]` (all published):
+  dense-retrieval, set-metrics, infonce-contrastive-objective, probability-ranking-principle,
+  query-likelihood-language-models, capstone. Viz Panel A bakes the worked query's full 8×8 POST_ALL so the
+  doc-slider scans every candidate; TS recomputes entropy/pmi/histogram bins closed-form. Refs verified (`curl -sI`):
+  Shannon 1948 `10.1002/j.1538-7305.1948.tb01338.x` (→IEEE Xplore, BSTJ 27); Cover–Thomas 2006 `10.1002/047174882X`;
+  Church–Hanks 1990 PMI-origin is PRE-DOI → `https://aclanthology.org/J90-1003/` (the guessed `10.1162/...` 404s);
+  van den Oord CPC arXiv 1807.03748; Poole et al. (variational MI bounds) arXiv 1905.06922; Lewis et al. RAG
+  arXiv 2005.11401; MacKay 2003 (Fano, for the noisy-channel forward edge) inference.org.uk/itila.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
