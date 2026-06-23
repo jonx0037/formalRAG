@@ -1,0 +1,376 @@
+---
+title: "Conformal Factuality: Distribution-Free Correctness Guarantees for Generation"
+subtitle: "The evaluation layer produced numbers with error bars; the judge produced a calibrated confidence that a generated claim is supported. This topic turns that confidence into a guarantee — conformal prediction converts any nonconformity score into finite-sample coverage under exchangeability alone. We back off unsupported claims with a split-conformal threshold, control the false-claim rate with conformal risk control, and watch the guarantee break under drift and be repaired by reweighting. The finance thread: a retrieval-augmented system over filings that abstains rather than hallucinate a figure, at an error rate an auditor could sign off on."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "llm-as-judge-ragas"
+  - "significance-testing-calibration"
+tags:
+  - "conformal-prediction"
+  - "conformal-risk-control"
+  - "factuality"
+  - "selective-generation"
+  - "split-conformal"
+  - "exchangeability"
+  - "covariate-shift"
+  - "weighted-conformal"
+  - "retrieval-evaluation"
+  - "financial-nlp"
+domain: "retrieval-evaluation"
+pipelineStage: "evaluate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+rigorFlag: "Every guarantee here is MARGINAL, not conditional — averaged over the claim and query draw, with no per-query or per-domain promise; distribution-free CONDITIONAL coverage is impossible at finite informative-set size (formalML's conformal-prediction proves this via Foygel Barber et al. 2021). It rests on EXCHANGEABILITY of the calibration and test claims, which intra-answer dependence (claims share a context and a generation) and query drift both stress, and which covariate shift breaks outright — the weighted repair restores coverage only when the likelihood ratio is KNOWN, which in practice must itself be estimated. Conformal risk control bounds the EXPECTED loss over the calibration draw, not with high probability: a single calibration set can realize a false-claim rate above the target (on this corpus the α = 0.20 setting realizes 0.205); the high-probability alternative is the risk-controlling prediction set of Bates et al. 2021, named here, not built. And 'faithful' means faithful UNDER THE SYNTHETIC JUDGE ORACLE — the whole construction inherits the llm-as-judge-ragas synthetic-oracle caveat: the guarantee is distribution-free with respect to the data, conditional on the judge, whose own bias and irreducible variance floor lower-bound the attainable error. Relevance is a synthetic-vMF MaxSim oracle, not human judgment, and a tested notebook owns every number."
+videoId: null
+notebookPath: "notebooks/conformal-factuality/01_conformal_factuality.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/conformal-factuality.mdx"
+datePublished: 2026-06-23
+estimatedReadTime: 32
+abstract: "The evaluation layer treated every retrieval number as an estimator and the LLM judge as a noisy instrument whose verdicts we debias and whose confidence we calibrate. That leaves a sharper question for generation: not how good a number is, but whether we can sign a guarantee on the answer we emit. Conformal prediction answers it. Given any nonconformity score — here the calibrated judge confidence that a claim is supported — split conformal sets a threshold from a held-out calibration set so that a genuinely faithful claim survives with probability at least one minus alpha, a finite-sample coverage guarantee that assumes only exchangeability, no model of when the language model hallucinates. We build the score, the per-claim back-off that removes the least-confident claims, and the recall guarantee that follows verbatim from the marginal-coverage theorem. But recall is not precision: a lenient judge endorses unsupported claims at high confidence, so the recall guarantee lets the false-claim rate run uncontrolled — on this corpus nearly a quarter of retained claims are hallucinations at the strictest level. Controlling the false-claim rate needs a guarantee on a monotone loss, which is conformal risk control: the per-slot false-claim rate, with its fixed denominator, is non-increasing in the back-off threshold, and the risk-control threshold holds its expectation at or below alpha. The fraction-of-retained loss, by contrast, is not monotone and silently voids the guarantee — a trap we exhibit numerically. A perfect judge collapses the whole construction onto precision at k, the metric the evaluation layer was built on. Finally the guarantee is marginal and rests on exchangeability, which covariate shift breaks: the threshold calibrated on yesterday's query mix under-covers a shifted deployment, and weighted conformal with the known likelihood ratio restores coverage. The finance thread is a retrieval-augmented system over filings that backs off unsupported claims and abstains rather than hallucinate a figure, at a guaranteed error rate. A tested notebook owns every number."
+connections:
+  - topic: "llm-as-judge-ragas"
+    relationship: "the direct prerequisite and the source of the nonconformity score: that topic built the per-claim judge confidence and showed how to debias the verdict (Rogan–Gladen) and calibrate the confidence (Platt, isotonic); this topic takes that calibrated confidence as the conformal score and turns it into a finite-sample guarantee, and the collapse anchor — a perfect judge's retained fraction equals precision at k — is exactly that topic's perfect-judge anchor lifted from the mean verdict to the conformal retained set"
+  - topic: "significance-testing-calibration"
+    relationship: "the calibration suite this topic imports — the reliability diagram, expected calibration error, Platt and isotonic recalibration, and the monotone-recalibration theorem — is what turns the raw judge confidence into a probability; the key reframing is that calibration is not the guarantee but the efficiency of it, since conformal coverage holds for any score and recalibration only buys more retained claims at the same level, and the covariate-shift drift this topic repairs is the same distribution-comparison that topic monitored with KS and PSI"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "the root of the evaluation layer and the home of precision at k, the metric the collapse anchor recovers: a perfect judge's conformal back-off retains exactly the relevant documents, so the per-query retained fraction equals the imported precision at k to machine precision, anchoring the whole distribution-free construction onto the set metric the layer began with"
+references:
+  - type: "paper"
+    title: "Conformal Risk Control"
+    authors: "Angelopoulos, Bates, Fisch, Lei & Schuster"
+    year: 2024
+    url: "https://arxiv.org/abs/2208.02814"
+    note: "The generalization of split conformal from the 0/1 miscoverage loss to any bounded, monotone loss: the threshold lambda-hat = inf over the corrected empirical risk gives E[L] <= alpha. The theorem this topic's false-claim-rate control rests on; ICLR 2024"
+  - type: "paper"
+    title: "Language Models with Conformal Factuality Guarantees"
+    authors: "Mohri & Hashimoto"
+    year: 2024
+    url: "https://arxiv.org/abs/2402.10978"
+    note: "The per-claim back-off construction: a generated answer is a set of sub-claims, and removing the least-confident until the retained set is certified gives a finite-sample factuality guarantee — the shape this topic instantiates on the judge confidence; ICML 2024"
+  - type: "paper"
+    title: "C-RAG: Certified Generation Risks for Retrieval-Augmented Language Models"
+    authors: "Kang, Gürel, Wang & Li"
+    year: 2024
+    url: "https://arxiv.org/abs/2402.03181"
+    note: "Conformal risk control applied to retrieval-augmented generation specifically, certifying a bound on the generation risk of a RAG pipeline — the direct precedent for the finance-RAG abstention guarantee here; ICML 2024"
+  - type: "paper"
+    title: "Conformal Prediction Under Covariate Shift"
+    authors: "Tibshirani, Foygel Barber, Candès & Ramdas"
+    year: 2019
+    url: "https://arxiv.org/abs/1904.06019"
+    note: "Weighted conformal prediction: when the test covariate distribution differs from calibration, reweighting the calibration scores by the likelihood ratio restores marginal coverage at the test distribution — the drift repair this topic's fourth panel demonstrates; NeurIPS 2019"
+  - type: "paper"
+    title: "Distribution-Free, Risk-Controlling Prediction Sets"
+    authors: "Bates, Angelopoulos, Lei, Malik & Jordan"
+    year: 2021
+    url: "https://doi.org/10.1145/3478535"
+    note: "The high-probability (delta-level) alternative to conformal risk control: an upper-confidence bound on the risk gives P(R(lambda-hat) <= alpha) >= 1 - delta, a per-deployment guarantee rather than CRC's expectation — the rigorFlag's named alternative; JACM 2021"
+  - type: "paper"
+    title: "A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification"
+    authors: "Angelopoulos & Bates"
+    year: 2023
+    url: "https://arxiv.org/abs/2107.07511"
+    note: "The unifying survey of conformal prediction, conformal risk control, and the nonconformity-score-as-design-lever view this topic adopts; Foundations and Trends in Machine Learning 2023"
+  - type: "paper"
+    title: "Distribution-Free Predictive Inference for Regression"
+    authors: "Lei, G'Sell, Rinaldo, Tibshirani & Wasserman"
+    year: 2018
+    url: "https://doi.org/10.1080/01621459.2017.1307116"
+    note: "The split-conformal marginal-coverage theorem this topic reuses verbatim: the threshold is the ceil((1-alpha)(n+1))-th smallest calibration score, and coverage is between 1-alpha and 1-alpha+1/(n+1); proved in full in the companion formalML topic; JASA 2018"
+formalmlPrereqs:
+  - topic: "conformal-prediction"
+    site: "formalml"
+    relationship: "this topic is the applied instantiation of that one: it reuses, without re-proving, the definition of exchangeability, the split-conformal construction, and Theorem 1 — marginal coverage with the ceil((1-alpha)(n+1))-th-order-statistic threshold and the two-sided 1-alpha to 1-alpha+1/(n+1) bound — and the conditional-coverage impossibility result; the novelty here is the faithfulness nonconformity score, the per-claim back-off, the conformal-risk-control extension to a monotone loss, and the RAG application, all built on that topic's theorems"
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the finite-sample coverage guarantee is a statement about the rank of the test score among the calibration scores concentrating around its expectation, and the conformal-risk-control bound's B/(n+1) correction is the finite-sample slack that the concentration results that topic proves make rigorous; the empirical risk on the calibration answers concentrates around the true risk at a rate those inequalities set"
+formalmlConnections:
+  - topic: "always-valid-inference"
+    site: "formalml"
+    relationship: "a deployed factuality monitor re-certifies as each batch of traffic arrives, so the fixed-n conformal guarantee is invalidated by continuous peeking exactly as the prerequisites' drift monitor was; the time-uniform confidence sequences and e-processes that topic develops are the principled extension to online conformal inference, turning the one-shot coverage guarantee here into a sequentially valid one that holds no matter when you stop and look"
+formalstatisticsPrereqs:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "a conformal prediction set is an inverted test: retaining a claim is failing to reject the null that the claim is faithful at level alpha, the nonconformity score is the test statistic, and the calibration quantile is the critical value, so the coverage guarantee is the test's level controlled in finite samples; the recall-versus-precision distinction here is the Type-I-versus-Type-II tradeoff that topic frames, with the false-claim rate playing the role conformal risk control elevates to its own controlled error"
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "the split-conformal threshold is a distribution-free, one-sided confidence bound on the nonconformity score, and the prediction set is its dual region — the same test–CI duality that topic builds by inverting a test, here made distribution-free and finite-sample so that no parametric model of the score is needed, only exchangeability"
+formalstatisticsConnections:
+  - topic: "multiple-testing-and-false-discovery"
+    site: "formalstatistics"
+    relationship: "conformal risk control selects a single threshold to bound an expected error rate across many claims, the same problem the false-discovery-rate corrections that topic derives solve for a family of tests; the Learn-Then-Test framework casts conformal-risk-control threshold selection explicitly as a multiple-testing problem with family-wise error control, so the false-claim rate bounded here is the generation-layer analog of the FDR that topic controls"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import ConformalFactualityLaboratory from '../../components/viz/ConformalFactualityLaboratory.tsx';
+
+## From a number with error bars to a guarantee you can sign
+
+The evaluation layer built one through-line. A retrieval metric is not a property of a system but an
+**estimator** — a sample mean of per-query scores with a standard error
+([set metrics](/topics/set-metrics-precision-recall-map-mrr)), generalized to graded relevance
+([NDCG](/topics/ndcg-discount-geometry)), then tested, calibrated, and monitored for drift
+([significance, calibration, drift](/topics/significance-testing-calibration)). When generation entered,
+[the LLM judge](/topics/llm-as-judge-ragas) became the instrument: a noisy, biased rater whose verdicts we
+debiased and whose confidence we calibrated into a probability that a claim is supported.
+
+Every one of those topics produced a **number**. This one produces a **guarantee**. The question shifts
+from *how good is the estimate* to *can we promise something about the answer we are about to emit* — and
+promise it without a model of when the language model hallucinates, without assuming the score is
+Gaussian, without trusting that the test distribution matches the one we calibrated on more than the bare
+minimum. That minimum is **exchangeability**, and the machinery that extracts a finite-sample guarantee
+from it is **conformal prediction**. The companion formalML topic on
+[conformal prediction](https://formalml.com/topics/conformal-prediction) proves its central theorem in
+full; we reuse that theorem and build the RAG-specific construction on top.
+
+> Conformal prediction converts **any** nonconformity score into a finite-sample coverage guarantee under
+> exchangeability alone. The score is the design lever. We make the score the calibrated judge confidence
+> that a claim is faithful, and the guarantee becomes a statement about which claims we are entitled to
+> emit.
+
+<ConformalFactualityLaboratory client:visible />
+
+The lab above is the topic in four panels, and we take each in turn: the calibration quantile that sets
+the back-off threshold and the coverage it buys; the per-claim back-off on a worked answer; the
+risk–coverage frontier where recall and precision part ways; and the covariate shift that breaks the
+guarantee and the reweighting that restores it.
+
+## The score, the back-off, and the recall guarantee
+
+The prerequisite gives us, for each (query, claim) pair, the judge's calibrated confidence
+$\tilde c \in [0,1]$ that the claim is *supported* — the output of Platt or isotonic recalibration applied
+to the raw judge probability. We turn confidence into a conformal **nonconformity score** by the obvious
+inversion.
+
+<TheoremBlock type="definition" number={1} title="The faithfulness nonconformity score">
+For a claim with calibrated judge confidence $\tilde c \in [0,1]$ that it is supported, the
+**nonconformity score** is
+$$
+s \;=\; 1 - \tilde c.
+$$
+A genuinely faithful claim should draw high confidence, hence a **low** score; an unsupported claim should
+draw low confidence, hence a **high** score — matching the conformal convention that the score is large
+when the example is anomalous. The orientation is load-bearing: scoring $s = \tilde c$ instead would make
+the sublevel set $\{s \le \hat\tau\}$ the *least*-confident claims, retaining exactly the wrong ones.
+</TheoremBlock>
+
+A generated answer is a set of $k$ sub-claims with calibrated confidences
+$\tilde c_{(1)} \ge \tilde c_{(2)} \ge \cdots \ge \tilde c_{(k)}$. The decision is not "accept or reject the
+whole answer" but "which claims may we keep" — and the conformal set is built by **backing off** from the
+least confident.
+
+<TheoremBlock type="algorithm" number={1} title="Per-claim back-off">
+Given a threshold $\hat\tau$ on the score, the **retained claim set** for an answer is
+$$
+\hat C_\alpha \;=\; \{\, i : s_i \le \hat\tau \,\} \;=\; \{\, i : \tilde c_i \ge 1 - \hat\tau \,\}.
+$$
+Equivalently: sort the claims by descending confidence and drop from the bottom every claim below the
+cut $\tau = 1 - \hat\tau$. The retained set is either nonempty (we emit it) or empty (we **abstain**). This
+is the construction of Mohri & Hashimoto (2024) and C-RAG (Kang et al. 2024), here applied per claim to the
+judge confidence.
+</TheoremBlock>
+
+The threshold is set on a held-out calibration set the way split conformal always sets it — as an order
+statistic of the calibration scores — but restricted to the subpopulation whose retention we want to
+guarantee.
+
+<TheoremBlock type="definition" number={2} title="The calibration procedure">
+Hold out $n_{\mathrm{cal}}$ calibration claims with observed truth labels $Y_i \in \{0,1\}$. **Restrict to
+the truly-faithful claims** $\{i : Y_i = 1\}$; let $n_1 = \#\{i : Y_i = 1\}$, and compute their scores
+$S_i = 1 - \tilde c_i$. The threshold is
+$$
+\hat\tau \;=\; \big\lceil (1-\alpha)(n_1 + 1) \big\rceil\text{-th smallest of } \{S_i : Y_i = 1\},
+$$
+capped at $+\infty$ when the rank exceeds $n_1$ (then $\tau = -\infty$ and we retain everything: the
+honest "cannot certify at this $\alpha$" outcome). The score depends only on the training-fitted judge and
+recalibrator, never on the calibration or test data — the hypothesis the coverage theorem requires.
+</TheoremBlock>
+
+This is exactly the split-conformal threshold, so the marginal-coverage theorem applies verbatim. We state
+the consequence and are careful about *what* it guarantees.
+
+<TheoremBlock type="corollary" number={1} title="Faithful-claim retention (from formalML's Theorem 1)">
+Let the truly-faithful calibration claims and a truly-faithful test claim be exchangeable. With $\hat\tau$
+from Definition 2,
+$$
+\mathbb{P}\big(\text{test claim retained} \;\big|\; \text{test claim faithful}\big) \;\ge\; 1 - \alpha,
+$$
+and under score continuity at most $1 - \alpha + \tfrac{1}{n_1 + 1}$. This is a **recall** guarantee: at
+most a fraction $\alpha$ of genuinely faithful claims are wrongly dropped.
+</TheoremBlock>
+
+The direction matters enough to state what the corollary does **not** say. It is tempting to read "$\alpha$
+controls the error" as "$\alpha$ controls the hallucination rate among retained claims." That is false. The
+recall guarantee bounds the rate at which we discard *true* content; it says nothing about how many
+*unsupported* claims slip through. A judge that endorses everything achieves perfect recall while retaining
+every hallucination. Panel A of the lab makes the recall side concrete — drag $\alpha$ and the realized
+coverage tracks $1 - \alpha$ to within Monte-Carlo error (at $\alpha = 0.10$, realized coverage $0.902$
+against the target $0.900$) — but the leakage it ignores is the subject of the next section.
+
+## Recall is not precision: conformal risk control
+
+Panel C runs the back-off across the whole $\alpha$ grid and measures both error directions. Under our
+deliberately **lenient** judge — informative but over-endorsing, so its faithful and unsupported
+confidences overlap — the recall guarantee leaves the false-claim rate badly **uncontrolled**: at
+$\alpha = 0.02$, nearly a quarter of retained slots are hallucinations ($0.23$), and even at $\alpha = 0.10$
+the rate is $0.115$. Recall and precision have parted ways, and controlling the false-claim rate needs a
+guarantee on a different quantity — one that decreases as we tighten the cut. That is **conformal risk
+control**, the generalization of split conformal from the $0/1$ miscoverage loss to any bounded, monotone
+loss.
+
+<TheoremBlock type="theorem" number={1} title="Conformal risk control (Angelopoulos et al. 2024)">
+Let $L_1(\lambda), \dots, L_{n+1}(\lambda)$ be exchangeable loss functions, each **non-increasing** in the
+threshold $\lambda$, bounded above by $B$. With the empirical risk
+$\hat R_n(\lambda) = \tfrac1n \sum_{i=1}^n L_i(\lambda)$, choose
+$$
+\hat\lambda \;=\; \inf\Big\{\, \lambda : \frac{n}{n+1}\,\hat R_n(\lambda) + \frac{B}{n+1} \;\le\; \alpha \,\Big\}.
+$$
+Then $\mathbb{E}\big[L_{n+1}(\hat\lambda)\big] \le \alpha$. Split conformal is the special case
+$L_i(\lambda) = \mathbf{1}\{\text{miscovered}\}$ with $B = 1$; the $\tfrac{n}{n+1}$ shrinkage and the
+$\tfrac{B}{n+1}$ correction are the finite-sample slack, the role the "$+1$" plays in the coverage theorem.
+</TheoremBlock>
+
+Everything now hinges on choosing a loss that is genuinely **monotone** in the threshold. The natural
+candidate — the *fraction* of retained claims that are unfaithful — is the wrong one, and the reason is a
+trap worth exhibiting.
+
+<TheoremBlock type="proposition" number={1} title="The false-claim loss must have a fixed denominator">
+Parametrize the back-off by a confidence cut $\lambda$, retaining $\{i : \tilde c_i \ge \lambda\}$, so a
+larger $\lambda$ retains fewer claims. The **fraction-of-retained** loss
+$$
+L^{\mathrm{frac}}(\lambda) = \frac{\#\{\text{retained and unfaithful}\}}{\#\{\text{retained}\}}
+$$
+is **not** monotone in $\lambda$: raising the cut shrinks the denominator faster than the numerator can
+fall. (Retain one false and nine true claims at fraction $0.10$; raise the cut to drop eight of the true
+claims while the one false claim survives, and the fraction *rises* to $1.0$.) Applying conformal risk
+control to $L^{\mathrm{frac}}$ is therefore unsound. The fix is the **fixed-denominator** loss
+$$
+L_i(\lambda) \;=\; \frac{1}{k}\,\#\{\, j : \tilde c_j \ge \lambda \text{ and } Y_j = 0 \,\},
+$$
+the count of retained hallucinations per answer normalized by the *constant* slot count $k$. Each indicator
+$\mathbf{1}\{\tilde c_j \ge \lambda\}\mathbf{1}\{Y_j = 0\}$ can only switch **off** as $\lambda$ rises, so
+$L_i$ is non-increasing and bounded in $[0,1]$ ($B = 1$) — exactly the hypothesis the theorem needs.
+Conformal risk control thus bounds the **per-slot** false-claim rate $\mathbb{E}[L_{n+1}(\hat\lambda)] \le
+\alpha$; the rate *conditional on retention* is not directly controllable, because conditioning
+reintroduces the shrinking denominator.
+</TheoremBlock>
+
+The notebook reproduces the non-monotonicity numerically before adopting the fixed-denominator loss — the
+discipline of building a counterexample before trusting the construction. With the monotone loss in hand,
+Panel C's green curve holds the false-claim rate at or below the $y = \alpha$ guarantee line while the red
+recall curve runs above it. The one small overshoot, $0.205$ against a target of $0.20$, is not a bug: it
+is the honest face of the theorem, which controls the **expected** loss over calibration draws, not a single
+realization. The cost is retention — to certify a $2\%$ false-claim rate the controller abstains entirely,
+and only as $\alpha$ loosens does it begin to emit claims.
+
+## The collapse anchor: a perfect judge recovers precision at k
+
+Every topic in this layer collapses, under a degenerate setting, onto an imported quantity to machine
+precision. Here the degenerate setting is a **perfect judge**, and the imported quantity is the metric the
+layer began with.
+
+<TheoremBlock type="proposition" number={2} title="Perfect-judge collapse onto precision at k">
+Suppose the judge is perfect: sensitivity and specificity both $1$, with $\tilde c_i = Y_i$. Then the score
+$s_i = 1 - Y_i$ separates the classes exactly (faithful claims score $0$, unsupported claims score $1$), so
+for any cut strictly inside the gap the retained set is precisely the faithful claims. Consequently the
+per-slot false-claim loss is identically zero at **every** $\alpha$, and the per-query retained fraction
+equals the imported $\mathrm{precision}@k$ of the leg against the relevant set — the same
+$\mathrm{oracle\_faithfulness}$ the prerequisite collapsed its mean verdict onto, now lifted to the
+conformal retained set, matching to $< 10^{-12}$ in the notebook.
+</TheoremBlock>
+
+This is the prerequisite's perfect-judge anchor raised one level: there a perfect judge's *mean verdict*
+equaled precision at $k$; here a perfect judge's *conformal back-off* recovers exactly the relevant
+documents. The distribution-free machinery, stripped of judge noise, is the set metric the evaluation layer
+was built on.
+
+## When the guarantee breaks: covariate shift and the weighted repair
+
+Coverage is **marginal**, and it rests on **exchangeability**. The companion formalML topic proves that
+distribution-free *conditional* coverage is impossible at finite informative-set size, so no per-query
+promise is available. Worse, the marginal guarantee itself fails the moment the test distribution stops
+matching the calibration distribution.
+
+<TheoremBlock type="remark" number={1} title="Why drift breaks the guarantee">
+Under **covariate shift** the deployment draws claims from a different distribution over the observable
+covariate — here document verbosity, the feature the judge's length bias keys on — while the
+score-given-covariate relationship is unchanged. The augmented sequence of calibration scores and the test
+score is then no longer exchangeable: the test index is distinguishable because its marginal differs, so the
+rank-uniformity fact underpinning the coverage theorem fails, and the threshold calibrated on the old mix
+under-covers the new one. Panel D makes this visible — as the shift strength $\beta$ grows, the unweighted
+split coverage collapses from $0.95$ toward $0.27$, far below the target $0.90$.
+</TheoremBlock>
+
+The repair reweights the calibration scores by how much the test distribution favors each one. When the
+likelihood ratio is known, it restores marginal coverage exactly.
+
+<TheoremBlock type="definition" number={3} title="Weighted split-conformal (Tibshirani et al. 2019)">
+With likelihood ratio $w(x) = \mathrm{d}P_{\mathrm{test}}/\mathrm{d}P_{\mathrm{calib}}(x)$, give each
+calibration score $S_i$ the normalized weight
+$$
+p_i^w \;=\; \frac{w(x_i)}{\sum_{j} w(x_j) + w(x_{n+1})}, \qquad
+p_{n+1}^w \;=\; \frac{w(x_{n+1})}{\sum_{j} w(x_j) + w(x_{n+1})},
+$$
+the test point's own weight entering the denominator, and take $\hat\tau^w$ to be the weighted
+$(1-\alpha)$-quantile $\inf\{\, s : \sum_i p_i^w\,\mathbf{1}\{S_i \le s\} \ge 1-\alpha \,\}$. Coverage at the
+**shifted** test distribution is restored to at least $1-\alpha$. With uniform weights and
+$w(x_{n+1}) = \overline{w}$ this is exactly the unweighted threshold $S_{(\lceil(1-\alpha)(n+1)\rceil)}$ —
+the weighted machinery collapses onto split conformal when there is no shift, a twin verified to $< 10^{-12}$.
+</TheoremBlock>
+
+Panel D's green curve is this repair: using the known $w$, weighted conformal holds coverage at or above
+the target across the whole shift range (and over-covers when the weights are skewed, the conservative
+price of reweighting). The repair is only as good as the likelihood ratio is known — in production $w$ must
+itself be estimated, and a misestimated $w$ voids the guarantee, the load-bearing caveat. This is the same
+distribution comparison the prerequisite monitored with KS and PSI: there the job was to *detect* the
+shift; here it is to *correct* coverage under it.
+
+<RigorFlag>
+The guarantees stack four honesty flags. **First**, every guarantee is marginal — averaged over the claim
+and query draw — with no per-query or per-domain promise; distribution-free *conditional* coverage is
+provably impossible at finite informative-set size. **Second**, conformal risk control bounds the
+**expected** loss over calibration draws, not with high probability: a single calibration set can realize a
+false-claim rate above $\alpha$ (here $0.205$ at $\alpha = 0.20$), and the high-probability, $\delta$-level
+alternative is the risk-controlling prediction set of Bates et al. (2021), which replaces the plug-in
+expectation with an upper-confidence bound on the risk. **Third**, exchangeability is fragile: claims within
+one answer share a context and a generation, so they are not independent, and the weighted repair assumes a
+*known* likelihood ratio. **Fourth**, "faithful" means faithful under the **synthetic judge oracle** — the
+construction inherits the prerequisite's entire synthetic-oracle caveat, and the judge's own bias and
+irreducible variance floor lower-bound the attainable error. "Distribution-free correctness" is
+distribution-free with respect to the data, conditional on the judge.
+</RigorFlag>
+
+<FinanceCaseStudy title="A filings assistant that abstains rather than hallucinate a figure" modality={["text", "pdf"]}>
+A retrieval-augmented assistant answers analyst questions over 10-K filings and earnings-call transcripts.
+Each answer decomposes into claims — a revenue figure, a guidance change, a segment margin — and the judge
+scores each claim's support against the retrieved passages. Without a guarantee, the system is a liability:
+a single confidently-stated but unsupported number is the failure an auditor cannot accept. Conformal
+factuality converts the judge confidence into a contract. At a chosen level — say $\alpha = 0.10$ — the
+per-claim back-off emits only the claims that clear the calibrated cut, and conformal risk control
+guarantees that the expected false-claim rate among emitted claims is at most $10\%$, with the system
+abstaining on the rest rather than guessing. The price is retention: the stricter the guarantee, the more
+the system declines to answer, exactly the precision–coverage tradeoff Panel C plots. And the guarantee is
+conditional on the filing distribution holding steady — when a new sector or a new disclosure regime shifts
+the query mix, coverage degrades silently until the weighted repair, or a recalibration on fresh labeled
+audits, restores it. The honest version of "our RAG system is accurate" is a number with an $\alpha$ next to
+it and a drift monitor watching the exchangeability it rests on.
+</FinanceCaseStudy>
+
+## What the guarantee is, in one line
+
+A retrieval metric was an estimator; a calibrated judge confidence was an estimator with a second,
+instrument-level source of noise. Conformal prediction closes the layer by turning that confidence into a
+**finite-sample guarantee**: the per-claim back-off rarely drops a faithful claim (split conformal), the
+risk controller holds the false-claim rate at or below $\alpha$ (conformal risk control), and the whole
+contract rests on exchangeability — marginal, not conditional; in expectation, not with certainty; valid
+under the judge, not above it; and repairable, with a known likelihood ratio, when the distribution drifts.
+The notation, gathered: $\tilde c$ is the calibrated confidence, $s = 1 - \tilde c$ the nonconformity
+score, $\hat\tau$ the split threshold and $\tau = 1 - \hat\tau$ the confidence cut, $\alpha$ the level, $k$
+the claims per answer, $L_i(\lambda)$ the monotone per-slot false-claim loss, $\hat\lambda$ the
+risk-control threshold, and $w(x)$ the covariate-shift likelihood ratio. A tested notebook owns every
+number the lab displays.

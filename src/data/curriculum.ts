@@ -85,9 +85,7 @@ export const tracks = [
     layer: 'Learned Retrieval & Ranking',
     description:
       'Evaluation treated as statistics: ranking metrics as estimators, significance testing, calibration, drift detection, LLM-as-judge reliability, and distribution-free conformal factuality guarantees.',
-    planned: [
-      'Conformal Factuality: Distribution-Free Correctness Guarantees for Generation',
-    ],
+    planned: [],
     dependsOnFormalML: true,
   },
   {
