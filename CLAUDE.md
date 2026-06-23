@@ -134,6 +134,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   ships. Link only to slugs that already have MDX; name a future topic in prose without a link.
   (Stale placeholder links can lurk in *published* topics too — e.g. a "Johnson–Lindenstrauss" link
   was once parked at `/topics/the-retrieval-problem` until a later sweep corrected it.)
+  The same rule binds frontmatter **`connections[]` harder**: `pnpm validate` ERRORS on a
+  `connections[]` entry whose topic has no MDX yet (unlike `curriculum-graph.json` roadmap nodes,
+  which are only notices), so list only BUILT topics there and name forward topics in prose alone.
 - `pnpm dev` may not land on **4321** — with other `formal*` servers up it picks 4322/4323/…; read
   the dev log for the actual port (a `curl :4321` can hit a *different* project and falsely report
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
@@ -437,7 +440,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
   `gemini-code-assist` review — fetch its nits with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments`
   (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
-  medium-priority robustness/perf/a11y ones before merging. It reliably flags **unguarded denominators**
+  medium-priority robustness/perf/a11y ones before merging. (The consumer `gemini-code-assist` app is
+  being SUNSET — new org installs blocked 2026-06-18, all reviews cease 2026-07-17; after that the
+  inline-review step won't run, so don't block a merge waiting on it.) It reliably flags **unguarded denominators**
   (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` (incl.
   `k≤0` on a recall fn and an empty matrix before `np.linalg.svd`) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
   slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
