@@ -1,0 +1,301 @@
+---
+title: "The Retriever as a Noisy Channel: Recall, Precision, and Information Limits"
+subtitle: "Read the retriever as a communication channel: a query enters, a context comes back, a generator decodes an answer. A recall failure ERASES the relevant filing, so the bits delivered fall exactly as recall × I(A;D|Q) — the capacity of a binary erasure channel — and Fano's inequality turns the residual entropy H(A|Q,D) into a floor on the answer error that no generator beats. A precision failure SUBSTITUTES a plausible distractor, and the generator answers confidently wrong while that same entropy floor sees nothing. Recall sets the floor; precision governs whether you hit it."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "pmi-retrieval-value"
+tags:
+  - "noisy-channel"
+  - "fano-inequality"
+  - "channel-capacity"
+  - "recall"
+  - "precision"
+  - "binary-erasure-channel"
+  - "rate-distortion"
+  - "hallucination"
+  - "financial-nlp"
+domain: "rag-information-theory"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+videoId: null
+notebookPath: "notebooks/retriever-as-noisy-channel/01_retriever_as_noisy_channel.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/retriever-as-noisy-channel.mdx"
+datePublished: 2026-06-23
+estimatedReadTime: 30
+abstract: "The pointwise-mutual-information topic measured how many bits a retrieved document adds to the generator's answer: the conditional mutual information I(A;D|Q) = H(A|Q) − H(A|Q,D). This topic reads the same machinery as a communication channel — a query enters, the retriever emits a context, a generator decodes an answer — and asks what the channel's recall and precision do to the bits, and what the bits do to the answer error. The two words of the subtitle are the channel's two failure modes, and they are co-equal headlines. A recall failure is an ERASURE: the relevant filing is dropped and the generator falls back to a non-informative belief, so the bits delivered fall exactly as recall × I(A;D|Q) — the capacity of a binary erasure channel is its surviving fraction, here the recall. What is lost reappears as residual entropy H(A|Q,D), which climbs toward log₂K, and Fano's inequality converts that residual into a floor on the generator's Bayes error, P_e ≥ (H(A|Q,D) − 1)/log₂K — a hard limit no generator beats. Recall sets the floor. A precision failure is a SUBSTITUTION: a plausible same-sector distractor is returned, the generator reads it and answers confidently wrong, the realized error climbs to 1 — yet H(A|Q,D) stays low, so the Fano floor never moves. An entropy bound cannot see confident contamination; the gap between realized error and the Bayes floor is exactly what the faithfulness and calibration layer must close. Precision governs whether you hit the floor. We close by reading the recall–precision operating point as a rate–distortion choice: the retriever spends bits read to buy down answer error. The answer model is the same synthetic von Mises–Fisher exponential-family stand-in the prior topic built, so every bit is exact for the model and illustrative of a real generator; a tested notebook owns every number, and the capacity identities and Fano's inequality are asserted, not asserted-about."
+connections:
+  - topic: "pmi-retrieval-value"
+    relationship: "the direct prerequisite built the answer model this topic reads as a channel: the retrieval distribution p(d|q), the per-document posterior p(a|q,d), the RAG marginal prior, and the entropy/KL machinery in bits — and it computed the very I(A;D|Q) = H(A|Q) − H(A|Q,D) we now treat as the channel's clean throughput, the bits a recall-degraded channel delivers only a recall fraction of"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "that topic defined recall and precision as set-membership estimators; this topic recasts the same two numbers as a channel's two error mechanisms — recall as the surviving fraction of an erasure channel, precision as the contamination of a substitution channel — and shows what each does to the information the retriever can deliver and the error the generator must incur"
+  - topic: "significance-testing-calibration"
+    relationship: "that topic showed raw retrieval scores are wildly over-confident and must be recalibrated; this topic gives the information-theoretic reason it matters — Fano's floor bounds only the generator's Bayes error, so a confidently-wrong retriever drives the realized error far above the floor, and that realized-vs-Bayes gap is precisely the miscalibration the calibration pillar measures and corrects"
+  - topic: "llm-as-judge-ragas"
+    relationship: "the LLM-as-judge topic estimated faithfulness as a biased mean of noisy verdicts; this topic supplies the upstream limit — the retriever's residual entropy H(A|Q,D) is a floor on how faithful any generator can be, and the confident-wrong substitution failure is the mechanism a faithfulness judge is built to catch"
+  - topic: "infonce-contrastive-objective"
+    relationship: "InfoNCE trained the encoder by maximizing a lower bound on the query–document information I(Q;D) ceilinged at log(N+1); that mutual information is the channel capacity this topic reads the retriever through, so contrastive training was, all along, buying the bits the erasure channel then delivers a recall fraction of"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "the capstone wired a full filings-and-transcripts pipeline and tuned its recall and precision empirically; this topic gives the information limit those knobs trade against — every retrieval miss erases bits the generator cannot recover, and every false positive risks a confident wrong answer the recall metric never sees"
+references:
+  - type: "paper"
+    title: "A Mathematical Theory of Communication"
+    authors: "Shannon"
+    year: 1948
+    url: "https://doi.org/10.1002/j.1538-7305.1948.tb01338.x"
+    note: "The founding paper: channel capacity C = max I(X;Y), the noisy-channel coding theorem, and the binary symmetric and erasure channels whose capacities 1 − H_b(p) and 1 − ε this topic maps onto precision and recall; Bell System Technical Journal 27 (1948)"
+  - type: "book"
+    title: "Elements of Information Theory"
+    authors: "Cover & Thomas"
+    year: 2006
+    url: "https://doi.org/10.1002/047174882X"
+    note: "The standard reference: Fano's inequality (§2.10) bounding error by conditional entropy, channel capacity (Ch. 7), and the binary erasure and symmetric channels — the three results this topic assembles into the recall floor and precision gap; 2nd edition, Wiley"
+  - type: "book"
+    title: "Transmission of Information: A Statistical Theory of Communications"
+    authors: "Fano"
+    year: 1961
+    note: "The eponymous source of Fano's inequality, H(X|Y) ≤ H_b(P_e) + P_e log(M−1), the converse that lower-bounds decoding error by the residual conditional entropy — read here as the floor a retriever's residual H(A|Q,D) places on answer error; MIT Press"
+  - type: "book"
+    title: "Information Theory, Inference, and Learning Algorithms"
+    authors: "MacKay"
+    year: 2003
+    url: "https://www.inference.org.uk/itila/book.html"
+    note: "Entropy, mutual information, and the noisy-channel coding theorem from a Bayesian-inference viewpoint, with Fano's inequality lower-bounding answer error by H(A|Q,D) — the bridge the PMI topic named and this topic crosses; Cambridge University Press, freely available"
+  - type: "paper"
+    title: "Information Retrieval as Statistical Translation"
+    authors: "Berger & Lafferty"
+    year: 1999
+    url: "https://doi.org/10.1145/312624.312681"
+    note: "The classic noisy-channel reading of IR: a query is a noisy encoding of an information need and retrieval inverts the channel — the historical root of the retriever-as-channel framing this topic makes information-theoretic; SIGIR 1999"
+  - type: "paper"
+    title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"
+    authors: "Lewis, Perez, Piktus, Petroni, Karpukhin, Goyal, Küttler, Lewis, Yih, Rocktäschel, Riedel & Kiela"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.11401"
+    note: "The RAG architecture whose marginal p(a|q) = Σ_d p(d|q) p(a|q,d) is the channel this topic degrades: erasing or substituting the retrieved d is exactly perturbing the document the generator marginalizes over; NeurIPS 2020"
+  - type: "paper"
+    title: "Representation Learning with Contrastive Predictive Coding"
+    authors: "van den Oord, Li & Vinyals"
+    year: 2018
+    url: "https://arxiv.org/abs/1807.03748"
+    note: "InfoNCE / CPC: minimizing the loss maximizes a lower bound on I(q;d⁺) ceilinged at log(N+1) — the query–document channel capacity the retriever was trained to buy, and the bits the erasure channel then passes a recall fraction of"
+formalmlPrereqs:
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the residual entropy H(A|Q,D) that Fano converts into an answer-error floor, and the log₂K that bounds it, are the conditional Shannon entropy and the maximum entropy of a K-ary source developed there — the channel's whole bit budget is stated in those units, and the erasure channel's capacity is the entropy it fails to erase"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "the bits a clean channel delivers, I(A;D|Q) = E[KL(posterior ‖ prior)], are the expected KL divergence that topic defines, and the same nonnegativity (Gibbs' inequality) that makes the gain positive is why a recall fraction of a nonnegative quantity is the most a degraded channel can pass"
+formalmlConnections:
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "the recall–precision operating point is a rate–distortion choice: the retriever spends rate (bits read, more documents) to buy down distortion (answer error), and Fano's floor is the converse direction — the minimum distortion forced by a rate below what the answer needs, so this topic's operating window is a point on the rate–distortion curve that topic characterizes"
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "the information bottleneck keeps the bits of the input that predict the target while discarding the rest, max I(Z;Y) − β I(Z;X); a retriever is that bottleneck for the generator — it must pass the I(A;D|Q) bits the answer needs while reading few documents — so the erasure that drops those bits and the substitution that injects noise are the two ways a bottleneck fails"
+formalcalculusPrereqs:
+  - topic: "radon-nikodym"
+    site: "formalcalculus"
+    relationship: "the per-document evidence the channel carries is the log Radon–Nikodym derivative of the posterior answer measure with respect to the prior, log dp(·|q,d)/dp(·|q); erasing the document collapses that derivative to 1 (no evidence) and substituting one points it at the wrong answer, so the channel's two failures are two ways the density ratio that topic constructs goes uninformative or adversarial"
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "the channel's entropies and mutual information are expectations — sums here, integrals ∫ −p log p dμ in general — so the bits this topic tracks across the recall sweep are the area-under-the-curve construction that topic develops, with the discrete answer sum the partition the integral is the limit of"
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "Fano's inequality is the multi-hypothesis converse of testing: decoding the answer from the retrieved context is choosing among K hypotheses, and the minimum achievable error is bounded below by the residual entropy exactly as the testing error is bounded by the separation between hypotheses — the retriever's job is to make the answer hypotheses separable enough to test"
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "the generator's decoder is the maximum-a-posteriori rule â = argmax_a p(a|q,d), the Bayesian sibling of the maximum-likelihood estimator that topic develops, and the Bayes error 1 − max_a p(a|q,d) that Fano bounds is the irreducible risk of that decision rule — the confident-wrong gap is what separates this in-model risk from the realized error against the truth"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import RetrieverAsNoisyChannelLaboratory from '../../components/viz/RetrieverAsNoisyChannelLaboratory.tsx';
+
+## From "how many bits did it add" to "how many bits survive the channel"
+
+The [previous topic](/topics/pmi-retrieval-value) measured what a retrieved document is worth to the
+generator in bits: the conditional mutual information $I(A;D\mid Q) = H(A\mid Q) - H(A\mid Q,D)$, the entropy
+retrieval removes from the answer. That measurement assumed the document arrived. A deployed retriever is not
+so obliging — it misses relevant filings and returns plausible wrong ones — and the question this topic asks
+is what those failures do to the bits, and what the bits do to the answer.
+
+The reframing is a single move: read the retriever as a **communication channel**. A query $q$ enters; the
+channel emits a context — one retrieved document $d \sim p(d\mid q)$; the generator decodes an answer
+$\hat a$. This is the noisy-channel reading of retrieval that goes back to
+[Berger and Lafferty](https://doi.org/10.1145/312624.312681), made information-theoretic: a channel has a
+**capacity** — the most information it can carry — and a **converse** — Fano's inequality, which turns
+whatever uncertainty the channel leaves into a floor on the decoder's error. The two failure modes of a
+retriever are the two classical ways a channel corrupts a message, and they map onto the two words of this
+topic's title. A **recall** failure is an *erasure*; a **precision** failure is a *substitution*. They are
+co-equal headlines, and they tell opposite stories about what an information bound can see.
+
+<TheoremBlock type="definition" number={1} title="The retrieval channel and its two corruptions">
+The **clean channel** is the answer model of the previous topic: input $q$, output a document
+$D \sim p(d\mid q)$, decoder $\hat a = \operatorname{argmax}_a p(a\mid q, D)$. Its delivered information is
+$I(A;D\mid Q)$ and its residual uncertainty is $H(A\mid Q,D) = \mathbb{E}_{q}\,\mathbb{E}_{d\mid q}\,
+H\big(p(\cdot\mid q,d)\big)$.
+
+The **erasure channel** (a recall failure) returns the retrieved context with probability $\mathrm{recall}$;
+with probability $1-\mathrm{recall}$ the context is *erased* and the generator falls back to the
+non-informative uniform belief — without a document, it knows nothing.
+
+The **substitution channel** (a precision failure) returns the relevant filing with probability $1-
+\varepsilon$ and, with probability $\varepsilon$, a plausible same-sector distractor in its place.
+</TheoremBlock>
+
+We will treat the two channels in turn. The corpus is the one the previous topic built and this one never
+rebuilds: four sectors, two companies each, one filing per company, so $K=8$ answers that are also the $8$
+documents, with $32$ sector-ambiguous queries and temperatures $\tau = \tau_{\mathrm{doc}} = 0.2$. On the
+clean channel the answer model carries $I(A;D\mid Q) = 1.18$ bits, dropping $H(A\mid Q) = 2.06$ bits of prior
+uncertainty to $H(A\mid Q,D) = 0.88$ bits — the numbers the notebook owns and asserts.
+
+## Recall is an erasure channel; its capacity is the recall
+
+The cleanest channel in information theory is the **binary erasure channel**: each symbol arrives intact with
+probability $1-\varepsilon$ or is replaced by an erasure mark $?$ with probability $\varepsilon$, and the
+receiver always knows *which*. Its capacity is $1-\varepsilon$: the fraction of symbols that survive. A
+retriever that misses the relevant filing with probability $1-\mathrm{recall}$ is exactly this channel for
+the answer, and the consequence for the delivered bits is an identity, not an approximation.
+
+<TheoremBlock type="theorem" number={1} title="The delivered bits are the recall fraction of the clean bits">
+Under the erasure channel, the information the channel delivers about the answer is
+$$
+I_{\mathrm{erasure}}(A; D \mid Q) = \mathrm{recall}\cdot I(A;D\mid Q).
+$$
+</TheoremBlock>
+
+<TheoremBlock type="proof">
+Condition on the channel's binary state $E$ (transmitted vs. erased), which is independent of the answer
+given the query. With probability $\mathrm{recall}$ the generator sees the clean document, contributing
+$I(A;D\mid Q)$; with probability $1-\mathrm{recall}$ it sees the erasure symbol. The erasure symbol is a
+*deterministic function of the query* (the uniform fallback depends on nothing else), so conditioned on $Q$
+it carries no information about $A$: $I(A;\,?\mid Q) = 0$. Hence
+$I_{\mathrm{erasure}}(A;D\mid Q) = \mathrm{recall}\cdot I(A;D\mid Q) + (1-\mathrm{recall})\cdot 0$. The
+notebook computes the left side directly across the recall grid and matches $\mathrm{recall}\cdot I_0$ to
+machine precision (<code>test_bec_capacity_linear</code>).
+</TheoremBlock>
+
+So **recall is literally the surviving fraction of the relevant bits** — the erasure-channel capacity, read
+off the retriever. Panel A of the laboratory makes the picture concrete: as you lower the recall, the
+delivered-bits meter empties in proportion and the answer belief flattens from its peaked clean shape toward
+the uniform distribution. Nothing about the *answers* changed; the channel simply passed fewer of the bits
+that distinguish them.
+
+<RetrieverAsNoisyChannelLaboratory client:visible />
+
+## Fano's inequality: the residual entropy is a floor on the answer error
+
+What recall fails to deliver does not vanish; it stays behind as residual uncertainty. Under the erasure
+channel the residual entropy is a convex blend,
+$$
+H_{\mathrm{erasure}}(A\mid Q,D) = \mathrm{recall}\cdot H(A\mid Q,D) + (1-\mathrm{recall})\cdot \log_2 K,
+$$
+rising from $0.88$ bits on the clean channel toward the full $\log_2 8 = 3$ bits of a uniform guess. The
+reason this residual matters is **Fano's inequality**, the converse half of channel coding: it lower-bounds
+the error of *any* decoder by the uncertainty the channel leaves.
+
+<TheoremBlock type="theorem" number={2} title="Fano's inequality — the hallucination floor">
+Let the answer $A$ take one of $K$ values and let $\hat a = \hat a(q,d)$ be any decoder with Bayes error
+$P_e = \Pr[\hat a \neq A]$. Then
+$$
+H(A\mid Q,D) \;\le\; H_b(P_e) + P_e \log_2(K-1),
+\qquad\text{hence}\qquad
+P_e \;\ge\; \frac{H(A\mid Q,D) - 1}{\log_2 K},
+$$
+where $H_b$ is the binary entropy. No decoder — no generator, however capable — drives the answer error
+below this floor.
+</TheoremBlock>
+
+The loose form on the right makes the structure visible. The floor is **vacuous while $H(A\mid Q,D) < 1$
+bit**: a channel that leaves less than one bit of uncertainty permits, in principle, a perfect decoder. As
+recall falls and the residual climbs past one bit, the floor lifts off zero and rises — on this corpus the
+crossover is at $\mathrm{recall} \approx 0.92$, after which the floor climbs to $0.67$ at full erasure, where
+the generator can do no better than guess. Panel B draws all of it: the residual entropy rising, the Fano
+floor (loose and tight) lifting off at the one-bit line, and the model's Bayes error sitting above the floor
+at every operating point, exactly as the theorem requires (<code>test_fano_is_a_theorem</code>). This is the
+sense in which **recall sets the floor**: the bits the retriever fails to deliver become a hard lower bound
+on the generator's error that no amount of generation skill can beat.
+
+## Precision is a substitution channel — and Fano goes blind
+
+The recall story is the optimistic one: the channel is honest about what it does not know, the residual
+entropy rises, and Fano's floor faithfully tracks the growing difficulty. The precision story is the
+treacherous one. A false positive does not erase the relevant filing — it **substitutes** a plausible
+distractor, and the generator reads it with full confidence.
+
+<TheoremBlock type="proposition" number={1} title="Confident contamination is invisible to the entropy floor">
+Under the substitution channel, the realized error against the true answer rises linearly to $1$ as
+$\varepsilon \to 1$: the generator reads the distractor and answers its company. Yet the residual entropy
+$H(A\mid Q,D)$ stays *below one bit* throughout — both the gold filing and the distractor produce a sharp,
+confident posterior; they merely peak on different companies. Consequently the Fano floor stays pinned at
+zero, and the gap between the realized error and the model's Bayes error widens without bound. An
+entropy-based limit cannot see a confidently wrong channel.
+</TheoremBlock>
+
+This is a proposition we *run*, not assume. Across the query set, reading the gold filing is correct for
+every query and reading the same-sector distractor is wrong for every query, so the realized error is exactly
+$\varepsilon$; meanwhile the residual entropy creeps only from $0.60$ to $0.87$ bits — never reaching the one
+bit Fano needs to react — so the floor reads $0$ at every $\varepsilon$ and the confident-wrong gap grows
+from $-0.12$ to $+0.76$ (Panel C, <code>test_confident_wrong_gap_widens</code>). The asymmetry with the
+recall case is the whole point. Recall failures are *honest*: they raise the entropy, and Fano accounts for
+them. Precision failures are *confident*: they keep the entropy low while making the answer wrong, and no
+entropy bound accounts for them at all.
+
+<RigorFlag>
+Fano's inequality bounds the **Bayes error** — the irreducible risk of a decoder that trusts the model's own
+posterior — not the **realized error** against the truth. The two coincide only when the model is calibrated.
+A confidently-wrong retriever is precisely a miscalibrated channel: its posterior is sharp (low entropy) but
+pointed at the wrong answer, so the realized error runs far above the Fano floor. Closing that gap is not an
+information-theory problem — it is the job of the [calibration and significance
+layer](/topics/significance-testing-calibration) and of faithfulness evaluation, which measure the
+realized-vs-Bayes discrepancy the entropy floor cannot. The information limit is real and binding for an
+honest channel; it is silent for a confident one. As with the previous topic, the answer model $p(a\mid q,d)$
+is a synthetic von Mises–Fisher softmax stand-in for a trained generator, so every bit is exact for the model
+and only illustrative of a deployed system; and because this corpus places the gold filing at rank one for
+every query, recall@k is saturated and the precision panel measures contamination as bits of uncertainty
+added rather than as an error U-curve.
+</RigorFlag>
+
+## The operating point is a rate–distortion choice
+
+The two failures meet in a single design decision. Reading more documents raises recall (more chances to
+catch the relevant filing) but lowers precision (more false positives in the context), and the generator's
+belief blends them. On this corpus the gold filing is always rank one, so recall@k is pinned at $1$ and
+contamination cannot show up as a wrong answer — it shows up as **bits of uncertainty added**: as $k$ grows
+from $1$ to $8$, precision falls as $1/k$ while the blended belief's entropy rises from $0.60$ toward the
+full marginal $H(A\mid Q) = 2.06$ bits (Panel D). The retriever is choosing a point on a
+[rate–distortion](https://formalml.com/topics/rate-distortion) curve — spending *rate* (bits read) to buy
+down *distortion* (answer error) — which is also the
+[information bottleneck](https://formalml.com/topics/information-bottleneck) the generator imposes on the
+corpus: keep the bits that predict the answer, discard the rest. Erasure drops the bits the answer needs;
+substitution injects bits it must not trust.
+
+## What the channel can and cannot deliver, in one line
+
+A retriever is a channel, and its two metrics are the channel's two error mechanisms. **Recall is the
+erasure capacity** — the surviving fraction of the relevant bits — and what it fails to deliver becomes, by
+Fano's inequality, a floor on the answer error that no generator beats: $P_e \ge (H(A\mid Q,D) -
+1)/\log_2 K$. **Precision is the substitution rate**, and its failures are confident: they keep the residual
+entropy low while driving the realized answer wrong, so the information floor sees nothing and the gap it
+misses is the calibration problem. The bits a retriever delivers bound what the generator *can* do; whether
+the generator *does* it is a question of trusting the right bits — the relevance term in context selection,
+the faithfulness of the grounded answer, and the calibration of its confidence, each a layer above this one.
+
+<FinanceCaseStudy title="What does a missed filing cost the answer, in bits?" modality={["text", "pdf"]}>
+Take a sector-ambiguous query over a pair of same-sector companies — say two regional banks whose 10-Ks read
+alike. The clean retriever delivers $1.18$ bits about which company the query means, dropping the answer
+uncertainty from $2.06$ to $0.88$ bits, and a calibrated generator answers correctly. Now degrade the
+retriever two ways. **Erase** the relevant 10-K a quarter of the time (recall $0.75$): the delivered bits
+fall to $0.89$, the residual entropy climbs past one bit, and Fano's floor lifts off zero — the answer error
+now has a hard lower bound the generator cannot argue its way out of. **Substitute** the *other* bank's 10-K
+instead (a precision failure): the generator reads it and confidently reports the wrong company's revenue,
+the residual entropy barely moves, and every entropy-based monitor reads "low uncertainty, all is well." The
+first failure is loud and bounded; the second is silent and unbounded — which is why a production
+filings-RAG system needs both a recall floor it respects and a faithfulness check the floor cannot provide.
+</FinanceCaseStudy>
