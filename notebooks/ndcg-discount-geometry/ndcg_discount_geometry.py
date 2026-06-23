@@ -275,23 +275,19 @@ def _ndcg_mean_std(corpus: dict, leg: str, gain=gain_exponential, discount=disco
     return float(np.mean(nd)), float(np.std(nd, ddof=1))
 
 
-def projected_ndcg_overlap(corpus: dict, leg_a: str, leg_b: str, n: int,
-                           gain=gain_exponential, discount=discount_log2) -> bool:
-    """Do the two legs' PROJECTED 95% CIs overlap at query count n? Uses the IMPORTED `projected_ci`
-    (mean +/- 1.96*std/sqrt(n)) on full-sample (mean, std), so the viz reproduces it exactly."""
-    la, ua = projected_ci(*_ndcg_mean_std(corpus, leg_a, gain, discount), n)
-    lb, ub = projected_ci(*_ndcg_mean_std(corpus, leg_b, gain, discount), n)
-    return la <= ub and lb <= ua
-
-
 def projected_ndcg_separation_n(corpus: dict, leg_a: str, leg_b: str, gain=gain_exponential,
                                 discount=discount_log2, n_max: int | None = None) -> int | None:
     """Smallest n at which the two legs' projected 95% CIs no longer overlap (None if never within n_max).
     n_max defaults to the Q queries we actually have; pass a larger cap to EXTRAPOLATE how many i.i.d.
-    queries a small gap would need (the observed per-query std held fixed)."""
+    queries a small gap would need (the observed per-query std held fixed). The (mean, std) are hoisted
+    out of the loop — they do not depend on n — so a large n_max stays cheap."""
     cap = n_max or corpus["n_queries"]
+    mean_a, std_a = _ndcg_mean_std(corpus, leg_a, gain, discount)
+    mean_b, std_b = _ndcg_mean_std(corpus, leg_b, gain, discount)
     for n in range(2, cap + 1):
-        if not projected_ndcg_overlap(corpus, leg_a, leg_b, n, gain, discount):
+        la, ua = projected_ci(mean_a, std_a, n)
+        lb, ub = projected_ci(mean_b, std_b, n)
+        if not (la <= ub and lb <= ua):
             return n
     return None
 
@@ -344,10 +340,13 @@ def convention_flips_verdict(corpus: dict, k: int = TOPK) -> dict:
     disc_reversal = _pairwise_reversal({lg: tbl[lg]["exp_log"] for lg in LEG_NAMES},
                                        {lg: tbl[lg]["exp_geo"] for lg in LEG_NAMES})
     # per-query: count (leg pair, query) instances where linear and exponential gain disagree on order.
+    # Precompute each leg's per-query NDCG once per convention (not once per pair).
+    ndcg_lin = {leg: per_query_ndcg(corpus, leg, k, gain_linear, discount_log2) for leg in LEG_NAMES}
+    ndcg_exp = {leg: per_query_ndcg(corpus, leg, k, gain_exponential, discount_log2) for leg in LEG_NAMES}
     pq_gain = 0
     for x, y in itertools.combinations(LEG_NAMES, 2):
-        dla = per_query_ndcg(corpus, x, k, gain_linear, discount_log2) - per_query_ndcg(corpus, y, k, gain_linear, discount_log2)
-        dea = per_query_ndcg(corpus, x, k, gain_exponential, discount_log2) - per_query_ndcg(corpus, y, k, gain_exponential, discount_log2)
+        dla = ndcg_lin[x] - ndcg_lin[y]
+        dea = ndcg_exp[x] - ndcg_exp[y]
         pq_gain += int(np.sum(dla * dea < -1e-12))
     return {"table": tbl, "winners": winners, "gain_reversal": gain_reversal,
             "disc_reversal": disc_reversal, "per_query_gain_reversals": pq_gain,
