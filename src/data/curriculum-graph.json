@@ -213,7 +213,7 @@
     {
       "id": "set-metrics-precision-recall-map-mrr",
       "label": "Set Metrics: Precision, Recall, MAP, and MRR as Estimators",
-      "status": "planned",
+      "status": "published",
       "domain": "retrieval-evaluation"
     },
     {

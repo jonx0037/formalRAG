@@ -86,7 +86,6 @@ export const tracks = [
     description:
       'Evaluation treated as statistics: ranking metrics as estimators, significance testing, calibration, drift detection, LLM-as-judge reliability, and distribution-free conformal factuality guarantees.',
     planned: [
-      'Set Metrics: Precision, Recall, MAP, and MRR as Estimators',
       'NDCG: Graded Relevance and Discount Geometry',
       'Score Calibration, Drift Detection, and Significance Testing for Retrieval',
       'LLM-as-Judge and Faithfulness: RAGAS as a Family of Estimators',
