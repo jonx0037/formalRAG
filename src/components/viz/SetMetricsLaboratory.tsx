@@ -100,8 +100,9 @@ const interpAp = (ranks: number[]) => {
   const P = ranks.map((pos, i) => (i + 1) / pos);
   return P.reduce((s, _p, i) => s + Math.max(...P.slice(i)), 0) / R_SIZE;
 };
-const mean = (a: number[]) => a.reduce((s, x) => s + x, 0) / a.length;
+const mean = (a: number[]) => (a.length === 0 ? 0 : a.reduce((s, x) => s + x, 0) / a.length);
 const stdev = (a: number[]) => {
+  if (a.length <= 1) return 0;
   const m = mean(a);
   return Math.sqrt(a.reduce((s, x) => s + (x - m) * (x - m), 0) / (a.length - 1));
 };
