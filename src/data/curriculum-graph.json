@@ -225,7 +225,7 @@
     {
       "id": "significance-testing-calibration",
       "label": "Score Calibration, Drift Detection, and Significance Testing for Retrieval",
-      "status": "planned",
+      "status": "published",
       "domain": "retrieval-evaluation"
     },
     {
@@ -528,14 +528,6 @@
     },
     {
       "source": "ndcg-discount-geometry",
-      "target": "significance-testing-calibration"
-    },
-    {
-      "source": "cross-encoders-reranking",
-      "target": "significance-testing-calibration"
-    },
-    {
-      "source": "high-dimensional-geometry",
       "target": "significance-testing-calibration"
     },
     {
