@@ -468,6 +468,43 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   Church–Hanks 1990 PMI-origin is PRE-DOI → `https://aclanthology.org/J90-1003/` (the guessed `10.1162/...` 404s);
   van den Oord CPC arXiv 1807.03748; Poole et al. (variational MI bounds) arXiv 1905.06922; Lewis et al. RAG
   arXiv 2005.11401; MacKay 2003 (Fano, for the noisy-channel forward edge) inference.org.uk/itila.
+  Its **noisy-channel successor** (`retriever-as-noisy-channel`): reads the PMI answer model as a COMMUNICATION
+  CHANNEL — IMPORT `query_distributions`/`answer_posterior`/`entropy`/`kl`/`cond_mi_breakdown`/`_distractor_id`/
+  `_corpus` (never reimplement); ship = node `planned→published` + drop the title from `curriculum.ts` the
+  rag-information-theory track's `planned[]` (NO DAG edge changes — the `pmi→noisy-channel→context-selection`
+  edges already exist; the unblocked successor is `context-selection-submodular-dpp`, NOT faithfulness — that's a
+  separate pmi→faithfulness path). **The PMI corpus is "too easy" for a naive channel story and FALSIFIES the
+  obvious headlines — build-and-run before writing:** (1) the QUERY ALONE identifies the gold company (queries
+  drawn near the gold prototype) and (2) the GOLD FILING IS RANK-1 for all 32 queries. So a noise-MIX toward
+  uniform on `p(d|q)` *ADDS* MI (it raises cross-document disagreement, which IS I(A;D|Q)) — wrong direction; and
+  the marginal RAG decoder is PERFECT (recall@k≡1, no error to bound). **Use the right two channel models, mapped
+  to the subtitle:** RECALL=ERASURE (w.p. recall read the context, w.p. 1−recall erase to a NON-INFORMATIVE
+  UNIFORM belief — the RAG premise) gives the clean monotone story AND the exact BEC identity `I_ε = recall·I₀`
+  (robust to ANY Q-measurable fallback: conditioned on Q the fallback carries 0 conditional MI, so even a
+  query-only fallback satisfies it — but uniform-on-erasure is the one whose ERROR rises, since a query-only
+  fallback is itself a good decoder here and would make erasure HELP). PRECISION=SUBSTITUTION (swap gold→same-
+  sector distractor w.p. ε) gives realized error 0→1. **The single rigorous truth: Fano bounds the model's BAYES
+  error `E[1−max p]`, NEVER the realized error directly** — realized-vs-Bayes IS the calibration gap (the load-
+  bearing rigorFlag + the bridge to significance-testing-calibration/faithfulness). **Fano floor `(H−1)/log₂K` is
+  VACUOUS below 1 bit** (well-retrieving channel) — at the clean point H(A|Q,D)=0.876<1 so the floor is 0; it
+  only activates once the residual crosses 1 bit (erasure: at recall≈0.92). So the demo MUST degrade the channel;
+  don't headline a floor at the clean operating point. **Confident-wrong is the precision headline:** substitution
+  drives realized→1 while H(A|Q,D) stays LOW (0.60→0.87, the distractor posterior is just as sharp, only wrong),
+  so the Fano floor stays pinned at 0 — an entropy bound is BLIND to confident contamination. Assert the CONTRASTS
+  (BEC `I=recall·I₀` <1e-12; collapse-to-PMI bit-identical at recall=1; Fano-is-a-theorem `bayes≥tight≥loose`; the
+  `H(A|Q)=H(A|Q,D)+I` Jensen-gap identity; monotone degradation; floor-activates; gap-widens; recall@k saturated +
+  precision=1/k + entropy rising toward H(A|Q)=2.06), not decimals; `viz_constants()` owns the numbers (incl. a
+  WORKED_BELIEF the lab erodes toward uniform — add it and re-run rather than borrowing the PMI lab's PRIOR). TS
+  recomputes binary-entropy/Fano-loose/Fano-tight(bisection)/BEC-BSC-capacity closed-form. Cross-site (all `ls`/
+  `curl`-verified): `formalmlPrereqs` shannon-entropy+kl-divergence; `formalmlConnections` rate-distortion+
+  information-bottleneck (formalML has NO channel-capacity/mutual-information slug → name Fano/capacity/the
+  noisy-channel theorem in prose); `formalcalculusPrereqs` radon-nikodym+riemann-integral; `formalstatistics
+  Connections` hypothesis-testing (Fano=the multi-hypothesis testing converse) + maximum-likelihood (the MAP
+  decoder). NEW ref verified (`curl -sL` CSL): Berger–Lafferty "Information Retrieval as Statistical Translation"
+  SIGIR 1999 `10.1145/312624.312681` (the historical IR-as-noisy-channel root); Fano 1961 "Transmission of
+  Information" MIT Press is a pre-DOI book (cite url-less). Gemini posted a clean review (retracted its own one
+  comment that falsely claimed `entropy`/`kl` were redefined — they're imported). GOTCHA: a persisted shell `cd`
+  into a notebook dir broke a later relative-path generator write — use ABSOLUTE paths in throwaway generators.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
