@@ -162,7 +162,7 @@ def split_conformal_threshold(scores: np.ndarray, alpha: float) -> float:
     n = s.size
     if n == 0:
         return float("inf")
-    rank = math.ceil((1.0 - alpha) * (n + 1))
+    rank = max(1, math.ceil((1.0 - alpha) * (n + 1)))   # alpha=1 -> rank 0 -> s[-1] (max); cap to the min
     if rank > n:
         return float("inf")
     return float(s[rank - 1])
@@ -550,6 +550,7 @@ def test_split_conformal_quantile_rank() -> None:
         assert split_conformal_threshold(s, a) == expected
     assert split_conformal_threshold(np.array([]), 0.1) == float("inf")     # empty
     assert split_conformal_threshold(np.array([0.3]), 0.01) == float("inf")  # rank > n
+    assert split_conformal_threshold(s, 1.0) == float(np.sort(s)[0])         # alpha=1 -> the minimum, not s[-1]
 
 
 def test_perfect_judge_collapse() -> None:

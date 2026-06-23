@@ -106,7 +106,7 @@ const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 // baked ASCENDING scores. rank > n -> +∞ (cannot certify; retain everything).
 const qHatOf = (alpha: number) => {
   const n = CALIB_SCORES.length;
-  const rank = Math.ceil((1 - alpha) * (n + 1));
+  const rank = Math.max(1, Math.ceil((1 - alpha) * (n + 1)));   // alpha=1 -> rank 0 -> CALIB_SCORES[-1]; cap to min
   return rank > n ? Infinity : CALIB_SCORES[rank - 1];
 };
 // fixed-range histogram counts of the calibration scores.
@@ -156,7 +156,7 @@ function QuantilePanel({ ai, setAi }: { ai: number; setAi: (v: number) => void }
   const W = 560, H = 170, padL = 34, padR = 12, padT = 12, padB = 26;
   const lo = 0, hi = 0.9, nb = 30;
   const counts = histo(CALIB_SCORES, nb, lo, hi);
-  const cMax = Math.max(...counts);
+  const cMax = Math.max(...counts) || 1;   // guard: never divide by an empty-histogram max
   const bw = (W - padL - padR) / nb;
   const sx = (v: number) => padL + ((v - lo) / (hi - lo)) * (W - padL - padR);
   const by = (n: number) => H - padB - (n / cMax) * (H - padT - padB);
