@@ -1,0 +1,412 @@
+---
+title: "Score Calibration, Drift Detection, and Significance Testing for Retrieval"
+subtitle: "The prerequisites measured a metric as an estimator and left one question open: is an observed gap real? We close it with the right instrument — a paired significance test — and then generalize the same two-distribution comparison to two more production questions: is a retrieval score calibrated as a probability, and has the distribution drifted since we last looked? One idea runs through all three: difference two distributions of per-query quantities and ask whether the difference is zero."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "ndcg-discount-geometry"
+tags:
+  - "significance-testing"
+  - "paired-test"
+  - "permutation-test"
+  - "multiple-comparisons"
+  - "calibration"
+  - "expected-calibration-error"
+  - "drift-detection"
+  - "population-stability-index"
+  - "retrieval-evaluation"
+  - "financial-nlp"
+domain: "retrieval-evaluation"
+pipelineStage: "evaluate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "audio"
+rigorFlag: "Three honesty flags hold this topic together. (1) Production drift monitoring is ONLINE — you re-test as each window of traffic arrives — so a fixed-n KS or PSI p-value is invalid under continuous peeking (the optional-stopping problem), and the PSI traffic-light thresholds of 0.1 and 0.25 are industry heuristics from credit-risk model monitoring, not a calibrated test; PSI has no canonical academic derivation and on only forty queries its value is noisy. The principled fix is anytime-valid inference (confidence sequences and e-values), named here as a forward connection, not built. (2) The paired t-test's normality is only approximate: the per-query metric differences are bounded and skewed, so we cross-check it with the permutation (sign-flip randomization) test, which is exact under exchangeability, and the bootstrap, which assumes neither — all three agree on the p-value. (3) Calibration is necessarily a POOLED, cross-query object — ten documents per query is far too sparse for a per-query reliability diagram — so the reliability curve mixes queries, and cross-query score incomparability is itself part of the miscalibration; the isotonic-versus-Platt advantage is sensitive to in-sample overfit, which we guard with a held-out split. Relevance is a synthetic-vMF MaxSim oracle, not human judgment, and every number is owned by a tested notebook."
+videoId: null
+notebookPath: "notebooks/significance-testing-calibration/01_significance_testing_calibration.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/significance-testing-calibration.mdx"
+datePublished: 2026-06-22
+estimatedReadTime: 30
+abstract: "Set metrics and NDCG framed every retrieval number as a sample mean with a standard error, and both left the same question hanging: when two systems' confidence intervals overlap, is the gap real or sampling noise? The crude overlapping-intervals read is conservative because it ignores that the two systems are measured on the SAME queries. The paired significance test exploits that pairing — differencing query-by-query cancels the shared per-query difficulty, so the variance of the difference is far below the sum of the two variances, and the test resolves a gap at a fraction of the queries. We build the paired t-test, cross-check it against the permutation and bootstrap tests that make no normality assumption, correct for the three simultaneous leg comparisons, and replace the prerequisites' crude query-count with a power calculation — closing the NDCG cliffhanger exactly: the closest pair needs 116 queries for 80% power, not the 185 the overlapping intervals suggested. The same two-distribution comparison then answers two more questions. Calibration asks whether a retrieval score behaves like a probability: the reliability diagram plots empirical relevance against confidence, the expected calibration error is the area off the diagonal, and raw cosine and MaxSim scores are wildly over-confident — which is exactly why rank fusion discards scores and fuses ranks. Platt scaling and isotonic regression pull the scores onto the diagonal while leaving the ranking untouched, so calibration is orthogonal to the ranking metrics. Drift asks whether the distribution has moved since a reference window: the Kolmogorov–Smirnov statistic is the sup-gap between two empirical CDFs and the population stability index is a symmetrized KL divergence, the credit-risk standard. A silent quality decay the aggregate mean cannot distinguish is caught by the paired test; a pure covariate shift fires the input drift alarm with no quality loss at all, so input monitoring alone cannot diagnose decay. A tested notebook owns every number."
+connections:
+  - topic: "ndcg-discount-geometry"
+    relationship: "the direct prerequisite and the question this topic answers: that topic measured each leg's NDCG as a sample mean with a standard error and found the closest pair's intervals overlapping across all forty queries, a gap it estimated would need roughly 185 queries to resolve — the paired significance test here resolves exactly that cliffhanger, and the per-query NDCG it computed are the differenced samples the test consumes"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "the root of the evaluation layer and the source of the corpus, the three legs, the MaxSim oracle, and the estimator machinery (standard error, the bootstrap, the projected interval) this topic imports; the per-query AP it defined are the MAP samples the paired test differences, and the metric-as-estimator framing is what generalizes here to comparing two distributions"
+  - topic: "rank-fusion-rrf"
+    relationship: "that topic fused rankings by reciprocal RANK rather than by score, and never said why; the calibration pillar here gives the reason — raw cosine and MaxSim scores are miscalibrated and incomparable across queries, so fusing them directly would weight one query's confidence against another's incommensurably, and rank fusion sidesteps calibration by construction"
+  - topic: "high-dimensional-geometry"
+    relationship: "the concentration of cosine similarities in high dimensions explains why a fixed similarity threshold means different things for different queries — the cross-query score incomparability the calibration pillar measures as a large expected calibration error, and the reason a raw retrieval score cannot be read as a relevance probability without recalibration"
+references:
+  - type: "paper"
+    title: "A Comparison of Statistical Significance Tests for Information Retrieval Evaluation"
+    authors: "Smucker, Allan & Carterette"
+    year: 2007
+    url: "https://doi.org/10.1145/1321440.1321528"
+    note: "The canonical IR study: the randomization (permutation) test is the most appropriate for retrieval comparisons, the paired t-test tracks it closely, and the Wilcoxon and sign tests are less reliable on bounded, skewed per-query scores; CIKM 2007"
+  - type: "book"
+    title: "Permutation, Parametric, and Bootstrap Tests of Hypotheses"
+    authors: "Good"
+    year: 2005
+    url: "https://doi.org/10.1007/b138696"
+    note: "The computer-intensive treatment of the sign-flip randomization test and the paired bootstrap — the distribution-free instruments that make no normality assumption, only exchangeability under the null; Springer Series in Statistics"
+  - type: "book"
+    title: "An Introduction to the Bootstrap"
+    authors: "Efron & Tibshirani"
+    year: 1994
+    url: "https://doi.org/10.1201/9780429246593"
+    note: "The resampling estimate of a statistic's distribution, used here for the paired bootstrap significance test on the per-query metric differences, the assumption-light cross-check of the paired t and permutation p-values"
+  - type: "paper"
+    title: "Predicting Good Probabilities with Supervised Learning"
+    authors: "Niculescu-Mizil & Caruana"
+    year: 2005
+    url: "https://doi.org/10.1145/1102351.1102430"
+    note: "The empirical comparison of Platt scaling and isotonic regression across learners, with the reliability-diagram methodology this topic uses to recalibrate retrieval scores; ICML 2005"
+  - type: "paper"
+    title: "Transforming Classifier Scores into Accurate Multiclass Probability Estimates"
+    authors: "Zadrozny & Elkan"
+    year: 2002
+    url: "https://doi.org/10.1145/775047.775151"
+    note: "Isotonic regression (pool-adjacent-violators) for calibration: the nonparametric monotone fit that lowers the expected calibration error without changing the ranking; KDD 2002"
+  - type: "paper"
+    title: "On Calibration of Modern Neural Networks"
+    authors: "Guo, Pleiss, Sun & Weinberger"
+    year: 2017
+    url: "https://proceedings.mlr.press/v70/guo17a.html"
+    note: "The modern formulation of the expected and maximum calibration error and the reliability diagram, and the observation that high-capacity scorers are systematically over-confident; ICML 2017 (PMLR v70)"
+  - type: "paper"
+    title: "A Survey on Concept Drift Adaptation"
+    authors: "Gama, Žliobaitė, Bifet, Pechenizkiy & Bouchachia"
+    year: 2014
+    url: "https://doi.org/10.1145/2523813"
+    note: "The framing of drift as a change in the data distribution over time and the distinction between covariate (input) drift and real concept drift — the two-cause analysis the drift pillar makes operational; ACM Computing Surveys 46(4)"
+  - type: "paper"
+    title: "The Kolmogorov–Smirnov Test for Goodness of Fit"
+    authors: "Massey"
+    year: 1951
+    url: "https://doi.org/10.1080/01621459.1951.10500769"
+    note: "The two-sample KS statistic as the supremum distance between empirical CDFs, with its distribution-free null — the geometric drift detector this topic plots as the sup-gap between two staircases; JASA 46(253)"
+formalstatisticsPrereqs:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "this topic IS a hypothesis test applied to retrieval: the null that two systems tie, the paired t and permutation statistics on the per-query differences, the two-sided p-value as a tail area, and the power calculation that turns the prerequisites' crude required-query-count into a rigorous one are exactly the testing framework that topic develops, here instantiated on bounded, skewed, paired per-query metric scores"
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "the central move is test–CI duality: the prerequisites drew separate intervals on each system's mean metric and asked whether they overlap, a conservative proxy, while here we draw one interval on the paired difference and ask whether it contains zero, the exact dual of the paired test that topic constructs by inverting it — which is why the paired instrument separates two systems at far fewer queries"
+formalstatisticsConnections:
+  - topic: "bootstrap"
+    site: "formalstatistics"
+    relationship: "the per-query differences are bounded and skewed, so the paired bootstrap test that topic develops resamples the queries with replacement to build a null distribution of the mean difference without a normality assumption — the assumption-light cross-check this topic runs against the paired t and the permutation test, all three agreeing on the p-value"
+  - topic: "multiple-testing-and-false-discovery"
+    site: "formalstatistics"
+    relationship: "comparing three retrieval legs is three simultaneous pairwise tests, so the family-wise error inflates; the Bonferroni, Holm step-down, and Benjamini–Hochberg false-discovery-rate corrections that topic derives are applied here to the pairwise leg comparisons, and on the closest pair the correction pushes a marginal difference firmly out of significance while the genuine separations survive"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the paired test rests on the mean of the bounded per-query differences concentrating around its expectation at a rate set by the query count; the sub-Gaussian (Hoeffding) and Chebyshev bounds that topic proves are what make the shrinking confidence interval on the difference a guarantee rather than a normal-approximation heuristic, sharpening the prerequisites' single-mean concentration to the two-sample difference"
+formalmlConnections:
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "the population stability index that finance uses to monitor model drift is exactly the symmetrized KL divergence — PSI = KL(p‖q) + KL(q‖p), the Jeffreys divergence — so the credit-risk traffic light of 0.1 and 0.25 is a thresholded f-divergence, and the whole drift question is how far the score distribution has moved measured by the divergence that topic builds"
+  - topic: "always-valid-inference"
+    site: "formalml"
+    relationship: "production drift monitoring is online — you re-test as each window arrives — so the fixed-n KS p-value and the static PSI threshold are invalid under continuous peeking; the time-uniform confidence sequences and e-processes that topic develops are the principled fix, turning the heuristic PSI alarm into a sequential test that stays valid no matter when you stop and look"
+  - topic: "conformal-prediction"
+    site: "formalml"
+    relationship: "calibration is the empirical, binned precursor to the distribution-free guarantee that topic delivers: a reliability diagram measures whether a score behaves like a probability on held-in data, while conformal prediction converts a calibrated nonconformity score into a finite-sample coverage guarantee, so the recalibrated retrieval confidence built here is precisely the input its split-conformal procedure turns into an answer-or-abstain set"
+formalcalculusPrereqs:
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "the expected calibration error is a Riemann sum over a partition of the score axis — each bin contributes its count-weighted gap between empirical relevance rate and mean score — exactly the partition-and-sum construction that topic defines, mirroring how Average Precision was the area under the precision–recall curve; the reliability diagram is the step function and the ECE its Darboux sum"
+  - topic: "radon-nikodym"
+    site: "formalcalculus"
+    relationship: "the measure-theoretic definition of drift is the KL integral of the log Radon–Nikodym derivative, ∫ log(dP/dQ) dP, where dP/dQ is the density ratio that topic constructs; the binned population stability index this topic computes is the histogram approximation of that integral, the discrete-to-continuous bridge — exactly as Average Precision was the Riemann sum of a continuous area"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import SignificanceTestingLaboratory from '../../components/viz/SignificanceTestingLaboratory.tsx';
+
+## The question the variance only opened
+
+[Set metrics](/topics/set-metrics-precision-recall-map-mrr) and
+[NDCG](/topics/ndcg-discount-geometry) made the same move and stopped at the same place. A retrieval
+metric is not a property of a system; it is the **sample mean** of a per-query score over a finite,
+fixed query set, and a different set of queries would give a different number. Both topics drew the
+95% interval $\overline{m} \pm 1.96\,\widehat{\mathrm{SE}}$ around each leg's mean and asked whether
+two legs could be told apart — and both ended on a cliffhanger. The closest pair of legs, lexical and
+dense, differs by only $0.05$ in mean NDCG, their intervals overlap across all forty queries, and the
+prerequisite estimated that gap would need *roughly 185 queries* to resolve.
+
+That estimate is a **crude** read, and conservative in a specific way: it compares two intervals built
+*independently*, as if the two legs had been measured on different queries. They were not. Both legs
+ran on the **same forty queries**, and an easy query — one with an unambiguous answer near the top —
+is easy for *every* leg. The overlapping-intervals test throws that pairing away. The right instrument
+keeps it, and this topic is built around the single idea that keeping it unlocks.
+
+> A metric is an estimator; every question that remains is whether **two distributions of per-query
+> quantities differ**. System versus system is the *significance* question. The score against the truth
+> is the *calibration* question. Now against then is the *drift* question. Each is a paired comparison,
+> and pairing — differencing query-by-query — is the geometric fact that runs through all three.
+
+<SignificanceTestingLaboratory client:visible />
+
+The lab above is the topic in four panels; we take each in turn. The arc: build the paired test and
+watch it resolve the cliffhanger, make it distribution-free and correct it for multiple comparisons,
+then turn the same comparison sideways to ask whether a score is calibrated and whether the
+distribution has drifted.
+
+## The paired test: pairing cancels difficulty
+
+Fix two legs $A$ and $B$ and let $m_A(q), m_B(q)$ be their per-query metric (AP or NDCG) on query $q$.
+The prerequisite compared the two *means*. Instead, form the per-query **difference** and treat *it*
+as the sample.
+
+<TheoremBlock type="definition" number={1} title="The paired difference and the paired t-statistic">
+For the $Q$ queries let $d_q = m_A(q) - m_B(q)$. The paired estimator of the mean difference is
+$\overline{d} = \frac{1}{Q}\sum_q d_q$ with sample standard deviation $s_d$, and the **paired
+t-statistic** is
+$$
+t \;=\; \frac{\overline{d}}{s_d/\sqrt{Q}}, \qquad \text{degrees of freedom } Q-1,
+$$
+testing the null $H_0: \mathbb{E}[d] = 0$ (the systems tie). The effect size is Cohen's
+$d_z = \overline{d}/s_d$, scale-free.
+</TheoremBlock>
+
+The whole advantage is in the variance of $d$. Because $A$ and $B$ are evaluated on the same queries,
+their per-query scores are **positively correlated** — a hard query drags both down — and the variance
+of the difference subtracts that shared component.
+
+<TheoremBlock type="theorem" number={1} title="Pairing reduces variance">
+For paired samples,
+$$
+\operatorname{Var}(d) \;=\; \operatorname{Var}(A) + \operatorname{Var}(B) - 2\,\operatorname{Cov}(A,B).
+$$
+Whenever $\operatorname{Cov}(A,B) > 0$ — whenever the two systems find the same queries easy — the
+paired variance is strictly below the unpaired sum $\operatorname{Var}(A) + \operatorname{Var}(B)$, so
+the paired standard error is smaller and the paired interval on $\overline{d}$ is narrower than the
+gap between two independent intervals.
+
+*Proof.* The identity is the bilinearity of variance:
+$\operatorname{Var}(A-B) = \operatorname{Var}(A) + \operatorname{Var}(B) - 2\operatorname{Cov}(A,B)$.
+Positivity of the covariance makes the third term a strict subtraction. $\square$
+</TheoremBlock>
+
+On this corpus the legs correlate $0.32$ (MAP) and $0.45$ (NDCG) across queries, so the paired
+variance is only $0.69$ and $0.59$ of the unpaired sum. Panel A shows the per-query difference strip
+$d_q$ — mostly negative, lexical below dense, with a few queries where lexical wins — and the two
+intervals on $\overline{d}$ shrinking under the query-count slider. The payoff is the resolution of
+the cliffhanger.
+
+<TheoremBlock type="proposition" number={1} title="Test–CI duality and the power-based query count">
+The paired $(1-\alpha)$ confidence interval $\overline{d} \pm z_{1-\alpha/2}\, s_d/\sqrt{n}$ **excludes
+zero** if and only if the paired test rejects $H_0$ at level $\alpha$ — confidence intervals are
+inverted tests. Holding the observed $s_d$ fixed, the interval clears zero once
+$n > (z_{1-\alpha/2}/d_z)^2$. To *detect* the effect with power $1-\beta$, rather than clear zero on a
+single realization, requires the larger
+$$
+n \;\approx\; \left(\frac{z_{1-\alpha/2} + z_{1-\beta}}{d_z}\right)^2.
+$$
+</TheoremBlock>
+
+For the closest NDCG pair, $d_z = 0.26$, and the three query counts form a clean ladder. The
+prerequisite's overlapping-intervals read asked for **185**. The rigorous 80%-power count is
+**116** — fewer, because the paired test is the sharper instrument. The single-realization
+"interval clears zero" count is just **57**, but that is a one-time event with about 50% power, which
+is why it sits below the power-based number rather than above it. The honest report is **185 → 116**:
+the proper required query count is well under the crude one.
+
+A second, equally honest fact: pairing tightens the test, it does not manufacture significance. On
+MAP the same lexical–dense gap *is* significant at the forty queries we have ($t = -3.87$,
+$p = 4.0\times10^{-4}$, separating by $n = 11$). On NDCG it is **not yet** ($t = -1.65$, $p = 0.107$):
+the gap is real-looking but inside sampling error at $Q = 40$. The paired test answers "is the 0.05
+NDCG gap real?" with *not on this evidence* — which is the correct answer, not a louder one.
+
+## Distribution-free tests and the cost of asking three questions
+
+The paired t-test assumes the differences are approximately normal. They are not: per-query AP and
+NDCG are bounded in $[0,1]$ and skewed. Two instruments make no such assumption.
+
+<TheoremBlock type="definition" number={2} title="The permutation and bootstrap tests">
+The **permutation (randomization) test** uses that under $H_0$ the two systems are *exchangeable* on
+each query, so each difference is equally likely to be $+d_q$ or $-d_q$. Enumerating (or sampling) the
+$2^Q$ sign vectors $s \in \{\pm 1\}^Q$ gives the null distribution of $\overline{s \odot d}$, and the
+two-sided p-value is the tail mass beyond $|\overline{d}|$. The **paired bootstrap test** resamples
+the $Q$ differences with replacement, recentres to impose $H_0$, and reads the same tail. Neither
+assumes normality; the permutation test is *exact* under exchangeability.
+</TheoremBlock>
+
+On the worked MAP pair all three agree — $t$-test $p = 4.0\times10^{-4}$, permutation
+$p = 7.0\times10^{-4}$, bootstrap $p = 1.0\times10^{-4}$ — which is the cross-check the prerequisites'
+rigor flag promised. The permutation test is the one the IR literature settled on (Smucker, Allan &
+Carterette, 2007); Panel B draws its sign-flip null with the observed statistic marked and the tail
+shaded.
+
+Comparing three legs is not one test but $\binom{3}{2} = 3$, and running three tests at $\alpha = 0.05$
+inflates the chance of a false "significant" somewhere. The
+[multiple-comparisons](https://www.formalstatistics.com/topics/multiple-testing-and-false-discovery)
+corrections adjust for it: **Bonferroni** multiplies each p-value by the number of tests, **Holm** does
+so in a uniformly more powerful step-down, and **Benjamini–Hochberg** controls the false-discovery rate
+instead of the family-wise error. On the NDCG family the two genuine separations survive every
+correction, while the marginal lexical–dense pair is pushed from $0.107$ to $0.32$ under Bonferroni —
+cemented as *not distinguishable*. Correcting for the questions you asked is what keeps a three-way
+leaderboard honest.
+
+## Calibration: is a score a probability?
+
+Turn the comparison sideways. So far the two distributions were two systems' metrics; now they are a
+score and the truth it predicts. A retrieval score $s(q,d)$ is **calibrated** as a relevance
+probability if, among all query–document pairs scoring near $s$, a fraction near $s$ are actually
+relevant. The geometric object is the reliability diagram.
+
+<TheoremBlock type="definition" number={3} title="Reliability diagram, ECE, and MCE">
+Pool every $(q,d)$ pair, map the score into $[0,1]$, and partition the axis into bins $B_1,\dots,B_m$.
+For bin $b$ let $\mathrm{conf}_b$ be the mean score and $\mathrm{acc}_b$ the empirical relevance rate.
+Plotting $\mathrm{acc}_b$ against $\mathrm{conf}_b$ gives the **reliability diagram**; perfect
+calibration is the diagonal $\mathrm{acc}_b = \mathrm{conf}_b$. The **expected calibration error** is
+the count-weighted area off the diagonal,
+$$
+\mathrm{ECE} \;=\; \sum_{b=1}^{m} \frac{n_b}{N}\,\big|\mathrm{acc}_b - \mathrm{conf}_b\big|,
+$$
+a Riemann sum over the score partition; the **maximum calibration error** is the worst single bin,
+$\mathrm{MCE} = \max_b |\mathrm{acc}_b - \mathrm{conf}_b|$.
+</TheoremBlock>
+
+Calibration is forced to be a *pooled* object — with ten relevant documents per query, a per-query
+diagram would have one document per bin — and that is the point: pooling exposes whether a score means
+the same thing across queries. It does not. The smooth cosine (dense) and MaxSim (late-interaction)
+scores are massively **over-confident**: across the $4{,}800$ pooled pairs, with a base relevance rate
+of $0.083$, the raw ECE is $0.43$ and $0.39$. A cosine of $0.9$ does not mean a $90\%$ chance of
+relevance; it means whatever the query's own scale makes it mean, and the
+[concentration of cosine similarities](/topics/high-dimensional-geometry) in high dimensions is why a
+fixed threshold is incomparable across queries. Lexical BM25 is the interesting exception: its huge
+mass of exact-zero scores sits at confidence near zero and *is* well-calibrated in bulk (ECE $0.05$),
+but its tail is badly off (MCE $0.19$).
+
+This is precisely the property [rank fusion](/topics/rank-fusion-rrf) routed around. Reciprocal-rank
+fusion combines $1/(c + \mathrm{rank})$ — it uses only ranks, never scores — because raw scores are
+incommensurable across queries and legs; fusing them directly would weigh one query's confidence
+against another's on a scale that does not transfer. Rank fusion sidesteps calibration by construction;
+this section is the reason it had to.
+
+The fix is to *learn* the map from score to probability. **Platt scaling** fits a logistic
+$\sigma(a\,s + b)$; **isotonic regression** fits the monotone step function minimizing squared error.
+Both crush the ECE — dense from $0.43$ to under $0.01$ — and both do something that looks surprising
+until you see why.
+
+<TheoremBlock type="theorem" number={2} title="Monotone recalibration preserves the ranking">
+A strictly increasing recalibration map (Platt's $\sigma(a\,s+b)$ with $a > 0$) leaves the order of
+documents within every query unchanged, so per-query AP, NDCG, and the pooled AUC are **identical**
+before and after recalibration.
+
+*Proof.* A strictly increasing $g$ satisfies $s_i > s_j \iff g(s_i) > g(s_j)$, so $\arg\!\sort$ is
+unchanged on every query; every ranking metric is a function of that order alone, and the
+rank-based AUC is invariant under any strictly monotone transform of the scores. $\square$
+</TheoremBlock>
+
+The pooled AUC is identical to six decimals before and after Platt scaling on every leg — the badge in
+Panel C — while the ECE collapses. **Calibration is orthogonal to ranking**: you can fix what the
+scores *mean* as probabilities without moving a single document, because calibration reshapes the
+score axis and the metrics read only the order. The Brier score — the mean squared error of the
+probability against the label — decomposes (Murphy) into reliability, resolution, and uncertainty, and
+recalibration drains the reliability term ($0.0002$ for recalibrated dense) while sparing the
+resolution that the ranking depends on.
+
+<RigorFlag>
+The reliability diagram is necessarily pooled across queries, so it cannot separate "this score is
+miscalibrated" from "this score means different things on different queries" — both register as a
+gap off the diagonal, and the second is the dominant effect here. Isotonic regression attains a lower
+in-sample ECE than Platt, but its extra flexibility can overfit on only $4{,}800$ pairs; a held-out
+split (fit on half the queries, score the other half) confirms the recalibrated ECE still beats the
+raw, so the improvement is real, not memorized. Calibration in the strict sense
+(a score equals a probability) is also stronger than anything the ranking metrics ever needed, which
+is exactly why it was free to ignore until a downstream decision — answer or abstain — depends on the
+number itself.
+</RigorFlag>
+
+## Drift: has the distribution moved?
+
+The last turn of the comparison is over *time*. In production the data shifts: the corpus grows, the
+query mix changes, an embedding model is swapped, and retrieval quality decays silently. Drift
+detection is the two-sample test of a **reference** window against a **current** one.
+
+<TheoremBlock type="definition" number={4} title="KS, PSI, and the symmetrized-KL identity">
+Let $\hat F_{\mathrm{ref}}, \hat F_{\mathrm{cur}}$ be the empirical CDFs of a monitored quantity (here
+per-query NDCG). The **two-sample Kolmogorov–Smirnov** statistic is the supremum distance between the
+two staircases,
+$$
+D \;=\; \sup_x \big|\hat F_{\mathrm{ref}}(x) - \hat F_{\mathrm{cur}}(x)\big|,
+$$
+distribution-free under the null. Binning the support into proportions $p_b$ (reference) and $q_b$
+(current), the **population stability index** is
+$$
+\mathrm{PSI} \;=\; \sum_b (p_b - q_b)\ln\frac{p_b}{q_b} \;=\; \mathrm{KL}(p\|q) + \mathrm{KL}(q\|p),
+$$
+the **Jeffreys** (symmetrized KL) divergence, with the credit-risk traffic light $\mathrm{PSI} < 0.1$
+stable, $0.1$–$0.25$ moderate, $> 0.25$ significant.
+</TheoremBlock>
+
+The middle equality is exact — $\sum_b(p_b-q_b)\ln(p_b/q_b) = \sum_b p_b\ln(p_b/q_b) - \sum_b
+q_b\ln(p_b/q_b)$ — so PSI *is* a symmetrized [KL divergence](https://www.formalml.com/topics/kl-divergence),
+and the continuous divergence it approximates is the integral of the log
+[Radon–Nikodym derivative](https://www.formalcalculus.com/topics/radon-nikodym),
+$\int \log(dP/dQ)\,dP$; the binned PSI is its Darboux sum, exactly as Average Precision was the area
+under a curve. Panel D drives an embedding-degradation knob: as the dense leg's vectors are perturbed,
+the per-query NDCG distribution shifts left, the KS sup-gap grows from $0$ to $0.93$, and PSI crosses
+into the red. Under the matched-n null (the same distribution resampled) the detector is silent — mean
+PSI $0.06$, KS $p = 0.92$.
+
+Two subtler facts are the real lessons. First, a drift the *aggregate mean cannot see* is still
+catchable — and the catcher is, once again, the paired test.
+
+<TheoremBlock type="proposition" number={2} title="Drift monitoring, like system comparison, must be paired">
+A small uniform degradation drops each query's score slightly but consistently. Comparing the two
+windows by their **independent** mean intervals declares them indistinguishable — the intervals
+overlap. The **paired** test on the per-query (now $-$ then) differences rejects, because pairing
+cancels the shared per-query difficulty, exactly as in the system-comparison case.
+</TheoremBlock>
+
+At a degradation that moves the mean by under $2$ standard errors — overlapping intervals, a dashboard
+staying green, and even the marginal KS test missing it ($p = 0.17$) — the paired test fires at
+$p = 0.002$. The same pairing that resolved the significance cliffhanger is the right drift monitor.
+
+Second, **input drift and quality decay are different things**. A pure *covariate shift* — the query
+mix moves from easy to hard, the retriever unchanged — fires the input-distribution alarm (the top-1
+score PSI is $0.43$, observable without any labels) while the model's quality on a fixed query set is
+*exactly* unchanged (the paired outcome difference is zero). A genuine model decay, by contrast, drops
+the paired outcome ($-0.60$, $p \approx 10^{-21}$). So an input-drift alarm cannot diagnose decay on
+its own; you also need a labelled, paired *outcome* test. Monitor both, and read them together: input
+moved with outcome flat is data drift; outcome moved is decay.
+
+<RigorFlag>
+Production monitoring is *online* — you test as each window arrives — so a fixed-$n$ KS p-value or a
+static PSI threshold is invalid under continuous peeking; repeated looks inflate the false-alarm rate,
+and PSI's $0.1$/$0.25$ cutoffs are heuristics that sidestep the problem rather than solve it (PSI has
+no canonical academic derivation, and on forty queries its value is noisy). The principled fix is
+[anytime-valid inference](https://www.formalml.com/topics/always-valid-inference) — confidence
+sequences and e-processes that stay valid no matter when you stop — the sequential successor this
+topic points to. And the recalibrated, drift-monitored retrieval confidence is itself the input to the
+distribution-free correctness guarantees of conformal factuality and to a selective-generation gate,
+the upper layer this evaluation track opens onto.
+</RigorFlag>
+
+<FinanceCaseStudy title="Deciding to switch retrievers, and watching the one in production" modality={["text", "audio"]}>
+The production system this series tracks retrieves over 10-K and 10-Q filing text and earnings-call
+transcripts, and the three questions here are the three the desk actually faces. *Is the new retriever
+better?* A five-point NDCG gain over forty evaluation queries is not a reason to switch — the paired
+test says lexical and dense are indistinguishable at that gap, and the power calculation says it would
+take on the order of a hundred labelled queries to be sure, so the disciplined answer is a paired
+p-value and a required-n, not a leaderboard delta. *Can we trust the confidence the retriever reports?*
+Only if it is calibrated: a raw top-1 cosine of $0.42$ is meaningless across queries, but a calibrated
+$0.42$ says roughly two in five passages scoring this high are the right disclosure — exactly the
+number an answer-or-abstain gate needs, and the maximum calibration error on the high-confidence bin is
+the dangerous quantity, because that is where a confident wrong answer reaches the analyst. *Has the
+retriever quietly gotten worse?* Population stability index on the retrieval-score distribution is the
+credit-risk monitoring standard, and the lesson transfers: when filing season changes the vocabulary
+or an embedding model is swapped, input PSI crossing $0.25$ is expected covariate shift, not
+necessarily decay — confirm decay with a paired outcome test on a fixed evaluation set before
+re-indexing. The corpus here is a synthetic vMF token cloud standing in for those documents; every
+value illustrates the mechanism, not a benchmark.
+</FinanceCaseStudy>

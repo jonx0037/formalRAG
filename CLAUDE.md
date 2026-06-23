@@ -299,6 +299,58 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   truncation can be inconsistent (Wang et al., COLT 2013 — PMLR v30, no DOI), the load-bearing cutoff
   rigorFlag. Refs verified: Järvelin–Kekäläinen TOIS 2002 `10.1145/582415.582418`; Moffat–Zobel RBP TOIS
   2008 `10.1145/1416950.1416952`.
+  Its **significance/calibration/drift successor** (`significance-testing-calibration`): three pillars,
+  ONE shared corpus/`.py`/viz, bound by "compare two distributions of per-query quantities" (system-vs-
+  system, score-vs-truth, now-vs-then). IMPORT `ndcg_corpus` (a SUPERSET of `set_metrics_corpus` — adds
+  `oracle_scores`/`grades`, so one cached build gives binary labels AND graded relevance) + `per_query_ap`/
+  `per_query_ndcg`/`metric_summary`/`projected_ci`/`projected_separation_n`/`projected_ndcg_separation_n`
+  and the scoring PRIMITIVES (`dual_encoder_score`/`maxsim_matrix`/`bm25_rank`/`normalize`) for the
+  calibration scores. **Get the published unpaired n for FREE** by calling the prereqs' own
+  `projected_*_separation_n` (guarantees the headline reuses the exact 185, not a re-derivation).
+  **Significance:** pairing cancels shared difficulty (`var(d)=varA+varB−2cov`, ratio 0.59–0.69 here) —
+  the paired CI excludes 0 at far fewer queries; resolve the NDCG cliffhanger as the LADDER **185 (crude
+  overlap) → 116 (rigorous 80%-power) → 57 (single-realization)** and note power_n > single-realization-n
+  because a one-time CI clearing 0 is ~50% power. **Build+RUN the honest twist:** pairing tightens WITHOUT
+  manufacturing significance — MAP lexical/dense IS sig at n=40 (p≈4e-4) while NDCG lexical/dense is NOT
+  yet (p≈0.107); ship both. Permutation (sign-flip, exact ≤18 else one MC stream) ≈ t ≈ bootstrap;
+  `paired_t_test`==`scipy.ttest_rel` <1e-9 (twin). Multiple comparisons: the closest NDCG pair stays
+  not-sig under every correction while the genuine pairs survive (no binary FLIP exists on this corpus —
+  the honest claim is the correction CEMENTS the marginal pair, 0.107→0.32 Bonferroni, not that it flips a
+  verdict). **Brier decomposition gotcha:** the 3-term `rel−res+unc` identity is exact only for the
+  BIN-QUANTIZED Brier (each forecast → its bin mean), NOT the raw Brier — assert against `brier_binned`,
+  report `brier` separately (binning loses resolution so `brier_binned ≥ brier`, but don't assert that sign
+  universally). **Calibration:** raw cosine/MaxSim are wildly over-confident (dense/late ECE 0.43/0.39),
+  the reason RRF fuses RANKS not scores; Platt (strictly monotone, a>0) preserves ranking/AUC/NDCG EXACTLY
+  (<1e-12 — the orthogonality backbone), isotonic (PAVA) lowers ECE more but can tie. **Per-query
+  normalization does NOT uniformly reduce ECE** (lexical it INCREASES) — don't headline it; the robust
+  claims are dense/late ECE>0.1 + all-leg MCE>0.05 (lexical bulk-calibrated by its BM25 zero-mass, bad in
+  tail) and recalibration lowers ECE, guarded by a held-out split. Calibration is a POOLED cross-query
+  object (10 docs/query too sparse per-query); quantile bins so BM25's zero-mass doesn't empty a bin. AUC =
+  hand Mann–Whitney via `scipy.stats.rankdata`; Platt via `scipy.optimize` + `scipy.special.expit` (avoid
+  the hand-sigmoid overflow gemini flags). **Drift:** synthesize a time axis (no temporal dim) — Gaussian
+  noise σ on the dense pooled vectors, oracle grades FIXED (model decay); KS hand staircase-sup ==
+  `scipy.ks_2samp` <1e-12; PSI = symmetrized KL (Jeffreys) `=KL(p‖q)+KL(q‖p)` exact on shared guarded
+  proportions. **PSI smoothing gotcha:** an EPS-on-proportions floor explodes PSI to ~13 at severe shift
+  (small-n + empty-bin artifact) — use additive **Laplace smoothing (alpha=0.5)** for realistic finance-
+  range PSI and a clean 0.25 crossing; bins=5 on 40 queries (10 needs large n, the rigorFlag). **Null must
+  be matched-n** (bootstrap-resample Q-vs-Q, NOT a 20/20 split) and AVERAGED over seeds (one small-sample
+  draw is noisy — itself the PSI-threshold rigorFlag); KS is the binning-free rigorous detector. **Silent-
+  decay headline reframed:** "distribution beats mean" is hard at n=40 (KS needs D>0.30, which moves the
+  mean too), so make it "drift monitoring must be PAIRED" — a small uniform decay overlapping unpaired CIs
+  is caught by the paired test (p≈0.002), tying drift back to the significance pillar; scan small σ for the
+  first qualifying level (deterministic). **Input-vs-outcome:** covariate shift (re-weight query mix, model
+  fixed) fires input-PSI while the paired outcome on a FIXED query set is EXACTLY 0 (same model) — so input
+  drift alone can't diagnose decay; compute the contrast on the fixed set, not the windowed distributions
+  (which both shift). Graph prereqs re-pointed to **ndcg-discount-geometry only** (dropped unbuilt
+  `cross-encoders-reranking` + marginal `high-dimensional-geometry`, capstone precedent); name-not-link the
+  unbuilt `conformal-factuality`/`selective-generation-abstention`. Up-links: formalstatistics
+  `hypothesis-testing`/`confidence-intervals-and-duality`/`bootstrap`/`multiple-testing-and-false-discovery`,
+  formalml `concentration-inequalities`/`kl-divergence`/`always-valid-inference`/`conformal-prediction`,
+  formalcalculus `riemann-integral`/`radon-nikodym` (all confirmed via `ls`). Refs verified: Smucker–Allan–
+  Carterette CIKM 2007 `10.1145/1321440.1321528`; Good (permutation/bootstrap, clean DOI beats Noreen's
+  none) `10.1007/b138696`; Niculescu-Mizil–Caruana ICML 2005 `10.1145/1102351.1102430`; Zadrozny–Elkan KDD
+  2002 `10.1145/775047.775151`; Gama et al. CSUR 2014 `10.1145/2523813`; Massey KS JASA 1951
+  `10.1080/01621459.1951.10500769`; Guo et al. ICML 2017 PMLR v70 (no DOI).
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
