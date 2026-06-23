@@ -271,6 +271,34 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   closed-form in TS. Refs verified: Buckley–Voorhees "Evaluating Evaluation Measure Stability" SIGIR 2000
   `10.1145/345508.345543`; Sanderson FnTIR 2010 `10.1561/1500000009`; Efron–Tibshirani bootstrap
   `10.1201/9780429246593`; `ir_measures` (https://ir-measur.es/) for the AP-convention zoo.
+  Its **graded-relevance successor** (`ndcg-discount-geometry`): generalize binary→graded by IMPORTING
+  `set_metrics_corpus`/`LEGS` and the generic estimator fns (`metric_summary`, `projected_ci`) — feed
+  per-query NDCG through the SAME `metric_summary`, don't re-derive. **Grade by GLOBAL oracle-score
+  TERTILES restricted to the top-K** (`maxsim_matrix(queries,docs)` is the exact oracle `brute_topk`
+  argsorts, so its top-K == `qrels_set`): assign {1,2,3} to the K relevant docs, 0 elsewhere, so
+  `{grade≥1}≡qrels_set` EXACTLY (the nesting anchor) WHILE IDCG varies per query — a rank-band grading
+  makes every query's grade profile identical (IDCG constant), score-tertiles give per-query variation
+  AND nesting; tertiles also balance the grade counts into thirds. **The bm25.ndcg_at_k TWIN is exact:**
+  bm25's `r/log2(i+2)` over a 0-indexed enumerate == `1/log2(i+1)` 1-indexed, linear gain,
+  `sorted(qrels.values())[:k]` IDCG — so DEFAULT the signature to `(gain_linear, discount_log2)` and the
+  twin is the no-extra-arg reduction (`<1e-12`); pass `gain_exponential` explicitly for the featured
+  modern NDCG. **The rearrangement inequality IS the rigorous backbone** (IDCG optimality is a THEOREM,
+  not a definition): `DCG = ⟨gains-in-rank-order, descending-discounts⟩`, maximized by descending gains,
+  ascending = the strict minimizer when grades differ — assert MAX over random perms + the strict
+  ascending<ideal. **Quality-ladder ⇒ NO aggregate leg flip** (the capstone learning recurs: late>dense>
+  lexical under every convention), so the headline is CONSTRUCTED convention flips + a per-query reversal
+  count (5 here): gain flip (1 perfect g=3 + 3 marginal g=1; `2^g−1` exp→"headline"@rank1 wins, linear→
+  "broad"@top-3 wins) and discount flip (3 equal docs; steep geometric p=0.5→"top_heavy" wins, heavy-tail
+  log2→"deep" wins). Build+RUN — the obvious aggregate flip is vacuous. **Discount geometry:** head-mass
+  in top-K geometric(0.85)≈0.80 > 1/i ≈0.55 > log2 ≈0.19 (light vs heavy tail), marginal value
+  `disc(i)−disc(i+1)` positive AND decreasing, and RBP's `E[docs]=1/(1−p)` is the closed user model log2
+  LACKS — assert the inequalities, not decimals. **Worked-query picker must PREFER a query containing a
+  grade-3** (median-NDCG alone landed on a no-grade-3 query, hiding the exp-gain effect). Two contrasting
+  estimator pairs: the **clearest** separates within Q (n=15), the **closest** (lexical/dense, gap 0.05)
+  needs the EXTRAPOLATED `n≈185` — give the separation fn an `n_max` param to project past Q. NDCG@k
+  truncation can be inconsistent (Wang et al., COLT 2013 — PMLR v30, no DOI), the load-bearing cutoff
+  rigorFlag. Refs verified: Järvelin–Kekäläinen TOIS 2002 `10.1145/582415.582418`; Moffat–Zobel RBP TOIS
+  2008 `10.1145/1416950.1416952`.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
