@@ -392,6 +392,43 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   Rogan–Gladen 1978 `10.1093/oxfordjournals.aje.a112510`; Dawid–Skene 1979 `10.2307/2346806`; Shrout–Fleiss
   1979 `10.1037/0033-2909.86.2.420`; **Gwet 2008 `10.1348/000711006X126600`** (the `…2044-8317…` DOI 404s);
   Hayes–Krippendorff 2007 `10.1080/19312450709336664`.
+  Its **conformal-factuality successor** (`conformal-factuality`): the TERMINUS of the eval layer — turns
+  the calibrated judge confidence into a distribution-free GUARANTEE. REUSE (don't re-prove) formalML
+  `conformal-prediction` Theorem 1 (split-conformal coverage, `⌈(1−α)(n+1)⌉`-th order-stat threshold);
+  DEVELOP FRESH **Conformal Risk Control** (Angelopoulos et al. 2024, the monotone-loss generalization
+  formalML lacks). IMPORT `get_corpus`+the calibration suite (`platt_scale`/`apply_platt`/`isotonic_*`/
+  `expected_calibration_error`/`auc_pooled`) from significance-testing-calibration, and `K`/`judge_confidence`/
+  `oracle_faithfulness`/`doc_length_feature`/`candidate_ids`/`JUDGE_PERFECT` from llm-as-judge-ragas; the
+  **collapse anchor** is a perfect judge's back-off retained fraction == imported `precision_at_k` <1e-12
+  (lifts the prereq's mean-verdict anchor to the conformal retained set). **The score is `s=1−c̃` (1 − calibrated
+  confidence); orientation is load-bearing** (`s=c̃` retains the least-confident). **Conformal VALIDITY is
+  calibration-agnostic** — coverage holds for ANY score; recalibration buys EFFICIENCY (retention), not
+  validity (the cleanest framing of the prereq→topic edge). **Judge must OVERLAP or every trade-off is
+  vacuous:** JUDGE_BALANCED separates faithful/unfaithful confidence PERFECTLY on this corpus (base
+  sens/fpr logit gap 3.17 > feature-shift span ~2.35 → AUC 1.0, conf collapses to {0,1}, split_false≡0,
+  CRC has nothing to control). Use a custom **lenient** judge `dict(sens0=0.80,spec0=0.62,b_len=1.3,b_pos=0.7,
+  b_self=0.6)` (AUC≈0.90, classes overlap, false claims leak — split_false runs to 0.23@α=0.02, the
+  recall≠precision bridge). **CRC loss MUST be the fixed-denominator `L=(1/k)·#{retained∧unfaithful}`** (each
+  indicator only switches off as the cut rises → non-increasing, B=1); the **fraction-of-retained loss is
+  NON-monotone** (denominator shrinks: 0.1→1.0 as the cut rises) and silently voids CRC — reproduce the
+  counterexample numerically before adopting the monotone one. CRC controls `E[L]≤α` in EXPECTATION not a
+  single realization (0.205@α=0.20 overshoot is honest; RCPS Bates et al. 2021 is the δ-level alternative).
+  **Drift = TRUE covariate shift, not symmetric logit noise.** Mean-zero noise on test-half confidence
+  logits is concept drift (added variance) — importance weighting can't repair it (build-and-run gave
+  break_sigma=None, weighted +0.02). The textbook Tibshirani result needs a covariate shift with a KNOWN
+  likelihood ratio: tilt a real covariate (`doc_length_feature`) by `w=exp(−βv)`, resample the test set ∝ w;
+  split coverage collapses 0.95→0.27 as β grows, weighted conformal restores it (0.93@β=1, →1.0). **The
+  weighted twin is EXACT:** uniform weights + `w_test=mean(w)` ⇒ `pᵢ=1/(n+1)` ⇒ weighted quantile ==
+  `s[⌈(1−α)(n+1)⌉−1]` (split conformal) <1e-12. Frontmatter `prerequisites` = BOTH
+  `[llm-as-judge-ragas, significance-testing-calibration]` (matches the two pre-existing graph edges — no
+  edge add/re-point, just status planned→published + empty the retrieval-evaluation `planned[]`). Cross-site:
+  `formalmlPrereqs` conformal-prediction/concentration-inequalities, `formalmlConnections` always-valid-inference,
+  `formalstatisticsPrereqs` hypothesis-testing/confidence-intervals-and-duality, `formalstatisticsConnections`
+  multiple-testing-and-false-discovery (a conformal set is an inverted test / distribution-free CI; CRC↔FDR
+  via Learn-Then-Test). TheoremBlock supports `type="algorithm"|"corollary"|"remark"` (not just def/thm/prop).
+  Refs verified: CRC arXiv 2208.02814; Mohri–Hashimoto (per-claim back-off) arXiv 2402.10978; C-RAG (Kang et al.)
+  arXiv 2402.03181; Tibshirani et al. covariate-shift arXiv 1904.06019; RCPS Bates et al. `10.1145/3478535`;
+  Angelopoulos–Bates gentle intro arXiv 2107.07511; Lei et al. (split-conformal) JASA `10.1080/01621459.2017.1307116`.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
