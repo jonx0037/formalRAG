@@ -529,7 +529,9 @@ def dawid_skene_em(ratings: np.ndarray, n_iter: int = 100, tol: float = 1e-6, se
     n, J = R.shape
     C = 2
     if J < 2 or n == 0:
-        maj = (R.mean(axis=1) >= 0.5).astype(int) if n else np.array([], dtype=int)
+        # majority vote needs >=1 judge AND >=1 item; with no judges there is no signal -> default class 0
+        # (guard the zero-width-axis mean, which would warn "Mean of empty slice").
+        maj = (R.mean(axis=1) >= 0.5).astype(int) if (n > 0 and J > 0) else np.zeros(n, dtype=int)
         return {"labels_hard": maj, "class_prior": np.array([0.5, 0.5]),
                 "sens": np.full(J, 0.5), "spec": np.full(J, 0.5), "n_iter_run": 0, "loglik": 0.0}
     # one-hot the verdicts: V[j] is (n, C)
@@ -868,9 +870,11 @@ def test_dawid_skene_recovers_error_rates() -> None:
 
 
 def test_dawid_skene_guards() -> None:
-    # degenerate inputs return majority vote without crashing.
+    # degenerate inputs return majority vote without crashing (and no "mean of empty slice" warning).
     out = dawid_skene_em(np.array([[1], [0], [1]]))                # single judge
     assert out["n_iter_run"] == 0 and out["labels_hard"].tolist() == [1, 0, 1]
+    no_judges = dawid_skene_em(np.zeros((3, 0), dtype=int))         # items but no judges -> default class 0
+    assert no_judges["n_iter_run"] == 0 and no_judges["labels_hard"].tolist() == [0, 0, 0]
 
 
 def test_correction_flips_ranking() -> None:
