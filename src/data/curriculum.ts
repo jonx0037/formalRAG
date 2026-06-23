@@ -86,7 +86,6 @@ export const tracks = [
     description:
       'Evaluation treated as statistics: ranking metrics as estimators, significance testing, calibration, drift detection, LLM-as-judge reliability, and distribution-free conformal factuality guarantees.',
     planned: [
-      'LLM-as-Judge and Faithfulness: RAGAS as a Family of Estimators',
       'Conformal Factuality: Distribution-Free Correctness Guarantees for Generation',
     ],
     dependsOnFormalML: true,

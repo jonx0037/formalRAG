@@ -1,0 +1,424 @@
+---
+title: "LLM-as-Judge and Faithfulness: RAGAS as a Family of Estimators"
+subtitle: "The evaluation track measured retrieval against fixed relevance labels. Generation has no label, so we hire an LLM to judge — and the judge is a noisy instrument with its own sensitivity, specificity, bias, and variance. We rebuild every RAGAS metric as an estimator you must correct for the instrument: debias the verdict with known error rates, agree on the protocol with chance-corrected reliability, calibrate the confidence, price the irreducible judge-variance floor, and recover the error rates with no gold labels at all."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "significance-testing-calibration"
+tags:
+  - "llm-as-judge"
+  - "ragas"
+  - "faithfulness"
+  - "rogan-gladen"
+  - "inter-rater-agreement"
+  - "cohens-kappa"
+  - "gwet-ac1"
+  - "judge-calibration"
+  - "dawid-skene"
+  - "variance-decomposition"
+  - "retrieval-evaluation"
+  - "financial-nlp"
+domain: "retrieval-evaluation"
+pipelineStage: "evaluate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+rigorFlag: "Seven honesty flags hold this topic together. (1) The judge here is a SYNTHETIC Bernoulli oracle with fixed, known sensitivity and specificity; a real LLM judge has neither fixed nor known error rates — they drift with the prompt, the model version, the domain, and even the candidate's position — so every correction below is conditional on error rates that in practice must be estimated from a labeled audit set. (2) Rogan–Gladen debiasing is unbiased only when sensitivity and specificity are known and only BEFORE clipping the estimate into [0,1]; its variance is inflated by 1/(se+sp−1)^2, which explodes as the judge approaches uselessness (se+sp → 1): a near-random judge cannot be debiased, only amplified, and below the Youden line the correction is undefined. (3) Cohen's kappa is NOT pure agreement — under skewed marginals two judges agreeing 85% of the time can score kappa near zero (the Feinstein–Cicchetti paradox), so kappa must be read alongside the marginals and a prevalence-robust coefficient such as Gwet's AC1 or Krippendorff's alpha; none of the three is canonically correct. (4) The judge-variance component is an IRREDUCIBLE floor: averaging over more queries shrinks the query-sampling error but never the per-item judge noise, so a metric's standard error plateaus and only more judges or a less noisy protocol lowers it. (5) RAGAS faithfulness is itself a RATIO of two LLM-extracted counts — supported claims over decomposed claims — so the claim-decomposition step is a second instrument with its own error, making faithfulness a ratio estimator whose denominator is noisy, not a clean Bernoulli mean. (6) Position and verbosity bias are removable by order-averaging, but self-preference bias correlates with a candidate's provenance, not its slot, so it survives the swap test and is unidentifiable without external ground truth. (7) Dawid–Skene recovers judge error rates with no gold labels only under a conditional-independence assumption that correlated judges violate, and its EM likelihood is non-convex with a label-permutation symmetry. Relevance is a synthetic vMF MaxSim oracle, not human judgment, and every number is owned by a tested notebook."
+videoId: null
+notebookPath: "notebooks/llm-as-judge-ragas/01_llm_as_judge_ragas.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/llm-as-judge-ragas.mdx"
+datePublished: 2026-06-23
+estimatedReadTime: 32
+abstract: "Retrieval evaluation rested on fixed relevance labels; generation has none. The standard workaround hires a large language model as a judge, and RAGAS turns its verdicts into metrics — faithfulness, answer relevance, context precision. This topic treats the judge as what it is: a noisy measurement instrument, and every RAGAS metric as an estimator built from its verdicts. Faithfulness is the sample mean of the judge's per-claim support verdicts, and because the judge has imperfect sensitivity and specificity, that mean is a biased estimator of the latent grounding prevalence. The Rogan–Gladen correction inverts the error model to recover an unbiased estimate, but its variance is inflated by the inverse square of the judge's Youden index, so a near-useless judge cannot be debiased — only amplified. Trusting a judge first means agreeing with it: Cohen's kappa chance-corrects raw agreement, but the kappa paradox shows high agreement collapsing to near-zero kappa under the skewed marginals typical of 'most claims are supported', so we read Gwet's AC1 and Krippendorff's alpha alongside it, and decompose the variance to expose an intraclass-correlation reliability and a judge-variance floor that more queries cannot lower. We calibrate the judge's stated confidence with the prerequisite's reliability-diagram machinery, detect position bias with a paired swap test, and recover each judge's error rates with no gold set through Dawid–Skene latent-class EM — closing the loop with the correction that opened the topic. A tested notebook owns every number."
+connections:
+  - topic: "significance-testing-calibration"
+    relationship: "the direct prerequisite and the instrument this topic reuses wholesale: its calibration panel — the reliability diagram, expected calibration error, Brier score, Platt and isotonic recalibration, and the monotone-recalibration theorem — is applied here to the JUDGE's stated confidence rather than a retrieval score, and its permutation and paired tests become the swap test that detects judge position bias; that topic framed a metric as an estimator with a standard error, and this topic deepens that estimator with a second, nested noise source, the judge itself"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "the root of the evaluation layer that defined every retrieval metric as a sample mean of per-query scores against FIXED relevance labels; generation has no such labels, so this topic replaces the gold qrel with an LLM judge and inherits the metric-as-estimator machinery — the sample mean, the standard error, the precision@k that the perfect-judge faithfulness collapses onto exactly — now applied to noisy judge verdicts instead of human relevance grades"
+  - topic: "ndcg-discount-geometry"
+    relationship: "that topic measured graded relevance against a fixed ideal ranking; faithfulness here is the analogous graded quantity for generation, but with the grader itself uncertain — the per-claim support verdict plays the role NDCG's relevance grade played, except that where NDCG's grades were a fixed oracle, the judge's grades carry a sensitivity and specificity that must be corrected for before the mean can be read"
+  - topic: "rank-fusion-rrf"
+    relationship: "that topic fused rankings by reciprocal RANK rather than by score because raw retrieval scores are miscalibrated and incomparable; the calibration pillar here makes the same point about a judge's stated confidence — it ranks claims almost perfectly yet is wildly over-confident as a probability, so any pipeline that thresholds or averages judge confidences directly, rather than ranking by them, inherits that miscalibration"
+references:
+  - type: "paper"
+    title: "RAGAS: Automated Evaluation of Retrieval Augmented Generation"
+    authors: "Es, James, Espinosa-Anke & Schockaert"
+    year: 2024
+    url: "https://doi.org/10.18653/v1/2024.eacl-demo.16"
+    note: "The source of the faithfulness, answer-relevance, and context-precision metrics this topic rebuilds as estimators; defines faithfulness as the ratio of LLM-judged supported claims to total decomposed claims; EACL 2024 System Demonstrations (arXiv:2309.15217)"
+  - type: "paper"
+    title: "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena"
+    authors: "Zheng, Chiang, Sheng, Zhuang, Wu, Zhuang, Lin, Li, Li, Xing, Zhang, Gonzalez & Stoica"
+    year: 2023
+    url: "https://arxiv.org/abs/2306.05685"
+    note: "The foundational study of LLMs as evaluators, documenting position bias, verbosity bias, and self-enhancement (self-preference) bias — the systematic judge biases the swap test detects; NeurIPS 2023 Datasets and Benchmarks Track"
+  - type: "paper"
+    title: "G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment"
+    authors: "Liu, Iter, Xu, Wang, Xu & Zhu"
+    year: 2023
+    url: "https://arxiv.org/abs/2303.16634"
+    note: "Chain-of-thought, form-filling LLM evaluation with probability-weighted scoring — a concrete judge whose stated confidence is the quantity the calibration pillar recalibrates; EMNLP 2023"
+  - type: "paper"
+    title: "A Coefficient of Agreement for Nominal Scales"
+    authors: "Cohen"
+    year: 1960
+    url: "https://doi.org/10.1177/001316446002000104"
+    note: "The original chance-corrected agreement coefficient kappa = (p_o − p_e)/(1 − p_e); Educational and Psychological Measurement 20(1):37–46"
+  - type: "paper"
+    title: "High Agreement but Low Kappa: I. The Problems of Two Paradoxes"
+    authors: "Feinstein & Cicchetti"
+    year: 1990
+    url: "https://doi.org/10.1016/0895-4356(90)90158-L"
+    note: "The kappa paradox: under skewed marginals two raters can agree on most items yet score kappa near zero — the reason this topic reads Gwet's AC1 alongside kappa; Journal of Clinical Epidemiology 43(6):543–549"
+  - type: "paper"
+    title: "Estimating Prevalence from the Results of a Screening Test"
+    authors: "Rogan & Gladen"
+    year: 1978
+    url: "https://doi.org/10.1093/oxfordjournals.aje.a112510"
+    note: "The correction that recovers true prevalence from an imperfect test's observed positive rate, pi-hat = (p_obs + sp − 1)/(se + sp − 1) — the debiasing of faithfulness; American Journal of Epidemiology 107(1):71–76"
+  - type: "paper"
+    title: "Maximum Likelihood Estimation of Observer Error-Rates Using the EM Algorithm"
+    authors: "Dawid & Skene"
+    year: 1979
+    url: "https://doi.org/10.2307/2346806"
+    note: "Recovers each rater's error rates with no gold labels via latent-class EM — the no-gold-set estimation of judge sensitivity and specificity that closes the loop with the Rogan–Gladen correction; Journal of the Royal Statistical Society Series C 28(1):20–28"
+  - type: "paper"
+    title: "Intraclass Correlations: Uses in Assessing Rater Reliability"
+    authors: "Shrout & Fleiss"
+    year: 1979
+    url: "https://doi.org/10.1037/0033-2909.86.2.420"
+    note: "The intraclass-correlation reliability coefficients and the variance decomposition behind the judge-variance floor; ICC(2,1) is the two-way random-effects, absolute-agreement form; Psychological Bulletin 86(2):420–428"
+  - type: "paper"
+    title: "Computing Inter-Rater Reliability and Its Variance in the Presence of High Agreement"
+    authors: "Gwet"
+    year: 2008
+    url: "https://doi.org/10.1348/000711006X126600"
+    note: "Gwet's AC1, the prevalence-robust agreement coefficient stable under the skewed marginals that break kappa; British Journal of Mathematical and Statistical Psychology 61(1):29–48"
+  - type: "paper"
+    title: "Answering the Call for a Standard Reliability Measure for Coding Data"
+    authors: "Hayes & Krippendorff"
+    year: 2007
+    url: "https://doi.org/10.1080/19312450709336664"
+    note: "Krippendorff's alpha, the general-purpose reliability coefficient handling any number of raters, missing data, and any measurement level; Communication Methods and Measures 1(1):77–89"
+formalstatisticsPrereqs:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "the swap test for judge position bias and the test that an inter-rater kappa exceeds chance are hypothesis tests in exactly the framework that topic builds — a null of no bias or no beyond-chance agreement, a paired statistic on the verdicts, and a two-sided p-value as a tail area, here instantiated on binary LLM-judge verdicts"
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "Rogan–Gladen is a method-of-moments point estimator — it equates the observed verdict mean to its expectation under the error model and solves for the latent prevalence — and its bias, consistency, and variance are exactly the estimator properties that topic develops, with the inverse-Youden factor as the variance-inflation cost of debiasing"
+formalstatisticsConnections:
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "the corrected-faithfulness interval is the delta-method confidence interval that topic constructs, here on an affine transform of a binomial proportion, and its width blowing up as the Youden index shrinks is the duality between a useless instrument and an uninformative interval made visible"
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "Dawid–Skene estimates each judge's confusion matrix with no gold labels by maximizing a latent-class likelihood via expectation-maximization, the EM instance of the maximum-likelihood theory that topic develops, with the non-convexity and label-permutation symmetry of the judge-error likelihood as the cautionary cases"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the faithfulness sample mean concentrates around the observed verdict rate at a rate set by the claim count, and the Rogan–Gladen estimate inherits that concentration scaled by the inverse Youden index, so the sub-Gaussian and Bernstein bounds that topic proves are what turn the corrected estimate's interval into a finite-sample guarantee rather than a normal-approximation heuristic"
+formalmlConnections:
+  - topic: "conformal-prediction"
+    site: "formalml"
+    relationship: "a debiased, recalibrated judge confidence is the nonconformity score a split-conformal factuality procedure converts into a finite-sample correctness guarantee, so the estimator built here is the precise input that topic's answer-or-abstain construction turns into a coverage guarantee on generated answers"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import LLMJudgeLaboratory from '../../components/viz/LLMJudgeLaboratory.tsx';
+
+## The label we no longer have
+
+The evaluation layer was built on a fixed answer key. [Set metrics](/topics/set-metrics-precision-recall-map-mrr),
+[NDCG](/topics/ndcg-discount-geometry), and [significance testing](/topics/significance-testing-calibration)
+all measured a retrieval system against a *qrel* — a relevance label fixed in advance — and treated the
+resulting number as the **sample mean** of a per-query score, with a standard error, a confidence interval,
+and a paired test. Generation breaks that contract. A generated answer has no answer key: there is no fixed
+label that says whether "Q3 revenue rose 12% to \$4.2B" is grounded in the retrieved filing. The production
+response, formalized by RAGAS, is to **hire a large language model as a judge** and let its verdicts stand in
+for the missing labels.
+
+The judge, however, is not an oracle. It is a *measurement instrument*: it answers "is this claim supported?"
+with imperfect sensitivity and specificity, it carries systematic biases toward longer or earlier-shown
+candidates, and it adds its own noise on top of the noise we already had from sampling queries. Reading a
+RAGAS number honestly means treating it as an estimate produced by that instrument, and correcting for the
+instrument before believing it.
+
+We introduce the notation once. A generated answer is decomposed into $n$ atomic **claims** $c_1, \dots, c_n$;
+each claim has a latent truth $Y_i \in \{0, 1\}$ (is it genuinely supported by the context?) with prevalence
+$\pi = \Pr(Y_i = 1)$, and the judge returns a verdict $\hat Y_i \in \{0, 1\}$. The judge's **sensitivity** is
+$\mathrm{se} = \Pr(\hat Y_i = 1 \mid Y_i = 1)$ and its **specificity** is
+$\mathrm{sp} = \Pr(\hat Y_i = 0 \mid Y_i = 0)$. RAGAS faithfulness is the sample mean of the verdicts,
+$\hat F = \frac{1}{n}\sum_i \hat Y_i$, with observed positive rate $p_{\mathrm{obs}} = \Pr(\hat Y_i = 1)$.
+
+> An LLM judge is a measurement instrument with its own bias and variance; every RAGAS metric is an estimator
+> built from its verdicts, and reading it correctly means **correcting for the instrument** — debiasing the
+> verdict, agreeing on the protocol, calibrating the confidence, and pricing the noise floor.
+
+<LLMJudgeLaboratory client:visible />
+
+The lab above is the topic in five panels. The arc: watch a biased verdict get debiased and a ranking get
+reversed; ask whether two judges agree once chance is removed; calibrate the judge's stated confidence; price
+the irreducible judge noise; and finally recover the judge's error rates with no answer key at all.
+
+## The judge as a noisy instrument
+
+Faithfulness inherits everything the prerequisite said about a metric — it is a mean of per-item scores — with
+one change: the scores are now noisy verdicts rather than fixed labels.
+
+<TheoremBlock type="definition" number={1} title="Faithfulness as a sample mean of judge verdicts">
+For an answer decomposed into $n$ claims with judge verdicts $\hat Y_i = \mathbb{1}[\text{the judge calls } c_i
+\text{ supported}]$, the RAGAS faithfulness is the sample mean
+$$
+\hat F \;=\; \frac{1}{n}\sum_{i=1}^{n}\hat Y_i,
+$$
+an estimate of the latent grounding prevalence $\pi = \Pr(Y_i = 1)$ — the fraction of claims that are *truly*
+supported.
+</TheoremBlock>
+
+Because the judge is imperfect, that mean does not estimate $\pi$; it estimates something shifted away from it.
+
+<TheoremBlock type="proposition" number={1} title="Faithfulness is a biased estimator of prevalence">
+The expected verdict relates to the latent prevalence through the judge's error rates,
+$$
+p_{\mathrm{obs}} \;=\; \mathbb{E}[\hat Y] \;=\; \mathrm{se}\cdot\pi \;+\; (1-\mathrm{sp})(1-\pi),
+$$
+so $\mathbb{E}[\hat F] = p_{\mathrm{obs}} \ne \pi$ unless $\mathrm{se} = \mathrm{sp} = 1$, with bias
+$\mathbb{E}[\hat F] - \pi = (\mathrm{se} - 1)\pi + (1 - \mathrm{sp})(1-\pi)$.
+
+*Proof.* Condition a single verdict on the latent truth:
+$\Pr(\hat Y = 1) = \Pr(\hat Y = 1 \mid Y = 1)\Pr(Y = 1) + \Pr(\hat Y = 1 \mid Y = 0)\Pr(Y = 0) =
+\mathrm{se}\,\pi + (1-\mathrm{sp})(1-\pi)$, the law of total probability. Linearity of expectation over the $n$
+claims gives $\mathbb{E}[\hat F] = p_{\mathrm{obs}}$; subtracting $\pi$ and collecting terms gives the bias. $\square$
+</TheoremBlock>
+
+A lenient judge — one that over-endorses, with high sensitivity but mediocre specificity — inflates faithfulness.
+On the corpus, such a judge reports faithfulness $p_{\mathrm{obs}} = 0.703$ for the dense leg whose true grounded
+fraction is $\pi = 0.648$. The fix is to invert the error model.
+
+<TheoremBlock type="definition" number={2} title="The Rogan–Gladen corrected estimator">
+Solving the prevalence identity for $\pi$ gives the **Rogan–Gladen** estimator
+$$
+\hat\pi_{\mathrm{RG}} \;=\; \frac{p_{\mathrm{obs}} + \mathrm{sp} - 1}{\mathrm{se} + \mathrm{sp} - 1},
+$$
+defined when the **Youden index** $J = \mathrm{se} + \mathrm{sp} - 1 > 0$ — when the judge is better than random.
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={1} title="Rogan–Gladen unbiasedness and its variance">
+With known $\mathrm{se}, \mathrm{sp}$ and $J = \mathrm{se} + \mathrm{sp} - 1 > 0$, for a judge whose error rates
+are constant across claims:
+(a) $\mathbb{E}[\hat\pi_{\mathrm{RG}}] = \pi$ — the estimator is unbiased; and
+(b) since $p_{\mathrm{obs}}$ is a mean of $n$ Bernoulli verdicts,
+$$
+\operatorname{Var}(\hat\pi_{\mathrm{RG}}) \;=\; \frac{\operatorname{Var}(p_{\mathrm{obs}})}{J^2}
+\;=\; \frac{p_{\mathrm{obs}}(1 - p_{\mathrm{obs}})}{n\,J^2},
+$$
+inflated relative to the raw verdict variance by $1/J^2$, which diverges as $J \to 0^+$: **a useless judge
+cannot be debiased.**
+
+*Proof.* The estimator is an affine function of $p_{\mathrm{obs}}$, namely $\hat\pi_{\mathrm{RG}} = g(p_{\mathrm{obs}})$
+with $g(p) = (p + \mathrm{sp} - 1)/J$. By linearity,
+$\mathbb{E}[\hat\pi_{\mathrm{RG}}] = (\mathbb{E}[p_{\mathrm{obs}}] + \mathrm{sp} - 1)/J =
+(\mathrm{se}\,\pi + (1-\mathrm{sp})(1-\pi) + \mathrm{sp} - 1)/J$, and the numerator simplifies to
+$\pi(\mathrm{se} + \mathrm{sp} - 1) = \pi J$, giving $\pi$ exactly — no approximation, because $g$ is affine.
+For the variance, $g'(p) = 1/J$, so $\operatorname{Var}(g(p_{\mathrm{obs}})) = (g')^2 \operatorname{Var}(p_{\mathrm{obs}}) =
+\operatorname{Var}(p_{\mathrm{obs}})/J^2$; substituting the binomial variance $p_{\mathrm{obs}}(1-p_{\mathrm{obs}})/n$
+completes it. $\square$
+</TheoremBlock>
+
+On the dense leg, the audited correction recovers $\hat\pi_{\mathrm{RG}} = 0.648$ — exactly the oracle prevalence —
+at the cost of a variance inflated $2.6\times$. Panel A drives this with sensitivity and specificity sliders: the
+truth $\pi$, the inflated observation $p_{\mathrm{obs}}$, and the corrected $\hat\pi_{\mathrm{RG}}$ sit on one
+axis, and the $1/J^2$ curve climbs without bound as the sliders approach a coin flip.
+
+<RigorFlag>
+The unbiasedness is exact only for a *homogeneous* judge with *known* error rates, and only before the estimate
+is clipped into $[0,1]$ — the raw $\hat\pi_{\mathrm{RG}}$ can fall outside the unit interval when
+$p_{\mathrm{obs}} < 1 - \mathrm{sp}$ or $> \mathrm{se}$, and clipping reintroduces bias near the boundary. In
+deployment $\mathrm{se}$ and $\mathrm{sp}$ are themselves estimated from a labeled audit set, adding two more
+variance terms; and below the Youden line ($J \le 0$) the correction is simply undefined. A near-random judge is
+not debiasable — its noise is amplified, not removed.
+</RigorFlag>
+
+The consequence is a decision, not just a number. Two answer-generation systems judged by the *same* lenient
+judge can be **ranked in the wrong order** by raw faithfulness: a system whose documents the judge over-endorses
+(low effective specificity) is inflated above a genuinely better one. Panel A's lower chart shows the constructed
+case — raw faithfulness favors system A ($0.80$ over $0.74$), but Rogan–Gladen with each system's audited rates
+restores the truth, favoring system B ($0.79$ over $0.70$), matching the oracle. The instrument was masking the
+ranking; correcting for it flips the verdict back.
+
+## Agreement is not accuracy: chance-corrected reliability and the variance floor
+
+Before trusting a judge against the truth, we ask a weaker question we can actually check in production: does the
+judge **agree** with a second rater — another model, or a human auditor on a sample? Raw agreement is the wrong
+summary, because two raters agree by chance even when they share no signal.
+
+<TheoremBlock type="definition" number={3} title="Observed agreement, chance agreement, and Cohen's kappa">
+For two raters on $N$ items forming a $2\times 2$ table, the **observed agreement** $p_o$ is the fraction of items
+on which they agree, and the **chance agreement** $p_e = \sum_{k} \Pr_A(k)\Pr_B(k)$ is the sum over categories of
+the product of the two raters' marginals. **Cohen's kappa** is
+$$
+\kappa \;=\; \frac{p_o - p_e}{1 - p_e}.
+$$
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={2} title="Kappa is the fraction of beyond-chance agreement achieved">
+$\kappa = 1$ iff $p_o = 1$ (perfect agreement); $\kappa = 0$ iff $p_o = p_e$ (agreement at chance); $\kappa < 0$
+iff the raters agree *less* than chance.
+
+*Proof.* The map $p_o \mapsto (p_o - p_e)/(1 - p_e)$ is the unique affine map sending the chance level $p_e$ to $0$
+and perfect agreement $1$ to $1$, so it rescales $p_o$ from the achievable-beyond-chance interval $[p_e, 1]$ onto
+$[0,1]$. At $p_o = 1$ numerator and denominator both equal $1 - p_e$; at $p_o = p_e$ the numerator vanishes; for
+$p_o < p_e$ the numerator is negative while the denominator stays positive. $\square$
+</TheoremBlock>
+
+The trouble is that $p_e$ depends on the marginals, and in a setting where almost every claim is supported, the
+marginals are extreme and $p_e$ swells toward $1$.
+
+<TheoremBlock type="proposition" number={2} title="The kappa paradox (Feinstein–Cicchetti)">
+At a fixed observed agreement $p_o$, as the prevalence of one category approaches $0$ or $1$ the chance agreement
+$p_e \to 1$ and $\kappa \to$ an indeterminate form that collapses toward $0$. Two tables with the **same** $p_o$
+can therefore carry very different $\kappa$.
+
+*Proof by example (RUN in the notebook).* Two $2\times2$ tables each have observed agreement $p_o = 0.85$. The
+balanced table $(40, 10, 5, 45)$ has $p_e = 0.50$ and $\kappa = 0.70$; the skewed table $(80, 10, 5, 5)$ has
+$p_e = 0.78$ and $\kappa = 0.32$. Identical agreement, kappa differing by $0.38$ — one "substantial," one "fair." $\square$
+</TheoremBlock>
+
+The remedy is a chance term that does not balloon with skew.
+
+<TheoremBlock type="definition" number={4} title="Prevalence-robust coefficients: Gwet's AC1 and Krippendorff's alpha">
+**Gwet's AC1** replaces the chance term with $p_e^{\gamma} = 2\,q(1-q)$, where $q$ is the overall propensity of
+the positive category (the binary special case of $\frac{1}{Q-1}\sum_k \pi_k(1-\pi_k)$), giving
+$\mathrm{AC1} = (p_o - p_e^{\gamma})/(1 - p_e^{\gamma})$, which is stable as the marginals skew.
+**Krippendorff's alpha** $= 1 - D_o/D_e$, the ratio of observed to expected disagreement, generalizes the same
+chance-correction to any number of raters, missing data, and any measurement level.
+</TheoremBlock>
+
+On the same two tables, Gwet's AC1 reads $0.70$ and $0.81$ — it does not collapse where kappa does. Panel B sweeps
+the prevalence at fixed agreement and overlays the two curves: kappa plunges toward zero at the extremes while AC1
+stays high. The lesson is not that AC1 is "correct" — none of the three is canonical — but that **kappa must never
+be read without its marginals.**
+
+Agreement also exposes a second, structural fact: the judge is a *source of variance* that more queries cannot
+average away. Model each per-query faithfulness as $X_{q,j} = \mu + a_q + b_j + \varepsilon_{q,j}$ with a query
+effect $a_q$, a judge effect $b_j$, and residual noise.
+
+<TheoremBlock type="theorem" number={3} title="The variance decomposition and the judge-variance floor">
+The total variance splits into independent components, $\sigma^2 = \sigma_q^2 + \sigma_j^2 + \sigma_e^2$, and the
+**intraclass correlation** $\mathrm{ICC} = \sigma_q^2 / (\sigma_q^2 + \sigma_j^2 + \sigma_e^2)$ is the fraction of
+variance explained by true between-query differences. The standard error of a faithfulness averaged over $Q$
+queries and $J$ judges is
+$$
+\operatorname{SE}^2 \;=\; \frac{\sigma_q^2}{Q} \;+\; \frac{\sigma_j^2}{J} \;+\; \frac{\sigma_e^2}{Q\,J}.
+$$
+As $Q \to \infty$ at fixed $J$, $\operatorname{SE}^2 \to \sigma_j^2/J$ — a positive **floor** that only more judges,
+never more queries, can lower.
+
+*Proof.* Write $\bar X = \mu + \frac{1}{Q}\sum_q a_q + \frac{1}{J}\sum_j b_j + \frac{1}{QJ}\sum_{q,j}\varepsilon_{q,j}$.
+By independence of the effects, $\operatorname{Var}(\bar X) = \sigma_q^2/Q + \sigma_j^2/J + \sigma_e^2/(QJ)$; the
+first and third terms vanish as $Q \to \infty$, leaving $\sigma_j^2/J$. The ICC identity follows from
+$\operatorname{Var}(X_{q,j}) = \sigma_q^2 + \sigma_j^2 + \sigma_e^2$. $\square$
+</TheoremBlock>
+
+On the five-judge panel the components are $\sigma_q^2 = 0.0102$, $\sigma_j^2 = 0.0048$, $\sigma_e^2 = 0.0134$,
+giving $\mathrm{ICC}(2,1) = 0.36$. Panel D plots the total standard error descending toward the judge floor as
+queries grow, and prices the lever: at a fixed budget of $200$ judge-calls, **five judges over forty queries**
+($\operatorname{SE} = 0.036$) beat **one judge over two hundred queries** ($\operatorname{SE} = 0.070$). You cannot
+buy confidence in a faithfulness score with queries alone — the judge noise is structural.
+
+## Judge bias, calibration, and learning the error rates
+
+Two threads remain. First, the systematic biases the judge brings — and which of them we can remove. Second, the
+judge's stated *confidence*: is it a probability?
+
+<TheoremBlock type="definition" number={5} title="The paired swap test for position bias">
+Present each claim to the judge once in the **first** slot and once in the **last** slot, holding its content
+fixed, and form the paired difference of the judge's confidence, $\delta = \hat c_{\text{first}} - \hat c_{\text{last}}$.
+Under no position bias, presentation order is exchangeable and $\mathbb{E}[\delta] = 0$; the position-bias estimate
+is $\bar\delta$, tested by the prerequisite's paired and permutation tests.
+</TheoremBlock>
+
+<TheoremBlock type="proposition" number={3} title="A symmetric position effect is removable; self-preference is not">
+If the judge's verdict carries a slot effect $\beta$ symmetric across the two orders, then averaging the two
+presentations cancels $\beta$ and recovers an unbiased preference. A self-preference effect that correlates with a
+candidate's *provenance* rather than its slot survives order-averaging and is unidentifiable without external
+ground truth.
+
+*Proof.* For the removable part, $\frac{1}{2}(\hat c_{\text{first}} + \hat c_{\text{last}})$ adds $+\beta$ and
+$-\beta$ in the two slots, which cancel, leaving the content term plus mean noise. The provenance term is constant
+across slots, so it does not cancel under order-averaging. $\square$
+</TheoremBlock>
+
+On the corpus the lenient judge's swap test returns a bias of $0.070$ at $p \approx 10^{-105}$ — a real, removable
+position effect — while a bias-free control judge returns bias $0$ at $p = 1.0$. The swap test detects and removes
+the slot effect; it cannot touch self-preference.
+
+The judge does not only vote; it states a **confidence**. We feed those confidences straight into the
+prerequisite's calibration suite.
+
+<TheoremBlock type="definition" number={6} title="Judge-confidence calibration">
+Pooling the judge's stated confidence and the binary truth across all $(q, \text{claim})$ pairs, the **reliability
+diagram** plots empirical relevance against confidence per bin (the diagonal is perfect calibration), the
+**expected calibration error** $\mathrm{ECE} = \sum_b \frac{n_b}{N}\,|\mathrm{acc}_b - \mathrm{conf}_b|$ is the area
+off the diagonal, and Platt scaling and isotonic regression recalibrate it.
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={4} title="Monotone recalibration preserves ranking (reused)">
+A strictly increasing recalibration map leaves every order-based decision of the judge unchanged, so the AUC and
+every ranking metric are invariant under it; only the probability reading changes. This is exactly the
+monotone-recalibration theorem of the [calibration prerequisite](/topics/significance-testing-calibration),
+applied to judge confidence — the proof is there.
+</TheoremBlock>
+
+The judge confidence ranks claims almost perfectly (AUC $\approx 0.998$ for the lenient judge) yet is wildly
+**over-confident** as a probability (ECE $0.154$): Panel C shows the raw dots bowed far off the diagonal. Platt
+scaling pulls the ECE to $0.003$ and isotonic to $0$, both leaving the AUC untouched at $0.998$ — calibration is
+orthogonal to ranking, the same reason [rank fusion](/topics/rank-fusion-rrf) fuses ranks rather than scores. A
+pipeline that thresholds or averages a judge's raw confidences inherits the miscalibration; one that ranks by them
+does not.
+
+### Learning the error rates with no gold set
+
+The Rogan–Gladen correction needed the judge's sensitivity and specificity. In production there is often no gold
+label to estimate them from — only the judges' verdicts. The latent-class model recovers them anyway.
+
+<TheoremBlock type="definition" number={7} title="The Dawid–Skene latent-class model">
+With latent class $z_i \in \{0,1\}$ per item, class prior $\pi_k$, and each judge $j$'s confusion matrix
+$\theta^{(j)}_{kl} = \Pr(\text{judge } j \text{ says } l \mid z_i = k)$, the EM algorithm alternates an E-step —
+the posterior $\Pr(z_i = k \mid \text{verdicts}) \propto \pi_k \prod_j \theta^{(j)}_{k, r_{ij}}$ — with a
+closed-form M-step re-estimating $\pi_k$ and each $\theta^{(j)}$. It recovers each judge's sensitivity
+$\theta^{(j)}_{11}$ and specificity $\theta^{(j)}_{00}$ from the **agreement structure alone**.
+</TheoremBlock>
+
+Panel E runs it: with no gold labels, EM recovers every planted per-judge sensitivity and specificity within
+$\approx 0.06$ and labels items more accurately than majority vote ($0.975$ versus $0.972$). This closes the loop —
+the error rates the instrument correction assumed are exactly what EM supplies. The result is identifiable only up
+to a label permutation (we anchor to the majority vote), and the likelihood is non-convex, so EM finds a local
+optimum from a sensible start; correlated judges, who violate the conditional-independence assumption, break the
+guarantee. It is a powerful tool, not a free lunch.
+
+<FinanceCaseStudy title="Auditing generated answers over financial filings">
+A retrieval-augmented system answers an analyst's question about a 10-K with "Q3 revenue rose 12% to \$4.2B." An
+LLM judge decomposes the answer into atomic claims and checks each against the retrieved filing context — exactly
+the RAGAS faithfulness pipeline. A hallucinated figure the judge fails to flag is a **false negative with
+regulatory and trading consequences**, so the quantity that matters is the judge's *specificity on numeric
+claims*, and the high-confidence bin of its reliability diagram is precisely where a confident-but-wrong
+"supported" verdict reaches the desk.
+
+Every correction in this topic is load-bearing here. A raw faithfulness of $0.92$ from a judge with sensitivity
+$0.85$ and specificity $0.80$ overstates grounding; the Rogan–Gladen number is the honest figure to report to
+risk. Before trusting the judge at all, the desk audits it against a human reviewer on a labeled sample — and
+because "most claims are supported" makes the marginals extreme, kappa misleads and Gwet's AC1 is the coefficient
+to report. And a high-stakes sign-off cannot be bought with more evaluation queries: the judge-variance floor means
+a confident verdict needs multiple judges or a sharper protocol. The corpus here is a synthetic claim-support
+oracle standing in for those filings; every value illustrates the mechanism, not a benchmark.
+</FinanceCaseStudy>
+
+The thread that ran through the evaluation layer — a metric is an estimator — now reaches the generation layer with
+a second source of noise stacked on the first. Faithfulness and groundedness will give that support a semantic
+definition, and conformal factuality will turn a calibrated, debiased judge confidence into a distribution-free
+correctness guarantee. Both begin from the instrument this topic learned to read.

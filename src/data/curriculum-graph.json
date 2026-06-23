@@ -231,7 +231,7 @@
     {
       "id": "llm-as-judge-ragas",
       "label": "LLM-as-Judge and Faithfulness: RAGAS as a Family of Estimators",
-      "status": "planned",
+      "status": "published",
       "domain": "retrieval-evaluation"
     },
     {
@@ -531,7 +531,7 @@
       "target": "significance-testing-calibration"
     },
     {
-      "source": "set-metrics-precision-recall-map-mrr",
+      "source": "significance-testing-calibration",
       "target": "llm-as-judge-ragas"
     },
     {
