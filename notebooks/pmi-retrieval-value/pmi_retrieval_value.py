@@ -256,7 +256,11 @@ def kl(p: np.ndarray, q_ref: np.ndarray) -> float:
     p = np.asarray(p, dtype=float)
     q_ref = np.asarray(q_ref, dtype=float)
     m = p > 0
-    return float((p[m] * (np.log2(p[m]) - np.log2(q_ref[m]))).sum()) if m.any() else 0.0
+    if not m.any():
+        return 0.0
+    if np.any(q_ref[m] <= 0):
+        return float("inf")          # support of p not contained in support of q_ref
+    return float((p[m] * (np.log2(p[m]) - np.log2(q_ref[m]))).sum())
 
 
 def cond_mi_breakdown(corpus: dict, tau: float = TAU, tau_doc: float = TAU_DOC) -> dict:
@@ -391,7 +395,14 @@ def infonce_bound_curve(corpus: dict, tau: float = TAU,
     minimizing L maximizes this bound on the same I(Q;D) the retrieval channel realizes."""
     P, Q, truth, K = corpus["P"], corpus["Q"], corpus["truth"], corpus["K"]
     # One query per company (the first query whose gold answer is that company) — a clean B = K batch.
-    first_q = np.array([Q[int(np.argmax(truth == j))] for j in range(K)])
+    # Raise rather than let np.argmax silently return 0 if some company is never a query's gold answer.
+    first_idx = []
+    for j in range(K):
+        matches = np.where(truth == j)[0]
+        if matches.size == 0:
+            raise ValueError(f"no query has gold company {j}; cannot build a one-per-company batch")
+        first_idx.append(int(matches[0]))
+    first_q = Q[first_idx]
     if sizes is None:
         sizes = tuple(range(2, K + 1))
     rows = []
@@ -623,6 +634,8 @@ def test_guards() -> None:
     assert entropy(np.array([1.0, 0.0, 0.0])) == 0.0
     assert entropy(np.array([])) == 0.0
     assert kl(np.array([1.0, 0.0]), np.array([0.5, 0.5])) >= 0.0
+    # KL is +inf when p has mass where q_ref is zero (support of p not contained in support of q_ref).
+    assert kl(np.array([1.0, 0.0]), np.array([0.0, 1.0])) == float("inf")
     for bad in (0.0, -1.0, 1e-9):
         try:
             retrieval_dist(np.ones(PMI_DIM), _corpus()["P"], bad)
