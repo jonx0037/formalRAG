@@ -134,6 +134,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   ships. Link only to slugs that already have MDX; name a future topic in prose without a link.
   (Stale placeholder links can lurk in *published* topics too — e.g. a "Johnson–Lindenstrauss" link
   was once parked at `/topics/the-retrieval-problem` until a later sweep corrected it.)
+  The same rule binds frontmatter **`connections[]` harder**: `pnpm validate` ERRORS on a
+  `connections[]` entry whose topic has no MDX yet (unlike `curriculum-graph.json` roadmap nodes,
+  which are only notices), so list only BUILT topics there and name forward topics in prose alone.
 - `pnpm dev` may not land on **4321** — with other `formal*` servers up it picks 4322/4323/…; read
   the dev log for the actual port (a `curl :4321` can hit a *different* project and falsely report
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
@@ -351,6 +354,44 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   none) `10.1007/b138696`; Niculescu-Mizil–Caruana ICML 2005 `10.1145/1102351.1102430`; Zadrozny–Elkan KDD
   2002 `10.1145/775047.775151`; Gama et al. CSUR 2014 `10.1145/2523813`; Massey KS JASA 1951
   `10.1080/01621459.1951.10500769`; Guo et al. ICML 2017 PMLR v70 (no DOI).
+  Its **LLM-as-judge successor** (`llm-as-judge-ragas`): carries metrics-as-estimators into the GENERATION
+  layer via a **synthetic noisy judge over the oracle** (the vMF-oracle move applied to "relevance" once
+  more) — faithfulness = mean of Bernoulli verdicts = a BIASED estimator of latent prevalence π;
+  Rogan–Gladen `π̂=(p_obs+sp−1)/(se+sp−1)` debiases, variance `∝1/J²` (inverse-square Youden `J=se+sp−1`)
+  explodes as J→0 and is **undefined below the Youden line**. IMPORT significance-testing-calibration's whole
+  calibration suite (`reliability_diagram`/`expected_calibration_error`/`platt_scale`/`apply_platt`/
+  `isotonic_calibrate`/`apply_isotonic`/`auc_pooled`/`brier_score`) + `paired_t_test`/`permutation_test` +
+  `get_corpus`, and set-metrics `precision_at_k` (the collapse anchor: a **perfect judge's faithfulness ==
+  imported `precision_at_k`** <1e-12). **Rogan–Gladen unbiasedness is exact ONLY for a HOMOGENEOUS judge**
+  (constant se/sp) and BEFORE the [0,1] clip — recovery/unbiasedness tests use a bias-free judge (all β=0);
+  the **feature-shifted judges** (verbosity=token-dispersion z-score, position=rank shown, self=dense-leg
+  membership) drive the bias/calibration/flip stories, where one audited se/sp imperfectly corrects
+  heterogeneous bias. **κ-paradox needs FEATURE-SPREAD judges for a non-degenerate reliability diagram** — a
+  homogeneous judge emits only 2 distinct confidences and quantile-binning collapses to one bin; Panel C uses
+  lenient/balanced/strict (all β>0), with the bias-free judge ONLY as the swap-test control. Build+RUN the
+  paradox: equal `p_o=0.85` → κ `0.70` vs `0.318`, AC1 stable `0.70`/`0.81` (assert **AC1 spread ≪ κ spread**,
+  not equality). The ICC assertion is the **algebraic SS identity** `SS_total=SS_q+SS_j+SS_e` (exact <1e-9),
+  not a variance-component reconstruction; ICC(2,1) is the two-way-random absolute-agreement form; the
+  **judge-variance floor** `σ²_j/J` survives Q→∞, and the budget lever (more judges beats more queries) is a
+  **precision/variance** statement needing genuine judge heterogeneity (σ²_j>0). **Swap test = paired
+  first-slot(+0.5) vs last-slot(−0.5) confidence diff** — indexing the early/late position term by each
+  claim's *actual* rank gives the WRONG sign (build-and-run caught a negative bias); reuses
+  `paired_t_test`/`permutation_test`, β_pos=0 control does NOT reject. Ranking flip used the **constructed
+  two-system toy** (legs inflate monotonically → no natural reorder; NDCG `constructed_*_flip` precedent).
+  Dawid–Skene EM recovers planted per-judge se/sp with NO gold labels (±0.06), **align hard labels to majority
+  vote** to fix the label-permutation symmetry (non-convex likelihood, majority-vote init); `cohen_kappa` twin
+  vs `sklearn.metrics.cohen_kappa_score` (<1e-9; sklearn already a dep via JL/matryoshka). **Forward
+  connections to UNBUILT topics must NOT sit in frontmatter `connections[]`** — `pnpm validate` ERRORS on them
+  (unlike `curriculum-graph.json` roadmap nodes, which are notices); name `faithfulness-groundedness`/
+  `conformal-factuality` in prose only. Graph: prereq edge **re-pointed** `set-metrics→` ⇒
+  `significance-testing-calibration→` (heavy calibration reuse; set-metrics/ndcg stay transitive ancestors +
+  `connections`). No formalML EM slug exists → Dawid–Skene EM up-links to **formalstatistics
+  `maximum-likelihood`**. Refs verified: RAGAS Es et al. EACL 2024 `10.18653/v1/2024.eacl-demo.16` (arXiv
+  2309.15217); Zheng et al. LLM-as-judge NeurIPS 2023 arXiv 2306.05685; G-Eval EMNLP 2023 arXiv 2303.16634;
+  Cohen 1960 `10.1177/001316446002000104`; Feinstein–Cicchetti 1990 `10.1016/0895-4356(90)90158-L`;
+  Rogan–Gladen 1978 `10.1093/oxfordjournals.aje.a112510`; Dawid–Skene 1979 `10.2307/2346806`; Shrout–Fleiss
+  1979 `10.1037/0033-2909.86.2.420`; **Gwet 2008 `10.1348/000711006X126600`** (the `…2044-8317…` DOI 404s);
+  Hayes–Krippendorff 2007 `10.1080/19312450709336664`.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
@@ -399,7 +440,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
   `gemini-code-assist` review — fetch its nits with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments`
   (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
-  medium-priority robustness/perf/a11y ones before merging. It reliably flags **unguarded denominators**
+  medium-priority robustness/perf/a11y ones before merging. (The consumer `gemini-code-assist` app is
+  being SUNSET — new org installs blocked 2026-06-18, all reviews cease 2026-07-17; after that the
+  inline-review step won't run, so don't block a merge waiting on it.) It reliably flags **unguarded denominators**
   (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` (incl.
   `k≤0` on a recall fn and an empty matrix before `np.linalg.svd`) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
   slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
