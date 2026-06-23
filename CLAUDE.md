@@ -33,6 +33,9 @@ pnpm validate             # validateConnections.ts. Roadmap nodes in curriculum-
 pnpm audit:cross-site     # Cross-repo reciprocity validator (needs sibling repos adjacent / FORMAL_*_PATH).
 # Python pillar (per-topic, no shared venv):
 uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topic>.py
+# Verify the narrative .ipynb executes (jupyter execute does NOT write outputs back, so it won't dirty
+# the output-free notebook). Needs jupyter+ipykernel on top of the .py's own deps:
+uv run --with numpy --with scipy --with nbformat --with jupyter --with ipykernel jupyter execute notebooks/<topic>/01_<topic_underscored>.ipynb
 ```
 
 ## Content schema (`src/content.config.ts`) — departures from formalML
@@ -56,7 +59,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   outputs, and **normalize** a hand-written `.ipynb` (nbformat — add cell ids, clear outputs) or
   `jupyter execute` warns (a future hard error). Reliable path: emit the `.ipynb` from a throwaway
   `uv run --with nbformat` generator (sequential `cell-N` ids, `outputs: []`, `execution_count: null`),
-  then `jupyter execute` to verify exit 0. `notebooks/bm25/` is the exemplar. The full per-topic
+  then `jupyter execute` to verify exit 0. In that generator a code cell's source string can't split one
+  f-string `{...}` field across concatenated string literals (compute the value into a var first, else the
+  cell `SyntaxError`s at run time). `notebooks/bm25/` is the exemplar. The full per-topic
   workflow lives in `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
 - **A dependent topic's `.py` IMPORTS its prereq's `.py`, never reimplements it** — add the prereq's
   **hyphenated dir** to the path, then import its **underscored module**:
