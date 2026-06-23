@@ -273,7 +273,7 @@
     {
       "id": "retriever-as-noisy-channel",
       "label": "The Retriever as a Noisy Channel: Recall, Precision, and Information Limits",
-      "status": "planned",
+      "status": "published",
       "domain": "rag-information-theory"
     },
     {
