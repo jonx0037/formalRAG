@@ -245,6 +245,32 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   oracle, so the legs complement and the full-budget collapse reaches recall 1.0). DOI gotcha: cascade
   ranking (Wang/Lin/Metzler, SIGIR 2011) is **`10.1145/2009916.2009934`** (the `…2010022` variant 404s);
   RRF is Cormack et al. SIGIR 2009 `10.1145/1571941.1572114`.
+  Its **evaluation-root successor** (`set-metrics-precision-recall-map-mrr`): the DAG root of the
+  eval/IT layer — it DEFINES the recall@k the published stack only ever measured. IMPORT the three legs
+  (bm25, dense, late-interaction-via-centroid-MaxSim) over the capstone's `token_corpus` + neutral
+  `brute_topk` truth to score REAL rankings — re-derive the legs, never import the **downstream**
+  capstone. **Notebook import graph ≠ pedagogical DAG:** the `.py` carries the deep multi-vector import
+  chain to source real rankings, yet the single frontmatter prereq stays `the-retrieval-problem` (a
+  reader needs only ranking+relevance, not BM25/PLAID) — do NOT add the legs as `prerequisites`.
+  **Recall denominator = `|R|`** (textbook), NOT the capstone's `min(k,|R|)` (cascade-retention); they
+  COINCIDE at the capstone's `k=|R|=10`, so the topic still grounds that recall@10, and the `|R|` form is
+  what makes recall@N=1 and **AP = area under the PR curve** (`AP = Σ(R_k−R_{k−1})P_k = (1/|R|)Σ i/posᵢ`,
+  a Riemann sum — the formalcalculus `riemann-integral` up-link) hold. AP divides by **`|R|`, not the
+  count found** (a 1-of-3-found ranking scores 1/3, not 1.0 — the classic AP bug). **MRR needs its OWN
+  known-item qrel** (`|R|=1`, the top-1 oracle doc): `|R|=10` makes RR degenerate, and the clean collapse
+  anchor `|R|=1 ⇒ AP=RR ⇒ MAP=MRR` only exists there — ship BOTH qrel regimes off the one truth. **The
+  metric-choice flip is a PAIRWISE REVERSAL, not an argmax swap** — argmax(MAP)==argmax(MRR) can hold
+  (one leg tops both) while a *pair* reverses (dense beats lexical on MAP 0.735>0.619 but loses on MRR
+  0.472<0.522); detect `d_map·d_mrr<0`, RUN it (natural at seed 0, no constructed fallback needed). The
+  **metrics-as-estimators** thesis is the load-bearing rigorFlag (MAP=sample mean, SE=σ̂/√n, CI; concentration-
+  inequalities/point-estimation/confidence-intervals up-links; significance-testing/bootstrap as forward
+  connections). **Panel-D significance separation must be the PROJECTED closed form** `1.96·σ̂/√n` (full-
+  sample σ̂, recomputable in TS) — NOT a query-order-dependent subsample, which gives a DIFFERENT
+  separation n (projected 12 vs subset 19) and breaks the viz↔python invariant. Bake `REL_RANKS`/`KI_RANK`
+  integers + rng/k-means scalars (`MAP`/`MRR`/`std`/`SE_SCALING`); recompute P/R/PR/AP/interpolation/CI
+  closed-form in TS. Refs verified: Buckley–Voorhees "Evaluating Evaluation Measure Stability" SIGIR 2000
+  `10.1145/345508.345543`; Sanderson FnTIR 2010 `10.1561/1500000009`; Efron–Tibshirani bootstrap
+  `10.1201/9780429246593`; `ir_measures` (https://ir-measur.es/) for the AP-convention zoo.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

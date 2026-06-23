@@ -1,0 +1,328 @@
+---
+title: "Set Metrics: Precision, Recall, MAP, and MRR as Estimators"
+subtitle: "The published stack measured recall@k everywhere and never defined it; here the whole set-metric family is defined over real rankings — precision and recall at a cutoff, the precision–recall curve and Average Precision as the area beneath it, MAP and MRR — and then reframed as what they actually are: sample means with standard error, so a reported gap is not a real one until it clears sampling noise"
+status: "published"
+difficulty: "intermediate"
+prerequisites:
+  - "the-retrieval-problem"
+tags:
+  - "precision-recall"
+  - "average-precision"
+  - "mean-average-precision"
+  - "reciprocal-rank"
+  - "pr-curve"
+  - "retrieval-evaluation"
+  - "estimator-variance"
+  - "confidence-intervals"
+  - "financial-nlp"
+domain: "retrieval-evaluation"
+pipelineStage: "evaluate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "audio"
+rigorFlag: "Every metric here is an ESTIMATOR, and the honesty is saying so out loud. Precision, recall, AP, MAP, and MRR are sample means over a FINITE, FIXED query set drawn from one synthetic vMF corpus; MAP and MRR carry a standard error std/sqrt(n), and an observed MAP gap smaller than a couple of standard errors is NOT evidence of a better system — on this corpus dense and late interaction differ by 0.139 in MAP yet their 95% confidence intervals overlap until n = 12 queries. The per-query AP are bounded in [0,1], skewed, and (across legs) PAIRED, so the normal-approximation interval is itself approximate — we cross-check it with the bootstrap, and the proper paired significance test is deferred to the next topic; this one only sets up the variance. Two secondary conventions are stated, not laundered: 'AP' is ambiguous until you name a convention — the raw area under the PR sawtooth (which equals the mean of precision-at-the-relevant-ranks, the form MAP averages) versus the interpolated monotone envelope, whose area is always >= the raw AP, an inflation, not a more correct number; and recall here divides by |R| (textbook recall, the form for which recall@N = 1 and AP equals the PR-curve area), which coincides with the cascade-retention recall@k the capstone reported only at its operating point k = |R|. Relevance itself is the top-k of an exact-MaxSim oracle over synthetic tokens — a neutral stand-in for human judgments, not a benchmark."
+videoId: null
+notebookPath: "notebooks/set-metrics-precision-recall-map-mrr/01_set_metrics_precision_recall_map_mrr.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/set-metrics-precision-recall-map-mrr.mdx"
+datePublished: 2026-06-22
+estimatedReadTime: 26
+abstract: "Retrieval returns a ranking; this topic defines what it means to score one. A metric is a functional from a ranking and a set of relevance judgments to a number, and the set-metric family is built up over three real retrieval legs — BM25, a dense dual encoder, and late interaction — scored against the same neutral exact-MaxSim ground truth the rest of the curriculum uses, so every number is a measurement, not a toy. Precision and recall at a cutoff k give the purity and coverage of the top-k; sweeping k traces the precision–recall curve, whose area is exactly Average Precision (the mean of precision at the relevant ranks), with the interpolated envelope flagged as a convention that inflates it. Averaging AP over queries gives MAP; the reciprocal rank of the first relevant document gives MRR, and the two coincide exactly in the known-item regime where each query has one answer. The load-bearing move is the last: every one of these numbers is a sample mean, hence an estimator with a standard error that shrinks like one over the square root of the query count — so two systems whose confidence intervals overlap cannot yet be told apart, which is the question the significance-testing topic resolves. A tested notebook that imports the three legs owns every number the page reports."
+connections:
+  - topic: "the-retrieval-problem"
+    relationship: "that topic established retrieval as ranking by a relevance functional and returned a top-k set; this one defines how to SCORE that returned set against relevance judgments, turning the qualitative 'return the relevant documents' into the precision, recall, AP, MAP, and MRR the rest of the evaluation layer is built on"
+  - topic: "bm25-binary-independence-model"
+    relationship: "the lexical leg whose ranking we score: BM25 over the quantized token vocabulary is one of the three real retrievers whose precision–recall curves, AP, and MAP this topic measures against the shared ground truth"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "the dense MIPS leg whose ranking we score: its pooled-vector dual-encoder scores produce one of the three real rankings, and it is half of the dense-versus-late-interaction comparison whose confidence intervals overlap until twelve queries"
+  - topic: "late-interaction-learned-sparse"
+    relationship: "the late-interaction leg whose ranking we score: its MaxSim signal (served centroid-style) is the strongest of the three legs by MAP, and the exact-MaxSim version of it is the neutral oracle that defines relevance here"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "the capstone measured recall@k a dozen times without ever defining it; this topic defines exactly that recall@k (and its whole family) over the same legs, corpus, and exact-MaxSim ground truth, so it retroactively grounds every recall number the capstone reported"
+references:
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapter 8: evaluation in information retrieval — precision, recall, the precision–recall curve, interpolated precision, MAP, and the eleven-point interpolated average precision"
+  - type: "paper"
+    title: "Evaluating Evaluation Measure Stability"
+    authors: "Buckley & Voorhees"
+    year: 2000
+    url: "https://doi.org/10.1145/345508.345543"
+    note: "The empirical case that retrieval metrics are noisy estimators: how many queries (and what error rate) it takes before a measured difference between two systems is reliable — the motivation for treating MAP as an estimate with variance; SIGIR 2000"
+  - type: "book"
+    title: "Test Collection Based Evaluation of Information Retrieval Systems"
+    authors: "Sanderson"
+    year: 2010
+    url: "https://doi.org/10.1561/1500000009"
+    note: "A survey of the Cranfield evaluation paradigm: qrels, pooling, the metric family, and the reliability and significance of measured differences; Foundations and Trends in Information Retrieval 4(4)"
+  - type: "book"
+    title: "An Introduction to the Bootstrap"
+    authors: "Efron & Tibshirani"
+    year: 1994
+    url: "https://doi.org/10.1201/9780429246593"
+    note: "The resampling estimate of a statistic's standard error and confidence interval used here to cross-check the analytic SE = std/sqrt(n) of MAP, since the per-query AP are bounded and skewed"
+  - type: "documentation"
+    title: "ir_measures — a single interface to the IR evaluation measure zoo"
+    authors: "MacAvaney et al."
+    url: "https://ir-measur.es/"
+    note: "Documentation for the conventions behind AP, MAP, MRR, and the interpolation variants — concrete evidence that 'AP' names a family of conventions, not one number"
+formalcalculusPrereqs:
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "Average Precision is literally the area under the precision–recall curve, and that area is the Riemann sum that topic defines: each relevant document advances recall by exactly one over the relevant-set size, so AP is the sum of precision times those equal recall increments — a partition of the recall axis whose Darboux sum is the metric"
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "MAP and MRR are sample means, and the entire 'metric as estimator' framing — a point estimate of an unknown population quantity, with bias and variance — is exactly the estimator theory that topic develops; the standard error std/sqrt(n) and the MSE decomposition are its tools applied to a ranking metric"
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "the 95% interval MAP ± 1.96·SE that decides whether two systems are distinguishable is the normal (Wald) confidence interval that topic constructs by test inversion; the overlapping-intervals read used here is the crude dual of the test the next topic sharpens"
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "this topic ends exactly where that one begins: two systems whose MAP confidence intervals overlap cannot be distinguished, and deciding whether an observed gap is real — null, alternative, power, p-value on the paired per-query differences — is the significance test that closes the question the variance here only opens"
+  - topic: "bootstrap"
+    site: "formalstatistics"
+    relationship: "the per-query AP are bounded in [0,1] and skewed, so the normal-approximation standard error is itself approximate; the nonparametric bootstrap that topic develops resamples the per-query scores to estimate the SE and a confidence interval without the normality assumption, the cross-check used here"
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the claim that a sample mean of bounded per-query scores concentrates around its expectation at a rate controlled by the query count is a concentration inequality — Chebyshev gives the 1/sqrt(n) confidence interval from the variance alone, and the sub-Gaussian (Hoeffding) bound sharpens it for the bounded AP, which is what makes the shrinking interval a guarantee rather than a heuristic"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import SetMetricsLaboratory from '../../components/viz/SetMetricsLaboratory.tsx';
+
+## Overview & motivation
+
+[The retrieval problem](/topics/the-retrieval-problem) ended with a ranking: a query $q$, a score
+$\mathrm{rel}(q, d)$ on every document $d$, and the top-$k$ returned as a set. Everything the
+curriculum built afterward — BM25, dense dual encoders, IVF and product quantization, late
+interaction served by PLAID, reciprocal-rank fusion — was judged by a single recurring number,
+*recall@k*. The capstone reported it a dozen times. Not once did we say what it means.
+
+That is the gap this topic closes. An **evaluation metric** is a functional that takes a ranking and
+a set of *relevance judgments* and returns a number. Write the judgments as a **qrel set** $R_q
+\subseteq \mathcal{D}$: the documents a competent analyst would mark relevant to query $q$. Because we
+want every number on this page to be a measurement rather than an illustration, we do not invent
+rankings — we score three *real* retrievers over a shared finance corpus. The lexical leg is BM25,
+the dense leg is a pooled dual encoder, and the strongest leg is late interaction, each producing a
+full ranking of $N = 120$ documents for each of $Q = 40$ queries. The relevance judgments are the
+top-$k$ documents under *exact MaxSim*, a **neutral oracle**: no single leg *is* the ground truth, so
+the three genuinely differ in quality, and "relevance" is a fixed target they all approximate.
+
+<SetMetricsLaboratory client:visible />
+
+The lab above is the topic in miniature, and we will return to each of its four panels in turn. The
+arc is short: define the metrics on one ranking, integrate them into a curve, average them across
+queries — and then admit that every resulting number is a noisy estimate.
+
+## Set metrics at a cutoff: precision and recall
+
+Fix a query and a cutoff $k$. Of the top $k$ documents the system returned, write
+$\mathrm{TP}_k = |\,\mathrm{top}_k(q) \cap R_q\,|$ for the number that are relevant (true positives).
+The two foundational metrics divide this count two ways.
+
+<TheoremBlock type="definition" number={1} title="Precision and recall at a cutoff">
+For a ranking with qrel set $R$ (with $|R| > 0$) and a cutoff $k \ge 1$,
+$$
+P@k \;=\; \frac{|\,\mathrm{top}_k \cap R\,|}{k}, \qquad
+R@k \;=\; \frac{|\,\mathrm{top}_k \cap R\,|}{|R|}.
+$$
+Precision is the **purity** of the cutoff — what fraction of what you returned is relevant — and
+recall is the **coverage** of the relevant set — what fraction of what you should have returned you
+did. Their harmonic mean is the $F_1$ score, $F_1@k = 2\,P@k\,R@k / (P@k + R@k)$.
+</TheoremBlock>
+
+The denominator of recall is $|R|$, the size of the relevant set. This is the textbook convention,
+and it is worth a word because it differs from the one the capstone used: there, recall divided by
+$\min(k, |R|)$, a cascade-retention reading ("of the $k$ slots, how many true neighbors survived").
+The two agree exactly at $k = |R|$, the capstone's only operating point, so this topic defines
+precisely the recall@10 the capstone reported; the $|R|$ form is what generalizes the curve, because
+it makes the next proposition true.
+
+<TheoremBlock type="proposition" number={1} title="Recall climbs, precision wobbles">
+As the cutoff $k$ increases, $R@k$ is non-decreasing, and $R@N = 1$. Precision $P@k$ is **not**
+monotone.
+
+*Proof.* The set $\mathrm{top}_{k+1}$ contains $\mathrm{top}_k$, so $\mathrm{TP}_k$ is
+non-decreasing in $k$; dividing by the constant $|R|$ preserves this. At $k = N$ every document is
+returned, so $\mathrm{TP}_N = |R|$ and $R@N = 1$. For precision, $\mathrm{TP}_k$ rises by one exactly
+when document $k{+}1$ is relevant, while the denominator $k$ rises by one every step; so $P@(k{+}1)$
+exceeds $P@k$ when the new document is relevant and falls when it is not. $\square$
+</TheoremBlock>
+
+Panel A makes the asymmetry tactile. Drag the cutoff across the worked query's ranking: each slot is
+a true positive (relevant and retrieved), a false positive (retrieved, not relevant), or — beyond the
+cutoff — a false negative (relevant, missed). Recall only ever rises as the line moves right;
+precision jumps up on a relevant slot and decays on an irrelevant one. A single $(P@k, R@k)$ pair is a
+point on a plane; the whole topic is what happens when we let $k$ run.
+
+## The precision–recall curve and Average Precision
+
+Sweeping $k$ from $1$ to $N$ traces a path in the precision–recall plane. Because recall only changes
+when a relevant document is hit, the informative points are exactly those hits. Let the relevant
+documents sit at ranks $\mathrm{pos}_1 < \mathrm{pos}_2 < \dots < \mathrm{pos}_m$ (with $m = |R|$); at
+the $i$-th hit, recall is $R_i = i/m$ and precision is $P_i = i/\mathrm{pos}_i$. Connecting these
+corners gives the familiar sawtooth — and the single most useful summary of a ranking is the area
+beneath it.
+
+<TheoremBlock type="theorem" number={1} title="Average Precision is the area under the PR curve">
+Define **Average Precision** as the mean of precision at the relevant ranks,
+$$
+\mathrm{AP} \;=\; \frac{1}{|R|}\sum_{i=1}^{m} P_i \;=\; \frac{1}{|R|}\sum_{i=1}^{m} \frac{i}{\mathrm{pos}_i}.
+$$
+Then $\mathrm{AP}$ equals the area under the (raw) precision–recall curve,
+$$
+\mathrm{AP} \;=\; \sum_{i=1}^{m} (R_i - R_{i-1})\,P_i, \qquad R_0 = 0.
+$$
+
+*Proof.* At rank $\mathrm{pos}_i$ exactly $i$ relevant documents have been retrieved, so recall steps
+from $(i{-}1)/m$ to $i/m$ — an increment $R_i - R_{i-1} = 1/m$ — and precision there is $P_i$. Between
+consecutive relevant ranks recall is constant, so those stretches add nothing to a recall-integrated
+sum. Hence $\sum_i (R_i - R_{i-1}) P_i = \sum_i \tfrac{1}{m} P_i = \tfrac{1}{m}\sum_i P_i = \mathrm{AP}$.
+$\square$
+</TheoremBlock>
+
+This is a Riemann sum over the recall axis: the relevant documents partition $[0,1]$ into $m$ equal
+increments of width $1/m$, and AP is the sum of precision times those widths — the
+[area-as-a-limit-of-sums](https://www.formalcalculus.com/topics/riemann-integral) construction applied to
+a step function. The proof also explains the denominator $|R|$ rather than "number of documents
+retrieved": a relevant document that never surfaces contributes a *missing* $1/m$ recall step, i.e. a
+term of zero, which correctly drags AP down. Dividing by the count actually found would give a
+ranking that retrieves one of ten relevant documents (at rank 1) an AP of $1.0$ — exactly wrong.
+
+Panel B draws this. The shaded bars are the recall steps; their total area is AP. Toggle the
+interpolated envelope and a second, larger area appears.
+
+<RigorFlag>
+"Average Precision" is ambiguous until you name a convention. The **raw** AP above — the area under
+the sawtooth, equal to the mean of precision at the relevant ranks — is the form MAP averages and the
+one we report. The **interpolated** AP replaces each precision with the best precision attainable at
+any equal-or-higher recall, $p_{\text{interp}}(r) = \max\{P_j : R_j \ge r\}$, a monotone
+non-increasing envelope. Its area is *always at least* the raw AP, because the envelope dominates the
+raw precision pointwise — interpolation **inflates** the number, it does not correct it. The classic
+eleven-point interpolated average precision (TREC) samples that envelope at recall $0, 0.1, \dots, 1$.
+None of these is "the" AP; they are conventions, and a reported AP that does not state which one was
+used is underspecified.
+</RigorFlag>
+
+## Mean Average Precision
+
+A single query's AP is a property of one ranking. To score a *system* we average over a query set.
+
+<TheoremBlock type="definition" number={2} title="Mean Average Precision">
+For a set of $Q$ queries, $\displaystyle \mathrm{MAP} = \frac{1}{Q}\sum_{q=1}^{Q} \mathrm{AP}_q$, the
+sample mean of per-query Average Precision.
+</TheoremBlock>
+
+Over our three legs the MAP values are a clean quality ladder: lexical $0.619$, dense $0.735$, late
+interaction $0.874$. Panel C shows why an average is the right summary — the per-query AP scatter
+widely (the late-interaction leg ranges from below $0.6$ to a perfect $1.0$), and only their mean is
+stable. That scatter is not noise to be ignored; it is the metric's variance, and we return to it.
+
+## Reciprocal rank and known-item retrieval
+
+Some queries have one right answer — the filing that announced a merger, the slide that stated a
+guidance number. There, what matters is not coverage of a set but how high the *one* answer ranks.
+
+<TheoremBlock type="definition" number={3} title="Reciprocal rank and MRR">
+The **reciprocal rank** of a query is $\mathrm{RR} = 1/\mathrm{rank}_1$, where $\mathrm{rank}_1$ is the
+rank of the first relevant document (and $\mathrm{RR} = 0$ if none appears). The **Mean Reciprocal
+Rank** is $\displaystyle \mathrm{MRR} = \frac{1}{Q}\sum_{q=1}^{Q}\mathrm{RR}_q$.
+</TheoremBlock>
+
+MRR is built for the **known-item** regime, where each query has exactly one relevant document — and
+there it is not a different animal from AP at all.
+
+<TheoremBlock type="proposition" number={2} title="MAP equals MRR in the known-item regime">
+If every query has exactly one relevant document ($|R_q| = 1$ for all $q$), then $\mathrm{AP}_q =
+\mathrm{RR}_q$ for every query, and hence $\mathrm{MAP} = \mathrm{MRR}$.
+
+*Proof.* With $m = 1$, the single relevant document sits at some rank $r_q$. Average Precision has one
+term: $\mathrm{AP}_q = \tfrac{1}{1}\cdot\tfrac{1}{r_q} = 1/r_q$. The first (and only) relevant
+document is at rank $r_q$, so $\mathrm{RR}_q = 1/r_q$ too. The per-query metrics coincide, and so do
+their means. $\square$
+</TheoremBlock>
+
+This is the topic's collapse anchor: at $|R| = 1$ the whole apparatus of precision, recall, and the PR
+curve degenerates to a single reciprocal rank. Panel C makes it visible — switch to the known-item
+regime and the per-query AP strip lands exactly on the reciprocal-rank strip, mean line and all.
+Because MRR is degenerate when relevant sets are large (with ten relevant documents some leg almost
+always lands one near the top, so reciprocal rank says little), we score it in the regime it was built
+for: relevance is the single top-1 oracle document.
+
+Holding both metrics in view exposes something the quality ladder hid. The MAP ranking is
+lexical $<$ dense $<$ late interaction; the MRR ranking is dense $<$ lexical $<$ late interaction.
+
+<TheoremBlock type="proposition" number={3} title="Metric choice can reverse the verdict (demonstrated)">
+On this corpus, **dense beats lexical on MAP** ($0.735$ vs $0.619$) but **lexical beats dense on
+MRR** ($0.522$ vs $0.472$). The verdict between two systems reverses depending on the metric.
+
+The mechanism is structural: MAP rewards ranking the *whole* relevant set high, and the dense leg does
+that better on average; MRR rewards getting *one* relevant document to the very top, and the lexical
+leg's exact-match behavior more often plants a relevant document at rank 1. This is a demonstrated
+proposition on one corpus, not a theorem — but it is built and run before it is stated, and it makes
+the lesson concrete: "system A is better" is meaningless without naming the metric.
+</TheoremBlock>
+
+## Metrics as estimators
+
+Here is the move the rest of the evaluation layer rests on. A MAP of $0.735$ is not a property of the
+dense retriever; it is the **sample mean** of forty per-query AP values, and a different forty queries
+would give a different number. Every metric on this page is an *estimator* of an unknown population
+quantity, and estimators have variance.
+
+<TheoremBlock type="definition" number={4} title="MAP as an estimator with standard error">
+Treat the per-query Average Precisions $\mathrm{AP}_1, \dots, \mathrm{AP}_Q$ as a sample with mean
+$\widehat{\mathrm{MAP}}$ and sample standard deviation $\hat\sigma$. The **standard error** of the MAP
+estimate is
+$$
+\widehat{\mathrm{SE}} = \frac{\hat\sigma}{\sqrt{Q}}, \qquad
+\text{95\% CI} = \widehat{\mathrm{MAP}} \pm 1.96\,\widehat{\mathrm{SE}},
+$$
+and the standard error shrinks like $1/\sqrt{Q}$: quadrupling the query count halves the interval.
+</TheoremBlock>
+
+That $1/\sqrt{n}$ rate is not a heuristic; it is a
+[concentration inequality](https://www.formalml.com/topics/concentration-inequalities). The per-query AP
+are bounded in $[0,1]$, so Chebyshev's inequality already gives a confidence interval from the variance
+alone, and the sub-Gaussian (Hoeffding) bound sharpens it — the sample mean concentrates around its
+expectation at a rate controlled by the query count. The companion notebook verifies the rate
+empirically: resampling the per-query AP at growing $n$, the measured standard error tracks
+$\hat\sigma/\sqrt{n}$, and $\widehat{\mathrm{SE}}\cdot\sqrt{n}$ holds essentially constant.
+
+Panel D is the payoff. It plots two legs — dense and late interaction — with their 95% intervals, and
+a slider for the query count $n$. The gap in MAP is real ($0.139$), but at few queries the intervals
+**overlap**: you cannot tell the systems apart. They separate only at $n = 12$. Below that, the
+honest report is "indistinguishable on this query set," not "late interaction wins."
+
+<RigorFlag>
+The normal-approximation interval is itself an approximation: the per-query AP are bounded and skewed,
+not Gaussian, and across legs they are *paired* (the same queries), which the independent-interval
+overlap test ignores — so it is conservative. We cross-check the standard error with the
+[bootstrap](https://www.formalstatistics.com/topics/bootstrap), which resamples the per-query scores
+without the normality assumption and agrees to within roughly ten percent. Crucially, overlapping
+intervals are a *crude* read; the proper instrument is a paired
+[significance test](https://www.formalstatistics.com/topics/hypothesis-testing) on the per-query
+differences, which is tighter and is the subject of the next topic. This one only establishes that the
+variance is there and must be reckoned with.
+</RigorFlag>
+
+<FinanceCaseStudy title="Choosing a metric for a filings-and-transcripts retriever" modality={["text", "audio"]}>
+The production system this series tracks retrieves over 10-K and 10-Q filing text and earnings-call
+transcripts. Suppose an analyst tool needs the *one* passage stating next quarter's guidance — a
+known-item task — and we are choosing between the dense and lexical legs. By MAP, dense is the clear
+winner ($0.735$ vs $0.619$); by MRR, the metric that actually matches the task, lexical wins ($0.522$
+vs $0.472$). Picking the system on the wrong metric ships the worse retriever for the job. And even
+the right comparison is provisional: with only a few dozen evaluation queries, a $0.139$ MAP gap
+between two systems can sit inside the sampling error, so the disciplined report is a confidence
+interval, not a bare number — and a decision to switch retrievers waits on a significance test, not a
+leaderboard delta. The corpus here is a synthetic vMF token cloud standing in for those documents;
+every value illustrates the mechanism, not a benchmark.
+</FinanceCaseStudy>
