@@ -141,7 +141,7 @@ const MUTED = '#9aa3ad';
 const POS_COLOR = '#6fa389';   // d_q > 0 (A wins)
 const NEG_COLOR = '#c0726a';   // d_q < 0 (B wins)
 const fmt = (x: number, n = 3) => x.toFixed(n);
-const fmtP = (p: number) => (p < 1e-3 ? p.toExponential(1) : p.toFixed(3));
+const fmtP = (p: number) => (p <= 0 ? '<0.001' : p < 1e-3 ? p.toExponential(1) : p.toFixed(3));
 
 // --- closed-form TS recomputation -----------------------------------------------------
 const ciHalf = (sd: number, n: number) => (n > 0 ? (1.96 * sd) / Math.sqrt(n) : 0);

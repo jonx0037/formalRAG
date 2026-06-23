@@ -161,10 +161,10 @@ def permutation_test(d: np.ndarray, n_perm: int = 20000, seed: int = 0, exact_ma
         return {"p": 1.0, "observed": 0.0, "null_mean": 0.0, "null_std": 0.0, "exact": True}
     if n <= exact_max_n:
         signs = np.array(list(itertools.product((1.0, -1.0), repeat=n)))   # (2^n, n)
-        null = np.abs(signs @ d) / n
-        p = float(np.mean(null >= obs - 1e-12))
-        return {"p": p, "observed": float(np.mean(d)), "null_mean": float(np.mean(signs @ d) / n),
-                "null_std": float(np.std(null, ddof=1)), "exact": True}
+        null_signed = (signs @ d) / n                                      # signed null (mean is 0)
+        p = float(np.mean(np.abs(null_signed) >= obs - 1e-12))
+        return {"p": p, "observed": float(np.mean(d)), "null_mean": float(np.mean(null_signed)),
+                "null_std": float(np.std(null_signed, ddof=1)), "exact": True}
     rng = np.random.default_rng(seed)
     flips = rng.choice((1.0, -1.0), size=(n_perm, n))
     null = np.abs(flips @ d) / n
@@ -183,7 +183,7 @@ def paired_bootstrap_test(d: np.ndarray, b: int = 20000, seed: int = 0) -> dict:
         return {"p": 1.0, "se": 0.0}
     obs = float(abs(np.mean(d)))
     rng = np.random.default_rng(seed)
-    boots = np.array([np.mean(rng.choice(d, size=n, replace=True)) for _ in range(b)])
+    boots = np.mean(rng.choice(d, size=(b, n), replace=True), axis=1)      # vectorized resample
     centered = np.abs(boots - np.mean(d))
     p = float((np.sum(centered >= obs - 1e-12) + 1) / (b + 1))
     return {"p": p, "se": float(np.std(boots, ddof=1))}
