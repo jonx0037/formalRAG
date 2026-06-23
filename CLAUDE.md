@@ -327,7 +327,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - **Sync local `main` first.** `gh pr merge` updates *origin*, not local `main` — before branching each
   topic run `git fetch origin && git checkout main && git merge --ff-only origin/main`. The tell that
   you're on a stale base: a "published" topic shows as a draft stub with an orphaned `__pycache__/` and
-  no `.py`/`.ipynb` (its source was merged on a branch you don't have yet).
+  no `.py`/`.ipynb` (its source was merged on a branch you don't have yet). An **Explore subagent will
+  confidently report a prereq's `.py`/`.mdx` API surface that isn't on your local disk** in this state —
+  verify the files exist (`ls` / `git ls-files`) and `git fetch && git log origin/main` to confirm origin
+  is ahead BEFORE trusting the reported surface or branching.
   And commit CLAUDE.md learnings **inside the topic PR or a dedicated chore PR** — a post-merge local
   `docs: learnings` commit strands on the topic branch after the topic PR merges (the DPR one had to
   be cherry-picked).
@@ -354,8 +357,12 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `topk=min(topk, n)`), and **tuple-arity mismatches in a fallback `return`** (a 6- vs 7-tuple path — a real
   HIGH-severity catch). It also flags **list-comprehension membership filters over sets** (→ native
   `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del dict[k]` (intersection over a
-  dict's keys) or set `.discard(x)` stays safe). It also flags **unused imports** and a hand-rolled
-  sigmoid `1 / (1 + np.exp(-z))` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). But
+  dict's keys) or set `.discard(x)` stays safe). It also flags **unused imports** (and a **function a
+  refactor orphans** — it flags dead functions, not just imports) and a hand-rolled sigmoid
+  `1 / (1 + np.exp(-z))` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). It also
+  flags **loop-invariant recomputation**: hoist an `n`-independent `(mean, std)` out of an `n`-loop
+  (a large `n_max` extrapolation), and precompute per-leg/per-item arrays ONCE before an
+  `itertools.combinations` loop, not once per pair. But
   **decline with a posted rationale** the nits that would (a) break a byte-for-byte search twin — caching
   a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
   or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
