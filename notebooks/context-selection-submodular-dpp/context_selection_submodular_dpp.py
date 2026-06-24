@@ -584,20 +584,27 @@ def nwf_worst_case() -> dict:
 def submodularity_witness(value_fn, n: int, trials: int = 400, seed: int = 0) -> float:
     """Numerically certify diminishing returns: sample A subset B and element e not in B, return the MINIMUM
     over samples of [ Delta(e | A) - Delta(e | B) ]. >= -tol certifies submodular. For facility location this
-    is exact (>= 0); reused with an info-gain oracle to show where it can fail."""
+    is exact (>= 0); reused with an info-gain oracle to show where it can fail.
+
+    Robust for any n >= 1 (a partition sampler, not permutation cuts): pick the test element e first, then
+    assign each remaining element to {A and B}, {B only}, or {neither}. This guarantees A subseteq B and
+    e not in B with no empty-interval edge case and no A == B bias from the cut positions."""
+    if n < 1:
+        return 0.0
     rng = np.random.default_rng(seed)
     worst = math.inf
     for _ in range(trials):
-        perm = rng.permutation(n)
-        # split into A subset B subset (the rest); pick e outside B
-        if n < 3:
-            break
-        cutA = rng.integers(0, n - 2)
-        cutB = rng.integers(cutA, n - 1)
-        A = list(perm[:cutA])
-        B = list(perm[:cutB])
-        pool_e = list(perm[cutB:])
-        e = int(pool_e[0])
+        e = int(rng.integers(0, n))
+        A, B = [], []
+        for i in range(n):
+            if i == e:
+                continue
+            r = int(rng.integers(0, 3))
+            if r == 0:                       # in the smaller set A (hence also in B)
+                A.append(i)
+                B.append(i)
+            elif r == 1:                     # in B only (B \ A)
+                B.append(i)
         dA = value_fn(A + [e]) - value_fn(A)
         dB = value_fn(B + [e]) - value_fn(B)
         worst = min(worst, dA - dB)

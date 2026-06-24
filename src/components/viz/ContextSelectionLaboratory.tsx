@@ -35,7 +35,7 @@ const ONE_MINUS_INV_E = 0.6321;      // the NWF floor
 // Panel A — greedy facility-location coverage on the worked pool (rising, concave). Δ recomputed in TS.
 const COVERAGE = [4.0343, 4.2642, 4.3644, 4.4541, 4.543, 4.6289, 4.6991, 4.7557, 4.7557];
 const FACILITY_WITNESS = -0.0;       // ≥ 0: facility location IS submodular
-const INFOGAIN_WITNESS = -0.7038;    // < 0: info gain is NOT submodular on this corpus
+const INFOGAIN_WITNESS = -0.7105;    // < 0: info gain is NOT submodular on this corpus
 const XOR_DELTA_EMPTY = 0.0;         // synergistic pair: gain of D2 alone
 const XOR_DELTA_GIVEN_D1 = 1.0;      // ... gain of D2 after D1 — INCREASES (supermodular)
 

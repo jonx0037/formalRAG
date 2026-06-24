@@ -102,7 +102,7 @@ references:
     year: 2006
     url: "https://doi.org/10.1002/047174882X"
     note: "The chain rule of mutual information behind diminishing returns, and the entropy framing of coverage carried over from the PMI and long-context topics; 2nd edition, Wiley"
-rigorFlag: "MMR (Carbonell–Goldstein) is a heuristic with no (1−1/e) approximation guarantee in general — only facility-location-style monotone submodular objectives inherit the Nemhauser–Wolsey–Fisher bound. Information gain I(A;D_S|Q) is the objective we actually want, but mutual information of a SET with a target is not submodular in general — and on this corpus the submodularity witness goes clearly negative (≈ −0.70) while facility location's is ≈ 0; it is submodular only under conditional independence of the evidence (Krause–Guestrin), so coverage, not info gain, is the backbone that earns the theorem. DPP MAP inference (the most probable set) is NP-hard; the (1−1/e) guarantee applies to greedy on the monotone submodular surrogate log det(I + L_S) (Chen et al.), not to the exact determinant maximizer. The payoff Q(k) is computed for a synthetic von Mises–Fisher softmax answer model (importing answer_posterior_topk) — exact for the model, illustrative of a real generator — and the headline is a comparison ACROSS selection methods at a fixed budget, robust across seeds; the separate claim that some interior k* is optimal is seed-fragile and is not asserted."
+rigorFlag: "MMR (Carbonell–Goldstein) is a heuristic with no (1−1/e) approximation guarantee in general — only facility-location-style monotone submodular objectives inherit the Nemhauser–Wolsey–Fisher bound. Information gain I(A;D_S|Q) is the objective we actually want, but mutual information of a SET with a target is not submodular in general — and on this corpus the submodularity witness goes clearly negative (≈ −0.71) while facility location's is ≈ 0; it is submodular only under conditional independence of the evidence (Krause–Guestrin), so coverage, not info gain, is the backbone that earns the theorem. DPP MAP inference (the most probable set) is NP-hard; the (1−1/e) guarantee applies to greedy on the monotone submodular surrogate log det(I + L_S) (Chen et al.), not to the exact determinant maximizer. The payoff Q(k) is computed for a synthetic von Mises–Fisher softmax answer model (importing answer_posterior_topk) — exact for the model, illustrative of a real generator — and the headline is a comparison ACROSS selection methods at a fixed budget, robust across seeds; the separate claim that some interior k* is optimal is seed-fragile and is not asserted."
 formalmlPrereqs:
   - topic: "shannon-entropy"
     site: "formalml"
@@ -485,7 +485,7 @@ $$
 $$
 
 the opposite of diminishing returns. This is not only an abstract example: on our finance corpus the
-numerical submodularity witness for $f_{\text{IG}}$ is clearly negative ($\approx -0.70$), while
+numerical submodularity witness for $f_{\text{IG}}$ is clearly negative ($\approx -0.71$), while
 facility-location coverage's is $\approx 0$. Submodularity of information gain holds only under structural
 assumptions, the cleanest being conditional independence of the observations given the target
 (Krause–Guestrin, 2005). So we optimize coverage — which *is* submodular and earns Theorem 2 — and treat
