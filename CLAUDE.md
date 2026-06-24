@@ -144,8 +144,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
 - `astro check` reports ~12 pre-existing type errors in the copied viz components
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
-  Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes <topic>.py` before pushing —
-  it catches unused imports/vars (the gemini nit class) faster than a build or a PR round-trip.
+  Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes notebooks/<topic>/<topic_underscored>.py`
+  before pushing — it catches unused imports/vars (the gemini nit class) faster than a build or a PR round-trip.
 - **Viz ↔ Python invariant:** `BM25ScoringLaboratory.tsx`'s corpus mirrors `notebooks/bm25/bm25.py`
   to the decimal, and the topic claims they match. Change one → change both. Numbers the viz needs
   but the corpus *doesn't determine* (e.g. a full-document L2 norm that includes filler terms) go in
