@@ -62,10 +62,10 @@ from dense_retrieval_dual_encoders import (  # noqa: E402
     dual_encoder_score, DPR_SEED, DPR_DIM, DPR_KAPPA_SECTOR,
 )
 from pmi_retrieval_value import (  # noqa: E402
-    answer_posterior, answer_posterior_two, saturation_table, entropy, kl, TAU, TAU_DOC,
+    answer_posterior, answer_posterior_two, saturation_table, entropy, TAU, TAU_DOC,
 )
-from retriever_as_noisy_channel import bayes_error, binary_entropy  # noqa: E402
-from set_metrics_precision_recall_map_mrr import recall_at_k, precision_at_k, metric_summary  # noqa: E402
+from retriever_as_noisy_channel import bayes_error  # noqa: E402
+from set_metrics_precision_recall_map_mrr import recall_at_k, precision_at_k  # noqa: E402
 
 
 # =========================================================================== #
@@ -210,9 +210,12 @@ def attention_weights(scores: np.ndarray, tau_attn: float = TAU_ATTN) -> np.ndar
     """
     if not (tau_attn > 1e-8):
         raise ValueError(f"tau_attn must be > 1e-8, got {tau_attn}")
+    s = np.asarray(scores, dtype=float)
+    if s.size == 0:
+        return s                              # empty context -> empty budget (no logsumexp over [])
     # Relevance-aware budget: softmax of the retrieval scores. Equal scores -> uniform (the correct
     # degenerate behavior); a soft tau_attn keeps the budget spread so distractors still draw weight.
-    return _softmax(np.asarray(scores, dtype=float) / tau_attn)
+    return _softmax(s / tau_attn)
 
 
 def answer_posterior_topk(q: np.ndarray, ctx_vecs: np.ndarray, weights: np.ndarray,
@@ -235,6 +238,8 @@ def answer_posterior_topk(q: np.ndarray, ctx_vecs: np.ndarray, weights: np.ndarr
         raise ValueError(f"tau must be > 1e-8, got {tau}")
     ctx = np.atleast_2d(np.asarray(ctx_vecs, dtype=float))
     w = np.asarray(weights, dtype=float)
+    if w.shape[0] != ctx.shape[0]:
+        raise ValueError(f"weights and ctx_vecs must match in length, got {w.shape[0]} and {ctx.shape[0]}")
     sims = ctx @ protos.T                       # (k, K): each context passage's similarity to each prototype
     logits = (q @ protos.T + w @ sims) / tau    # query evidence + budget-weighted document evidence
     return _softmax(logits)
