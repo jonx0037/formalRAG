@@ -121,7 +121,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   *interactivity* (toggling a panel, dragging a slider) you must `scrollIntoView` the component and
   wait ~0.5–1 s for hydration first — otherwise clicks no-op against un-hydrated markup. A
   React-controlled range slider ignores a synthesized `input` event (state won't change); drive it with
-  a **real keyboard interaction** (`focus()` then `ArrowRight`) and assert the readout updated.
+  a **real keyboard interaction** — a synthesized in-page `KeyboardEvent` ALSO silently no-ops; `focus()` the
+  slider via `browser_evaluate`, then press the key with the Playwright `browser_press_key` tool (a real OS key),
+  and assert the readout updated.
   Hydration tell-tales: these labs render their SVG **declaratively in JSX** (not D3), so the
   `<rect>/<circle>` content IS in the SSR DOM — rect presence is **not** a hydration tell. Use the
   lab's `katex.render()` formula output (a post-load `.katex` count bump), and wait ~1–1.5 s (0.5 s
@@ -142,6 +144,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
 - `astro check` reports ~12 pre-existing type errors in the copied viz components
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
+  Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes notebooks/<topic>/<topic_underscored>.py`
+  before pushing — it catches unused imports/vars (the gemini nit class) faster than a build or a PR round-trip.
 - **Viz ↔ Python invariant:** `BM25ScoringLaboratory.tsx`'s corpus mirrors `notebooks/bm25/bm25.py`
   to the decimal, and the topic claims they match. Change one → change both. Numbers the viz needs
   but the corpus *doesn't determine* (e.g. a full-document L2 norm that includes filler terms) go in
@@ -149,6 +153,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `.tsx` — never recomputed in TS (`vector_space_model_tfidf.py` / `probability_ranking_principle.py`).
 - **Cast numpy scalars in `viz_constants()` prints** (`round(float(v), 3)`, `int(...)`) — otherwise arrays
   render as `np.float64(...)`/`np.int64(...)` and dirty the values you mirror into the `.tsx`.
+- **A baked-number change ripples THREE ways, not two:** a review fix that shifts a `viz_constants()` value
+  (e.g. re-baking a witness −0.7038→−0.7105) must update the `.py` print, the `.tsx` const, AND any MDX **prose**
+  that quotes it in words — grep the topic across both `.tsx` and `.mdx` for the old value before pushing.
 - **Pedagogical claims are tests:** the Python harness asserts the limit theorems and the
   length-hijack flip. Don't let prose drift from the verified numbers.
 - **Build + RUN a headline flip before writing it into prose/viz — it can be false under the topic's
@@ -654,7 +661,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `1 / (1 + np.exp(-z))` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). It also
   flags **loop-invariant recomputation**: hoist an `n`-independent `(mean, std)` out of an `n`-loop
   (a large `n_max` extrapolation), and precompute per-leg/per-item arrays ONCE before an
-  `itertools.combinations` loop, not once per pair. But
+  `itertools.combinations` loop, not once per pair. It also flags **biased / edge-cased numerical samplers**
+  (a submodularity/Monte-Carlo witness restricted to `n≥k`, or permutation-cuts that can draw `A==B`) → prefer a
+  **partition sampler**: pick the test element `e` first, then assign each remaining item to {A and B}/{B only}/
+  {neither} (works for any `n≥1`, no degenerate cut). But
   **decline with a posted rationale** the nits that would (a) break a byte-for-byte search twin — caching
   a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
   or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
