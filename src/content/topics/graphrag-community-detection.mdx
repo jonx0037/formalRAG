@@ -1,0 +1,466 @@
+---
+title: "GraphRAG: Community Detection and the Modularity of Knowledge"
+subtitle: "Multi-hop retrieval found a path; the relation 'retrievable-from' it traced has by now drawn a graph over the whole corpus, and a global, sensemaking question — what are the dominant themes across all of these filings? — has an answer that is a property of that graph's partition, not of any document or path. This is the mathematics of the partition: modularity scores it against a degree-preserving null and the modularity matrix's leading eigenvector relaxes the optimal split; the resolution limit caps the scale modularity can see; the stochastic block model's detectability threshold says when a thematic decomposition exists to be found at all; and Louvain and Leiden are the NP-hard-forced heuristics, with Leiden's refinement guaranteeing the connected communities Louvain cannot."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "multi-hop-iterative-retrieval"
+tags:
+  - "graphrag"
+  - "community-detection"
+  - "modularity"
+  - "spectral-clustering"
+  - "stochastic-block-model"
+  - "detectability-threshold"
+  - "louvain-leiden"
+  - "financial-nlp"
+domain: "rag-information-theory"
+pipelineStage: "index"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+videoId: null
+notebookPath: "notebooks/graphrag-community-detection/01_graphrag_community_detection.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/graphrag-community-detection.mdx"
+datePublished: 2026-06-24
+estimatedReadTime: 32
+abstract: "Multi-hop retrieval answered a local question — a path from a query to a specific answer document. A global, sensemaking question — what are the dominant themes across the whole corpus? — has no such answer: it is a property of the corpus's partition into communities, and no single chunk and no single path can carry it. GraphRAG builds an entity graph from the corpus and partitions it; this topic is the mathematics of that partition. Newman–Girvan modularity scores a partition against the degree-preserving configuration-model null, the excess of within-community edge weight over chance; on the finance entity graph the planted sectors score 0.778 against a random partition's −0.04. For a bipartition the modularity matrix B = A − kkᵀ/2m has rows summing to zero, so Q = (1/4m)sᵀBs, and the relaxed optimum is B's leading (largest-algebraic) eigenvector, rounded by sign — Newman's spectral method, which matches a brute-force argmax exactly on a small graph and reports a clique indivisible when that eigenvalue is non-positive. The integer optimum is out of reach: modularity maximization is NP-hard, so spectral rounding, Louvain, and Leiden are all heuristics. Modularity also has a resolution limit (Fortunato–Barthélemy): on a ring of thirty cliques the optimal partition merges adjacent cliques even though each is a genuine community, because the global √(2m) normalization makes a small clique invisible; the resolution parameter γ only moves the scale, it does not remove the limit. The deep result is the stochastic block model's detectability transition: for the symmetric two-block sparse SBM, a partition correlated with the planted one is recoverable if and only if (c_in − c_out)² > 2(c_in + c_out), the Kesten–Stigum threshold — below it, no algorithm beats a coin flip, an information-theoretic converse and the community-detection analogue of the channel capacity the noisy-channel topic priced. We demonstrate it numerically: above the line spectral recovery overlaps the truth at 0.93, below it at 0.01. Louvain (local-moving plus aggregation, with a closed-form ΔQ) and Leiden (adding a refinement phase that guarantees internally-connected communities) are the workhorses; a disconnected community can be a Louvain local optimum its local moving cannot repair, and Leiden's refinement is exactly what forbids it. The modularity of knowledge is literal: a corpus decomposes into themes worth summarizing precisely when modularity is high, the resolvable scale is coarse enough, and the block signal clears Kesten–Stigum — below threshold there is no decomposition to summarize, and GraphRAG degrades to flat retrieval. The entity graph is a synthetic planted partition on the finance vMF geometry, exact for that model and illustrative of a real knowledge graph; a tested notebook owns every number and the lab recomputes only the closed forms."
+connections:
+  - topic: "multi-hop-iterative-retrieval"
+    relationship: "multi-hop traced the relation 'retrievable-from' into a graph over the corpus and ended on exactly this shift — from finding a single path to understanding that graph's global structure, its dense communities of mutually-retrievable filings; this topic studies that partition, so a local trajectory between two documents becomes a global property of how the whole corpus clusters"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "the entity graph's edges are co-occurrence weights built from the dual-encoder sphere geometry — companies near on the sphere co-occur, so the same learned inner products that score retrieval are what give the graph its block structure, and the sectors of that geometry are the planted communities the partition recovers"
+  - topic: "retriever-as-noisy-channel"
+    relationship: "the noisy-channel topic priced answer error with Fano, an entropy lower bound below which no decoder succeeds; the stochastic block model's detectability threshold is the same kind of converse for community detection — below the Kesten–Stigum line no algorithm recovers the partition, an information-theoretic limit on what the graph itself makes knowable, not a failure of any one method"
+  - topic: "pmi-retrieval-value"
+    relationship: "PMI measured a document's evidentiary value in bits; here the question is whether the corpus has thematic structure to measure at all — a high-modularity partition is the condition under which community summaries carry information, and below the detectability threshold there is no theme to summarize, so the bits a community summary could add collapse to zero"
+  - topic: "context-selection-submodular-dpp"
+    relationship: "context selection maximized a monotone submodular coverage objective with greedy; modularity maximization is its NP-hard combinatorial cousin without the submodular guarantee, so Louvain and Leiden are greedy heuristics with no 1−1/e certificate — the same tension between a clean optimization story and the hardness that forces approximation"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "the capstone's production pipeline indexes a corpus for retrieval; GraphRAG is the index-time community structure layered on top — partition the entity graph offline, summarize each community, and answer global queries by map-reducing over summaries, the sensemaking complement to the capstone's local retrieve-and-rank"
+rigorFlag: "Five honesty notes. First, every method here is a heuristic: exact modularity maximization is NP-hard (Brandes et al. 2008), so spectral rounding (the leading eigenvector of B relaxed to the sphere, then rounded by sign), Louvain, and Leiden all approximate an optimum none of them is guaranteed to reach. Second, modularity has a resolution limit (Fortunato–Barthélemy 2007): it cannot resolve communities smaller than a scale ≈√(2m) set by the whole graph, so genuine small communities are merged in the optimal partition; the resolution parameter γ only moves that scale and cannot resolve structure at multiple scales with any single value, and modularity is additionally degenerate, admitting many near-optimal partitions of very different shape. Third, the stochastic block model's detectability threshold (c_in − c_out)² > 2(c_in + c_out) is an asymptotic (n → ∞, sparse) information-theoretic limit for the symmetric two-block model; our finite-n simulation only sharpens toward it, it does not reproduce the asymptotic discontinuity, so the headline is the clear above/below contrast, not the exact crossing point. Fourth, for two equal blocks the information-theoretic and the efficient-algorithm (Kesten–Stigum) thresholds coincide, but for four or more blocks a hard phase opens where detection is possible yet no known efficient algorithm achieves it — we demonstrate the two-block coincidence and name the multi-block gap, we do not claim a universal one. Fifth, the entity graph is a synthetic planted partition built on the finance sector/company vMF geometry — its sectors are the planted communities — so recovery is exact for that generative model and illustrative of a real GraphRAG knowledge graph; the claim that detection succeeds above and fails below the threshold is a property of the model, shown on one constructed family of graphs."
+formalmlPrereqs:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the relaxed modularity Q = (1/4m)sᵀBs is a Rayleigh quotient maximized by B's leading eigenvector, the symmetric-eigenproblem and best-low-rank machinery that topic builds — spectral community detection is the modularity analogue of the truncated SVD's optimal subspace"
+  - topic: "spectral-theorem"
+    site: "formalml"
+    relationship: "the modularity matrix B = A − kkᵀ/2m is real-symmetric, so its eigendecomposition — the orthonormal basis the spectral bipartition reads its sign vector off, and the spectrum whose largest eigenvalue's sign decides divisibility — is exactly the spectral theorem that topic develops"
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the detectability threshold is an information limit: below it the planted partition leaves no signature distinguishable from an Erdős–Rényi graph of the same mean degree, so the mutual information between the graph and the labels is asymptotically zero — the entropy/information framing that topic builds, carried from the noisy-channel and PMI topics"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "the SBM-versus-null distinguishability the detectability transition governs is a divergence between two graph ensembles, and the threshold is where that divergence stops growing fast enough to separate them — the relative-entropy machinery that topic develops, here applied to whether community structure is statistically present"
+formalmlConnections:
+  - topic: "graph-laplacians"
+    site: "formalml"
+    relationship: "the modularity matrix is the modularity analogue of the graph Laplacian, and detecting communities by B's leading eigenvector parallels the Fiedler-vector normalized cut that topic builds — both read a partition off the sign structure of a symmetric matrix's extreme eigenvector, one for cut, one for assortativity"
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "spectral community detection is spectral clustering on the modularity matrix; the k-means and spectral-clustering geometry that topic develops is the general method this specializes to graphs, with modularity supplying the objective that fixes the number of communities rather than presupposing it"
+  - topic: "random-walks"
+    site: "formalml"
+    relationship: "community structure is the slow-mixing block structure of the random walk on the graph — a partition is well-separated exactly when a walk is trapped within communities before equilibrating — so the mixing-time and second-eigenvalue machinery that topic builds is the dynamical reading of the same spectral gap modularity detection exploits"
+formalstatisticsConnections:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "recovering the stochastic block model's blocks is maximum-likelihood estimation of a latent-class model, and Louvain, Leiden, and spectral methods are tractable surrogates for that intractable MLE — the likelihood machinery that topic develops is what the detectability threshold marks the estimable boundary of"
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the stochastic block model is an exponential-family generative model over graphs, its edge probabilities the natural parameters; the detectability threshold is a property of that family's information geometry — where two parameter settings (planted versus null) become asymptotically indistinguishable from a single sampled graph"
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "asking whether a graph has community structure is a hypothesis test of a planted partition against an Erdős–Rényi null, and the detectability threshold is precisely the point below which that test has no asymptotic power — the cleanest statistical reading of the Kesten–Stigum bound the likelihood-ratio machinery of that topic frames"
+formalcalculusConnections:
+  - topic: "eigenvalues-eigenvectors"
+    site: "formalcalculus"
+    relationship: "the entire spectral relaxation is an eigenvalue problem — the modularity-optimal bipartition is the leading eigenvector of B, and the indivisibility stopping rule λ₁(B) ≤ 0 is read directly off the spectrum — so the eigenvalue/eigenvector machinery that topic builds is the computational core of community detection"
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "modularity maximization is a non-convex, NP-hard combinatorial program, and the spectral relaxation is its tractable convex/spectral surrogate — the same relax-the-integer-constraint-then-round pattern that topic develops, here turning a partition search into an eigenvector computation"
+references:
+  - type: "paper"
+    title: "Finding and evaluating community structure in networks"
+    authors: "Newman & Girvan"
+    year: 2004
+    url: "https://doi.org/10.1103/PhysRevE.69.026113"
+    note: "Introduces modularity Q as the quality function for a network partition — within-community edges against the degree-preserving null — the object this whole topic is built on; Physical Review E 69, 026113"
+  - type: "paper"
+    title: "Modularity and community structure in networks"
+    authors: "Newman"
+    year: 2006
+    url: "https://doi.org/10.1073/pnas.0601602103"
+    note: "The modularity matrix B = A − kkᵀ/2m and the spectral relaxation: the modularity-optimal bipartition is B's leading eigenvector, the theorem behind Movement 2; PNAS 103(23):8577–8582"
+  - type: "paper"
+    title: "Fast unfolding of communities in large networks (Louvain)"
+    authors: "Blondel, Guillaume, Lambiotte & Lefebvre"
+    year: 2008
+    url: "https://doi.org/10.1088/1742-5468/2008/10/P10008"
+    note: "The Louvain method: greedy local-moving with a closed-form modularity gain, then aggregation, iterated into a hierarchy — the workhorse heuristic of Movement 5; J. Stat. Mech. P10008"
+  - type: "paper"
+    title: "From Louvain to Leiden: guaranteeing well-connected communities"
+    authors: "Traag, Waltman & van Eck"
+    year: 2019
+    url: "https://doi.org/10.1038/s41598-019-41695-z"
+    note: "Leiden adds a refinement phase guaranteeing internally-connected communities, repairing Louvain's pathology that a community can be left disconnected — the contrast Panel C demonstrates; Scientific Reports 9:5233"
+  - type: "paper"
+    title: "Resolution limit in community detection"
+    authors: "Fortunato & Barthélemy"
+    year: 2007
+    url: "https://doi.org/10.1073/pnas.0605965104"
+    note: "Proves modularity cannot resolve communities below a scale ≈√(2m) set by the whole graph — the ring-of-cliques merge of Movement 3 and the load-bearing rigorFlag; PNAS 104(1):36–41"
+  - type: "paper"
+    title: "Asymptotic analysis of the stochastic block model for modular networks and its algorithmic applications"
+    authors: "Decelle, Krzakala, Moore & Zdeborová"
+    year: 2011
+    url: "https://doi.org/10.1103/PhysRevE.84.066106"
+    note: "Conjectures the detectability threshold (c_in − c_out)² = 2(c_in + c_out) for the sparse two-block SBM — below it no algorithm recovers the partition — the deep payload of Movement 4; Physical Review E 84, 066106"
+  - type: "paper"
+    title: "Community detection thresholds and the weak Ramanujan property"
+    authors: "Massoulié"
+    year: 2014
+    url: "https://doi.org/10.1145/2591796.2591857"
+    note: "Proves the detectability conjecture (with Mossel–Neeman–Sly): below the Kesten–Stigum threshold no estimator correlates with the planted partition — the theorem behind the SBM phase transition; STOC 2014"
+  - type: "paper"
+    title: "Reconstruction and estimation in the planted partition model"
+    authors: "Mossel, Neeman & Sly"
+    year: 2015
+    url: "https://doi.org/10.1007/s00440-014-0576-6"
+    note: "The companion proof of the two-block detectability threshold, establishing both the impossibility below and achievability above Kesten–Stigum; Probability Theory and Related Fields 162"
+  - type: "paper"
+    title: "On Modularity Clustering"
+    authors: "Brandes, Delling, Gaertler, Görke, Hoefer, Nikoloski & Wagner"
+    year: 2008
+    url: "https://doi.org/10.1109/TKDE.2007.190689"
+    note: "Proves modularity maximization is NP-hard — the reason every practical method, spectral rounding included, is a heuristic with no global-optimality guarantee; IEEE Transactions on Knowledge and Data Engineering 20(2):172–188"
+  - type: "paper"
+    title: "Statistical mechanics of community detection"
+    authors: "Reichardt & Bornholdt"
+    year: 2006
+    url: "https://doi.org/10.1103/PhysRevE.74.016110"
+    note: "Introduces the resolution parameter γ generalizing modularity, the knob that moves — but does not remove — the resolution limit; Physical Review E 74, 016110"
+  - type: "paper"
+    title: "From Local to Global: A Graph RAG Approach to Query-Focused Summarization"
+    authors: "Edge, Trinh, Cheng, Bradley, Chao, Mody, Truitt & Larson"
+    year: 2024
+    url: "https://arxiv.org/abs/2404.16130"
+    note: "The Microsoft GraphRAG system: extract an entity graph, partition it hierarchically with Leiden, summarize each community, and answer global/sensemaking queries by map-reducing over summaries — the pipeline this topic supplies the mathematics for; arXiv:2404.16130"
+  - type: "book"
+    title: "Elements of Information Theory"
+    authors: "Cover & Thomas"
+    year: 2006
+    url: "https://doi.org/10.1002/047174882X"
+    note: "The mutual-information and entropy framing behind the detectability threshold as an information limit, carried from the PMI and noisy-channel topics; 2nd edition, Wiley"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import GraphRAGCommunityLaboratory from '../../components/viz/GraphRAGCommunityLaboratory.tsx';
+
+## From a path to a partition
+
+Multi-hop retrieval closed on a sentence that pointed past itself. Having traced the relation
+"retrievable-from" from query to bridge to answer, it observed that once iterative retrieval has traversed
+those edges enough times, the relation has drawn a graph over the whole corpus, "and the question shifts from
+finding a single path to understanding that graph's global structure — its dense communities of
+mutually-retrievable filings."
+
+This is that shift. Every topic in this layer so far has answered a *local* question: which documents are
+near this query, which subset covers it, what path reaches this answer. A *global*, sensemaking question is
+different in kind. Ask *what are the dominant themes across this entire corpus of filings?* and no single
+document holds the answer, no single retrieval surfaces it, and no path traverses to it — because the answer
+is not a document at all. It is a property of how the corpus *partitions* into communities. The object of
+study moves from a trajectory through the graph to the graph's partition, and the mathematics is the
+mathematics of that partition: when does a good partition exist, when can we find it, and what are the
+fundamental limits.
+
+This is the architecture of **GraphRAG** (Edge et al. 2024). Rather than retrieve passages for each query, it
+builds an entity–relationship graph from the corpus once, partitions it into a hierarchy of communities,
+summarizes each community, and answers a global query by map-reducing over those summaries — each summary
+producing a partial answer, the partials reduced into a whole. The community detection is the load-bearing
+step, and it is the one with genuine mathematics. We will make five movements precise on the same finance
+geometry the rest of the arc used: what scores a partition (modularity), how to find the optimal one
+(the spectral relaxation), what scale it cannot see (the resolution limit), when thematic structure exists to
+be found at all (the stochastic block model's detectability threshold), and the heuristics that do the work
+in practice (Louvain and Leiden).
+
+## The entity graph and modularity
+
+Fix the object. The **entity co-occurrence graph** $G = (V, E, A)$ has one node per entity — here a company —
+and a weight $A_{ij} \ge 0$ on the edge between $i$ and $j$ measuring how strongly they co-occur. We build it
+from the dual-encoder geometry the arc has used throughout: each company has a unit direction on the sphere,
+and the edge weight is the sharpened cosine between two companies, so companies in the same sector — near on
+the sphere — are strongly connected and companies in different sectors are nearly unlinked. The **sectors are
+the planted communities**, and the question is whether the graph's structure reveals them.
+
+Write $k_i = \sum_j A_{ij}$ for the weighted degree of node $i$ and $2m = \sum_{ij} A_{ij}$ for twice the
+total edge weight. A **partition** assigns each node $i$ a community label $c_i$. We need a number that says
+how good a partition is, and the idea — due to Newman and Girvan — is to compare the within-community edge
+weight to what a *degree-preserving random graph* would have.
+
+<TheoremBlock type="definition" number={1} title="Modularity">
+
+The **modularity** of a partition $\{c_i\}$ of a weighted graph with adjacency $A$, degrees $k_i$, and total
+weight $m$ is
+
+$$
+Q \;=\; \frac{1}{2m}\sum_{ij}\left[A_{ij} - \frac{k_i k_j}{2m}\right]\delta(c_i, c_j),
+$$
+
+where $\delta(c_i, c_j) = 1$ if $i$ and $j$ are in the same community and $0$ otherwise. The term
+$k_i k_j / 2m$ is the **expected** weight between $i$ and $j$ in the configuration-model null — a random graph
+that preserves every degree but rewires edges at random — so $Q$ measures the **excess** of within-community
+edge weight over chance. It satisfies $Q \in [-\tfrac{1}{2}, 1)$, with $Q \approx 0$ for a random partition.
+
+</TheoremBlock>
+
+The configuration-model null is the whole idea. A partition that simply groups high-degree nodes together
+collects a lot of within-community edge weight, but those nodes would be linked even at random; modularity
+subtracts that baseline, so it rewards only the edge weight a partition captures *beyond* what degrees alone
+explain. On the finance entity graph the planted sectors score $Q = 0.778$ — the **Panel A** readout — while
+a random relabeling of the same nodes scores $-0.04$. The structure is real, and modularity sees it.
+
+What modularity does *not* hand us is the optimal partition. Searching all partitions is hopeless; we need a
+way to find the one that maximizes $Q$, and the first move is a beautiful relaxation.
+
+## The spectral relaxation
+
+Restrict to a **bipartition** — two communities — and encode it with a sign vector $s \in \{\pm 1\}^n$, with
+$s_i = +1$ for group one and $s_i = -1$ for group two. Then $\delta(c_i, c_j) = \tfrac{1}{2}(s_i s_j + 1)$,
+and substituting into $Q$ something clean happens. Define the **modularity matrix**
+
+$$
+B_{ij} \;=\; A_{ij} - \frac{k_i k_j}{2m}, \qquad B = A - \frac{\mathbf{k}\mathbf{k}^\top}{2m}.
+$$
+
+Every row of $B$ sums to zero, because $\sum_j B_{ij} = k_i - k_i \cdot \tfrac{2m}{2m} = 0$. That is exactly
+what kills the constant $\tfrac{1}{2}$ term when we substitute, leaving
+
+$$
+Q \;=\; \frac{1}{4m}\, \mathbf{s}^\top B\, \mathbf{s}.
+$$
+
+Maximizing this over $s \in \{\pm 1\}^n$ is the integer problem we cannot solve directly. So we relax: allow
+$s$ to be any real vector on the sphere $\lVert s \rVert^2 = n$. Then $Q$ is a Rayleigh quotient, and the
+maximizer is the eigenvector of $B$ with the largest eigenvalue.
+
+<TheoremBlock type="theorem" number={1} title="The spectral relaxation (Newman 2006)">
+
+Relaxing $s$ from $\{\pm 1\}^n$ to the sphere $\lVert s \rVert^2 = n$, the modularity
+$Q = \tfrac{1}{4m}\,s^\top B\,s$ is maximized by aligning $s$ with the **leading eigenvector** $u_1$ of the
+modularity matrix $B$ — the eigenvector of largest *algebraic* eigenvalue $\lambda_1$. The spectral
+bipartition rounds it back to a partition by $s_i = \operatorname{sign}(u_1{}_i)$. Moreover, if
+$\lambda_1 \le 0$, no bipartition has positive modularity: the network is **indivisible**, and the recursion
+stops.
+
+</TheoremBlock>
+
+The proof is the Rayleigh-quotient argument: on the sphere, $s^\top B s$ is maximized by the top eigenvector,
+because expanding $s$ in $B$'s orthonormal eigenbasis (it is real-symmetric, so the spectral theorem applies)
+puts all the weight on the largest eigenvalue. Two honest caveats live right here. First, $B$ is **indefinite**
+— it has negative eigenvalues — so "largest algebraic" is not "largest magnitude"; a large negative eigenvalue
+is the wrong one to round. Second, the rounded integer partition is *not* the true optimum — rounding loses the
+relaxation's guarantee — and finding the true optimum is genuinely hard, which Movement 5 confronts. But the
+indivisibility test is exact and useful: a single clique, which has no community structure, has $\lambda_1(B)
+\le 0$ and is correctly reported indivisible. On a small graph of two cliques joined by one edge, the spectral
+sign vector matches the brute-force modularity-optimal bipartition *exactly* (both find $Q = 0.42$), the
+collapse anchor that pins the method.
+
+This is the natural place to meet the lab. **Panel A** is the finance entity graph with a resolution slider;
+**Panel B** is the detectability phase diagram of Movement 4; **Panel C** is the resolution limit and the
+Louvain/Leiden contrast of Movements 3 and 5.
+
+<GraphRAGCommunityLaboratory client:visible />
+
+## The resolution limit
+
+Modularity has a flaw that is not a bug to be patched but a property to be understood, and it is the
+load-bearing caveat of the whole topic. The $1/2m$ in the definition is a *global* normalization — it depends
+on the total size of the graph — and that couples the score of a small community to the size of the entire
+network. The consequence, proved by Fortunato and Barthélemy, is that modularity maximization cannot resolve
+communities below a scale set by the whole graph.
+
+The cleanest witness is a **ring of cliques**: $n_c$ cliques of size $s$, each pair of adjacent cliques joined
+by a single edge, arranged in a ring. Each clique is unambiguously a community. Yet for the partition that
+puts each clique in its own community, compare its modularity to the partition that *merges adjacent cliques
+in pairs*.
+
+<TheoremBlock type="theorem" number={2} title="The resolution limit (Fortunato–Barthélemy 2007)">
+
+Modularity maximization cannot resolve communities smaller than a characteristic scale $\approx \sqrt{2m}$ set
+by the total edge weight of the graph. On a ring of $n_c$ cliques, once $n_c$ is large enough the
+**pairs-merged** partition has strictly higher modularity than the natural one-clique-per-community partition,
+so the modularity-optimal partition merges genuine communities. The resolution parameter $\gamma$ (Reichardt–
+Bornholdt) generalizes $Q$ to $Q_\gamma = \tfrac{1}{2m}\sum_{ij}[A_{ij} - \gamma\, k_i k_j / 2m]\,
+\delta(c_i, c_j)$ and *moves* the resolvable scale, but no single $\gamma$ resolves structure at multiple
+scales.
+
+</TheoremBlock>
+
+The notebook makes the contrast concrete. On a ring of $30$ cliques of size $5$, where $\sqrt{2m} \approx 25.7$
+dwarfs each clique's internal edge count, the pairs-merged partition scores $Q = 0.888$ against the natural
+partition's $0.876$ — so the optimum **merges**, and Louvain (which maximizes modularity) finds only $15$
+communities, not $30$. On a small ring of $6$ cliques the same comparison flips, $0.742$ against $0.621$: the
+cliques are resolved. **Panel C's** resolution view is exactly these two comparisons. Raising $\gamma$ on the
+large ring un-merges the cliques — $\gamma$ shrinks the resolvable scale — but at the price of fragmenting
+larger communities elsewhere, which is why **Panel A's** slider, pushed past the plateau, shatters the
+sectors into singletons. There is no canonical $\gamma$; the limit is intrinsic to single-scale modularity.
+
+## The stochastic block model and the detectability transition
+
+The resolution limit asks whether modularity can *find* a community of a given size. The deeper question is
+whether the community structure is *there to be found at all* — and it has a sharp, surprising answer that
+earns this topic its place in the information-theory layer. We need a generative model of a graph with planted
+communities.
+
+<TheoremBlock type="definition" number={2} title="The stochastic block model">
+
+The **stochastic block model** $\mathrm{SBM}(n, \{p_{rs}\})$ partitions $n$ nodes into $q$ blocks and places
+an edge between node $i$ (block $r$) and node $j$ (block $s$) independently with probability $p_{rs}$. The
+symmetric two-block sparse SBM holds the block sizes equal and writes $p_{\text{in}} = c_{\text{in}}/n$ within
+a block and $p_{\text{out}} = c_{\text{out}}/n$ across blocks, so the mean degree is
+$(c_{\text{in}} + c_{\text{out}})/2$ and stays fixed as $n \to \infty$.
+
+</TheoremBlock>
+
+The affinities $c_{\text{in}}$ and $c_{\text{out}}$ are the signal: when $c_{\text{in}} \gg c_{\text{out}}$
+the blocks are assortative and obvious, and when $c_{\text{in}} = c_{\text{out}}$ the graph is plain Erdős–
+Rényi with no community structure at all. Between them lies a phase transition — and it is *not* a gradual
+fade.
+
+<TheoremBlock type="theorem" number={3} title="The detectability threshold (Decelle et al. 2011; Massoulié 2014; Mossel–Neeman–Sly 2015)">
+
+For the symmetric two-block sparse SBM, a partition correlated with the planted one is recoverable — by *any*
+algorithm, in the large-$n$ limit — **if and only if**
+
+$$
+(c_{\text{in}} - c_{\text{out}})^2 \;>\; 2\,(c_{\text{in}} + c_{\text{out}}),
+$$
+
+the **Kesten–Stigum threshold**. Below it, the planted partition leaves no signature distinguishable from an
+Erdős–Rényi graph of the same mean degree: no algorithm, efficient or not, recovers a partition correlated
+with the truth, and every method does no better than a coin flip.
+
+</TheoremBlock>
+
+Read that converse carefully, because it is the heart of the topic. It is *not* a statement that our
+particular algorithm is too weak. It is a statement that the information is not present: below the threshold,
+the graph that the SBM generated carries no recoverable trace of which nodes belonged together. This is the
+exact shape of the limit the noisy-channel topic met in Fano — an entropy lower bound below which no decoder
+can succeed — transposed from channel decoding to community detection. The community-detection world has a
+*recovery threshold*, and Kesten–Stigum is its converse: an information-theoretic limit on what the graph
+makes knowable, not a limitation of any one method.
+
+We demonstrate it rather than reprove it (the proof is a multi-paper research program). The notebook samples
+SBMs on both sides of the parabola at $n = 3000$ and recovers the partition from the most extreme eigenvector
+of the modularity matrix. **Above** the line, at $c_{\text{in}} = 10$, $c_{\text{out}} = 1$ (signal-to-noise
+$3.68$), recovery overlaps the truth at $0.93$. **Below** the line, at $c_{\text{in}} = 6$, $c_{\text{out}} =
+4$ (signal-to-noise $0.20$), recovery overlaps at $0.01$ — chance. **Panel B** is this phase diagram: the
+Kesten–Stigum parabola drawn in closed form, the measured overlap heatmap riding its boundary, and an inset
+graph whose blocks line up with the truth above the line and scatter into noise below it. Two honest notes
+qualify the picture. At finite $n$ the transition is smeared, not the asymptotic discontinuity, so the
+headline is the clear above/below contrast and not the exact crossing. And the clean coincidence of the
+information-theoretic and the efficient-algorithm thresholds holds for two blocks; with four or more, a *hard
+phase* opens where detection is possible in principle but no known efficient algorithm achieves it. We show
+the two-block case and name the gap.
+
+## GraphRAG, Louvain, and Leiden
+
+The spectral relaxation handles a bipartition and recurses; in practice the workhorses are different, and the
+reason is one more piece of honesty.
+
+<TheoremBlock type="theorem" number={4} title="Modularity maximization is NP-hard (Brandes et al. 2008)">
+
+Finding the partition of maximum modularity is NP-hard (and NP-hard to approximate within some constant). Every
+practical method — spectral rounding, Louvain, Leiden — is therefore a heuristic with no guarantee of reaching
+the global optimum.
+
+</TheoremBlock>
+
+This is the same hardness that context selection escaped by having a *submodular* objective with a greedy
+$1 - 1/e$ certificate. Modularity has no such structure, so its greedy heuristics carry no certificate — they
+are fast and good in practice, and that is all the theory promises. **Louvain** (Blondel et al. 2008) runs two
+phases, iterated. In *local moving*, each node is, in turn, removed from its community and rejoined to the
+neighboring community of greatest modularity gain — a gain available in closed form,
+$\Delta Q$ a function of the node's weight into the target community, the community's total degree, and the
+node's own degree. In *aggregation*, each community collapses to a super-node and the process repeats on the
+smaller graph. The aggregation preserves modularity exactly, so the recursion is sound, and it produces a
+**hierarchy** of partitions, fine to coarse — precisely the dendrogram GraphRAG summarizes at multiple levels.
+
+Louvain has a defect that Leiden was built to fix, and it is the clean Panel C demonstration.
+
+<TheoremBlock type="proposition" number={1} title="Louvain can leave a disconnected community; Leiden cannot">
+
+A partition with an **internally disconnected** community can be a fixed point of Louvain's local moving — no
+single-node move improves modularity, so Louvain, once there, cannot repair it. **Leiden** (Traag et al. 2019)
+inserts a *refinement* phase that re-partitions each community into internally well-connected pieces before
+aggregating, guaranteeing every community it returns is internally connected.
+
+</TheoremBlock>
+
+The witness is small and exact. Two triangles with no edge between them, labeled one community: it is
+disconnected, yet no single node wants to leave — each triangle is internally cohesive and no node is more
+attracted elsewhere — so it is a Louvain local optimum that local moving cannot break. Leiden's refinement
+splits it into its connected pieces. **Panel C's** connectivity view draws exactly this: the Louvain partition
+with its disconnected community flagged, beside the Leiden partition where every community is connected. The
+honest framing matters — run from singletons, Louvain recovers the correct partition on this graph; it is not
+broken generically. The guarantee is what differs, and for a knowledge graph whose communities become
+retrievable summaries, a community that is secretly two disconnected halves is a summary of two unrelated
+things.
+
+With the heuristics in hand, the GraphRAG pipeline is now fully specified mathematically. Extract the entity
+graph; run Leiden to get a hierarchy of communities; summarize each community at each level; answer a global
+query by map-reducing over the summaries. The **modularity of knowledge** is literal: a corpus decomposes into
+themes worth summarizing exactly when its entity graph has high modularity, the resolvable scale is coarse
+enough to keep genuine themes intact, and — the deepest condition — the block signal clears Kesten–Stigum. Below
+that threshold there is no thematic decomposition to summarize, and GraphRAG has nothing to offer over flat
+retrieval, because the structure it would summarize is not there.
+
+## What community detection trades, in one line
+
+Local retrieval finds a *path*; global sensemaking needs the *partition* — and the partition exists, is
+findable, and is summarizable exactly when modularity is high, the resolvable scale is coarse enough, and the
+block signal clears the Kesten–Stigum threshold. Three limits, one for each pillar: NP-hardness forces
+heuristics, the resolution limit caps the scale they can see, and detectability decides whether there is
+anything to see at all.
+
+<RigorFlag>
+
+Five honesty notes. First, every method is a heuristic: exact modularity maximization is NP-hard (Brandes et
+al. 2008), so spectral rounding, Louvain, and Leiden all approximate an optimum none is guaranteed to reach.
+Second, modularity has a resolution limit (Fortunato–Barthélemy 2007): it cannot resolve communities below a
+scale $\approx\sqrt{2m}$ set by the whole graph, $\gamma$ only moves that scale, and modularity is degenerate,
+admitting many near-optimal partitions of different shape. Third, the SBM detectability threshold
+$(c_{\text{in}} - c_{\text{out}})^2 > 2(c_{\text{in}} + c_{\text{out}})$ is an asymptotic, sparse,
+information-theoretic limit; our finite-$n$ simulation only sharpens toward it, so the headline is the clear
+above/below contrast, not the exact crossing. Fourth, the information-theoretic and efficient-algorithm
+thresholds coincide for two blocks, but a hard phase opens for four or more — we demonstrate the two-block
+coincidence and name the gap, we do not claim it universally. Fifth, the entity graph is a synthetic planted
+partition on the finance vMF geometry, exact for that model and illustrative of a real knowledge graph; the
+above/below claim is a property of the model, shown on one constructed family of graphs.
+
+</RigorFlag>
+
+<FinanceCaseStudy title="The dominant themes across a corpus of filings" modality={["text", "pdf", "news"]}>
+
+A multi-hop question asked for one fact along a path: the revenue of the company that acquired Company A's
+supplier. A *sensemaking* question asks something no path can answer: across ten thousand filings and news
+items, what are the dominant themes, and which companies form each? There is no single document to retrieve
+and no chain to follow — the answer is the corpus's partition. Build the entity graph, with companies linked
+when they co-occur in filings, supply agreements, and acquisition news; the sectors emerge as
+high-modularity communities, and Leiden's hierarchy gives both the coarse view (a handful of sector themes)
+and the fine view (sub-themes within a sector). Each community becomes a summary, and a question like *what is
+the state of the semiconductor supply chain?* is answered by map-reducing over the relevant community
+summaries rather than retrieving a single passage. Two cautions are exactly the topic's theorems. The
+resolution limit warns that a small but real theme — a handful of tightly-coupled niche suppliers — may be
+swallowed into a larger community at the default scale, recoverable only by raising $\gamma$ at the coarse
+level. And detectability warns that if the co-occurrence signal is too weak — companies that share filings
+only slightly more within a theme than across — then *no* algorithm will find the theme, because the graph
+does not encode it. GraphRAG's promise is real exactly when the knowledge has community structure to detect;
+the mathematics is how to know when it does.
+
+</FinanceCaseStudy>
