@@ -108,7 +108,6 @@ export const tracks = [
     description:
       'The "why retrieval works" layer: mutual information between query, context, and answer; the retriever as a noisy channel; submodular and DPP context selection; multi-hop retrieval; GraphRAG; and the multimodal financial capstone.',
     planned: [
-      'Context Selection: Submodular Coverage, MMR, and Determinantal Point Processes',
       'Multi-Hop and Iterative Retrieval as Search over an Evidence Space',
       'GraphRAG: Community Detection and the Modularity of Knowledge',
     ],

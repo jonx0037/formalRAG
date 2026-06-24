@@ -543,6 +543,52 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   (the vMF-softmax answer model). Refs verified: Liu et al. "Lost in the Middle" TACL 2024 `10.1162/tacl_a_00638`
   (arXiv 2307.03172); Vaswani "Attention Is All You Need" arXiv 1706.03762; Dao et al. FlashAttention arXiv
   2205.14135 (the memory caveat); Lewis RAG 2005.11401; Shannon/Cover–Thomas reused.
+  Its **context-selection successor** (`context-selection-submodular-dpp`): the SHOWPIECE of the
+  rag-information-theory layer; ship = node `planned→published` + drop the title from `curriculum.ts`
+  the layer's `planned[]` (NO DAG edge changes — the THREE prereq edges + the outbound
+  `→multi-hop-iterative-retrieval` edge already exist; the unblocked successor is multi-hop-iterative-retrieval).
+  **Frontmatter `prerequisites` = the THREE graph edges** (retriever-as-noisy-channel/chunking-as-segmentation/
+  retrieval-vs-long-context), matching the pre-existing edges — do NOT over-apply the rvlc single-prereq
+  precedent (that held only because rvlc had ONE inbound edge; this node has three). The `.py` IMPORTS
+  `rvlc_corpus`/`answer_posterior_topk` (the bridge), pmi `saturation_table`/`answer_posterior`/`entropy`,
+  set-metrics `recall_at_k`, vmf `normalize`/`sample_vmf`, dense `dual_encoder_score`; `chunking-as-segmentation`
+  is **NOT imported** (its `mean_resultant_length(emb,i,j)` collides with the vMF closed form) — conceptual
+  prereq only. **The `sim≥0` convention is load-bearing for facility-location submodularity** — use a SEPARATE
+  `cov_sim_matrix` = clipped cosine `max(0,cos)` for facility/MMR (monotone + the `(s_e−m)⁺` hinge needs
+  nonneg), keep raw cosine `sim_matrix` (the Gram) for the DPP volume geometry. **The easy-corpus trap is
+  real:** `rvlc_corpus` is "too easy" (top-k precision≈1, no room for diversity on answer quality) — build a
+  topic-specific `selection_corpus` with the redundancy trap: `N_GENERIC` sector-generic near-duplicates
+  (ambiguous gold/peer, HIGHEST relevance, the cluster top-k wastes the budget on) + ONE lower-relevance
+  **disambiguator** near the gold prototype (the only passage that resolves the answer) + distractors; query
+  drawn only MILDLY toward gold (`gold_mix≈0.12`) so generics OUT-RANK the disambiguator (top-k skips it) yet A
+  is the answer. **DROP a `b_specific`** — including the peer's disambiguator lets diversity get tricked into
+  re-ambiguity. Use `PAYOFF_TAU≈0.15` (sharper than the imported 0.30) so the answer is decisive; read every
+  method through the imported `answer_posterior_topk` with an EQUAL budget so any Q delta is attributable to
+  selection alone. **Headline PINNED** (build-and-run): Q topk 0.38 < mmr 0.44 < facility 0.54 ≈ dpp 0.55;
+  **entropy RISES for diversity** (it spreads mass onto the truth across MORE companies), so Q (mass on truth)
+  is the headline, NOT entropy — don't assert entropy drops (a wrong-signed first guess). **Info gain is NOT
+  submodular even on the corpus** (witness ≈ −0.70 vs facility ≈ 0) — assert the VIOLATION + the constructed
+  XOR proof (Δ(D2|∅)=0 < Δ(D2|{D1})=1, supermodular), NOT submodularity; this is the honesty hinge (info gain
+  submodular only under conditional independence, Krause–Guestrin). **DPP greedy MAP maximizes the MONOTONE
+  surrogate `log det(I+L_S)`** (raw `log det(L_S)` is non-monotone + −∞ on singular near-duplicates; ridge
+  guards the raw slogdet for the geometry asserts) — ONE `greedy_select` reused by facility location AND the
+  log-det DPP; lazy-greedy (Minoux) == standard (the speedup anchor). **NWF panel needs a CONSTRUCTED
+  worst-case** — greedy == OPT on the smooth finance pool (ratio 1.0, vacuous), so add a rectangular 0/1
+  max-coverage instance (A/B/C over 12 facets) where greedy 9 < OPT 12 at k=2, both above the 0.632·OPT floor
+  7.59, to make the bound a VISIBLE gap. `det(S_S)=Vol²=∏σ²` (Gram identity); factorization
+  `det(L_S)=(∏q²)det(S_S)` asserted <1e-9. Collapse anchors: greedy@1=argmax, MMR(λ=1)=top-k, DPP@1=max-quality,
+  degenerate-weight `answer_posterior_topk`==imported `answer_posterior` <1e-12. **Repels-duplicates test must
+  use a NEAR-duplicate distinct index** (not the same index twice — the `I+L` surrogate gives a small positive
+  gain for a repeated index); unit-quality `L` isolates the pure volume claim. `pipelineStage: 'select'`
+  introduced (was unused). Cross-site (all `ls`-verified): `formalmlPrereqs` shannon-entropy+kl-divergence;
+  `formalmlConnections` svd (det=volume=∏σ²)+information-bottleneck; `formalcalculusConnections`
+  convex-optimization (multilinear/Lovász extension)+riemann-integral (NO `formalcalculusPrereqs` — the
+  mean-value-taylor/interior-optimum link was rvlc's, not load-bearing here); `formalstatisticsConnections`
+  exponential-families. Refs verified (`curl -sI`): Nemhauser–Wolsey–Fisher 1978 `10.1007/BF01588971`;
+  Nemhauser–Wolsey (best-algorithms/oracle bound) `10.1287/moor.3.3.177`; Carbonell–Goldstein MMR SIGIR 1998
+  `10.1145/290941.291025`; Kulesza–Taskar DPP FnTML 2012 `10.1561/2200000044` (arXiv 1207.6083); Krause–Guestrin
+  UAI 2005 arXiv 1207.1394; Minoux 1978 `10.1007/BFb0006528`; Lin–Bilmes ACL 2011 `aclanthology.org/P11-1052`;
+  Chen et al. NeurIPS 2018 arXiv 1709.05135; Feige (1−1/e tight) JACM 1998 `10.1145/285055.285059`; Cover–Thomas reused.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
