@@ -285,7 +285,7 @@
     {
       "id": "multi-hop-iterative-retrieval",
       "label": "Multi-Hop and Iterative Retrieval as Search over an Evidence Space",
-      "status": "planned",
+      "status": "published",
       "domain": "rag-information-theory"
     },
     {
