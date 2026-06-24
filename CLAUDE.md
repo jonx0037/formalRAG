@@ -596,6 +596,49 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `10.1145/290941.291025`; Kulesza–Taskar DPP FnTML 2012 `10.1561/2200000044` (arXiv 1207.6083); Krause–Guestrin
   UAI 2005 arXiv 1207.1394; Minoux 1978 `10.1007/BFb0006528`; Lin–Bilmes ACL 2011 `aclanthology.org/P11-1052`;
   Chen et al. NeurIPS 2018 arXiv 1709.05135; Feige (1−1/e tight) JACM 1998 `10.1145/285055.285059`; Cover–Thomas reused.
+  Its **multi-hop successor** (`multi-hop-iterative-retrieval`): the FIRST topic where retrieval becomes a
+  SEARCH (single frontmatter prereq = the one graph edge `context-selection-submodular-dpp`; ship = node
+  `planned→published` + drop the title from `curriculum.ts` rag-information-theory `planned[]`, NO edge changes —
+  the `context-selection→multi-hop→graphrag` edges already exist; unblocks `graphrag-community-detection`). The
+  `.py` IMPORTS the chain (vmf `normalize`/`sample_vmf`, dense `dual_encoder_score`, pmi `answer_posterior`/
+  `entropy`/`kl`, set-metrics `recall_at_k`, rvlc `rvlc_corpus`/`answer_posterior_topk`, context-selection
+  `greedy_select`/`info_gain_fn`/`info_gain_xor_witness`/`submodularity_witness`) **plus the CAPSTONE as a
+  SIBLING numeric source** for the FKG/over-fetch laws (`cascade_recall`/`over_fetch_factor`/`dependence_sweep`) —
+  capstone stays in `connections[]`, NOT `prerequisites` (import graph ≠ DAG); importing it is cheap (its corpus is
+  lazily cached behind `_corpus()`). **The corpus is the "mention" geometry, NOT a pure geodesic** (my first design):
+  a bridge filing of company X that names Y is `cos α·u_X + sin α·u_Y`, and `reformulate(q,d)=normalize(d−⟨d,q⟩q)`
+  extracts EXACTLY the `sin α` mention → points the next retrieval at Y. **Build-and-run TUNING crux** (all from a
+  `_diagnostics()` sweep, never guessed): (1) `KAPPA_NODE=200` is FAR too loose at d=32 (orthogonal noise ~0.4 swamps
+  the mention) → use `κ≈8000` (cosine 0.996) so reformulation is clean; (2) **private per-chain companies** (drawn
+  around distinct sector means, NOT shared rvlc protos) — sharing a company as a pure-answer in one chain AND a
+  bridge-source in another breaks the loop (the pure-company passages outrank the bridge); (3) `α=40°` not 45/50 —
+  the bridge cosine `cos α` must clear the WORST same-sector distractor (`max off-diag` company cosine), which at
+  `KAPPA_COMPANY=18` is ~0.53 < cos40=0.766 (cos45=0.707 was too close, recall dropped); (4) `TAU_HOP=0.35` (~2σ
+  above the d=32 equatorial noise `1/√d`). **The stopping rule is RESIDUAL-based, NOT belief-movement** — and this
+  IS the supermodular climax made operational: the KL belief-movement is TINY at the bridge (0.08) and HUGE at the
+  answer (9.2), so a myopic "stop when belief stops moving" rule would halt at the worthless-looking bridge and never
+  reach the answer. Stop instead when the read filing opens no new direction (`‖d−⟨d,q⟩q‖ < REFORM_EPS`); the
+  bridge/terminal residual gap is empirical ([0.53,0.79] vs [0.05,0.43]) so `eps=0.47` sits in it (tuned,
+  seed-dependent — the rigorFlag; `hops_taken` PINNED). **The vMF answer model does NOT give a clean numeric XOR**
+  (the answer doc aligns with its own company regardless of the bridge), so carry the supermodular climax via the
+  IMPORTED `info_gain_xor_witness` (exact general proof, violation=1.0) + the OPERATIONAL fact the corpus DOES
+  exhibit: `answer_in_single_pool=0` (single-shot can't reach the near-orthogonal answer) vs reachable after one
+  reformulation — do NOT try to force a vMF Δ(ans|bridge)>Δ(ans|∅) numeric witness. **Measured per-hop recall is ~1**
+  on the clean corpus → the FKG/compounding demo MUST use illustrative middling retentions (`DEMO_R1,R2=0.6,0.5`,
+  the capstone's), or the product law/FKG is vacuous. Collapse anchors: 1-hop belief == imported `answer_posterior`
+  <1e-12; single-hop recall == imported `recall_at_k`; greedy hop == imported `greedy_select` argmax; chain recall ==
+  imported `cascade_recall`. `pipelineStage: 'retrieve'` (iterated retrieval). Viz Panel A is a 1-D "cosine to the
+  current query" axis (bridge above τ, answer below, jumps to ~1 after reformulation) — recompute reachability `cos>τ`
+  + `ρ^(1/k)` + `∏r` closed-form in TS; bake the cosines/recall/trajectory/FKG sweep. Cross-site (all `ls`/`curl`
+  verified): `formalmlPrereqs` shannon-entropy+kl-divergence; `formalmlConnections` random-walks (a trajectory is a
+  walk on the retrieval graph)+information-bottleneck+rate-distortion; `formalstatisticsConnections` hypothesis-testing
+  (the SPRT stopping analogy)+exponential-families; `formalcalculusConnections` stability-dynamics (Bellman
+  fixed-point/value-iteration contraction)+convex-optimization. NO sibling slug for MDP/Bellman/dynamic-programming/
+  optimal-stopping/SPRT/Wald/martingale → name in prose. graphrag-community-detection UNBUILT → prose only, NOT in
+  `connections[]`. Refs verified (`curl -sI`): HotpotQA `aclanthology.org/D18-1259`; MDR Xiong arXiv 2009.12756 (ICLR
+  2021, no DOI); IRCoT `aclanthology.org/2023.acl-long.557`; Self-Ask (names "compositionality gap")
+  `aclanthology.org/2023.findings-emnlp.378`; FLARE `aclanthology.org/2023.emnlp-main.495`; Self-RAG arXiv 2310.11511;
+  Wald SPRT 1945 `10.1214/aoms/1177731118`; Bellman 1957 (book, no DOI); FKG 1971 `10.1007/BF01651330`; Cover–Thomas reused.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

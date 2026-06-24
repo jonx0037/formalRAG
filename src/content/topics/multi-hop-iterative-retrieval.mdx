@@ -1,0 +1,455 @@
+---
+title: "Multi-Hop and Iterative Retrieval as Search over an Evidence Space"
+subtitle: "A compositional question — the revenue of the company that acquired Company A's primary supplier — hides its answer in a document the query cannot reach in one retrieval: near-orthogonal to the query on the embedding sphere, yet a short reformulation away through a bridge filing that names the supplier. Retrieval becomes a search over an evolving evidence space, where each hop is the previous topic's retrieve-and-select step, end-to-end recall is the product of per-hop recalls, an information-theoretic stopping rule decides when the marginal evidence no longer pays its cost, and — the climax — single-shot selection provably cannot shortcut the path because the bridge and answer form a supermodular synergy."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "context-selection-submodular-dpp"
+tags:
+  - "multi-hop-retrieval"
+  - "iterative-retrieval"
+  - "evidence-space-search"
+  - "retrieval-graph"
+  - "compositional-questions"
+  - "information-gain-stopping"
+  - "supermodular-synergy"
+  - "financial-nlp"
+domain: "rag-information-theory"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+videoId: null
+notebookPath: "notebooks/multi-hop-iterative-retrieval/01_multi_hop_iterative_retrieval.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/multi-hop-iterative-retrieval.mdx"
+datePublished: 2026-06-24
+estimatedReadTime: 32
+abstract: "Single-hop retrieval answers a question by finding documents near the query on the embedding sphere. A compositional question — the revenue of the company that acquired Company A's primary supplier — defeats it: the answer document is near-orthogonal to the query (their cosine is below the edge threshold) and reachable only through a bridge document that names the supplier. On the retrieval graph, whose nodes are documents and whose edges are the relation 'retrievable-from', the answer sits at graph distance two, so single-hop recall is essentially zero while multi-hop recall is essentially one — the compositional gap. This topic frames multi-hop and iterative retrieval as search over an evidence space: a state is a belief over answers, an action is a reformulated query, a trajectory is a path through the graph, and each hop is exactly the retrieve-and-select operator the previous topic certified. The reformulation operator q' = normalize(d − ⟨d,q⟩q) extracts the new entity a read filing names, the part orthogonal to the current query — and that is what turns a bridge into the next query. The greedy hop maximizes expected marginal information; the optimal policy satisfies a Bellman recursion we name but do not solve, because it is intractable over the belief simplex. We then pay the bill of chaining: end-to-end recall is the product of per-hop recalls, so it decays geometrically, and to hold an end-to-end target ρ each of k hops must over-retrieve to ρ^(1/k) — though positive dependence between hops, by the same FKG argument the capstone used for cascades, makes the independent product a conservative lower bound, the safe direction to provision. We close on stopping and the climax. A hop's marginal information is the new direction its filing opens; the rule is to stop when that residual collapses — when the read filing names no one new — which makes the realized hop count equal the chain depth. Greedy hopping earns no 1−1/e guarantee, and the reason is the heart of the topic: information gain is not submodular, and the compositional question is its supermodular, synergistic case — the bridge alone says nothing about the answer, the answer document alone cannot be recognized as relevant, yet together they resolve it, the exact XOR witness the context-selection topic used. So single-shot selection provably cannot reach the answer — it is never in the one-hop pool — and a myopic stopping rule that watches the belief would halt at the worthless-looking bridge; only reformulating from the bridge's content harvests the synergy. The synthetic von Mises–Fisher answer model is exact for the model and illustrative of a real retriever, and the compositional-gap headline is one constructed corpus, not a universal law; a tested notebook owns every number and the lab recomputes only the closed forms."
+connections:
+  - topic: "context-selection-submodular-dpp"
+    relationship: "the previous topic certified the per-hop operator — retrieve a candidate pool, then select the covering subset within budget, with greedy on a monotone submodular objective provably within 1−1/e of optimal; this topic makes that step the TRANSITION of a search, because when one selected passage raises a new question the pool itself grows, so selection iterates into multi-hop, and the very XOR witness that broke info-gain submodularity there is the supermodular synergy that forces a second hop here"
+  - topic: "pmi-retrieval-value"
+    relationship: "PMI measured a single document's evidentiary value in bits and showed a redundant second filing adds almost none; this topic chains that measurement across hops — a hop's marginal information is the new belief it buys, diminishing as the trajectory saturates until the stopping rule fires, and the compositional case is precisely where two documents each worth nothing alone are worth the whole answer together"
+  - topic: "retriever-as-noisy-channel"
+    relationship: "the noisy-channel topic priced answer error against the bits read through one retrieval and read the recall–precision point as rate–distortion; a multi-hop trajectory is that channel used in series, where each hop's recall is a per-stage retention and the end-to-end error is the composition, so chaining recalls geometrically is reading several noisy channels back to back"
+  - topic: "retrieval-vs-long-context"
+    relationship: "that topic showed a bigger single window does not reach an answer the retriever never surfaced, and answer quality peaks at the smallest covering context; multi-hop is the orthogonal fix — rather than enlarge one retrieval it issues another, reformulated query, reaching documents no single query could because they sit near-orthogonal to it on the sphere"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "recall@k defined per-hop success as set membership; this topic composes those per-hop recalls into an end-to-end chain recall that decays as their product, and the over-retrieve-to-ρ^(1/k) provisioning is that set-recall target lifted from one retrieval to a sequence of them"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "the dual-encoder sphere geometry is where the compositional gap lives — the answer document is near-orthogonal to the query while a bridge document sits at a positive cosine to both, so the same learned inner products that make single-hop fail are what make a two-hop path reachable, and the retrieval scores come from its dual_encoder_score"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "the capstone proved cascade recall is the product of per-stage retentions, a conservative lower bound the correlated real pipeline sits above by FKG, and over-fetch is the reciprocal of that composite retention; this topic reuses both laws over HOPS rather than stages — chain recall is the per-hop product, positive dependence makes it a lower bound, and the per-hop over-fetch follows the same negative-binomial scan law"
+rigorFlag: "Five honesty notes. First, greedy hop selection has no (1−1/e) guarantee: the per-hop objective is information gain, and information gain is not submodular — the compositional question is precisely its supermodular case, where the marginal of one hop increases after another, the opposite of diminishing returns, so the Nemhauser–Wolsey–Fisher machinery the prerequisite leaned on does not apply across hops. Second, the optimal multi-hop policy is the fixed point of a Bellman recursion over the belief-state space, and that optimization is intractable (the state is a distribution over answers); every practical method, including the greedy max-expected-information hop we analyze and every cited system, is a heuristic approximation, not the optimal policy. Third, the compounding-recall law is the product of per-hop recalls only under hop independence; real hops share corpus geometry, and by FKG/Harris — the same argument the capstone used for cascade stages — positive dependence makes the independent product a conservative lower bound, so the over-retrieve-to-ρ^(1/k) provisioning is the safe direction, not an equality. Fourth, the stopping rule — stop when the next filing opens no new direction — is framed by analogy to optimal stopping and the sequential probability ratio test; it is a decision-theoretic motivation, not a derived optimality theorem on this corpus, the threshold is tuned, and the realized adaptive hop count is seed-dependent. Fifth, the answer model is a synthetic von Mises–Fisher softmax over the embedding sphere: the compositional gap (single-hop recall ≈ 0, multi-hop ≈ 1) and the per-hop recalls are exact for that model and illustrative of a real retriever, but the headline is built on one constructed corpus engineered to have a near-orthogonal answer reachable through a bridge — it demonstrates the mechanism, it does not claim every multi-hop question has this geometry."
+formalmlPrereqs:
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the information a hop contributes is the answer entropy it removes — H(A|Q,D₁..D_{t−1}) reduced toward H(A|Q,D₁..D_t) — so the stopping rule reads off the conditional Shannon entropy that topic develops, and a hop that buys little is one whose entropy reduction has saturated"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "each hop's update is a belief shift measured as a KL divergence between the answer posterior before and after the retrieve-and-select step — the per-hop information gain that topic defines — and the trajectory's signature is that this KL is tiny at the bridge and large at the decisive answer hop"
+formalmlConnections:
+  - topic: "random-walks"
+    site: "formalml"
+    relationship: "a multi-hop trajectory is a walk on the retrieval graph whose edges are the relation retrievable-from, so traversing from query to bridge to answer is exactly the random-walk-on-a-graph object that topic develops, and reachability at graph distance two is a two-step transition"
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "iterative retrieval compresses an evolving evidence set into the smallest belief that predicts the answer — the bottleneck trade-off made sequential, where each hop adds prediction and the stopping rule caps the compression budget the chain is allowed to spend"
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "trading hops (the rate, the bits and cost paid for retrieval) against residual answer error (the distortion) places each stopping point on a rate-distortion frontier, so the marginal-information-versus-cost decision is the discrete sequential face of the rate-distortion budgeting that topic builds"
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "the stopping rule — continue retrieving while the next hop opens new evidence, stop otherwise — is a sequential test that accumulates evidence until a decision boundary is crossed, the sequential-probability-ratio reading of the likelihood-ratio machinery that topic develops"
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the synthetic answer model p(a|q,D) is a softmax over von Mises–Fisher similarities, the categorical exponential family in its natural parameters that topic develops, and the belief update after each hop is a natural-parameter shift the iterative loop accumulates"
+formalcalculusConnections:
+  - topic: "stability-dynamics"
+    site: "formalcalculus"
+    relationship: "the optimal multi-hop policy is the fixed point of a value recursion solved by iterating a contraction toward a unique limit — exactly the fixed-point and stability-of-iteration machinery that topic builds — which is why value iteration over belief states converges even though the policy itself stays intractable"
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "holding end-to-end recall fixed while minimizing total hop cost, with each hop's recall a separable factor of the product, is the concave log-recall allocation that topic's machinery solves by equalizing marginal recall-per-cost across hops, the water-filling the capstone applied to cascade stages"
+references:
+  - type: "paper"
+    title: "HotpotQA: A Dataset for Diverse, Explainable Multi-hop Question Answering"
+    authors: "Yang, Qi, Zhang, Bengio, Cohen, Salakhutdinov & Manning"
+    year: 2018
+    url: "https://aclanthology.org/D18-1259/"
+    note: "The defining multi-hop QA benchmark: bridge and comparison questions whose answer requires composing facts across two documents — the compositional gap this topic models geometrically; EMNLP 2018 (arXiv:1809.09600)"
+  - type: "paper"
+    title: "Answering Complex Open-Domain Questions with Multi-Hop Dense Retrieval"
+    authors: "Xiong et al."
+    year: 2021
+    url: "https://arxiv.org/abs/2009.12756"
+    note: "Iterative dense retrieval: re-encode a query from the passage just read and retrieve again — the retrieve→read→reformulate loop this topic analyzes, with the reformulation operator made explicit; ICLR 2021"
+  - type: "paper"
+    title: "Interleaving Retrieval with Chain-of-Thought Reasoning for Knowledge-Intensive Multi-Step Questions (IRCoT)"
+    authors: "Trivedi, Balasubramanian, Khot & Sabharwal"
+    year: 2023
+    url: "https://aclanthology.org/2023.acl-long.557/"
+    note: "Interleaving reasoning and retrieval: each reasoning step reformulates the next query — the search-over-an-evidence-space view in a modern LLM pipeline; ACL 2023 (arXiv:2212.10509)"
+  - type: "paper"
+    title: "Measuring and Narrowing the Compositionality Gap in Language Models (Self-Ask)"
+    authors: "Press, Zhang, Min, Schmidt, Smith & Lewis"
+    year: 2023
+    url: "https://aclanthology.org/2023.findings-emnlp.378/"
+    note: "Names and measures the 'compositionality gap' — the share of compositional questions a model answers from no single retrieval — the phenomenon this topic's Movement 1 formalizes; Findings of EMNLP 2023 (arXiv:2210.03350)"
+  - type: "paper"
+    title: "Active Retrieval Augmented Generation (FLARE)"
+    authors: "Jiang et al."
+    year: 2023
+    url: "https://aclanthology.org/2023.emnlp-main.495/"
+    note: "Retrieve only when the generation is uncertain — the information stopping rule made operational, deciding hop-by-hop whether another retrieval pays its cost; EMNLP 2023 (arXiv:2305.06983)"
+  - type: "paper"
+    title: "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection"
+    authors: "Asai, Wu, Wang, Sil & Hajishirzi"
+    year: 2024
+    url: "https://arxiv.org/abs/2310.11511"
+    note: "Adaptive retrieve-and-critique: the model decides when to retrieve and whether to keep what it found — the decision-theoretic stopping this topic frames as an SPRT/optimal-stopping analogue; ICLR 2024"
+  - type: "paper"
+    title: "Sequential Tests of Statistical Hypotheses"
+    authors: "Wald"
+    year: 1945
+    url: "https://doi.org/10.1214/aoms/1177731118"
+    note: "The sequential probability ratio test: accumulate evidence and stop at a decision boundary rather than at a fixed sample size — the stopping-rule analogue behind 'retrieve until the marginal evidence no longer pays'; Annals of Mathematical Statistics 16(2)"
+  - type: "book"
+    title: "Dynamic Programming"
+    authors: "Bellman"
+    year: 1957
+    note: "The value recursion and the principle of optimality behind the evidence-space search: the optimal policy is the fixed point of a Bellman operator over belief states, named here and intractable in general; Princeton University Press"
+  - type: "paper"
+    title: "Correlation Inequalities on Some Partially Ordered Sets (FKG)"
+    authors: "Fortuin, Kasteleyn & Ginibre"
+    year: 1971
+    url: "https://doi.org/10.1007/BF01651330"
+    note: "The positive-association inequality: monotone increasing events are positively correlated, so a true neighbor missed at one hop is likelier missed at the next — which makes the independent product of per-hop recalls a conservative lower bound; Communications in Mathematical Physics 22(2)"
+  - type: "book"
+    title: "Elements of Information Theory"
+    authors: "Cover & Thomas"
+    year: 2006
+    url: "https://doi.org/10.1002/047174882X"
+    note: "The chain rule of mutual information behind a hop's marginal information, and the entropy framing of the belief carried over from the PMI and noisy-channel topics; 2nd edition, Wiley"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import MultiHopLaboratory from '../../components/viz/MultiHopLaboratory.tsx';
+
+## From a fixed pool to a growing one
+
+The previous topic ended on a sentence that pointed past itself. Having spent its length showing how to
+choose the best $k$ passages from a *fixed* candidate pool — coverage over relevance, the greedy choice
+provably within $1 - 1/e$ of optimal — it closed: "when one passage's answer raises a new question,
+selection becomes a *search* over an evolving evidence space, which is where multi-hop and iterative
+retrieval take over."
+
+This is that search. Every topic in this layer so far has assumed one shot: retrieve a pool once, choose a
+subset, answer. That assumption holds for a question whose evidence sits in one place. It breaks for a
+*compositional* question — one whose answer is defined through an intermediate entity the query never names.
+Ask for *the revenue of the company that acquired Company A's primary supplier*, and no single retrieval can
+return the answer: the document that reports that revenue is a filing of some company $C$ that the query,
+which only mentions $A$, has no reason to be near. You must first find $A$'s filing to learn the supplier
+$B$, then find who acquired $B$, then retrieve $C$'s revenue. Retrieval becomes a loop — retrieve, read,
+reformulate the query from what you read, retrieve again — and the object of study is the loop, not the
+single step.
+
+We will make four claims precise, on the same finance geometry the rest of the arc used. First, that the
+compositional answer is genuinely *unreachable* in one hop — a statement about the embedding sphere.
+Second, that the loop is a search over an evidence space, each hop the previous topic's retrieve-and-select
+step. Third, that chaining is expensive: end-to-end recall multiplies across hops, so it decays. Fourth —
+the climax — that greedy single-shot selection *provably cannot* shortcut the path, because the bridge and
+the answer form a supermodular synergy, the exact failure mode of the diminishing-returns machinery the last
+topic relied on.
+
+## The compositional gap: an answer one hop cannot reach
+
+Fix the geometry. Each company has a unit direction $u_X$ on the sphere; a *filing* of company $X$ that
+mentions company $Y$ is a document whose embedding leans mostly toward $X$ but carries a component toward
+$Y$ — the mention. We model it as
+
+$$
+f_{X\to Y} \;=\; \cos\alpha \, u_X + \sin\alpha\, u_Y, \qquad \alpha \in (0, \tfrac{\pi}{2}),
+$$
+
+so a query $q \approx u_X$ retrieves the filing ($\langle q, f_{X\to Y}\rangle \approx \cos\alpha$, large)
+while the mentioned company $Y$, if it sits in a different sector, is near-orthogonal to $q$
+($\langle q, u_Y\rangle \approx 0$). The terminal *answer* filing of the last company is just its own
+direction. This is the whole mechanism, and it lets us define the structure the question lives on.
+
+<TheoremBlock type="definition" number={1} title="The retrieval graph and graph distance">
+
+Let $V$ be the documents. Fix an edge threshold $\tau \in (0,1)$ and a reformulation map
+$\rho(\cdot)$ that turns a read document into the next query. The **retrieval graph** is the directed graph
+on $V$ with an edge $d_i \to d_j$ whenever $\langle \rho(d_i), d_j\rangle > \tau$ — "$d_j$ is retrievable
+from a query formed by reading $d_i$." A query $q$ is a source: it reaches $\{d : \langle q, d\rangle > \tau\}$
+in one step. The **graph distance** $d_G(q, d)$ of a document is the length of the shortest directed path
+from the query's reachable set to $d$.
+
+</TheoremBlock>
+
+A single-hop retriever returns the source's one-step neighborhood. So a question is answerable in one hop
+exactly when its answer document sits at graph distance one. The compositional question is engineered so it
+does not.
+
+<TheoremBlock type="proposition" number={1} title="The compositional gap">
+
+Take a two-hop chain $q \approx u_A$, a bridge filing $f_{A\to B} = \cos\alpha\,u_A + \sin\alpha\,u_B$, and
+an answer filing $\approx u_B$, with $A$ and $B$ in distinct sectors so $\langle u_A, u_B\rangle \approx 0$.
+If $\cos\alpha > \tau > \langle u_A, u_B\rangle$, then:
+
+1. the **bridge is reachable** from the query, $\langle q, f_{A\to B}\rangle \approx \cos\alpha > \tau$;
+2. the **answer is not**, $\langle q, u_B\rangle \approx \langle u_A, u_B\rangle < \tau$ — it sits at graph
+   distance two;
+3. the **reformulated query reaches it**: the operator
+   $\rho(d) = \dfrac{d - \langle d, q\rangle\, q}{\lVert d - \langle d, q\rangle\, q\rVert}$ applied to the
+   bridge returns $\rho(f_{A\to B}) \approx u_B$, since removing the $u_A$ component of the bridge leaves the
+   $\sin\alpha\,u_B$ mention; then $\langle \rho(f_{A\to B}), u_B\rangle \approx 1 > \tau$.
+
+Consequently single-hop recall of the answer is $\approx 0$ and two-hop recall is $\approx 1$.
+
+</TheoremBlock>
+
+The reformulation operator is the heart of the construction and worth a sentence on its own. It is the
+projection of the read document onto the subspace orthogonal to the current query — *the new direction the
+filing adds, the entity it names that the query did not.* Reading $A$'s filing and subtracting what the
+query already knew about $A$ leaves exactly the pointer to $B$. That is what converts a document into the
+next query, and it is why the answer, invisible from $q$, becomes reachable after one step. The lab's first
+panel is this proposition: on the "cosine to the current query" axis the bridge sits above $\tau$ and the
+answer below it, until reformulation snaps the answer's cosine to $\approx 1$.
+
+<MultiHopLaboratory client:visible />
+
+On the constructed corpus the gap is total: averaged over the compositional chains, single-hop answer recall
+is $0.00$ and multi-hop is $1.00$, while the one-hop control questions — whose answer *is* the query
+company's own filing — are reachable in a single hop, recall $1.00$. The point is not the precise decimals,
+which are exact for this synthetic answer model; it is that the gap is a property of the *geometry*, not of
+any decoder. No amount of reading more of the wrong neighborhood reaches a document that is near-orthogonal
+to the query.
+
+## Multi-hop as search over an evidence space
+
+Once the answer is a path rather than a point, retrieval is a sequential decision problem. We give it the
+standard furniture.
+
+<TheoremBlock type="definition" number={2} title="The evidence-space search problem">
+
+A **state** is a belief $b \in \Delta(\mathcal{A})$ over the answer space — the posterior $p(a \mid q, D)$
+given the documents $D$ read so far. An **action** is a reformulated query $q'$. The **transition** is the
+previous topic's retrieve-and-select step: from the $\tau$-reachable pool of $q'$, select a context $S$ by
+greedily maximizing the information gain $f_{\mathrm{IG}}(S) = H(b) - H(b \mid S)$ — the same monotone-greedy
+maximizer context selection certified — read $S$, and update the belief. The **reward** of a hop is the
+information it adds. A **trajectory** is a path through the retrieval graph; the **greedy policy** takes, at
+each state, the action of maximal expected marginal information.
+
+</TheoremBlock>
+
+Two things deserve emphasis. The per-hop operator is *literally* the prerequisite's: retrieve a pool, then
+select the covering subset under a budget, with greedy on a submodular oracle. Multi-hop does not replace
+selection; it iterates it, feeding each step's reading into the next step's query. And the reward is
+information, which ties the search to the bits the PMI and noisy-channel topics counted. What multi-hop adds
+is the *control* problem on top — which query to issue next, and when to stop.
+
+The optimal control problem has a clean form and an unfortunate cost.
+
+<TheoremBlock type="remark" title="The optimal policy is a Bellman fixed point — and intractable">
+
+The value of a belief under the optimal policy satisfies the Bellman recursion
+
+$$
+V(b) \;=\; \max_{a}\Big[\, r(b, a) + \mathbb{E}_{b' \sim T(b, a)}\, V(b') \,\Big],
+$$
+
+the fixed point of a contraction, reachable in principle by value iteration. But the state space is the
+simplex over answers and the action space is every reformulation, so computing $V$ is intractable. Every
+practical multi-hop method — the greedy max-information hop we analyze, and every system in the literature —
+is a heuristic approximation of this policy, not the policy itself. We will see in the last section that the
+greedy heuristic has no approximation guarantee here, for a reason specific to compositional structure.
+
+</TheoremBlock>
+
+## Compounding recall: why hops decay geometrically
+
+A path is only as strong as its weakest link, and "strong" here is recall. If hop $i$ retrieves its target
+with probability $r_i$, and the hops were independent, the whole chain succeeds with the product.
+
+<TheoremBlock type="theorem" number={1} title="The chain recall law and its over-fetch">
+
+For a $k$-hop chain with per-hop recalls $r_1, \dots, r_k$ and independent hops, the end-to-end recall is
+
+$$
+R_{\mathrm{chain}} \;=\; \prod_{i=1}^{k} r_i .
+$$
+
+To leave an end-to-end target $\rho$, each hop must reach $r_i = \rho^{1/k}$, which rises toward $1$ as $k$
+grows; equivalently the front end of each hop must **over-retrieve** by $1/\prod_i r_i$ — one
+negative-binomial scan law on the composite retention, exactly as the capstone composed cascade stages, now
+composed over hops.
+
+</TheoremBlock>
+
+The consequences are stark and they are the lab's second panel. With a modest per-hop recall of $0.7$, a
+three-hop chain succeeds barely a third of the time ($0.7^3 \approx 0.34$); to hold $\rho = 0.9$ end to end
+over three hops, each hop must individually reach $0.9^{1/3} \approx 0.965$. Multi-hop is not free
+reach — it is reach bought at a geometric price, which is why a system that hops carelessly is worse than one
+that does not hop at all.
+
+The independence assumption is, as ever, the soft spot — and as ever, it errs in the safe direction.
+
+<TheoremBlock type="proposition" number={2} title="Positive dependence makes the product a lower bound (FKG)">
+
+Hops share corpus geometry: a query that is hard at one hop tends to be hard at the next, so the per-hop
+success events are positively associated. By the FKG/Harris inequality, the realized chain recall is at
+least the product of the marginal recalls,
+
+$$
+\Pr\!\Big[\textstyle\bigcap_i \{\text{hop } i \text{ succeeds}\}\Big] \;\ge\; \prod_i r_i .
+$$
+
+The independent product is therefore a conservative lower bound; provisioning the over-fetch to $1/\prod_i r_i$
+is safe, not exact.
+
+</TheoremBlock>
+
+We verify the direction rather than assume it, on the same bivariate-survival copula the capstone used: as
+the hop dependence $\rho$ runs from negative to positive, the gap between realized and independent chain
+recall runs from negative through zero to positive — the FKG sign, confirmed across both signs before being
+written down. (The measured per-hop recalls on this clean corpus are $\approx 1$, which leaves no room for
+the product law or FKG to bite, so the panel uses illustrative middling retentions — a high-retention chain
+makes the law vacuous, the same caveat the capstone flagged.)
+
+## When to stop: marginal information versus cost
+
+A search needs a stopping rule. The information-theoretic instinct is right: stop when the next hop's
+expected marginal information falls below its cost. The subtlety is *which* signal measures that
+information — and the answer is not the one a naive reading suggests.
+
+<TheoremBlock type="definition" number={3} title="The marginal information of a hop">
+
+The information a hop adds is the entropy it removes from the answer belief,
+$\Delta I_t = H(A \mid Q, D_{1:t-1}) - H(A \mid Q, D_{1:t})$; by the chain rule of mutual information these
+telescope to the total $I(A; D_{1:k} \mid Q)$. Operationally, the *new direction* a read filing opens is its
+reformulation residual $\lVert d - \langle d, q\rangle q\rVert$ — the magnitude of the entity it names that
+the query did not. When the residual collapses, the filing names no one new and the next hop can only
+re-retrieve known evidence, so its expected marginal information is $\approx 0$.
+
+</TheoremBlock>
+
+<TheoremBlock type="algorithm" number={1} title="Adaptive iterative retrieval with an information stopping rule">
+
+Initialize $q \leftarrow q_0$ and the belief $b_0$. Repeat: rank the corpus by
+$\langle q, \cdot\rangle$; read the top unread document $d$; update the belief; if the residual
+$\lVert d - \langle d, q\rangle q\rVert < \varepsilon$ — the filing names no new entity — **stop** and
+return the belief; otherwise set $q \leftarrow \rho(d)$ and continue. This is a heuristic, an SPRT /
+optimal-stopping analogue, not the Bellman-optimal policy.
+
+</TheoremBlock>
+
+The rule terminates correctly: through every bridge hop the residual clears the threshold (a new entity to
+chase), and at the terminal answer filing it collapses (it names no one), so the realized hop count equals
+the chain depth — one, two, three hops for one-, two-, three-hop questions. The lab's third panel shows this
+on a worked three-hop trajectory: two bridge residuals well above the threshold, then a collapse, and the
+loop halts.
+
+The panel also exposes a trap, and it is the bridge to the climax. The obvious stopping signal would be the
+*belief movement* — stop when reading another document no longer changes your answer distribution. On a
+compositional chain that signal is exactly backwards. The bridge hop barely moves the belief: reading $A$'s
+filing only confirms what the query already implied about $A$, a KL movement near $0.08$. The decisive shift
+comes *last*, at the answer hop, with a KL movement above $9$ — the belief snaps from $\approx 0$ mass on
+the truth to $\approx 1$. A myopic "stop when the belief stops moving" rule would halt at the
+worthless-looking bridge and never reach the answer. The decisive evidence arrives late, which is the
+operational face of the structure we turn to now.
+
+## Why greedy cannot shortcut: the supermodular synergy
+
+The prerequisite leaned on submodularity — diminishing returns — to earn its $1 - 1/e$ guarantee, and
+flagged the one objective that breaks it: information gain. Multi-hop is where that break becomes the whole
+story.
+
+<TheoremBlock type="theorem" number={2} title="Compositional information is supermodular">
+
+For a compositional pair — a bridge document $d_{\mathrm{br}}$ and an answer document $d_{\mathrm{ans}}$
+whose joint identifies the answer while neither does alone — the marginal information of the answer document
+*increases* with conditioning:
+
+$$
+\Delta\big(d_{\mathrm{ans}} \mid \varnothing\big) \;=\; 0
+\;<\; 1 \;=\; \Delta\big(d_{\mathrm{ans}} \mid \{d_{\mathrm{br}}\}\big).
+$$
+
+This is the XOR witness: with $A = D_{\mathrm{br}} \oplus D_{\mathrm{ans}}$, each observation alone carries
+zero information about $A$ while the two together carry one bit. A submodular gain would have the marginal
+*decrease* with conditioning; here it does the opposite — information gain is **supermodular** on the
+compositional pair, and so not submodular, the same witness context selection used to disqualify it as a
+greedy objective.
+
+</TheoremBlock>
+
+Submodularity was the hypothesis the Nemhauser–Wolsey–Fisher theorem needed. Without it, greedy carries no
+$1 - 1/e$ guarantee — and worse, on this structure greedy single-shot selection cannot reach the answer at
+all.
+
+<TheoremBlock type="corollary" number={1} title="Multi-hop is the synergy-exploiting move">
+
+Because the answer document's marginal value is zero until the bridge is read, a single-shot selector
+optimizing a one-pass objective will never buy it — and in fact cannot: the answer is below the edge
+threshold from the query, so it is not even in the one-hop reachable pool. Only by reading the bridge and
+*reformulating from its content* does the answer enter a reachable pool. Multi-hop is precisely the move that
+converts the bridge's named entity into a query that reaches the answer, harvesting a synergy no single-shot
+selection can.
+
+</TheoremBlock>
+
+The lab's fourth panel is this corollary as two bars and a toggle: the answer document alone contributes
+zero bits, given the bridge it contributes one — the marginal arrow points *up* — and the answer is in the
+single-hop reachable pool with frequency $0.00$, in the reformulated pool with frequency $1.00$. The
+supermodular synergy is not a curiosity at the edge of the theory; it is the reason multi-hop retrieval has
+to exist.
+
+<RigorFlag>
+
+Five honesty notes. First, greedy hopping has no $(1-1/e)$ guarantee: the per-hop objective is information
+gain, which is supermodular on the compositional pair, exactly the hypothesis the theorem rules out — so the
+prerequisite's machinery does not transfer across hops. Second, the optimal policy is the fixed point of a
+Bellman recursion over the belief simplex and is intractable; the greedy max-information hop, and every cited
+system, is a heuristic. Third, the compounding-recall product holds under hop independence; positive
+dependence makes it a conservative lower bound (FKG/Harris), verified across both signs of a copula, so the
+over-retrieve provisioning is the safe direction, not an equality. Fourth, the stopping rule — stop when the
+read filing opens no new direction — is an optimal-stopping/SPRT analogue, not a derived optimum on this
+corpus; the threshold is tuned and the realized hop count is seed-dependent. Fifth, the answer model is a
+synthetic von Mises–Fisher softmax, exact for the model and illustrative of a real retriever, on one
+constructed corpus engineered to have a near-orthogonal answer reachable through a bridge — it demonstrates
+the mechanism, it does not claim every multi-hop question has this geometry.
+
+</RigorFlag>
+
+## What multi-hop retrieval trades, in one line
+
+Multi-hop turns selection into search over an evolving evidence space: each hop is the certified
+retrieve-and-select step, the reformulation operator extracts the new entity a filing names, and the answer
+to a compositional question is a path, not a point. Recall compounds geometrically, so each hop must
+over-retrieve; the loop stops when a filing opens no new direction; and greedy earns no $1 - 1/e$ here
+because the compositional case is supermodular — which is the very reason iterative reformulation, not a
+bigger single-shot selection, is what reaches the answer.
+
+<FinanceCaseStudy title="The revenue of the company that acquired Company A's supplier" modality={["text", "pdf", "news"]}>
+
+A supply-chain question is rarely answerable from one filing. Ask for the revenue of the company that
+acquired Company A's primary chip supplier, and the query mentions only $A$. Hop one retrieves $A$'s 10-K —
+the bridge — which discloses the supplier $B$; the reformulation strips away what the query already knew
+about $A$ and leaves the pointer to $B$. Hop two, querying for $B$, retrieves the acquisition news and the
+acquirer $C$; hop three retrieves $C$'s revenue, the answer. No single retrieval could have surfaced $C$'s
+filing: it never mentions $A$, and on the embedding sphere it sits near-orthogonal to the original query.
+The discipline is to read the filing that *names the next entity*, reformulate, and retrieve again — paying
+the geometric recall cost and stopping once a hop names no one new. Once iterative retrieval has traversed
+these edges enough times, the relation "retrievable-from" has drawn a graph over the whole corpus, and the
+question shifts from finding a single path to understanding that graph's global structure — its dense
+communities of mutually-retrievable filings. That global community structure is the object of GraphRAG and
+community detection, the next step in this arc.
+
+</FinanceCaseStudy>
