@@ -639,6 +639,47 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   2021, no DOI); IRCoT `aclanthology.org/2023.acl-long.557`; Self-Ask (names "compositionality gap")
   `aclanthology.org/2023.findings-emnlp.378`; FLARE `aclanthology.org/2023.emnlp-main.495`; Self-RAG arXiv 2310.11511;
   Wald SPRT 1945 `10.1214/aoms/1177731118`; Bellman 1957 (book, no DOI); FKG 1971 `10.1007/BF01651330`; Cover–Thomas reused.
+  Its **graphrag successor** (`graphrag-community-detection`, the TERMINUS of the rag-information-theory track — with it the
+  track is COMPLETE, 0 planned): the topic where retrieval becomes a PARTITION, not a path. Single frontmatter prereq
+  `multi-hop-iterative-retrieval` (the one inbound edge); ship = node `planned→published` + drop the title from
+  `curriculum.ts` rag-information-theory `planned[]` (now `[]`), NO edge changes. `pipelineStage: index` (the community
+  graph + summaries are precomputed OFFLINE, not a per-query retrieve). numpy/scipy ONLY (no networkx — the topic OWNS
+  modularity/spectral-bipartition/Louvain/Leiden/SBM; `eigsh` matrix-free `LinearOperator` for `B=A−kkᵀ/2m` so a sparse
+  SBM never densifies). IMPORTS dense `dpr_finance_matrix`/`normalize`/set-metrics `recall_at_k` for the geometry; builds
+  the entity graph FRESH (a co-occurrence graph, not multi-hop's trajectory — do NOT import multi-hop). **Entity-graph
+  tuning crux (build-and-run R4):** reuse `dpr_finance_matrix` BUT at **dim=64, κ_sector=200** (NOT the dense d=32/κ=60) so
+  the 5 sector means are near-orthogonal → Leiden recovers the sectors at overlap 1.0 across ALL seeds; d=32 merged two
+  sectors (overlap 0.75, only 4 communities). Edge weight `max(0, cos−0.15)`; at seed 7 the graph is connected with ~18
+  cross-sector bridges. **SBM detectability recovery (R1, the headline surprise):** recover via B's MOST EXTREME
+  eigenvector (`eigsh which='BE'`, then `argmax|λ|`), NOT largest-algebraic — a DISASSORTATIVE block (c_out>c_in, e.g.
+  (1,7)) lives in B's most-NEGATIVE eigenvalue, and the plain adjacency leading vector localizes on high-degree nodes near
+  threshold. The threshold is asymptotic, so ASSERT the clear above/below CONTRAST (n=3000: SNR 3.68→overlap 0.93,
+  0.20→0.01) and in the grid sign test SKIP the finite-n smeared band `0.5≤SNR≤2.5`, never the exact crossing (the
+  "asymptotic headline false at first scale" rule). **ΔQ twin:** `modularity_gain` is the FULL move
+  `add_gain(target) − add_gain(current\{i})`, NOT the isolated-node add gain — the first build failed asserting the
+  isolated form == definitional `Q(after)−Q(before)`. **Resolution limit:** assert DETERMINISTIC `Q(pairs)>Q(singles)` on a
+  30-clique ring + the REVERSE on a 6-clique ring (√(2m)≈25.7 dwarfs clique-size-5), Louvain finds 15 of 30 — NOT a brute
+  over 2ⁿ. The **γ slider must span 0.05→8** (merge→4 communities, a 0.3–4.0 plateau→5 sectors, fragment→25 singletons); a
+  moderate γ range is FLAT on a clean 5-block graph and teaches nothing. **Louvain-disconnected witness (R2):** a
+  disconnected community (two triangles, no inter-edge, one label) is a Louvain LOCAL OPTIMUM (`louvain_local_move`-stable,
+  no single-node move improves Q) that `leiden_refine` splits into connected pieces — the HONEST "fixed-point" framing, NOT
+  "Louvain produces a disconnected community generically" (assert full Louvain from singletons recovers the correct
+  partition on the same graph; the connectivity GUARANTEE is what differs). Aggregation `H^T A H` preserves modularity
+  (the multi-level soundness anchor). Cross-site (all `ls`/`curl` verified): `formalmlPrereqs` svd+spectral-theorem (the
+  relaxed `Q=¼ₘ sᵀBs` Rayleigh quotient) + shannon-entropy+kl-divergence (the info-limit); `formalmlConnections`
+  graph-laplacians (strongest — B is the modularity Laplacian, Fiedler/Cheeger)+clustering+random-walks;
+  `formalstatisticsConnections` maximum-likelihood (SBM=latent-block MLE)+exponential-families+hypothesis-testing
+  (structure-vs-ER null, the threshold = the no-power point); `formalcalculusConnections` eigenvalues-eigenvectors+
+  convex-optimization (relax-and-round). formalML has NO spectral-clustering/mutual-information/markov-chains slug → name in
+  prose. **Bundled** the `pmi-retrieval-value` + `embedding-dimension-lower-bounds` `draft→published` MDX flips (the "verify
+  the flip landed at ship" gotcha — both graph nodes were already `published`, the MDX status stuck at `draft`, so they
+  rendered at their URLs but were hidden from every listing). Refs verified (`curl -sI` + CSL): Newman–Girvan PRE 2004
+  `10.1103/PhysRevE.69.026113`; Newman PNAS 2006 `10.1073/pnas.0601602103`; Blondel (Louvain) JSTAT 2008
+  `10.1088/1742-5468/2008/10/P10008`; Traag (Leiden) SciRep 2019 `10.1038/s41598-019-41695-z`; Fortunato–Barthélemy PNAS
+  2007 `10.1073/pnas.0605965104`; Decelle PRE 2011 `10.1103/PhysRevE.84.066106`; Massoulié STOC 2014
+  `10.1145/2591796.2591857`; Mossel–Neeman–Sly PTRF `10.1007/s00440-014-0576-6`; Brandes "On Modularity Clustering" IEEE
+  TKDE **2008** `10.1109/TKDE.2007.190689` (published 2008 despite the 2007 in the DOI suffix — confirm via CSL);
+  Reichardt–Bornholdt PRE 2006 `10.1103/PhysRevE.74.016110`; Edge et al. GraphRAG arXiv 2404.16130; Cover–Thomas reused.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

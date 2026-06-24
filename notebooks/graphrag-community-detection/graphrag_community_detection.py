@@ -156,6 +156,8 @@ def modularity(A: np.ndarray, labels, gamma: float = 1.0) -> float:
     if m2 <= 0:
         return 0.0
     labels = np.asarray(labels)
+    if labels.shape[0] != A.shape[0]:
+        raise ValueError(f"labels length {labels.shape[0]} != n nodes {A.shape[0]}")
     Q = 0.0
     for c in np.unique(labels):
         idx = np.where(labels == c)[0]
@@ -196,6 +198,8 @@ def brute_modularity_argmax(A: np.ndarray, gamma: float = 1.0):
     The ground truth the spectral relaxation is checked against."""
     A = np.asarray(A, float)
     n = A.shape[0]
+    if n <= 1:
+        return np.zeros(n, int), 0.0          # a 0- or 1-node graph is trivially one community
     if n > 16:
         raise ValueError(f"brute force is exponential; n={n} > 16")
     best_lab, best_Q = np.zeros(n, int), modularity(A, np.zeros(n, int), gamma)
@@ -524,7 +528,11 @@ def spectral_sbm_recovery(A) -> np.ndarray:
         return A.dot(x) - k * (k.dot(x) / m2)
 
     op = LinearOperator((A.shape[0], A.shape[0]), matvec=matvec, dtype=float)
-    vals, vecs = eigsh(op, k=2, which="BE")         # one from each end of the spectrum
+    # a fixed-seed starting vector makes eigsh deterministic (its default v0 is random), so the
+    # baked recovery overlaps reproduce run-to-run -- the viz<->python invariant. The all-ones
+    # vector is an exact 0-eigenvector of B and a poor start, so we use a seeded generic one.
+    v0 = np.random.default_rng(0).standard_normal(A.shape[0])
+    vals, vecs = eigsh(op, k=2, which="BE", v0=v0)   # one from each end of the spectrum
     s = vecs[:, int(np.argmax(np.abs(vals)))]
     return (s > 0).astype(int)
 
@@ -613,9 +621,13 @@ def overlap_multi(true_labels, est_labels) -> float:
     For the finance graph (q = #sectors) this measures sector recovery. Falls back to exact
     permutation overlap when the block count is small."""
     true = np.asarray(true_labels)
+    if true.size == 0:
+        return 0.0
     est, _ = relabel_consecutive(est_labels)
     qt = int(true.max()) + 1
     qe = int(est.max()) + 1
+    if qt <= 1:
+        return 0.0                            # one true class -> chance is 1, overlap undefined
     # contingency-table greedy best match (rows = estimated, cols = true)
     M = np.zeros((qe, qt))
     for e, t in zip(est, true):
