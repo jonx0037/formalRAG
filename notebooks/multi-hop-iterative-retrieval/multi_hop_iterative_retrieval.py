@@ -374,7 +374,8 @@ def recall_summary(corpus: dict, k: int = K_RETRIEVE) -> dict:
         single.append(s)
         multi.append(m)
         classes[ch["n_hops"]].append((s, m))
-    out = {"single_mean": float(np.mean(single)), "multi_mean": float(np.mean(multi))}
+    out = {"single_mean": float(np.mean(single)) if single else 0.0,
+           "multi_mean": float(np.mean(multi)) if multi else 0.0}
     for c, rows in classes.items():
         if rows:
             out[f"single_{c}hop"] = float(np.mean([r[0] for r in rows]))
@@ -382,8 +383,8 @@ def recall_summary(corpus: dict, k: int = K_RETRIEVE) -> dict:
     # the compositional gap is on the MULTI-hop chains (2 and 3 hop), where single-hop should fail
     comp = [(s, m) for ci, ch in enumerate(corpus["chains"]) if ch["n_hops"] >= 2
             for s, m in [(single[ci], multi[ci])]]
-    out["comp_single"] = float(np.mean([r[0] for r in comp]))
-    out["comp_multi"] = float(np.mean([r[1] for r in comp]))
+    out["comp_single"] = float(np.mean([r[0] for r in comp])) if comp else 0.0
+    out["comp_multi"] = float(np.mean([r[1] for r in comp])) if comp else 0.0
     out["comp_gap"] = out["comp_multi"] - out["comp_single"]
     return out
 
@@ -391,6 +392,8 @@ def recall_summary(corpus: dict, k: int = K_RETRIEVE) -> dict:
 def per_hop_recall(corpus: dict, k: int = K_RETRIEVE) -> list[float]:
     """The per-hop retention r_h: fraction of multi-hop chains whose hop h retrieves its intended target node
     (bridge for h < last, answer for the last). Over chains with at least h hops."""
+    if not corpus["chains"]:
+        return []
     max_h = max(ch["n_hops"] for ch in corpus["chains"])
     hits = [0] * max_h
     tot = [0] * max_h
@@ -431,8 +434,8 @@ def singleshot_cannot_reach(corpus: dict) -> dict:
             top = int(np.argsort(-scores, kind="stable")[0])
             q1 = reformulate(q0, corpus["passages"][top])
             in_reform_2hop.append(1.0 if (ans & set(reachable_pool(corpus, q1))) else 0.0)
-    return {"answer_in_single_pool": float(np.mean(in_single)),
-            "answer_in_reformulated_pool_2hop": float(np.mean(in_reform_2hop))}
+    return {"answer_in_single_pool": float(np.mean(in_single)) if in_single else 0.0,
+            "answer_in_reformulated_pool_2hop": float(np.mean(in_reform_2hop)) if in_reform_2hop else 0.0}
 
 
 def greedy_hop_select(corpus: dict, q: np.ndarray, k: int = K_RETRIEVE,
