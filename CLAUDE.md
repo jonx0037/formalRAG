@@ -505,6 +505,44 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   Information" MIT Press is a pre-DOI book (cite url-less). Gemini posted a clean review (retracted its own one
   comment that falsely claimed `entropy`/`kl` were redefined — they're imported). GOTCHA: a persisted shell `cd`
   into a notebook dir broke a later relative-path generator write — use ABSOLUTE paths in throwaway generators.
+  Its **long-context successor** (`retrieval-vs-long-context`): the ROOT of the generation-grounding layer;
+  ship = node `planned→published` + drop the title from `curriculum.ts` generation-grounding `planned[]` (NO
+  DAG edge changes — the `the-retrieval-problem→` and `→context-selection-submodular-dpp` edges already exist).
+  Single frontmatter prereq stays **`the-retrieval-problem`** (import-graph≠DAG): the `.py` IMPORTS the deep
+  chain (dense `dual_encoder_score`/`dpr_finance_matrix`, pmi `answer_posterior`/`answer_posterior_two`/
+  `saturation_table`, noisy-channel `bayes_error`, set-metrics `recall_at_k`/`precision_at_k`) only to SOURCE
+  numbers; the rest are `connections[]` (the-retrieval-problem/retriever-as-noisy-channel/pmi-retrieval-value/
+  set-metrics/dense-retrieval-dual-encoders, all have MDX). **The interior optimum is a build-and-run TRAP —
+  ship the MONOTONE fallback.** A finite **attention budget** (softmax weights Σ=1) over a single-prototype-
+  per-company geometry makes extra relevant passages REDUNDANT (the imported `saturation_table`: redundant≪
+  novel), so a unit-budget AVERAGE has a FLAT left arm — no rising "more relevant helps" arm. A genuine
+  interior `k*>1` needs IMPERFECT retrieval (recall@1<1, κ_query≈15) AND is **seed-fragile** (rise +0.002–0.028,
+  flips to k*=1 on seeds 1/21). So the ROBUST, seed-independent headline is **monotone "more context is not
+  better"**: at GOOD retrieval (κ_query=60, recall@1=1.0) Q(k) peaks at k=1 and declines (k*=1 every seed,
+  Q 0.71→0.51); the interior optimum is a poor-retrieval REMARK shown as a dashed contrast, never asserted. The
+  multi-doc posterior `softmax((⟨q,μ_a⟩+Σ_j w_j⟨d_j,μ_a⟩)/τ)` GENERALIZES `answer_posterior_two`: collapse
+  anchors are `answer_posterior` at k=1,w=[1] and `answer_posterior_two` at k=2,w=[1,1] (<1e-12) — keep `weights`
+  an EXPLICIT arg so degenerate weights recover the imports. Use a SEPARATE **`TAU_GEN`≈0.3** for the curves
+  (the imported `TAU`=0.2 saturates one passage); and a SOFT **`τ_attn`≈0.45** — relevance-aware attention with
+  good retrieval gives distractors ~0 weight (no dilution, no decline), so the budget must spread for distractors
+  to bite. Two-mechanism decline: **redundancy** (imported saturation, flat while precision≈1) + **dilution**
+  (distractors steal budget, precision↓, entropy H(A|ctx)↑). **conf≡Q under good retrieval** — the confident-wrong
+  gap is ZERO (the honest CONTRAST with noisy-channel: dilution raises ENTROPY, not confident-wrongness), so bake
+  rising **entropy** as the distortion axis, not a gap. **"Quality tracks precision, not recall":** recall_R(1)=
+  1/R<1<recall_R(n)=1 climbs by SET coverage even when recall@1=1.0, so the |R|>1 set escapes "too easy"
+  independent of retrieval difficulty. Attention cost `(kL)²` is the THEOREM (`cost(2k)/cost(k)=4`); FlashAttention
+  is O(n) **MEMORY** not FLOPs — the load-bearing rigorFlag. Positional U = EMPIRICAL (Liu et al.) baked as a soft
+  erasure (BEC per rank); the Q-dip is SHALLOW (gold is 1 of n_ctx), so plot the dramatic weight-U + the subtle Q
+  consequence. Rate-distortion verdict: focused retrieval Pareto-dominates stuffing (`cost(n)≫cost(k*)`, `Q(n)≤Q*`);
+  forward edge `context-selection-submodular-dpp` PROSE-ONLY (unbuilt). **TS GOTCHA:** a panel's local SVG height
+  `const H` SHADOWS a module-level entropy array named `H` → `poly(H,…)` passed the number 232; rename the array
+  (`ENTROPY`) — a real `tsc` catch. Cross-site (all `ls`/`curl`-verified): `formalmlPrereqs` shannon-entropy+
+  kl-divergence; `formalmlConnections` rate-distortion+information-bottleneck (NO formalML attention/transformer
+  slug → Θ(n²) prose+Vaswani only); `formalcalculusPrereqs` mean-value-taylor (interior-optimum 1st/2nd-order test);
+  `formalcalculusConnections` convex-optimization+riemann-integral; `formalstatisticsConnections` exponential-families
+  (the vMF-softmax answer model). Refs verified: Liu et al. "Lost in the Middle" TACL 2024 `10.1162/tacl_a_00638`
+  (arXiv 2307.03172); Vaswani "Attention Is All You Need" arXiv 1706.03762; Dao et al. FlashAttention arXiv
+  2205.14135 (the memory caveat); Lewis RAG 2005.11401; Shannon/Cover–Thomas reused.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

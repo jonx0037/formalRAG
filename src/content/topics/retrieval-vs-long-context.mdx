@@ -1,0 +1,338 @@
+---
+title: "Retrieval versus Long Context: Attention Complexity and Positional Bias"
+subtitle: "If the context window is large enough to hold everything, why retrieve at all? Because attention costs (kL)² — quadratic in the tokens read — and because more context is not better: once the answer is in hand, extra passages are redundant at best and same-sector distractors at worst, so answer quality peaks at the smallest covering context and declines as you stuff the window, while a relevant passage buried in the middle is read at attenuated attention — a soft erasure. The right move is not a bigger window but a better-chosen one."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "the-retrieval-problem"
+tags:
+  - "long-context"
+  - "attention-complexity"
+  - "lost-in-the-middle"
+  - "positional-bias"
+  - "rate-distortion"
+  - "context-window"
+  - "precision-recall"
+  - "financial-nlp"
+domain: "generation-grounding"
+pipelineStage: "generate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+videoId: null
+notebookPath: "notebooks/retrieval-vs-long-context/01_retrieval_vs_long_context.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/retrieval-vs-long-context.mdx"
+datePublished: 2026-06-23
+estimatedReadTime: 31
+abstract: "Modern context windows are large enough to hold a whole filing, which invites a tempting shortcut: skip retrieval and stuff everything in. This topic gives the mathematics of why that loses. The first reason is the rate: full self-attention over a context of k passages of L tokens forms a (kL)×(kL) score matrix, so the arithmetic cost is Θ((kL)²) — doubling the context quadruples the compute, and FlashAttention lowers the memory to O(n) but leaves the FLOPs untouched. The second reason is the distortion. We read the top-k retrieved passages under a finite attention budget — softmax weights w_j that sum to one — and combine their evidence additively, generalizing the von Mises–Fisher answer model the PMI and noisy-channel topics built: p(a|q,C_k) = softmax((⟨q,μ_a⟩ + Σ_j w_j⟨d_j,μ_a⟩)/τ). On a finance corpus of sectors of confusable companies, each answer carries several relevant passages plus a shell of same-sector distractors. Even with the answer reliably retrieved (recall@1 ≈ 1), answer quality Q(k) = E[p(a*|q,C_k)] is highest at the smallest covering context and declines monotonically: while the top-k is all-relevant the extra passages are redundant — a second filing of the same company moves belief almost not at all, the diminishing-returns result imported from the PMI topic — and once same-sector distractors enter, they steal attention budget and inject wrong-company evidence, so precision falls and the answer entropy H(A|context) rises toward the prior. Recall climbs while precision falls, and answer quality tracks precision, not recall: chasing recall@k by enlarging the window degrades the answer. Read against cost, the focused-retrieval point Pareto-dominates stuffing — quadratically more compute for strictly worse answers. The third pillar is positional: a relevant passage buried in the middle of a long context is read at attenuated attention (lost-in-the-middle), a soft erasure that drops quality even though the passage was retrieved. The answer model is the same synthetic softmax stand-in the previous topics used, so every quality number is exact for the model and illustrative of a real generator; a tested notebook owns every number, and the quadratic cost, the diminishing returns, and the monotone decline are asserted, not asserted-about."
+connections:
+  - topic: "the-retrieval-problem"
+    relationship: "the prerequisite framed retrieval as ranking documents by relevance; this topic asks what happens AFTER the ranking — how many of the top-k passages to actually read into the generator — and shows the answer is the smallest context that covers the answer, not the one with the highest recall@k, so a good ranking is necessary but reading all of it is not"
+  - topic: "retriever-as-noisy-channel"
+    relationship: "the noisy-channel topic spent bits read to buy down answer error and closed on a rate–distortion reading of the recall–precision operating point; this topic puts the quadratic PRICE on those bits — attention cost (kL)² — and shows the rate–distortion optimum is a small focused context, while its lost-in-the-middle pillar is that topic's binary erasure channel applied per rank: a buried passage is a soft erasure"
+  - topic: "pmi-retrieval-value"
+    relationship: "PMI measured the bits a retrieved document adds and proved a redundant second filing adds almost nothing; this topic turns that diminishing-returns curve into the flat left arm of the quality-versus-context curve and imports the very saturation_table that established it, so the redundancy that makes more context useless is the same one PMI quantified in bits"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "that topic defined recall@k and precision@k as set-membership estimators; this topic reads them as the two arms of the long-context tradeoff — recall climbs while precision falls as k grows — and shows answer quality tracks precision, not recall, so enlarging the context to raise recall@k degrades the generated answer the metric never sees"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "the dense dual-encoder geometry — sectors of confusable companies at a measured same-sector cosine — is the corpus this topic extends with several relevant passages per company and a same-sector distractor shell, so the dilution that degrades a long context is exactly the same-sector similarity that topic built and the retrieval scores come from its dual_encoder_score"
+references:
+  - type: "paper"
+    title: "Lost in the Middle: How Language Models Use Long Contexts"
+    authors: "Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni & Liang"
+    year: 2024
+    url: "https://doi.org/10.1162/tacl_a_00638"
+    note: "The empirical lost-in-the-middle result: answer accuracy is highest when the relevant passage sits at the start or end of the context and degrades in the middle — the positional-bias pillar's source, modeled here as a rank-dependent discount on the delivered evidence; Transactions of the ACL 12 (2024), preprint arXiv:2307.03172"
+  - type: "paper"
+    title: "Attention Is All You Need"
+    authors: "Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser & Polosukhin"
+    year: 2017
+    url: "https://arxiv.org/abs/1706.03762"
+    note: "Defines scaled dot-product self-attention, whose pairwise score matrix over n = kL tokens is n×n — the Θ((kL)²) arithmetic cost that is this topic's rate axis; NeurIPS 2017"
+  - type: "paper"
+    title: "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness"
+    authors: "Dao, Fu, Ermon, Rudra & Ré"
+    year: 2022
+    url: "https://arxiv.org/abs/2205.14135"
+    note: "The honesty caveat for the rate axis: tiling and recomputation make attention's MEMORY cost O(n) without changing the Θ((kL)²) arithmetic, so 'attention is quadratic' is a FLOP claim, not a memory one; NeurIPS 2022"
+  - type: "paper"
+    title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"
+    authors: "Lewis, Perez, Piktus, Petroni, Karpukhin, Goyal, Küttler, Lewis, Yih, Rocktäschel, Riedel & Kiela"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.11401"
+    note: "The retrieve-then-read alternative to context-stuffing whose marginal p(a|q) = Σ_d p(d|q) p(a|q,d) is the answer model the k-sweep generalizes to a finite attention budget over k passages; NeurIPS 2020"
+  - type: "book"
+    title: "Elements of Information Theory"
+    authors: "Cover & Thomas"
+    year: 2006
+    url: "https://doi.org/10.1002/047174882X"
+    note: "Rate–distortion theory (Ch. 10) and the mutual-information chain rule behind the diminishing-returns shape of the quality curve; 2nd edition, Wiley"
+  - type: "paper"
+    title: "A Mathematical Theory of Communication"
+    authors: "Shannon"
+    year: 1948
+    url: "https://doi.org/10.1002/j.1538-7305.1948.tb01338.x"
+    note: "The rate–distortion and entropy framing the cost-versus-quality tradeoff descends from; the answer entropy H(A|context) this topic tracks is Shannon's; Bell System Technical Journal 27 (1948)"
+rigorFlag: "The attention rate axis is Θ((kL)²) in arithmetic (FLOPs); FlashAttention lowers memory to O(n) but leaves the asymptotic compute unchanged. The monotone decline of answer quality with context length and the rate–distortion frontier are exact for a synthetic von Mises–Fisher softmax answer model with a finite attention budget — illustrative of, not derived from, a trained generator. Lost-in-the-middle is an empirically observed positional bias (Liu et al. 2024) baked in here as an assumed rank-dependent discount, not a theorem. An interior optimum k* > 1 appears only under poor retrieval and is seed-sensitive, so it is shown as a contrast, not asserted as a headline."
+formalmlPrereqs:
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the distortion this topic tracks is the answer-posterior entropy H(A | context) in bits — the conditional Shannon entropy that topic develops — which rises as added passages dilute the answer, so the statement that more context hurts is, in information terms, an entropy increase toward the prior H(A | q)"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "each added passage's contribution is the KL divergence between the updated and prior answer posteriors that topic defines, and the diminishing returns — a redundant same-company filing contributes almost no KL — are exactly why the quality curve goes flat over the relevant set before it declines under distractor contamination"
+formalmlConnections:
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "the whole topic is a rate–distortion problem: the rate is the attention compute (kL)² spent reading k passages, the distortion is the residual answer error, and the claim that focused retrieval Pareto-dominates stuffing the window is the statement that it sits on the rate–distortion frontier that topic characterizes while context-stuffing pays unbounded rate for none"
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "reading the few passages that predict the answer while attending to few tokens is the information-bottleneck objective max I(Z;A) − β I(Z;context) instantiated for a generator, so the smallest covering context is the bottleneck's compression–prediction balance and stuffing the window is the degenerate limit that keeps everything and predicts no better"
+formalcalculusPrereqs:
+  - topic: "mean-value-taylor"
+    site: "formalcalculus"
+    relationship: "whether the answer-quality curve peaks at the boundary (good retrieval) or at an interior point (poor retrieval) is decided by the first- and second-order criteria that topic develops — a stationary point where the marginal recall gain equals the marginal precision loss, concave enough on the relevant side to be a maximum rather than a saddle"
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "choosing the context budget k to maximize answer quality at a compute cost is the objective-versus-resource tradeoff that topic formalizes, and reading quality against cost (kL)² as a Pareto frontier is its convex picture of trading an objective against a constraint, with the optimum where marginal quality per marginal FLOP crosses the price of compute"
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "the quadratic attention cost accumulated as the context grows is the discrete partition whose continuum limit is the area-under-the-curve integral that topic constructs, so reading the cumulative compute of a long context as an integral of per-token cost makes the (kL)² growth the Riemann sum the cost curve approximates"
+formalstatisticsConnections:
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the synthetic answer model p(a | q, context) is a softmax over von Mises–Fisher similarities — an exponential family in its natural parameters that topic develops — so the attention-weighted sum of passage evidences is a natural-parameter combination and the posterior sharpening onto the truth or diluting toward the prior is movement within that family"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import RetrievalVsLongContextLaboratory from '../../components/viz/RetrievalVsLongContextLaboratory.tsx';
+
+## From "how many bits survive the channel" to "how many tokens should we read"
+
+The previous topic read the retriever as a noisy channel and asked what corruption costs: erase the
+relevant filing and you lose recall × I(A;D|Q) bits; substitute a distractor and the generator answers
+confidently wrong. It fixed *one* retrieved document and measured the damage. This topic varies the other
+knob — *how much* you read — and asks what reading costs.
+
+The question is sharp because context windows are now large enough to make retrieval look optional. If the
+window holds an entire filing, why rank passages at all? Why not concatenate everything and let attention
+sort it out? The answer has two parts, and they are the two halves of this topic's title. The first is
+*attention complexity*: reading is not free, and its price grows as the square of the tokens read. The
+second is what we will call, with apologies for the inversion of intuition, the fact that **more context
+is not better** — and its companion, *positional bias*, the empirical observation that even the context
+you do read is read unevenly. We make all three precise on the same finance geometry the earlier topics
+built, and we read the whole thing as a single rate–distortion choice: spend rate (compute, tokens) to buy
+down distortion (answer error), and find where the trade turns against you.
+
+We need one object: the answer the generator forms after reading a *set* of passages, not a single one.
+
+<TheoremBlock type="definition" number={1} title="The top-k context and its answer posterior">
+
+Fix a query $q$ and a corpus of passages with unit-vector embeddings $d_1, d_2, \dots$. The retriever
+ranks them by dual-encoder score $s_j = \langle q, d_j\rangle$; the **top-$k$ context** is the set
+$\mathcal{C}_k$ of the $k$ highest-scoring passages. The generator reads $\mathcal{C}_k$ under a **finite
+attention budget**: nonnegative weights $w_j$ over the context that sum to one,
+
+$$
+w_j \;=\; \frac{\exp(s_j/\tau_{\text{attn}})}{\sum_{i\in\mathcal{C}_k}\exp(s_i/\tau_{\text{attn}})},
+\qquad \sum_{j\in\mathcal{C}_k} w_j = 1,
+$$
+
+and forms its belief over the $K$ candidate answers $a$, with prototype directions $\mu_a$, by adding the
+budget-weighted document evidence to the query's:
+
+$$
+p(a \mid q, \mathcal{C}_k)
+\;=\; \operatorname{softmax}_a\!\left(
+\frac{\langle q, \mu_a\rangle \;+\; \sum_{j\in\mathcal{C}_k} w_j\,\langle d_j, \mu_a\rangle}{\tau}
+\right).
+$$
+
+This is the natural multi-document generalization of the PMI topic's additive-logits posterior: at $k=1$
+with weight $1$ it *is* that topic's `answer_posterior`, and at $k=2$ with weights $(1,1)$ it is its
+`answer_posterior_two` — the notebook pins both equalities to machine precision. The new ingredient is the
+unit budget: attention is a finite resource the context competes for. We track three quantities as $k$
+grows — the **answer quality** $Q(k) = \mathbb{E}_q\big[\,p(a^\star \mid q, \mathcal{C}_k)\,\big]$ (the
+posterior mass on the *true* answer $a^\star$), the **set recall** $\text{recall}_R(k)$ over the relevant
+passages, and the **precision** $|\mathcal{C}_k \cap R|/k$.
+
+</TheoremBlock>
+
+## Attention is quadratic: the rate axis
+
+The reason long context is not free is structural. Self-attention compares every token to every other
+token: for a context of $n$ tokens it forms an $n \times n$ matrix of pairwise scores.
+
+<TheoremBlock type="proposition" number={1} title="The cost of reading is quadratic in the tokens read">
+
+Reading a context of $k$ passages of $L$ tokens each means $n = kL$ tokens, and full self-attention over
+them costs
+
+$$
+\text{cost}(k) \;=\; (kL)^2 \;=\; \Theta(k^2)
+$$
+
+floating-point operations for the score matrix. Doubling the context *quadruples* the compute; reading the
+whole window of $n$ passages costs $n^2$ times what reading one passage does. This is exact arithmetic —
+the notebook asserts $\text{cost}(2k)/\text{cost}(k) = 4$ — and it is the *rate* the long-context option
+pays.
+
+</TheoremBlock>
+
+One honest caveat belongs here. FlashAttention computes the same attention with tiling and recomputation so
+that the *memory* footprint is $O(n)$ rather than $O(n^2)$ — a real and important result. But it does not
+change the *arithmetic*: the number of pairwise scores is still $\Theta((kL)^2)$. When we say attention is
+quadratic, we mean in FLOPs, and that is the cost that scales the electricity bill and the latency.
+
+## More context is not better
+
+The rate axis alone would already argue for reading less. But the deeper result is that reading more does
+not even buy better answers — often the opposite. We make this concrete on a corpus built to look like the
+hard case for the claim: sectors of confusable companies (the dense-retrieval geometry), where each
+company carries several genuinely relevant passages and a shell of same-sector distractor passages that a
+retriever can easily confuse for relevant. If "more context helps" were going to hold anywhere, it would
+hold where there are several relevant passages to gather.
+
+<RetrievalVsLongContextLaboratory client:visible />
+
+It does not hold. Panel B traces the quality curve.
+
+<TheoremBlock type="proposition" number={2} title="Answer quality peaks at the smallest covering context (demonstrated)">
+
+On the model of Definition 1, with the answer reliably retrieved (recall@1 $\approx 1$), the answer quality
+$Q(k)$ is maximized at the smallest context that carries the answer and declines monotonically as $k$
+grows. Two mechanisms drive the decline:
+
+1. **Redundancy.** While the top-$k$ is all-relevant (precision $\approx 1$), the extra passages point the
+   same way as the first. A second filing of the same company moves the answer belief almost not at all —
+   the diminishing-returns result the PMI topic proved and this topic imports verbatim: a redundant filing
+   contributes far less belief-movement (in bits) than the first, and far less than a genuinely novel one.
+   So $Q(k)$ is nearly flat over the relevant set, not rising.
+2. **Dilution.** Once the relevant set is exhausted, the top-$k$ admits same-sector distractors. Under the
+   unit budget they *steal* attention weight from the relevant passages and add wrong-company evidence, so
+   precision falls, the budget landing on the answer drops, and the answer entropy $H(A \mid \mathcal{C}_k)$
+   rises toward the prior. Quality declines.
+
+The notebook asserts the curve is non-increasing, that the peak is at $k^\star = 1$, that stuffing the
+window costs a real amount of quality, and that the answer entropy rises in lockstep.
+
+</TheoremBlock>
+
+This is a *demonstrated proposition*, not a theorem: it holds for this attention-budget answer model on
+this synthetic geometry, and the notebook *runs* it rather than assuming it. What is robust about it is the
+mechanism — redundancy plus dilution, both of which we can point to in imported, independently established
+results — and the fact that it survives across random seeds. What is model-dependent is the exact shape.
+
+## Why recall is the wrong target
+
+The two arms of Panel B carry a lesson the evaluation layer cannot see. As $k$ grows, **recall climbs** —
+by the time the context covers the whole relevant set, recall is one. And **precision falls** — past the
+relevant set, every added passage is a distractor. Answer quality follows precision, not recall: it is
+highest where precision is highest and the context is purest, and it sinks as recall is "completed" by
+dragging in distractors.
+
+So the instinct to maximize recall@k by enlarging the context is exactly wrong for generation. You do not
+need to *cover the relevant set*; you need *the answer*, and one good passage supplies it. Chasing the last
+points of recall buys redundancy and then contamination. The metric the retrieval-evaluation layer
+optimizes — coverage of the relevant set — is not the quantity the generator wants.
+
+<TheoremBlock type="remark" title="The interior optimum is a poor-retrieval phenomenon">
+
+There is one regime where reading more genuinely helps before it hurts: when retrieval is *bad*. If the
+query is so ambiguous that the gold passage is often not even rank one (recall@1 well below one), then a
+context of one passage frequently *misses* the answer, and enlarging $k$ raises quality until the relevant
+passages are gathered — after which distractors take over and quality falls again. That is a genuine
+interior optimum $k^\star > 1$, the classical recall–precision balance. The lab's faint dashed curve shows
+it: under hard retrieval the curve is flatter and lower, with a shallow hump. But it is *seed-sensitive* —
+on this geometry it appears for some random draws and not others — so we show it as a contrast and do not
+assert it. The clean, robust statement is the one above: when retrieval works, the optimum is the smallest
+covering context, and the right amount of context *depends on how good your retriever is*.
+
+</TheoremBlock>
+
+## Lost in the middle: positional bias is a soft erasure
+
+So far every passage in the context has been read on equal footing, weighted only by its relevance. Real
+transformers do not read that way. The empirical *lost-in-the-middle* effect (Liu et al., 2024) is that a
+model uses information best when it sits at the *start* or *end* of the context and worst when it is buried
+in the *middle* — accuracy as a function of the gold passage's position is U-shaped.
+
+<TheoremBlock type="proposition" number={3} title="A buried passage is a soft erasure">
+
+Model the positional bias as a multiplier $u(\text{pos})$ on each passage's attention weight — high at the
+ends, depressed in the middle (Panel D draws it). Then a relevant passage placed at position $\text{pos}$
+contributes its evidence scaled by $u(\text{pos})$: at the center its effective weight is the smallest, so
+the answer belief sharpens least. A buried relevant passage behaves like a **partial erasure** — exactly
+the binary erasure channel of the previous topic, but graded: the surviving fraction of its bits is
+$u(\text{pos})$ rather than a hard $0$ or $1$. Answer quality is therefore U-shaped in the gold's position:
+worst when buried, best at the edges. The notebook asserts the middle is strictly worse than either end.
+
+</TheoremBlock>
+
+The consequence sharpens the case against stuffing. A long context does not merely cost compute and invite
+distractors; it actively *hides* the relevant passage it contains, because the relevant passage is now one
+of many and likely to land in the low-attention middle. The very act of padding the context degrades the
+signal it was meant to carry.
+
+## The rate–distortion frontier: focused retrieval dominates stuffing
+
+Put the two axes together. The rate is the attention compute $\text{cost}(k) = (kL)^2$; the distortion is
+the residual answer error, which we read off as $1 - Q(k)$ or, in bits, the answer entropy $H(A \mid
+\mathcal{C}_k)$. Panel C plots quality against cost. The focused-retrieval point sits up and to the left —
+low cost, high quality — and the stuff-the-window point sits down and to the right. Between them, the curve
+only descends: every passage past the optimum costs quadratically more and answers no better.
+
+<TheoremBlock type="proposition" number={4} title="Focused retrieval Pareto-dominates context-stuffing (demonstrated)">
+
+On the model, the smallest covering context attains higher answer quality at a fraction of the attention
+cost than reading the whole window: it is not dominated on either axis, while stuffing is dominated on
+both. The notebook asserts that stuffing costs strictly more compute and yields no more quality than the
+optimum.
+
+</TheoremBlock>
+
+This is the rate–distortion reading the previous topic promised, now with a price on the rate. It says the
+right response to a bigger context window is not to fill it but to *choose* what goes in it — to spend the
+budget on a small set of passages that are relevant, non-redundant, and few enough to be read at full
+attention. That choosing problem — selecting a compact, diverse, high-coverage subset — is the next topic,
+where the redundancy we saw flatten the quality curve becomes a submodular coverage objective with a
+provable greedy guarantee.
+
+<RigorFlag>
+
+Three honesty notes. First, the quadratic cost is an *arithmetic* (FLOP) claim: FlashAttention makes
+attention's memory linear in $n$ without changing the $\Theta((kL)^2)$ compute. Second, the quality curve,
+the rate–distortion frontier, and the positional dip are exact for a *synthetic* von Mises–Fisher softmax
+answer model with a finite attention budget — every number is exact for the model and illustrative of a
+real generator, the same stand-in the PMI and noisy-channel topics used and the same caveat they carried.
+Third, lost-in-the-middle is an *empirically observed* property of trained transformers (Liu et al., 2024);
+we bake it in as an assumed rank-dependent discount and trace its consequence, we do not derive it. And the
+interior optimum $k^\star > 1$ is a poor-retrieval, seed-sensitive phenomenon, shown as a contrast and not
+asserted — the robust claim is the monotone decline under good retrieval.
+
+</RigorFlag>
+
+## What retrieval-versus-long-context trades, in one line
+
+A bigger context window does not relax the retrieval problem; it sharpens it. Attention costs $(kL)^2$,
+redundant passages add nothing, distractors dilute, and a buried passage is a soft erasure — so answer
+quality peaks at the smallest context that carries the answer, and the right move is not a larger window
+but a better-chosen one.
+
+<FinanceCaseStudy title="How many 10-K passages should the generator read?" modality={["text", "pdf"]}>
+
+A question about a company's revenue recognition might be answered by one paragraph of its 10-K. Retrieval
+returns that paragraph at rank one, plus several more passages from the same filing and a shell of
+plausible-looking passages from same-sector competitors. The temptation, with a long window, is to pass all
+of them. The mathematics here says don't: the first relevant passage already carries the answer; the next
+few from the same filing are largely redundant; and the same-sector passages — which a retriever scores
+highly precisely because the companies are comparable — pull the generator toward the wrong company and
+raise the entropy of its answer, while a buried relevant passage is read at reduced attention. The
+operating point that minimizes answer error at least cost is a handful of passages, not the whole window —
+and the discipline of *choosing* that handful is what the rest of the generation-grounding layer is about.
+
+</FinanceCaseStudy>
