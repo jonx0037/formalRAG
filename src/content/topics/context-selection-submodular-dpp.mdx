@@ -1,0 +1,578 @@
+---
+title: "Context Selection: Submodular Coverage, MMR, and Determinantal Point Processes"
+subtitle: "Once retrieval returns more candidate passages than the window can hold, which subset do you keep? Ranking by relevance packs the context with near-duplicates that each add almost nothing — the diminishing returns PMI measured in bits — so the right objective is monotone submodular coverage, for which greedy is provably within 1−1/e of the optimum (Nemhauser–Wolsey–Fisher), while MMR trades relevance against redundancy as a popular heuristic with no such guarantee, and a determinantal point process makes diversity a probability P(S) ∝ det(L_S), the squared volume of the selected feature vectors, so two near-duplicates span a flat parallelepiped and are almost never drawn together — and at a fixed budget every one of these diversity-aware rules beats plain top-k on the answer it ultimately produces."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "retriever-as-noisy-channel"
+  - "chunking-as-segmentation"
+  - "retrieval-vs-long-context"
+tags:
+  - "submodular-optimization"
+  - "facility-location"
+  - "maximal-marginal-relevance"
+  - "determinantal-point-process"
+  - "greedy-approximation"
+  - "diversity-coverage"
+  - "context-selection"
+  - "financial-nlp"
+domain: "rag-information-theory"
+pipelineStage: "select"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+videoId: null
+notebookPath: "notebooks/context-selection-submodular-dpp/01_context_selection_submodular_dpp.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/context-selection-submodular-dpp.mdx"
+datePublished: 2026-06-23
+estimatedReadTime: 33
+abstract: "Retrieval returns a ranked list; the generator's window holds a budget of k passages. Filling that budget with the top-k by relevance is the obvious move and the wrong one: the highest-scoring passages of a confusable company are near-duplicates, and the previous topics showed each duplicate adds almost no information — PMI measured it in bits, the long-context topic watched answer quality go flat over the redundant set. This topic gives the mathematics of choosing the subset that maximizes coverage of the query rather than per-item relevance. The natural objective is monotone submodular: facility-location coverage f(S) = Σ_i w_i max_{j∈S} sim(i,j) rewards a selection for standing in for every candidate the query cares about, and submodularity — the marginal value of adding a passage to a larger set is no greater than adding it to a smaller one — is exactly the diminishing-returns property the saturation curve exhibits. Maximizing a monotone submodular function under a cardinality constraint is NP-hard, but the greedy algorithm that adds the highest-marginal-gain passage at each step returns a set worth at least (1−1/e) ≈ 0.632 of the optimum, the Nemhauser–Wolsey–Fisher bound, proved here in full; Minoux's lazy-greedy speeds it up by exploiting submodularity itself. Maximal Marginal Relevance, λ·rel(d,q) − (1−λ)·max_{d'∈S} sim(d,d'), is the field's workhorse diversity heuristic, but — the rigor flag — it carries no submodular guarantee: its penalty is taken against the evolving chosen set, and the closest fixed objective is submodular but non-monotone, exactly the hypothesis the theorem needs. The determinantal point process gives a probabilistic answer: P(S) ∝ det(L_S), where the determinant is the squared volume of the parallelepiped the selected feature vectors span, so near-duplicates span a near-flat solid of near-zero volume and are almost never sampled together; the quality–diversity factorization L = diag(q) S diag(q) separates per-item relevance from a similarity kernel, exact MAP is NP-hard, and the certified object is greedy on the monotone surrogate log det(I + L_S), which inherits the same 1−1/e. We close on the payoff and the honest hinge. The objective we actually want is the answer-information gain I(A;D_S|Q), but mutual information of a set with a target is not submodular in general — not even on this corpus, and provably not for a synergistic pair whose marginal gain increases with conditioning — so coverage, not info gain, is the backbone that earns the theorem. On a finance pool where the most query-relevant passages are sector-generic near-duplicates that support the gold company and its peer equally, while the disambiguating passage is less query-similar, top-k spends its budget on the redundant cluster and leaves the answer split; coverage- and diversity-aware selection reach the disambiguator and sharpen the answer. We read every method through the imported answer_posterior_topk, so the numbers chain with the rest of the arc, and the headline — diversity beats top-k at a fixed budget — is a comparison across methods, pinned to the observed run. A tested notebook owns every number; the lab recomputes only the closed forms."
+connections:
+  - topic: "pmi-retrieval-value"
+    relationship: "PMI proved a redundant second filing adds almost no bits — the chain rule of mutual information, not a heuristic; this topic makes that the defining property of the selection objective: submodularity IS diminishing returns, the marginal coverage of a near-duplicate passage is near-zero, and the saturation it measured in bits is the same asymmetry the greedy marginal-gain curve plots, so the bits PMI counted are the coverage greedy declines to re-buy"
+  - topic: "retrieval-vs-long-context"
+    relationship: "the long-context topic showed answer quality Q(k) is flat over the redundant top-k set and declines as same-sector distractors dilute the budget, leaving a better-CHOSEN window as the open problem; this topic solves it — it imports the very answer_posterior_topk that produced that Q(k) and shows diversity-aware selection beats plain top-k on Q at the SAME budget, turning 'a bigger window is not better' into 'a better-spread window is'"
+  - topic: "retriever-as-noisy-channel"
+    relationship: "the noisy-channel topic spent bits read to buy down answer error and read the recall–precision point as rate–distortion; this topic chooses WHICH bits to read — the subset that maximizes coverage rather than recall — so selecting a high-coverage low-redundancy set is choosing the channel input that delivers the most distinct evidence per slot, the discrete face of that rate–distortion budgeting"
+  - topic: "chunking-as-segmentation"
+    relationship: "chunking decides the granules retrieval can return; this topic decides which granules to keep, and the two interact — finer chunks raise candidate redundancy and make the diversity term do more work, so the segmentation choice upstream sets how much the submodular/DPP selection downstream must spread to cover the query without re-reading the same passage twice"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "that topic defined recall@k and precision@k as set-membership scores indifferent to redundancy; this topic shows why presence is not coverage — two passages can both be 'relevant' (counted by recall) yet span near-zero added volume (det(L_S)≈0), so a coverage- or determinant-based objective scores the diversity the set metrics cannot see, and MMR/DPP optimize for it directly"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "the dense dual-encoder geometry — sectors of confusable companies at a measured same-sector cosine — is both the candidate pool and the similarity kernel here: facility-location's sim(i,j), MMR's max_{d'∈S} sim(d,d'), and the DPP kernel all read off the same inner products the dual encoder learned, so the embedding geometry that makes companies confusable is exactly what the diversity term must overcome"
+references:
+  - type: "paper"
+    title: "An Analysis of Approximations for Maximizing Submodular Set Functions—I"
+    authors: "Nemhauser, Wolsey & Fisher"
+    year: 1978
+    url: "https://doi.org/10.1007/BF01588971"
+    note: "The (1−1/e) guarantee: greedy maximization of a monotone submodular function under a cardinality constraint returns at least 1−1/e ≈ 0.632 of the optimum — the theorem proved in full here; Mathematical Programming 14 (1978)"
+  - type: "paper"
+    title: "Best Algorithms for Approximating the Maximum of a Submodular Set Function"
+    authors: "Nemhauser & Wolsey"
+    year: 1978
+    url: "https://doi.org/10.1287/moor.3.3.177"
+    note: "The companion value-oracle lower bound: no polynomial algorithm beats 1−1/e in the oracle model, so the greedy constant is optimal, not an artifact of the analysis; Mathematics of Operations Research 3(3)"
+  - type: "paper"
+    title: "The Use of MMR, Diversity-Based Reranking for Reordering Documents and Producing Summaries"
+    authors: "Carbonell & Goldstein"
+    year: 1998
+    url: "https://doi.org/10.1145/290941.291025"
+    note: "Maximal Marginal Relevance: λ·rel(d,q) − (1−λ)·max_{d'∈S} sim(d,d') — the field's workhorse diversity reranker, a heuristic with no submodular guarantee in general (the rigor flag); SIGIR 1998"
+  - type: "book"
+    title: "Determinantal Point Processes for Machine Learning"
+    authors: "Kulesza & Taskar"
+    year: 2012
+    url: "https://doi.org/10.1561/2200000044"
+    note: "The DPP reference: P(S) ∝ det(L_S) as squared volume, the quality–diversity factorization L = diag(q) S diag(q), sampling, and log-det MAP — the probabilistic diversity model; Foundations and Trends in Machine Learning 5(2–3), preprint arXiv:1207.6083"
+  - type: "paper"
+    title: "Near-Optimal Nonmyopic Value of Information in Graphical Models"
+    authors: "Krause & Guestrin"
+    year: 2005
+    url: "https://arxiv.org/abs/1207.1394"
+    note: "Information gain is submodular UNDER conditional independence of the evidence — and the caveat that it need not be otherwise — the bridge from PMI's bits-added to a submodular objective, and the assumption in the rigor flag; UAI 2005"
+  - type: "paper"
+    title: "Accelerated Greedy Algorithms for Maximizing Submodular Set Functions"
+    authors: "Minoux"
+    year: 1978
+    url: "https://doi.org/10.1007/BFb0006528"
+    note: "Lazy greedy: exploiting submodularity to skip marginal-gain recomputations, returning the same (1−1/e) set far faster — the practical algorithm behind the greedy curve; Optimization Techniques, LNCIS 7, Springer"
+  - type: "paper"
+    title: "A Class of Submodular Functions for Document Summarization"
+    authors: "Lin & Bilmes"
+    year: 2011
+    url: "https://aclanthology.org/P11-1052/"
+    note: "Facility-location and saturated-coverage submodular objectives for selecting a representative subset — the coverage function f(S) = Σ_i w_i max_{j∈S} sim(i,j) this topic selects context with; ACL-HLT 2011"
+  - type: "paper"
+    title: "Fast Greedy MAP Inference for Determinantal Point Process to Improve Recommendation Diversity"
+    authors: "Chen, Zhang & Zhou"
+    year: 2018
+    url: "https://arxiv.org/abs/1709.05135"
+    note: "The greedy log-det MAP approximation that makes DPP selection practical — exact MAP is NP-hard, handled by an incremental Cholesky greedy on the monotone surrogate; NeurIPS 2018"
+  - type: "paper"
+    title: "A Threshold of ln n for Approximating Set Cover"
+    authors: "Feige"
+    year: 1998
+    url: "https://doi.org/10.1145/285055.285059"
+    note: "The hardness companion: 1−1/e is the best approximation any polynomial algorithm can achieve for max-coverage unless P = NP, so the greedy bound is tight; Journal of the ACM 45(4)"
+  - type: "book"
+    title: "Elements of Information Theory"
+    authors: "Cover & Thomas"
+    year: 2006
+    url: "https://doi.org/10.1002/047174882X"
+    note: "The chain rule of mutual information behind diminishing returns, and the entropy framing of coverage carried over from the PMI and long-context topics; 2nd edition, Wiley"
+rigorFlag: "MMR (Carbonell–Goldstein) is a heuristic with no (1−1/e) approximation guarantee in general — only facility-location-style monotone submodular objectives inherit the Nemhauser–Wolsey–Fisher bound. Information gain I(A;D_S|Q) is the objective we actually want, but mutual information of a SET with a target is not submodular in general — and on this corpus the submodularity witness goes clearly negative (≈ −0.70) while facility location's is ≈ 0; it is submodular only under conditional independence of the evidence (Krause–Guestrin), so coverage, not info gain, is the backbone that earns the theorem. DPP MAP inference (the most probable set) is NP-hard; the (1−1/e) guarantee applies to greedy on the monotone submodular surrogate log det(I + L_S) (Chen et al.), not to the exact determinant maximizer. The payoff Q(k) is computed for a synthetic von Mises–Fisher softmax answer model (importing answer_posterior_topk) — exact for the model, illustrative of a real generator — and the headline is a comparison ACROSS selection methods at a fixed budget, robust across seeds; the separate claim that some interior k* is optimal is seed-fragile and is not asserted."
+formalmlPrereqs:
+  - topic: "shannon-entropy"
+    site: "formalml"
+    relationship: "the coverage a selection buys is, in information terms, the answer entropy it removes — H(A|q) reduced toward H(A|q,S) — so the objective rewards the subset that most lowers the conditional Shannon entropy that topic develops, and the diminishing marginal gain of a redundant passage is a near-zero entropy reduction"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "each passage's marginal contribution to coverage is a KL divergence between the answer posterior with and without it — the per-item information gain that topic defines — and submodularity is the statement that this KL shrinks as the selected set grows, so greedy declines to re-buy a near-duplicate whose KL contribution is already captured"
+formalmlConnections:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the DPP probability det(L_S) is the squared volume of the parallelepiped the selected feature vectors span, and that volume is the product of the singular values of the selection's feature matrix — so two near-duplicate passages are nearly collinear, their smallest singular value collapses, the determinant goes to zero, and the Eckart–Young low-rank view that topic develops is exactly why redundancy kills DPP probability"
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "selecting the smallest subset of passages that covers what the query needs is the information-bottleneck objective made discrete — the coverage term is the prediction term, the cardinality budget is the compression term — so submodular/DPP context selection is a combinatorial bottleneck and this topic supplies its coverage relevance term"
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "submodular maximization has a continuous relaxation — the multilinear (and Lovász) extension — on which greedy is a discrete gradient ascent and the (1−1/e) bound is a continuous-greedy guarantee, so the convex/concave-relaxation machinery that topic builds is what turns an NP-hard combinatorial selection into a provably near-optimal one"
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "the total coverage greedy accumulates over a budget is the running sum of shrinking marginal gains — the partition whose continuum limit is the area-under-the-curve integral that topic constructs — so reading cumulative coverage as the integral of a decreasing marginal-value curve makes the concavity of the greedy trace a Riemann sum"
+formalstatisticsConnections:
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the synthetic answer model p(a|q,S) is a softmax over von Mises–Fisher similarities — the categorical exponential family in its natural parameters that topic develops — and the DPP itself is an exponential-family measure over subsets with log-potential log det(L_S), so both the payoff and the diversity model are exponential-family objects, the same family the PMI and InfoNCE softmaxes belonged to"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import ContextSelectionLaboratory from '../../components/viz/ContextSelectionLaboratory.tsx';
+
+## From "how much to read" to "what to choose"
+
+The previous topic ended with a verdict and an unfinished sentence. The verdict: a bigger context window
+does not relax the retrieval problem, it sharpens it — answer quality peaks at the smallest context that
+carries the answer and declines as you stuff the window, because the extra passages are redundant at best
+and same-sector distractors at worst. The unfinished sentence: the right response is not a larger window
+but a *better-chosen* one, and "the discipline of choosing that handful is what the rest of the layer is
+about."
+
+This is that discipline. Retrieval hands us a ranked list of candidate passages, more than the budget can
+hold; we must pick a subset $S$ of size $k$. The naive rule is top-$k$ by relevance, and we already know
+its failure mode: the highest-scoring passages of a confusable company are near-copies of one another, so
+top-$k$ spends its budget re-reading the same fact. We want instead a subset that *covers* what the query
+needs — relevant, but also spread out, with little redundancy. The good news is that this is not a vague
+design preference. It is a clean optimization problem with a real approximation theorem, and the honest
+accounting of which popular methods earn that theorem and which do not is most of what this topic is.
+
+We will formalize three answers — submodular **coverage**, the **MMR** heuristic, and **determinantal**
+diversity — on the same finance geometry the rest of the arc used, and read each through the imported
+answer model so the numbers chain. The thread that ties them together is the property we have been circling
+since PMI measured it in bits: diminishing returns.
+
+## Diminishing returns, formalized
+
+Let $V = \{1, \dots, n\}$ be the candidate pool returned by retrieval, with unit-vector embeddings
+$d_1, \dots, d_n$, and let $f : 2^V \to \mathbb{R}$ score any subset by how well it serves the query. Two
+properties make $f$ tractable.
+
+<TheoremBlock type="definition" number={1} title="Monotone submodular set functions">
+
+The **marginal gain** of adding an element $e \notin A$ to a set $A$ is
+
+$$
+\Delta_f(e \mid A) \;=\; f(A \cup \{e\}) - f(A).
+$$
+
+$f$ is **normalized** if $f(\varnothing) = 0$, **monotone** (nondecreasing) if $A \subseteq B \Rightarrow
+f(A) \le f(B)$, and **submodular** if for all $A \subseteq B \subseteq V$ and all $e \in V \setminus B$,
+
+$$
+\Delta_f(e \mid A) \;\ge\; \Delta_f(e \mid B).
+$$
+
+Submodularity is exactly *diminishing returns*: adding $e$ to a smaller set helps at least as much as
+adding it to a larger one. (Equivalently, $f(S) + f(T) \ge f(S \cup T) + f(S \cap T)$ for all $S, T$.)
+
+</TheoremBlock>
+
+This is not a new phenomenon for us; it is a name for one we measured. The PMI topic showed that a second,
+*identical* filing moves the answer belief almost not at all — far less than the first filing, and far less
+than a genuinely novel one. Read that as a set function: the marginal value of the redundant passage,
+added to a set that already contains its twin, is tiny. Submodularity is that inequality holding for every
+pair of nested sets at once. Panel A of the lab plots the marginal gains of greedy selection and watches
+them shrink — the discrete signature of a submodular objective.
+
+## Coverage as a covering: the facility-location objective
+
+We need a concrete $f$ that rewards covering the pool rather than re-reading one corner of it.
+
+<TheoremBlock type="definition" number={2} title="Facility-location coverage">
+
+With a nonnegative similarity $\operatorname{sim}(i, j) \ge 0$ between candidates (we use the clipped
+cosine $\max(0, \langle d_i, d_j\rangle)$) and nonnegative item weights $w_i \ge 0$, the
+**facility-location coverage** of a selection $S \subseteq V$ is
+
+$$
+f(S) \;=\; \sum_{i \in V} w_i \, \max_{j \in S} \operatorname{sim}(i, j),
+\qquad f(\varnothing) = 0 \ \ \big(\textstyle\max_{\varnothing} := 0\big).
+$$
+
+Each candidate $i$ in the pool is "covered" by its single closest representative in $S$; the objective
+rewards a set that has, for *every* candidate the query weights, *some* close member. It is the Lin–Bilmes
+summarization objective and the classical facility-location function.
+
+</TheoremBlock>
+
+The geometric reading is the whole point: $f(S)$ asks how well the chosen handful *stands in for* the whole
+pool. Two near-duplicates both close to one region cover it about as well as either alone — so the second
+adds little, which is precisely the diminishing returns we are after. The $\operatorname{sim} \ge 0$
+convention is load-bearing, and we will see in the proof exactly where.
+
+<TheoremBlock type="theorem" number={1} title="Facility-location coverage is monotone submodular">
+
+With $\operatorname{sim} \ge 0$ and $w_i \ge 0$, $f$ is normalized, monotone nondecreasing, and submodular.
+
+**Proof.** Normalization is the convention $\max_\varnothing = 0$. For monotonicity, fix a candidate $i$;
+if $A \subseteq B$ then $\max_{j \in A} \operatorname{sim}(i, j) \le \max_{j \in B} \operatorname{sim}(i,
+j)$ because the maximum is taken over a superset. Multiplying by $w_i \ge 0$ and summing over $i$ gives
+$f(A) \le f(B)$.
+
+For submodularity it suffices to prove each summand $g_i(S) := \max_{j \in S} \operatorname{sim}(i, j)$ is
+submodular, since a nonnegative combination of submodular functions is submodular. Fix $i$ and write
+$s_j := \operatorname{sim}(i, j) \ge 0$. Let $A \subseteq B$ and $e \notin B$, and set $a = \max_{j \in A}
+s_j$ and $b = \max_{j \in B} s_j$, so $a \le b$. The marginal gain of adding $e$ to a set whose current
+best similarity is $m$ is
+
+$$
+\max(m, s_e) - m \;=\; (s_e - m)^{+},
+\qquad (x)^{+} := \max(x, 0).
+$$
+
+Hence $\Delta g_i(e \mid A) = (s_e - a)^{+}$ and $\Delta g_i(e \mid B) = (s_e - b)^{+}$. Because
+$t \mapsto (s_e - t)^{+}$ is nonincreasing in $t$ and $a \le b$, we get $(s_e - a)^{+} \ge (s_e - b)^{+}$,
+i.e. $\Delta g_i(e \mid A) \ge \Delta g_i(e \mid B)$. Summing the submodular $w_i g_i$ over $i$ proves $f$
+submodular. $\blacksquare$
+
+</TheoremBlock>
+
+The engine is the hinge $t \mapsto (s_e - t)^{+}$: once a candidate is well covered (large incumbent best
+match $b$), there is less room for a new near-duplicate to improve its coverage. That is diminishing
+returns made geometric. (The nonnegativity of $\operatorname{sim}$ is what makes $\max_\varnothing = 0$
+consistent with monotonicity and keeps the hinge argument clean; a signed cosine would break both.)
+
+## The greedy guarantee
+
+Maximizing $f(S)$ subject to $|S| \le k$ is NP-hard. But a one-line algorithm does remarkably well.
+
+<TheoremBlock type="algorithm" number={1} title="Greedy selection under a budget">
+
+Start with $S_0 = \varnothing$. For $t = 0, 1, \dots, k-1$, add the element of largest marginal gain,
+
+$$
+e_{t+1} \in \arg\max_{e \in V \setminus S_t} \Delta_f(e \mid S_t),
+\qquad S_{t+1} = S_t \cup \{e_{t+1}\},
+$$
+
+and return $S_{\text{greedy}} = S_k$. (Minoux's lazy-greedy keeps a priority queue of stale marginal gains;
+since submodularity guarantees gains only shrink, most are never recomputed — the same output, far faster.
+The notebook checks the lazy and standard selections are identical.)
+
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={2} title="Nemhauser–Wolsey–Fisher: greedy is a (1−1/e)-approximation">
+
+Let $f$ be monotone, submodular, and normalized, and let $\mathrm{OPT} = \max_{|S| \le k} f(S)$ with
+maximizer $S^\star$. Then
+
+$$
+f(S_{\text{greedy}}) \;\ge\; \Big(1 - \big(1 - \tfrac{1}{k}\big)^{k}\Big)\,\mathrm{OPT}
+\;\ge\; \big(1 - \tfrac{1}{e}\big)\,\mathrm{OPT} \;\approx\; 0.632\,\mathrm{OPT}.
+$$
+
+**Proof.** Fix iteration $t$ with current set $S_t$, and order the optimum as $S^\star = \{o_1, \dots,
+o_m\}$ with $m \le k$. By monotonicity and the exact telescoping identity for marginal gains,
+
+$$
+f(S^\star) \;\le\; f(S^\star \cup S_t)
+\;=\; f(S_t) + \sum_{j=1}^{m} \Delta_f\!\big(o_j \,\big|\, S_t \cup \{o_1, \dots, o_{j-1}\}\big).
+$$
+
+Each conditioning set contains $S_t$, so submodularity bounds every term by its value at $S_t$:
+$\Delta_f(o_j \mid S_t \cup \{o_1,\dots,o_{j-1}\}) \le \Delta_f(o_j \mid S_t)$. And greedy takes the best
+available marginal, so $\Delta_f(o_j \mid S_t) \le f(S_{t+1}) - f(S_t)$ for every $j$. With $m \le k$ and
+nonnegative marginals,
+
+$$
+f(S^\star) \;\le\; f(S_t) + k\,\big(f(S_{t+1}) - f(S_t)\big),
+\quad\text{so}\quad
+f(S_{t+1}) - f(S_t) \;\ge\; \tfrac{1}{k}\big(\mathrm{OPT} - f(S_t)\big).
+$$
+
+Write the residual gap $\delta_t = \mathrm{OPT} - f(S_t)$. The inequality says $\delta_{t+1} \le (1 -
+\tfrac1k)\,\delta_t$, so by induction from $\delta_0 = \mathrm{OPT}$,
+
+$$
+\delta_k \;\le\; \big(1 - \tfrac1k\big)^{k}\,\mathrm{OPT},
+\qquad
+f(S_{\text{greedy}}) = \mathrm{OPT} - \delta_k \;\ge\; \Big(1 - \big(1 - \tfrac1k\big)^{k}\Big)\,\mathrm{OPT}.
+$$
+
+Finally $(1 - \tfrac1k)^k$ increases to $e^{-1}$ from below, so $1 - (1-\tfrac1k)^k \ge 1 - e^{-1}$.
+$\blacksquare$
+
+</TheoremBlock>
+
+Three remarks on what the proof uses and what it promises. Monotonicity enters twice — to write
+$f(S^\star) \le f(S^\star \cup S_t)$ and to let the marginals stay nonnegative; submodularity enters in the
+single inequality bounding each optimum-element's marginal by its value at $S_t$; normalization sets
+$\delta_0 = \mathrm{OPT}$. Remove monotonicity and the recurrence fails — this is exactly the door MMR
+walks through below. And the constant is not slack in the analysis: Feige (1998) showed that no polynomial
+algorithm beats $1 - 1/e$ for max-coverage unless $\mathrm{P} = \mathrm{NP}$, and Nemhauser–Wolsey (1978)
+proved the same in the value-oracle model. So $0.632$ is the best a tractable method can promise.
+
+<ContextSelectionLaboratory client:visible />
+
+Panel B shows the guarantee with teeth. On a small constructed instance, greedy grabs the biggest set
+first and reaches $9$ of the optimal $12$ — a real gap, the realized ratio $0.75$ — yet it sits comfortably
+above the $0.632\,\mathrm{OPT}$ floor. (On the smooth finance pool greedy happens to *reach* the optimum;
+the bound is a worst-case promise, and the worst case is where it earns its keep.)
+
+## MMR: the heuristic that does not earn the theorem
+
+The field's standard diversity tool predates the submodular framing and is worth stating precisely,
+because its relationship to the theorem is the topic's central honesty note.
+
+<TheoremBlock type="definition" number={3} title="Maximal Marginal Relevance">
+
+Maximal Marginal Relevance (Carbonell–Goldstein, 1998) selects sequentially: with $S$ the set chosen so
+far, it adds
+
+$$
+d^{\text{next}} \in \arg\max_{d \notin S}\;
+\Big[\, \lambda \, \operatorname{rel}(d, q) \;-\; (1 - \lambda) \max_{d' \in S} \operatorname{sim}(d, d') \,\Big],
+$$
+
+trading the candidate's relevance against its redundancy with the chosen set. At $\lambda = 1$ it is exactly
+top-$k$; at $\lambda = 0$ it is pure dispersion.
+
+</TheoremBlock>
+
+<TheoremBlock type="proposition" number={1} title="MMR carries no (1−1/e) guarantee">
+
+MMR is not covered by Theorem 2, for two distinct reasons that should both be stated plainly.
+
+1. **It is not greedy on a fixed set function.** The penalty $\max_{d' \in S} \operatorname{sim}(d, d')$
+   is computed against the *evolving* chosen set $S$, not as the marginal gain $\Delta_f(d \mid S)$ of any
+   single fixed $f$. There is no objective whose greedy argmax equals MMR's at every step, so a theorem
+   *about greedy on one monotone submodular $f$* simply does not apply.
+2. **The closest fixed objective is submodular but non-monotone.** The natural MMR-flavored set function,
+   $f_{\text{MMR}}(S) = \lambda \sum_{d \in S} \operatorname{rel}(d, q) - (1 - \lambda) \sum_{\{d, d'\}
+   \subseteq S} \operatorname{sim}(d, d')$, is submodular (a modular relevance term plus a negated
+   supermodular pairwise term) but **not monotone**: adding a redundant passage to a large set can
+   *decrease* it, as the new pairwise penalties outweigh its relevance. Monotonicity is exactly the
+   hypothesis Theorem 2 requires.
+
+Non-monotone submodular maximization has its own theory — double-greedy achieves $1/2$ unconstrained
+(Buchbinder et al.) — but plain MMR is not that algorithm and inherits none of its bounds.
+
+</TheoremBlock>
+
+None of this makes MMR bad. It is cheap, effective, and the historical origin of diversity-aware
+selection; in the lab it lands between top-$k$ and the submodular methods. The point is only that its
+"$1-1/e$" is folklore, not theorem. The clean monotone-submodular backbone for a *provable* guarantee is
+facility-location coverage — and, as we will now see, the log-determinant.
+
+## Diversity as volume: determinantal point processes
+
+There is a second, probabilistic route to diversity, and its geometry is beautiful.
+
+<TheoremBlock type="definition" number={4} title="Determinantal point processes and the volume geometry">
+
+An L-ensemble DPP over $V$ with a positive semidefinite kernel $L \in \mathbb{R}^{n \times n}$ assigns to
+each subset $S$
+
+$$
+\mathcal{P}(S) \;=\; \frac{\det(L_S)}{\det(I + L)},
+\qquad L_S = [L_{ij}]_{i, j \in S}.
+$$
+
+If $L_{ij} = \langle \phi_i, \phi_j \rangle$ is a Gram matrix of feature vectors, then
+
+$$
+\det(L_S) \;=\; \operatorname{Vol}^2\big(\{\phi_i\}_{i \in S}\big),
+$$
+
+the **squared volume** of the parallelepiped the selected feature vectors span. Diversity is geometric:
+near-duplicate passages give near-collinear $\phi$'s, a degenerate near-zero-volume solid, hence near-zero
+probability. A DPP structurally suppresses redundant subsets.
+
+</TheoremBlock>
+
+The kernel factors the trade-off cleanly. Write $\phi_i = q_i \, \psi_i$ with a relevance scalar $q_i > 0$
+and a unit diversity feature $\psi_i$, so $L = \operatorname{diag}(q)\, S\, \operatorname{diag}(q)$ with
+$S_{ij} = \langle \psi_i, \psi_j\rangle$. Then, by multilinearity of the determinant in the rows and
+columns of $\operatorname{diag}(q_S)$,
+
+$$
+\det(L_S) \;=\; \Big(\prod_{i \in S} q_i^2\Big)\,\det(S_S)
+\;=\; \underbrace{\textstyle\prod_{i \in S} q_i^2}_{\text{quality}} \;\times\;
+\underbrace{\operatorname{Vol}^2(\{\psi_i\}_{i \in S})}_{\text{diversity}}.
+$$
+
+This is the Kulesza–Taskar quality–diversity decomposition: the probability of a set rises with the
+relevance of its members and with how *spread out* they are. Panel C of the lab shows the geometry directly
+— the candidate pool in two dimensions, with each method's selection highlighted, and the factorization
+$\det(L_S) = q^2 \times \operatorname{Vol}^2$ read off a worked triple.
+
+## log det is submodular, so DPP MAP inherits the guarantee
+
+Finding the most probable set — the DPP MAP — is the natural selection rule, and it connects straight back
+to Theorem 2.
+
+<TheoremBlock type="theorem" number={3} title="log det(I + L_S) is monotone submodular">
+
+For positive semidefinite $L$, the function $F(S) = \log \det(I + L_S)$ is normalized, monotone
+nondecreasing, and submodular.
+
+**Proof.** Write the marginal gain of adding $e$ to $S$. Let $M = I + L_S$ (positive definite), let
+$b = (L_{ie})_{i \in S}$ be the cross-column and $c = 1 + L_{ee}$. The block-determinant (Schur-complement)
+identity gives
+
+$$
+\det(I + L_{S \cup \{e\}}) = \det\!\begin{pmatrix} M & b \\ b^\top & c \end{pmatrix}
+= \det(M)\,\big(c - b^\top M^{-1} b\big),
+\quad\text{so}\quad
+\Delta_F(e \mid S) = \log\big(c - b^\top M^{-1} b\big).
+$$
+
+The quantity $c - b^\top M^{-1} b$ is the Schur complement of $M$ — in the Gaussian-process reading where
+$L$ is a covariance, it is the *posterior variance* of feature $e$ after conditioning on the features in
+$S$. The $+I$ shift makes $M \succeq I$, so $b^\top M^{-1} b \le b^\top b \le L_{ee} = c - 1$ and the
+Schur complement is $\ge 1$; hence $\Delta_F(e \mid S) \ge 0$ and $F$ is monotone. For submodularity, the
+Schur complement is *nonincreasing* under additional conditioning — conditioning on more elements can only
+reduce posterior variance (the "information never hurts" fact for Gaussians, the Loewner-order monotonicity
+of the Schur complement of a larger principal block). So $A \subseteq B$ gives $\operatorname{Var}(e \mid
+A) \ge \operatorname{Var}(e \mid B)$, and since $\log$ is increasing, $\Delta_F(e \mid A) \ge \Delta_F(e
+\mid B)$. $\blacksquare$
+
+</TheoremBlock>
+
+Because $F$ is monotone submodular and normalized, greedy maximization of $\log \det(I + L_S)$ under
+$|S| \le k$ inherits the $(1 - 1/e)$ guarantee of Theorem 2 — and that greedy is precisely fast greedy DPP
+MAP (Chen et al., 2018), each step a Schur-complement (Cholesky rank-one) update. The notebook reuses the
+*same* greedy maximizer for facility location and for $\log\det(I + L_S)$, differing only in the value
+oracle.
+
+<TheoremBlock type="corollary" number={1} title="Certified diversity, with an honest boundary">
+
+Greedy on $\log\det(I + L_S)$ returns a set within $1 - 1/e$ of the optimum of *that* surrogate. The exact
+$k$-DPP MAP — $\arg\max_{|S| = k} \det(L_S)$ — is **NP-hard**, so the certified object is the monotone
+surrogate, not the raw determinant. The $+I$ regularization is also what keeps the objective finite when a
+near-duplicate makes $L_S$ singular (raw $\log\det(L_S) \to -\infty$). The notebook handles that singular
+case with a small ridge.
+
+</TheoremBlock>
+
+## The objective we actually want, and why it is not submodular
+
+Coverage and $\log\det$ are the clean backbones. But the objective most faithful to the rest of this layer
+is neither — it is the answer-information gain, and it does not behave.
+
+<TheoremBlock type="remark" title="Information gain is the honest hinge">
+
+The objective we would *like* to maximize is
+
+$$
+f_{\text{IG}}(S) \;=\; I(A; D_S \mid Q) \;=\; H(A \mid Q) - H(A \mid Q, D_S),
+$$
+
+the multi-document generalization of the bits PMI measured. It is monotone and normalized. But mutual
+information of a *set* of observations with a target is **not submodular in general**. The cleanest
+counterexample is a synergistic pair: let $A = D_1 \oplus D_2$ with $D_1, D_2$ independent fair bits. Each
+observation alone is useless — $I(A; D_1) = I(A; D_2) = 0$ — yet together they determine $A$, so
+$I(A; D_1, D_2) = 1$ bit. The marginal gain of $D_2$ therefore *increases* with conditioning,
+
+$$
+\Delta(D_2 \mid \varnothing) = 0 \;<\; \Delta(D_2 \mid \{D_1\}) = 1,
+$$
+
+the opposite of diminishing returns. This is not only an abstract example: on our finance corpus the
+numerical submodularity witness for $f_{\text{IG}}$ is clearly negative ($\approx -0.70$), while
+facility-location coverage's is $\approx 0$. Submodularity of information gain holds only under structural
+assumptions, the cleanest being conditional independence of the observations given the target
+(Krause–Guestrin, 2005). So we optimize coverage — which *is* submodular and earns Theorem 2 — and treat
+information gain as the motivating-but-caveated quantity it is.
+
+</TheoremBlock>
+
+It is worth keeping the ledger explicit, because the differentiator of this topic is the honesty about it:
+
+| Object | Status |
+| --- | --- |
+| Facility-location coverage is monotone submodular | **Theorem** (proved, Theorem 1) |
+| Greedy gets $1-1/e$ on monotone submodular | **Theorem** (proved, Theorem 2) |
+| $\log\det(I + L_S)$ is monotone submodular, so greedy DPP MAP gets $1-1/e$ | **Theorem** (proved, Theorem 3) |
+| Exact $k$-DPP MAP | **NP-hard** (cited) |
+| MMR has a $1-1/e$ guarantee | **False / folklore** (Proposition 1) |
+| Information gain $I(A; D_S \mid Q)$ is submodular | **Conditional** — only under conditional independence |
+| Diverse selection beats top-$k$ at fixed $k$ on a redundant pool | **Demonstrated** (run, pinned) |
+
+That last row is the payoff, and it is the reason any of this matters for an answer.
+
+<TheoremBlock type="proposition" number={2} title="Diversity-aware selection beats top-k at a fixed budget (demonstrated)">
+
+We build, for each query, a candidate pool with the redundancy structure that makes selection bite: a tight
+cluster of sector-generic near-duplicates that support the gold company *and* its confusable peer about
+equally — and carry the *highest* query relevance — plus a single, less-relevant **disambiguating** passage
+near the gold prototype, plus low-relevance distractors. Reading each method's selection through the
+imported `answer_posterior_topk` under an equal attention budget, at budget $k = 3$:
+
+$$
+Q_{\text{top-}k} \approx 0.38 \;<\; Q_{\text{MMR}} \approx 0.44 \;<\;
+Q_{\text{facility}} \approx 0.54 \;\approx\; Q_{\text{DPP}} \approx 0.55,
+$$
+
+where $Q = \mathbb{E}_q\big[p(a^\star \mid q, S)\big]$ is the posterior mass on the true company.
+Top-$k$ spends all three slots inside the redundant cluster, where the generics support gold and peer
+equally, and leaves the answer split; coverage and DPP reach the disambiguator and resolve it. The notebook
+asserts the observed ordering and the seed-independent coverage contrast.
+
+</TheoremBlock>
+
+This is a *demonstrated* proposition, pinned to the run, not a universal law. The mechanism is the honest
+one: diversity helps not for its own sake but because the disambiguating evidence is *less* query-similar
+than the redundant cluster, so only a coverage- or quality-aware selector reaches it. On a pool with no
+redundancy, coverage and relevance coincide and the gap vanishes — the correct boundary condition. One
+caveat the lab makes visible: diversity raises the mass on the truth while *spreading* the remaining mass
+across more companies, so the answer entropy actually rises; quality here is mass-on-truth, not low entropy,
+and we do not claim the latter.
+
+<RigorFlag>
+
+Four honesty notes. First, MMR has no $(1-1/e)$ guarantee — its penalty is taken against the evolving
+chosen set, and the closest fixed objective is submodular but non-monotone, exactly the hypothesis the
+theorem needs. Second, information gain is the objective we actually want, but it is not submodular: the
+witness goes clearly negative on this corpus, and a synergistic XOR pair makes the marginal gain increase
+with conditioning; it is submodular only under conditional independence (Krause–Guestrin), so coverage is
+the backbone that earns the theorem. Third, exact $k$-DPP MAP is NP-hard; the certified object is greedy on
+the monotone surrogate $\log\det(I + L_S)$, not the raw determinant, and the $+I$ also tames the
+near-duplicate singularity. Fourth, the payoff $Q(k)$ is exact for a synthetic von Mises–Fisher softmax
+answer model (the same stand-in the arc has used throughout), illustrative of a real generator; the
+headline is a comparison *across methods at a fixed budget*, robust across seeds — not a claim that some
+interior $k^\star$ is optimal, which is seed-fragile and not asserted.
+
+</RigorFlag>
+
+## What context selection trades, in one line
+
+At a fixed budget, choose for coverage and diversity, not relevance alone: the greedy choice is provably
+within $1 - 1/e$ of optimal for the right (monotone submodular) objective, MMR is the cheap heuristic that
+does not earn that bound, a DPP makes diversity the squared volume of the selected vectors, and on a
+redundant pool every diversity-aware rule beats top-$k$ on the answer it produces — because top-$k$ re-reads
+the same fact while a covering set buys the disambiguating evidence.
+
+<FinanceCaseStudy title="Which 10-K passages should enter the window?" modality={["text", "pdf"]}>
+
+A multi-part analyst question about a company touches several distinct sub-claims — revenue recognition, a
+specific risk disclosure, forward guidance. Retrieval returns a thick candidate set: many near-duplicate
+passages of the most query-typical section (the ones a dual encoder scores highest, precisely because they
+are sector-boilerplate that several comparable companies share), plus the one paragraph that actually
+distinguishes *this* company's treatment, ranked lower because it is idiosyncratic and less query-similar.
+Top-$k$ by relevance fills the window with the boilerplate and never reaches the distinguishing paragraph;
+the generator answers with the sector consensus, not the company's actual position. Facility-location
+coverage spends each slot on a passage that covers a *different* sub-claim, the DPP's volume term suppresses
+the near-duplicate filings, and the disambiguating paragraph makes the cut. The discipline is not to read
+more of the filing but to choose the few passages that, together, cover the question — and to leave the
+duplicates out. When the candidate pool itself grows — when one passage's answer raises a new question —
+selection becomes a *search* over an evolving evidence space, which is where multi-hop and iterative
+retrieval take over.
+
+</FinanceCaseStudy>

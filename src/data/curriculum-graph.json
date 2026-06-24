@@ -279,7 +279,7 @@
     {
       "id": "context-selection-submodular-dpp",
       "label": "Context Selection: Submodular Coverage, MMR, and Determinantal Point Processes",
-      "status": "planned",
+      "status": "published",
       "domain": "rag-information-theory"
     },
     {
