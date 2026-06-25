@@ -950,6 +950,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   And commit CLAUDE.md learnings **inside the topic PR or a dedicated chore PR** — a post-merge local
   `docs: learnings` commit strands on the topic branch after the topic PR merges (the DPR one had to
   be cherry-picked).
+  But VERIFY a commit is genuinely stranded by CONTENT, NOT `git branch --contains <sha>`: a squash
+  merge folds the branch in under a NEW sha, so `--contains` reports the original sha absent from
+  `origin/main` even when its content already landed — grep `git show origin/main:CLAUDE.md` for a
+  unique phrase (or note that the cherry-pick comes up EMPTY) before re-applying. An empty cherry-pick
+  means it's already there, not that it failed.
 - **Multiple topics in one session = feature branches off `main`.** They merge in any order *only if*
   each depends solely on already-published prereqs. If a batch topic lists a **sibling** as prereq (e.g.
   pseudo-relevance-feedback needs query-likelihood), sequence them: re-sync `main` only **after** its
@@ -969,7 +974,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   being SUNSET — new org installs blocked 2026-06-18, all reviews cease 2026-07-17; after that the
   inline-review step won't run, so don't block a merge waiting on it.) It reliably flags **unguarded denominators**
   (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` (incl.
-  `k≤0` on a recall fn and an empty matrix before `np.linalg.svd`) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
+  `k≤0` on a recall fn, an empty matrix before `np.linalg.svd`, `np.max`/`np.argmax` on a possibly-empty
+  array in a softmax/reweight helper, and an overlap/Jaccard ratio dividing by a row/set size that can be
+  0) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
   slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
   and stale refs in d3 drag handlers — guard array-index lookups (`C[labels[i]]`, `colors[a[i] ?? 0]`)
   and compute drag-end distortion from live points/centroids, not a render-lagging ref. It also flags
