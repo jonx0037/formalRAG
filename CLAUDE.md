@@ -727,6 +727,52 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   + exponential-families (vMF). Refs verified (`curl -sI` + CSL): HyDE Gao–Ma–Lin–Callan ACL 2023
   `10.18653/v1/2023.acl-long.99`; DPR Karpukhin et al. EMNLP 2020 `10.18653/v1/2020.emnlp-main.550`; Rocchio
   (Salton–Buckley 1990) + Lavrenko–Croft 2001 reused from the PRF prereq.
+  Its **faithfulness-groundedness successor** (`faithfulness-groundedness`, the THIRD generation-grounding topic):
+  turns HyDE's scalar hallucination rate `p` into a MEASURED two-sided quantity. ship = node `planned→published`
+  + drop the title from `curriculum.ts` generation-grounding `planned[]` + MDX `status: published` (NO edge changes —
+  the `hyde→`, `pmi→`, `→selective-generation-abstention` edges exist; the unblocked successor is
+  `selective-generation-abstention`, PROSE-ONLY/unbuilt). Frontmatter `prerequisites` = the TWO inbound edges
+  `[query-transformation-hyde, pmi-retrieval-value]`; `pipelineStage: evaluate` (the topic MEASURES/certifies, like
+  the method-sibling conformal-factuality — NOT the generation-grounding domain default `generate`). **The genuine
+  contribution vs the sibling `conformal-factuality` (which it IMPORTS but is NOT a prereq of — import graph ≠ DAG):
+  the generated answer as a SET of claims + the TWO-SIDED precision/recall PAIR over it (every prior judge topic
+  measured only faithfulness=precision; coverage-as-recall is NEW) + bits-of-grounding + the answer-generation
+  primitive.** The `.py` IMPORTS the chain (vmf `normalize`/`sample_vmf`, dense `dpr_finance_matrix`/
+  `dual_encoder_score`, hyde `generation_center`, pmi `answer_prior`/`answer_posterior`/`pmi_pointwise`, set-metrics
+  `precision_at_k`/`recall_at_k`/`f1_at_k`, llm-judge `_logit`/`rogan_gladen`/`confusion_rates`/`JUDGE_PERFECT`,
+  significance calibration suite, conformal `back_off_retained`/`loss_matrix`/`conformal_risk_control_threshold`) —
+  all `connections[]`, NOT prereqs. **faithfulness = `precision_at_k` over the CLAIM-ID space (claims unique),
+  coverage = `recall_at_k` over the FACT space (facts shared, set-dedup) — the denominator asymmetry (claims vs
+  facts) IS why they diverge** (terse 1.00/0.33 vs verbose 0.53/1.00; F1 interior-optimal at 5 claims). **The judge
+  form is WELDED to the prereq corpus (claims=retrieved docs, keys on `corpus['docs']`/`rankings`/`qrels_set`) so you
+  CANNOT call `judge_confidence`/`_effective_probs`; reuse the logit-bias FORM** (import `_logit` + scipy `expit`,
+  `sens_eff=expit(logit(sens0)+shift)`, `fpr_eff=expit(logit(1-spec0)+shift)`, `where(y,sens_eff,fpr_eff)`) over a
+  FRESH per-claim feature (assertiveness = z-scored cosine to the generic axis `g=mean(P)` + position) — twin-anchor
+  via the perfect-judge collapse (`JUDGE_PERFECT→y` deterministic). The calibration suite + conformal functions take
+  RAW arrays → import and run directly. **GEOMETRY TUNING CRUX (build-and-run, never guessed via a `_diagnostics()`):**
+  same-sector companies sit ~0.57 apart at `dpr` `kappa_sector=60` (NOT 350 — that's the query kappa), so use
+  `n_comp=4` (16 docs, same-sector SPARES for the off-context hallucination target), `CTX_K=3`, `KAPPA_CLAIM=300`, and
+  **`COS_SUPPORT=0.78` must sit in the GAP between supported draws (cos ~0.93 to their fact) and hallucinated draws
+  (cos ~0.60 to the nearest context fact)** — the first build at 0.55 (below the hallucinated mean) mislabeled 83% of
+  hallucinations as supported and inflated precision to ~0.9. **JUDGE TRAP (the build-and-run headline killer): the
+  conformal lenient `JUDGE=(0.80,0.62)` is ACCIDENTALLY UNBIASED at this π≈0.62** — the false-negative loss
+  `−π(1−se)` and false-positive gain `(1−π)(1−sp)` cancel (naive 0.625 vs oracle 0.621, so RG has nothing to correct).
+  A VISIBLE naive bias needs a clear OVER-ENDORSER (`sens0=0.95, spec0=0.52`); but a biased judge SEPARATES
+  confidences (AUC→0.98) while OVERLAP (non-vacuous CRC) needs them CLOSE — **decouple via a large truth-INDEPENDENT
+  `b_len=2.5`** (assertiveness spread adds overlap → AUC 0.83 while base sens/spec asymmetry preserves bias +0.078 and
+  ECE 0.125). Sweep all three (bias/AUC/ECE) together in a one-liner, don't tune one at a time. RG `corrected==oracle`
+  EXACTLY (in-sample audited rates make it an algebraic identity — a clean anchor; the heterogeneous/held-out
+  imperfection is llm-judge's story, flagged in the rigorFlag). **CRC loss = the FIXED-denominator `false_claim_loss`
+  (monotone); `fraction_loss` is the non-monotone counterexample — assert both** (the conformal-factuality precedent).
+  Cross-site (all `ls`/`curl`-verified): `formalmlPrereqs` kl-divergence+concentration-inequalities; `formalmlConnections`
+  conformal-prediction+information-bottleneck; `formalstatisticsPrereqs` point-estimation (RG = method-of-moments
+  inversion); `formalstatisticsConnections` hypothesis-testing+maximum-likelihood (Platt=1-param logistic MLE);
+  `formalcalculusPrereqs` radon-nikodym (pmi=log of an RN derivative); `formalcalculusConnections` riemann-integral
+  (PR-area). Refs verified (CSL): FActScore Min et al. EMNLP 2023 `10.18653/v1/2023.emnlp-main.741` (atomic-claim factual
+  PRECISION — the faithfulness=precision anchor); RAGAS Es et al. EACL 2024 `10.18653/v1/2024.eacl-demo.16`; SelfCheckGPT
+  Manakul EMNLP 2023 `10.18653/v1/2023.emnlp-main.557`; CRC Angelopoulos et al. arXiv 2208.02814; Mohri–Hashimoto
+  (conformal factuality) arXiv 2402.10978; Rogan–Gladen 1978 `10.1093/oxfordjournals.aje.a112510`; Niculescu-Mizil–Caruana
+  ICML 2005 `10.1145/1102351.1102430`; Church–Hanks PMI `aclanthology.org/J90-1003/`.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
