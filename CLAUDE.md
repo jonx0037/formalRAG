@@ -144,7 +144,7 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
 - **The Bash tool's working directory PERSISTS across calls** — after any `cd` into a subdir (e.g. a notebook
   dir), repo-root-relative commands (grep/sed/ls, not just throwaway generators) silently target the wrong
-  path; use ABSOLUTE paths.
+  path; use ABSOLUTE paths or execute commands in a subshell, e.g., `(cd subdir && command)`.
 - `astro check` reports ~12 pre-existing type errors in the copied viz components
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
   Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes notebooks/<topic>/<topic_underscored>.py`
