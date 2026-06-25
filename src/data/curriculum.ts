@@ -107,9 +107,7 @@ export const tracks = [
     layer: 'Generation & Reasoning',
     description:
       'The "why retrieval works" layer: mutual information between query, context, and answer; the retriever as a noisy channel; submodular and DPP context selection; multi-hop retrieval; GraphRAG; and the multimodal financial capstone.',
-    planned: [
-      'GraphRAG: Community Detection and the Modularity of Knowledge',
-    ],
+    planned: [],
     dependsOnFormalML: true,
   },
 ] as const;
