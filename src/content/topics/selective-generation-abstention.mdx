@@ -1,0 +1,256 @@
+---
+title: "Selective Generation: When a RAG System Should Abstain"
+subtitle: "The faithfulness topic ended at a back-off frontier — coverage traded for a conformally guaranteed faithfulness — and left a question: what should the system do when the certified-faithful answer is too thin to be worth emitting? It should abstain. The two prior topics decided which claims to keep inside an answer; this one decides whether to answer at all. That answer-level decision has its own mathematics: Chow's cost-optimal reject rule, the risk–coverage curve and its area, the gap a real confidence signal pays against the oracle, a distribution-free guarantee on the wrong-emission rate, and a cost model for abstaining versus erring."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "faithfulness-groundedness"
+  - "significance-testing-calibration"
+tags:
+  - "selective-generation"
+  - "abstention"
+  - "chows-rule"
+  - "risk-coverage-curve"
+  - "aurc"
+  - "selective-prediction"
+  - "conformal-risk-control"
+  - "cost-sensitive-decision"
+  - "generation-grounding"
+  - "financial-nlp"
+domain: "generation-grounding"
+pipelineStage: "generate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+videoId: null
+notebookPath: "notebooks/selective-generation-abstention/01_selective_generation_abstention.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/selective-generation-abstention.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 28
+abstract: "The faithfulness topic measured a generated answer as two numbers and traded coverage for a conformally guaranteed faithfulness along a back-off frontier — deciding which claims to keep. This topic takes the next step the frontier set up: the per-query decision of whether to answer at all. We define the answer-level selective risk (the error rate among the answers emitted) and coverage (the fraction of queries answered), and derive Chow's rule — the cost-optimal reject threshold, abstain iff the probability of being wrong exceeds the cost ratio of abstaining to erring. Sweeping the threshold traces the risk–coverage curve, whose area, the AURC, is the answer-level mirror of average precision; the achievable curve, ordered by a noisy judge's confidence, sits above the oracle curve ordered by truth, and the excess closes only as the signal's discrimination approaches perfect. We then lift conformal risk control from the claim level to the answer level: a monotone wrong-emission loss whose distribution-free threshold controls the rate of confident wrong answers at a chosen level. The whole construction composes with the prior topic's back-off into a two-stage gate — certify the faithful claims, then abstain if the answer is too risky or too thin — and a cost model picks the operating point where a finance RAG defers to a human analyst rather than guess. A tested notebook owns every number, and the build-and-run discipline catches the trap: a too-weak signal makes abstention no better than refusing to answer at all."
+connections:
+  - topic: "faithfulness-groundedness"
+    relationship: "The direct prerequisite and the handoff: that topic measured faithfulness and groundedness and traded coverage for a conformally guaranteed faithfulness along a claim-level back-off frontier, ending on the question this topic answers — when the certified-faithful answer is too thin to be useful, the system should abstain. We import its answer-generation model, its faithfulness measurement, and its conformal back-off to build the answer-level decision on top of the claim-level one."
+  - topic: "significance-testing-calibration"
+    relationship: "Supplies the calibration suite that makes the judge's answer-level confidence a probability before Chow's rule can threshold it: the expected calibration error, the Brier score, and the AUC we import to quantify the calibration gap between the score the rule treats as the probability of being correct and the truth. The gap is exactly why the realized cost-minimizing threshold can drift from the theoretical Chow cutoff."
+  - topic: "conformal-factuality"
+    relationship: "The claim-level conformal back-off whose monotone-loss machinery we reuse at the answer level. Its lesson — that the false-claim loss must use a fixed denominator to stay monotone, while the fraction-of-retained loss is non-monotone and silently voids conformal risk control — recurs here as the distinction between the unconditional wrong-emission rate (monotone, controllable) and the conditional selective risk (non-monotone, the risk–coverage y-axis)."
+  - topic: "llm-as-judge-ragas"
+    relationship: "The noisy, lenient judge whose per-claim confidence we aggregate into the answer-level score the abstention gate keys on. Because the judge over-endorses, that score orders correctness imperfectly — the reason the achievable risk–coverage curve sits strictly above the oracle, and the reason Chow's rule, which assumes a calibrated posterior, is only as good as the score's calibration."
+  - topic: "pmi-retrieval-value"
+    relationship: "Through the imported answer model it supplied, this topic inherits the synthetic finance answer posterior that makes a generated answer correct-or-not under a geometric oracle. The information-theoretic reading carries over: abstaining when the context cannot ground enough bits is the operational form of the bits-of-grounding view."
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "The root of the evaluation layer, where the area-under-a-curve summary first appeared as average precision = area under the precision–recall curve. The AURC defined here is its answer-level mirror: the area under the risk–coverage curve, a Riemann sum over coverage rather than over a retrieval ranking."
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "Provides the finance document manifold the whole construction sits on — one von Mises–Fisher company prototype per filing — through the imported faithfulness panel. The answers whose emit-or-abstain decision we study are generated against this geometry, so 'a wrong answer' is one whose claims point off the retrieved filings' directions."
+references:
+  - type: "paper"
+    title: "On Optimum Recognition Error and Reject Tradeoff"
+    authors: "Chow"
+    year: 1970
+    url: "https://doi.org/10.1109/TIT.1970.1054406"
+    note: "The foundational reject-option result: under a cost for errors and a cost for rejecting, the Bayes-optimal classifier abstains exactly when the maximum posterior falls below a threshold set by the cost ratio — the rule this topic applies to the answer-level emit decision."
+  - type: "paper"
+    title: "On the Foundations of Noise-Free Selective Classification"
+    authors: "El-Yaniv & Wiener"
+    year: 2010
+    url: "https://www.jmlr.org/papers/v11/el-yaniv10a.html"
+    note: "Formalizes the risk–coverage trade-off for a classifier with a reject option — coverage as the fraction predicted on, selective risk as the error among them — the curve this topic reads at the answer level."
+  - type: "paper"
+    title: "Selective Classification for Deep Neural Networks"
+    authors: "Geifman & El-Yaniv"
+    year: 2017
+    url: "https://arxiv.org/abs/1705.08500"
+    note: "Brings selective prediction to modern networks, using a model's softmax confidence as the rejection score and choosing a threshold to bound selective risk — the deep-learning ancestor of the answer-level gate, with the confidence signal here a calibrated judge."
+  - type: "paper"
+    title: "Bias-Reduced Uncertainty Estimation for Deep Neural Classifiers"
+    authors: "Geifman, Uziel & El-Yaniv"
+    year: 2019
+    url: "https://arxiv.org/abs/1805.08206"
+    note: "Introduces the AURC and excess-AURC metrics — the area under the risk–coverage curve and its gap above the optimal ordering — the summary numbers this topic bakes and reads."
+  - type: "paper"
+    title: "SelectiveNet: A Deep Neural Network with an Integrated Reject Option"
+    authors: "Geifman & El-Yaniv"
+    year: 2019
+    url: "https://arxiv.org/abs/1901.09192"
+    note: "Trains the predictor and the reject mechanism jointly at a target coverage — evidence that the emit decision is a learnable object, here decoupled into a calibrated score plus a cost-set threshold."
+  - type: "paper"
+    title: "A Baseline for Detecting Misclassified and Out-of-Distribution Examples in Neural Networks"
+    authors: "Hendrycks & Gimpel"
+    year: 2017
+    url: "https://arxiv.org/abs/1610.02136"
+    note: "Establishes the maximum-softmax-probability confidence baseline whose risk–coverage behavior selective prediction improves on — the simplest version of the score the abstention gate thresholds."
+  - type: "paper"
+    title: "Selective Question Answering under Domain Shift"
+    authors: "Kamath, Jia & Liang"
+    year: 2020
+    url: "https://doi.org/10.18653/v1/2020.acl-main.503"
+    note: "Trains a calibrator to decide when a QA system should answer versus abstain, especially under distribution shift — the question-answering instance of selective generation this topic formalizes for RAG."
+  - type: "paper"
+    title: "Conformal Risk Control"
+    authors: "Angelopoulos, Bates, Fisch, Lei & Schuster"
+    year: 2024
+    url: "https://arxiv.org/abs/2208.02814"
+    note: "Generalizes split conformal to control any monotone, bounded loss in expectation — the machinery this topic lifts from the claim level to bound the answer-level wrong-emission rate at a chosen level."
+rigorFlag: "Chow's rule is Bayes-optimal only when the answer score IS the true probability of being correct; the lenient judge's score is not, so the realized selective risk differs from the Bayes selective risk and the gap is a CALIBRATION gap, quantified here by the score's expected calibration error and Brier score but not removed — the cost-optimal threshold is only as good as the calibration of the score it cuts. The conformal selective-risk guarantee is MARGINAL: it controls the expected wrong-emission rate over the calibration draw, not a single realization (one deployment can overshoot), and it rests on exchangeability of calibration and test answers; it bounds the UNCONDITIONAL wrong-emission rate, while the conditional selective risk carries an extra factor of one-over-coverage and is non-monotone. The AURC and its excess over the oracle are single-corpus point estimates with no standard error reported here, and 'correct' means correct under the synthetic geometric grounding oracle and the synthetic judge, not human judgment — distribution-free with respect to the data, conditional on the judge. The two-stage gate's thinness criterion is an editorial floor, not a guarantee. A tested notebook runs every claim and pins the headline numbers to the observed seed; the build-and-run discipline is load-bearing here, since a too-weak confidence signal makes selective generation no better than always abstaining."
+formalmlPrereqs:
+  - topic: "conformal-prediction"
+    site: "formalml"
+    relationship: "The answer-level wrong-emission guarantee is conformal risk control applied to a monotone loss over whole answers; the distribution-free, finite-sample coverage theorem that topic proves is what makes the abstention threshold valid under exchangeability alone, and conformal risk control is its monotone-loss generalization — selective generation's guarantee is calibration-agnostic for the same reason that topic's coverage is."
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "Selective risk and coverage are sample means over a finite set of answers, and the selection-with-guaranteed-risk bound — choosing a threshold whose true selective risk is controlled with high probability — rests on the concentration of those empirical means around their expectations that topic proves, the same machinery that turns a measured risk–coverage point into an honest guarantee."
+formalmlConnections:
+  - topic: "always-valid-inference"
+    site: "formalml"
+    relationship: "A deployed system decides to emit or abstain continually, peeking at its own accumulating error as it goes; making the wrong-emission guarantee hold under that optional stopping is exactly the anytime-valid setting that topic builds, the time-uniform version of the single-shot conformal threshold used here."
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "The risk–coverage curve is a distortion–rate frontier: coverage is the rate at which the system commits to answers and selective risk is the distortion it accepts, and the AURC summarizes how cheaply it can buy coverage with risk — the operational-rate-versus-fidelity trade that topic formalizes, read over the emit decision."
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "Abstaining is withholding a decision under a cost asymmetry: emitting an answer is rejecting the null that the system does not know, and Chow's threshold is the rejection region whose error rates the cost ratio sets — the Type-I-versus-Type-II framing that topic develops, with abstention as the option to make no call."
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "Chow's rule is a decision-theoretic object: it minimizes a Bayes risk under a loss that charges differently for a wrong answer and an abstention, the loss-function and risk vocabulary that topic introduces in the estimator-evaluation setting, applied here to a 0-c_abs-c_err decision rule rather than a point estimate."
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "The conformal wrong-emission threshold is a distribution-free interval inverted into a decision: the set of thresholds whose calibration risk clears the level is the dual of a one-sided test on the wrong-emission rate, the test-interval duality that topic makes precise, here producing a guaranteed operating point rather than a parameter interval."
+formalcalculusConnections:
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "The AURC is the integral of selective risk over coverage in the unit interval, evaluated as a Riemann sum over the achievable coverage levels — the same area-under-a-curve construction that topic builds, here summarizing a confidence signal's quality the way average precision summarizes a ranking."
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "Choosing the emit threshold to minimize expected cost is a one-dimensional optimization whose objective is the cost curve; Chow's closed-form cutoff is its stationary point under a calibrated score, the kind of cost-minimization-over-an-operating-point that topic formalizes, with the calibration gap measuring how far the empirical minimum drifts from the closed form."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import SelectiveGenerationAbstentionLaboratory from '../../components/viz/SelectiveGenerationAbstentionLaboratory.tsx';
+
+## From a back-off frontier to a decision
+
+The faithfulness topic ended at a frontier. It decomposed a generated answer into atomic claims, measured faithfulness as their precision and groundedness as their recall, and then turned a confidence cut: raise it, drop the least-supported claims, and the retained answer becomes more faithful but thinner. Conformal risk control pinned that cut so the *expected* false-claim rate was bounded. The closing line was a question, not an answer: when the certified-faithful answer is too thin to be useful, the system should abstain rather than emit — and *choosing when to abstain* was deferred to here.
+
+That deferral marks a change of object. The two prior factuality topics — faithfulness and conformal factuality — both work *inside* an answer: given the claims the generator produced, they decide *which claims to keep*. Their units are claims, their back-off removes the weak ones, and an answer that loses every claim abstains only as a side effect. This topic asks the question one level up: *given a query, should the system answer at all?* The unit is the query; the decision is binary, emit or abstain; and the object that governs it — the risk you accept among the answers you emit, traded against how many queries you are willing to leave unanswered — is genuinely new. It is the difference between editing a draft and deciding whether to send one.
+
+## Chow's rule: the cost-optimal reject
+
+Fix a query and let the system produce a candidate answer together with a score $s \in [0,1]$ meant to be its probability of being correct. A *selective policy* emits the answer when $s \ge t$ for a threshold $t$, and abstains otherwise. Two numbers describe such a policy across a set of queries.
+
+<TheoremBlock type="definition" number={1} title="Selective risk and coverage">
+
+For a selective policy that emits on a subset of queries, define
+
+$$
+\text{coverage} = \Pr(\text{emit}), \qquad \text{selective risk} = \Pr(\text{wrong} \mid \text{emit}).
+$$
+
+Coverage is the fraction of queries answered; selective risk is the error rate *among the answered*. Both are read over **queries**, not over an answer's claims — the answer-level counterpart of the claim-level retention and false-claim rate the back-off frontier swept.
+
+</TheoremBlock>
+
+Why abstain at all? Because the costs are asymmetric. Emitting a wrong answer is expensive; abstaining — returning "I cannot answer this from the retrieved filings," deferring to a human — is cheaper, but not free. Write $c_{\mathrm{err}}$ for the cost of emitting a wrong answer, $c_{\mathrm{abs}}$ for the cost of abstaining, and $0$ for a correct answer. The optimal policy compares the expected cost of the two actions.
+
+<TheoremBlock type="theorem" number={2} title="Chow's optimal reject rule">
+
+The expected cost of *emitting* an answer with probability of error $\Pr(\text{wrong}) = 1 - s$ is $c_{\mathrm{err}}(1-s)$; the cost of *abstaining* is $c_{\mathrm{abs}}$. Emitting is preferable exactly when $c_{\mathrm{err}}(1-s) \le c_{\mathrm{abs}}$, i.e.
+
+$$
+\text{emit} \iff s \;\ge\; 1 - \frac{c_{\mathrm{abs}}}{c_{\mathrm{err}}} \;=\; t^\star.
+$$
+
+This is Chow's rule (1970): the optimal reject threshold on the probability of being correct is one minus the cost ratio. The degenerate limits are sane — free abstention ($c_{\mathrm{abs}} = 0$) gives $t^\star = 1$, emit only when certain, effectively always abstain; abstaining at least as costly as erring ($c_{\mathrm{abs}} \ge c_{\mathrm{err}}$) gives $t^\star = 0$, always emit.
+
+</TheoremBlock>
+
+With a wrong financial answer costing five times an abstention ($c_{\mathrm{err}} = 5$, $c_{\mathrm{abs}} = 1$), the cutoff is $t^\star = 0.8$: emit only the answers the system is at least $80\%$ confident are correct. The rule is exact *if* $s$ is the true probability of correctness — a caveat we return to, because the score here is a calibrated but imperfect judge, and the gap is the whole reason the next sections exist.
+
+## The risk–coverage curve and its area
+
+Chow's rule picks one threshold; sweeping the threshold traces the whole trade. Order the answers by score and emit the most-confident first: as the threshold falls, coverage rises and the system is forced to emit answers it is less sure of, so selective risk rises too. The plot of selective risk against coverage is the **risk–coverage curve**, and the panel below lets you walk it.
+
+<SelectiveGenerationAbstentionLaboratory client:visible />
+
+The curve has an area, and the area is the summary number.
+
+<TheoremBlock type="definition" number={3} title="AURC and the excess over the oracle">
+
+The **area under the risk–coverage curve** is
+
+$$
+\mathrm{AURC} = \int_0^1 \mathrm{risk}(c)\, dc,
+$$
+
+the answer-level mirror of average precision = area under the precision–recall curve. Lower is better: a perfect confidence signal keeps selective risk at zero until coverage is forced past the base accuracy. The **oracle** curve orders answers by truth instead of score — every correct answer emitted before any wrong one — and is the lowest curve any signal can achieve. The **excess AURC**, achievable minus oracle, is non-negative and vanishes exactly when the score orders correctness perfectly.
+
+</TheoremBlock>
+
+On the worked panel of $32$ synthetic finance answers, the base error rate is $0.41$, so always-answering is wrong two times in five. The judge's answer score discriminates correct from incorrect with an AUC of $0.77$ — informative but far from perfect — so the achievable AURC is $0.185$ against an oracle of $0.097$, an excess of $0.088$. That excess is the price of an imperfect signal, and it is the quantity every confidence method is trying to shrink: the panel's perfect-judge collapse shows that when the score equals the truth, the achievable curve lies exactly on the oracle and the excess is zero. The gap *is* the signal's quality — the same fact, read as an area, that the AUC reads as a ranking.
+
+## A guarantee on the wrong-emission rate
+
+The risk–coverage curve is descriptive. The guarantee comes from lifting conformal risk control — the machinery the faithfulness topic used on claims — up to the answer level. The subtlety is choosing the right loss, and it is exactly the subtlety the claim-level topic flagged.
+
+<TheoremBlock type="theorem" number={4} title="Answer-level conformal selective-risk control">
+
+Let the per-answer loss at threshold $t$ be the **wrong-emission loss** with a fixed denominator,
+
+$$
+L(t) = \frac{1}{N}\#\{\text{emitted and wrong at } t\},
+$$
+
+which is non-increasing in $t$ — raising the bar can only stop an answer being emitted — and bounded in $[0,1]$. The conformal-risk-control threshold
+
+$$
+\hat t = \inf\Big\{ t : \tfrac{n}{n+1}\hat R_n(t) + \tfrac{1}{n+1} \le \alpha \Big\}
+$$
+
+computed on $n$ calibration answers controls the expected wrong-emission rate, $\mathbb{E}[L(\hat t)] \le \alpha$.
+
+</TheoremBlock>
+
+The fixed denominator is what makes the loss monotone, and the choice is load-bearing in exactly the way the claim-level topic warned. The *unconditional* wrong-emission rate — confident wrong answers as a fraction of *all* queries — is monotone in the threshold, so conformal risk control governs it. The *conditional* selective risk — wrong answers as a fraction of the *emitted* ones, the risk–coverage y-axis — divides by a shrinking count and is not monotone, so the same machinery silently fails on it. This is the answer-level echo of the false-claim-loss versus fraction-loss distinction, one level up; the notebook reproduces the non-monotonicity rather than asserting it. On the panel, at $\alpha = 0.10$ the threshold $\hat t = 0.78$ holds the test wrong-emission rate to zero while answering about a third of the held-out queries — and because the guarantee is conformal, it is calibration-agnostic: recalibrating the score changes how *many* answers clear the bar, not whether the rate is controlled.
+
+## The two-stage gate: too risky, or too thin
+
+Selective generation does not replace the claim-level back-off; it sits on top of it. The faithfulness hand-off named both failure modes: an answer can be too **risky** to emit, or — after the unfaithful claims are stripped away — too **thin** to be worth emitting. The two stages compose.
+
+<TheoremBlock type="algorithm" number={5} title="The two-stage decision">
+
+Given a candidate answer, first run the claim-level conformal back-off to certify the faithful claims, then decide:
+
+$$
+\text{emit} \iff \underbrace{s \ge t^\star}_{\text{not too risky}} \;\wedge\; \underbrace{|\hat C_{\hat\lambda}| \ge m}_{\text{not too thin}},
+$$
+
+where $\hat C_{\hat\lambda}$ is the certified-claim set and $m$ a minimum-substance floor. An answer that fails either gate abstains: the system would rather say nothing than emit a likely-wrong answer or a certified-but-empty one.
+
+</TheoremBlock>
+
+On the worked panel the risk gate at $t^\star = 0.8$ emits $10$ of the $32$ answers, all of them correct — a residual error of zero among the emitted — and defers the other $22$. Here the two gates are correlated: the answers that fall below the confidence cut are also the ones the back-off leaves thin, so the risk gate binds and the thinness floor removes nothing further at $m = 3$. That alignment is itself the honest observation — a low-confidence answer is usually a poorly-grounded one — and the minimum-claims slider in the lab shows the thinness gate begin to bite as you demand more substance, abstaining confident-but-sparse answers at a cost. The thinness floor is the editorial criterion the risk model alone does not capture: a single supported sentence can be perfectly faithful and still not an answer.
+
+## The cost of being wrong
+
+The point of the cost model is that selective generation must beat both trivial policies, and on a corpus where the signal is good enough, it does.
+
+The expected cost of *always emitting* is $c_{\mathrm{err}}$ times the base error rate — here $5 \times 0.41 = 2.03$. The cost of *always abstaining* is $c_{\mathrm{abs}} = 1.0$. The selective policy at the Chow cutoff costs $0.66$: it emits the answers it can stand behind and defers the rest, beating both baselines. But the cost curve in the lab is recomputed live from the answer scores, and its empirical minimum need not fall exactly at the closed-form $t^\star$ — because the score is calibrated only approximately. Its expected calibration error is $0.22$: a score the system reports as $0.8$ is not correct four times in five. Chow's rule treats the score as that probability; to the extent it is not, the realized cost-minimizing threshold drifts from $t^\star$, and the drift is precisely the calibration gap. The rule is no better than the calibration of the number it cuts — which is why the prior topic's calibration suite is a prerequisite, not a footnote.
+
+<FinanceCaseStudy title="When the analyst should be paged" modality={["text", "pdf", "news"]}>
+
+A portfolio manager asks a RAG system about a company's latest quarter. For some queries the retrieved filings contain the answer cleanly, the generator's claims are well-grounded, and the answer score is high — these the system emits. For others the filings are ambiguous or the relevant figure is simply not in the retrieved set; the generator pads with plausible inventions, the certified-claim set after back-off is thin, and the score is low — these the system should not emit. A wrong figure in a portfolio memo is expensive; an "I could not confirm this from the filings; routing to an analyst" is cheap. With the cost of an error five times the cost of a deferral, the optimal policy answers the $31\%$ of queries it is confident about, makes no confident errors on the held-out set, and defers the rest. The operating point is the one an auditor signs off on: the system answers when it can certify enough faithful, substantial claims, and pages a human when it cannot.
+
+</FinanceCaseStudy>
+
+## Where this sits
+
+This is the terminal node of the generation-grounding layer, and it closes a through-line. The evaluation layer taught that a retrieval metric is an estimator with a standard error; the grounding layer taught that a generated answer is measured by a noisy, calibrated judge; conformal factuality turned that measurement into a guarantee on which claims to keep; and selective generation turns the guarantee into an action — whether to answer at all. The new objects are Chow's cost-optimal reject rule, the risk–coverage curve and its area, the excess over the oracle that any imperfect signal pays, and a distribution-free bound on the rate of confident wrong answers. The recurring honesty is that none of it removes the calibration gap: a guarantee on the wrong-emission *rate* and a Bayes-optimal *threshold* both rest on the score being what it claims to be, and a real judge's score only approximately is. The next layers — distribution-free factuality and the information-theoretic limits of what retrieval can ground — develop exactly that residual.
+
+<RigorFlag>
+Chow's rule is Bayes-optimal only when the answer score is the true probability of being correct; the lenient judge's score is not, so the realized selective risk differs from the Bayes selective risk and the gap is a *calibration* gap — quantified here by the score's expected calibration error and Brier score but not removed. The conformal selective-risk guarantee is marginal: it controls the expected wrong-emission rate over the calibration draw, not a single realization, and assumes exchangeability of calibration and test answers; it bounds the unconditional wrong-emission rate, while the conditional selective risk is non-monotone. The AURC and its excess over the oracle are single-corpus point estimates with no standard error reported here, and "correct" means correct under the synthetic geometric grounding oracle and the synthetic judge, not human judgment. The two-stage thinness floor is an editorial criterion, not a guarantee. A tested notebook runs every claim and pins the headline numbers to the observed seed — and the build-and-run discipline is load-bearing, since a too-weak confidence signal makes selective generation no better than always abstaining.
+</RigorFlag>

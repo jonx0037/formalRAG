@@ -773,6 +773,60 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   Manakul EMNLP 2023 `10.18653/v1/2023.emnlp-main.557`; CRC Angelopoulos et al. arXiv 2208.02814; Mohri–Hashimoto
   (conformal factuality) arXiv 2402.10978; Rogan–Gladen 1978 `10.1093/oxfordjournals.aje.a112510`; Niculescu-Mizil–Caruana
   ICML 2005 `10.1145/1102351.1102430`; Church–Hanks PMI `aclanthology.org/J90-1003/`.
+  Its **selective-generation successor** (`selective-generation-abstention`, the TERMINAL node of the
+  generation-grounding layer — with it track 8 is COMPLETE, `planned[] → []`): turns the claim-level back-off
+  frontier into the ANSWER-LEVEL emit-or-abstain decision. ship = node `planned→published` + MDX
+  `status: published` + drop the title from `curriculum.ts` track 8 `planned[]` (NO edge changes — the two
+  inbound edges `faithfulness→` and `significance-testing→` pre-exist; terminal node, no outbound). Frontmatter
+  `prerequisites` = those TWO graph edges `[faithfulness-groundedness, significance-testing-calibration]`;
+  conformal-factuality is IMPORTED but a `connections[]` sibling, NOT a prereq (import graph ≠ DAG, the recurring
+  rule). `pipelineStage: generate` (the emit/abstain control action — the namesake stage the terminal node lands
+  on; NOT faithfulness's `evaluate`). The `.py` IMPORTS the whole faithfulness pipeline (`_corpus`, `build_panel`,
+  `panel_confidence`, `calibrated_panel_conf`, `split_panel`, `crc_backoff`, `abstention_frontier`,
+  `answer_faithfulness`, the `JUDGE`/`ALPHA`/`LAMBDA_GRID` constants) + conformal `conformal_risk_control_threshold`/
+  `split_conformal_threshold`/`weighted_conformal_threshold`/`back_off_retained` + significance `auc_pooled`/
+  `expected_calibration_error`/`brier_score` + `JUDGE_PERFECT`; reimplements none. **The genuine-distinctness
+  thesis (vs both prior factuality topics, which did CLAIM-level back-off): the per-query gate is a NEW object —
+  Chow's rule, the risk-coverage curve + AURC, the achievable-vs-oracle gap, an answer-level conformal
+  selective-risk, a cost model.** **AURC : RC :: AP : PR** (the riemann-integral up-link; recompute trapezoidally,
+  `np.trapz` is GONE in numpy 2.x → bind `_trapz = getattr(np,'trapezoid',None) or np.trapz`). **The monotone /
+  non-monotone parallel is the strongest reuse:** the answer-level conformal loss MUST be the UNCONDITIONAL
+  wrong-emission rate `#{emit∧wrong}/N` (monotone, fixed-N denominator — the `false_claim_loss` twin), while the
+  conditional selective risk `#{emit∧wrong}/#emit` (the RC y-axis) divides by a SHRINKING count and is
+  NON-monotone (the `fraction_loss` counterexample), one level up — assert both. **answer_correct is
+  FAITHFULNESS-ONLY (`faith ≥ floor`), NOT faithful-AND-responsive:** a two-sided `correct` breaks the
+  perfect-judge→oracle collapse anchor (a faithfulness judge is blind to coverage, so its score can't order a
+  coverage-dependent `correct` exactly); coverage instead becomes the Movement-4 THINNESS gate (`retained_count <
+  min_claims → abstain`), which IS the faithfulness hand-off ("certified answer too thin to emit"). **Build-and-run
+  TRAP (the headline-killer): a too-weak signal makes selective generation TIE always-abstain.** At `SEL_R=0.70`
+  the imported judge's answer score had AUC 0.612, and the cost-optimal policy's cost (0.656) was actually 1.000 ==
+  always-abstain — the thesis "beats BOTH baselines" silently FALSE. A `(SEL_R, n_claims, judge)` sweep found
+  `SEL_R=0.72` + the IMPORTED lenient `JUDGE` (no new judge) → AUC 0.773 (informative but imperfect → visible
+  excess-AURC 0.088 AND beats always-emit 2.03 / always-abstain 1.0 at cost 0.656). Sweep all three
+  (base-rate/AUC/cost) together; 'sharper' judges hit AUC 1.0 which KILLS the oracle gap. **The two gates CORRELATE
+  on this corpus** (thin answers are also low-confidence), so the risk gate binds and the thinness gate removes 0
+  at `min_claims=3` — state HONESTLY (it's the honest observation that a low-confidence answer is a poorly-grounded
+  one) and let the lab's min-claims slider show it bite. Collapse anchors: full-coverage selective risk == base
+  error (<1e-12); JUDGE_PERFECT → achievable AURC == oracle (<1e-12) & AUC==1; answer-level CRC threshold ==
+  hand-derived first-qualifying grid cut; weighted==split conformal under uniform weights (<1e-12); AURC ==
+  hand Riemann area. `answer_score` (mean calibrated conf) is the Chow-posterior proxy; the score's ECE 0.22 IS the
+  calibration gap (the load-bearing rigorFlag: Chow optimality assumes a calibrated posterior, so realized ≠ Bayes
+  selective risk; conformal controls E[loss] in EXPECTATION not per realization). **Viz:** Panels B (cost curve)
+  and D (conformal threshold) RECOMPUTE live in TS from the baked `SCORES`/`CORRECT` cloud (closed-form scans — the
+  strongest invariant: c_err slider 5→4.5 moves cutoff 0.80→0.778 live); bake only the cloud + RC curves + AURC +
+  TWO_STAGE. A baked const used ONLY by a live recompute (CONFORMAL) trips `ts6133` "declared but never read" — drop
+  it (the live recompute is the source; verified it reproduces the .py at α=0.1). **No decision-theory / bayes-risk
+  slug exists in ANY sibling → name Chow's rule / Bayes-optimal reject in PROSE only.** Cross-site (all `ls`/`curl`
+  verified): `formalmlPrereqs` conformal-prediction + concentration-inequalities (the SGR bound); `formalmlConnections`
+  always-valid-inference + rate-distortion (the coverage↔risk frontier); `formalstatisticsConnections`
+  hypothesis-testing + point-estimation (decision-theoretic risk/loss) + confidence-intervals-and-duality;
+  `formalcalculusConnections` riemann-integral (AURC) + convex-optimization (cost minimization). Refs verified
+  (`curl -sI` + CSL): Chow 1970 `10.1109/TIT.1970.1054406` (IEEE TIT 16(1):41–46); El-Yaniv–Wiener 2010 JMLR v11
+  (NO DOI → `jmlr.org/papers/v11/el-yaniv10a.html`); Geifman–El-Yaniv "Selective Classification for DNNs" NeurIPS
+  2017 arXiv 1705.08500; **AURC source** Geifman–Uziel–El-Yaniv "Bias-Reduced Uncertainty Estimation" ICLR 2019
+  arXiv 1805.08206; SelectiveNet ICML 2019 arXiv 1901.09192; Hendrycks–Gimpel ICLR 2017 arXiv 1610.02136 (MSP
+  baseline); Kamath–Jia–Liang "Selective QA under Domain Shift" ACL 2020 `10.18653/v1/2020.acl-main.503`; CRC
+  Angelopoulos et al. arXiv 2208.02814 (reused).
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
