@@ -149,6 +149,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
   Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes notebooks/<topic>/<topic_underscored>.py`
   before pushing — it catches unused imports/vars (the gemini nit class) faster than a build or a PR round-trip.
+  But the **TS side has no `noUnusedLocals`**: `pnpm build` AND a targeted `pnpm exec tsc --noEmit | grep <File>`
+  BOTH pass with an unused baked viz const (false confidence) — neither catches the `ts6133` an orphaned const
+  trips; only gemini or an adversarial `feature-dev:code-reviewer` subagent will, so eyeball that every baked
+  const is actually READ before pushing (the recurring "drop the baked const the live recompute never reads").
 - **Viz ↔ Python invariant:** `BM25ScoringLaboratory.tsx`'s corpus mirrors `notebooks/bm25/bm25.py`
   to the decimal, and the topic claims they match. Change one → change both. Numbers the viz needs
   but the corpus *doesn't determine* (e.g. a full-document L2 norm that includes filler terms) go in
