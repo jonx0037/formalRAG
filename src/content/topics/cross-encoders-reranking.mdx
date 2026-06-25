@@ -1,0 +1,282 @@
+---
+title: "Cross-Encoders and the Reranking Cascade"
+subtitle: "A dual encoder's separable score has a rank-d ceiling, and a learned bilinear q⊤Wd does not escape it — S = QWG⊤ is still rank at most d. Only a nonlinear joint encoder h([q;d]) breaks the wall, at a cost that forbids it from ever being the first stage. So the cross-encoder becomes a reranker: retrieve K cheaply, rescore K expensively. An oracle rerank is recall-monotone and pinches recall@1 to the candidate pool's recall@K, but a lossy cross-encoder can dip below the first stage by being confidently wrong"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "dense-retrieval-dual-encoders"
+tags:
+  - "cross-encoder"
+  - "reranking"
+  - "retrieve-then-rerank"
+  - "reranking-cascade"
+  - "joint-encoding"
+  - "recall-at-k"
+  - "expressivity-generalization"
+  - "hard-negatives"
+domain: "neural-retrieval"
+pipelineStage: "rerank"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "The architectural results are exact; their reach is narrower than the demonstrations suggest. That a learned bilinear scorer q-transpose-W-d cannot escape the rank ceiling is a theorem — W absorbs into one tower, leaving a rank-at-most-d dual encoder — and the recall pinch, that an oracle reranker over the first stage's top-K lifts recall@1 to exactly the pool's recall@K and caps it there, is an exact identity, but only under a known-item qrel with one gold document per query; with several relevant documents it weakens to an inequality. That a joint scorer has NO rank ceiling is exact for the oracle (any score table is a function of the fused pair), but the claim that a TRAINED nonlinear model realizes a given pattern is DEMONSTRATED, not proved: the cross-encoder in the laboratory is a finite random-ReLU-feature scorer with a closed-form ridge head, a deterministic seeded stand-in, not a trained transformer, and universal approximation guarantees a realizing network exists asymptotically (width to infinity), not that this net is what training finds. Monotonicity of recall in the over-fetch depth K is a theorem only for an EXACT (oracle) reranker — the superset argument — and the realistic LOSSY reranker is modeled as the oracle score matrix plus seeded Gaussian corruption (and a constructed confident-wrong promoter), under which recall@1 can dip BELOW the first stage and more over-fetch can hurt rather than help; that dip is a demonstration of confidently-wrong reranking, not a bound. The cascade's cost advantage is exact arithmetic (rerank K documents, not the whole corpus), but its accuracy gain is measured on the synthetic von Mises-Fisher finance cloud reused from the InfoNCE and DPR topics, restricted to a rank-3 dual first stage so the first stage is imperfect-but-recoverable — at full embedding width the toy is already perfect at rank 1 and the cascade has nothing to lift. The expressivity that breaks the rank ceiling is paid for in sample complexity (higher capacity, more training data, overfitting at small n); the dual encoder's inner-product restriction is a strong inductive bias, a claim we state and up-link to learning theory rather than prove here."
+videoId: null
+notebookPath: "notebooks/cross-encoders-reranking/01_cross_encoders_reranking.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/cross-encoders-reranking.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 29
+abstract: "The dual-encoder topic kept invoking the cross-encoder as the rank-free, un-precomputable counterpoint; this topic spends that power. A cross-encoder scores a fused pair h([q;d]), letting query and document attend at every layer, and the first result is why the nonlinearity is the whole point: a learned bilinear form q-transpose-W-d does NOT escape the rank ceiling, because S = QWG-transpose = (QW)G-transpose is still a product through a d-dimensional bottleneck and has rank at most d. Only a nonlinear joint encoder has no such ceiling, so it escapes the sign-rank wall the embedding-dimension topic proved — and pays for it with a joint forward pass per pair, which forbids precomputation and makes it unusable as a first stage. The architecture is therefore a retrieve-then-rerank cascade: a cheap dual encoder retrieves a candidate pool of size K, the cross-encoder rescores only those K. We prove the cascade's two governing facts. First the recall pinch: an oracle rerank of the top-K makes recall@1 equal the candidate pool's recall@K, so the reranker can never recover a true neighbor the first stage dropped — the cost model c_ret + K times c_ce against the brute corpus-size times c_ce sets the Pareto knee. Second, oracle rerank is recall-monotone in K because a larger pool is a superset, but a lossy cross-encoder can dip below the first stage by being confidently wrong, demoting a true top-1. We close on expressivity versus generalization: the cross-encoder's extra capacity overfits small training sets where the dual encoder's inner-product inductive bias wins, the up-link to VC dimension. A laboratory shows the rank-ceiling split, the cascade frontier and its cost knee, and the per-query rerank buckets with their hard-negative fixes and confident-wrong dips; a tested notebook owns every number; and the finance thread is the production reranker that separates same-sector hard negatives a single embedding confuses."
+connections:
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "The direct prerequisite and the promise this topic keeps: that topic established separability implies precomputability implies MIPS and kept invoking the cross-encoder as the rank-free, un-precomputable counterpoint whose power is spent in a retrieve-then-rerank cascade, 'the subject of a later topic.' This is that topic: we take its dual encoder as the cheap first stage, show its separable score is exactly what the cross-encoder gives up, and reuse its finance relevance matrix and same-sector hard-negative geometry as the pool the reranker rescores"
+  - topic: "embedding-dimension-lower-bounds"
+    relationship: "That topic proved the single-vector sign-rank ceiling and named cross-encoders as 'not factorizations at all'; this topic makes the escape precise. A learned bilinear score is still a factorization — S = QWG-transpose has rank at most d — so it inherits the same wall, and only the nonlinear joint encoder h([q;d]) has no rank to bound. We reuse that topic's signed-identity construction as the full-rank target the dual and bilinear models plateau on while the cross-encoder reconstructs it, so the cross-encoder is the architectural answer to the impossibility it proved"
+  - topic: "late-interaction-learned-sparse"
+    relationship: "Late interaction and the cross-encoder are the two branches off the single-vector ceiling that topic and DPR both flagged: late interaction keeps matching cheap by deferring it to a sum of token MaxSim dot products, while the cross-encoder pays a full joint forward pass for the most expressive score of all. This topic develops the second branch, so the two are the cheap-many-vectors and the expensive-fused answers to the same rank wall — and in a production stack the late-interaction or sparse legs can generate the candidate pool the cross-encoder reranks"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "The evaluation root that defined recall@K and the ranked-list metrics the cascade is scored by: the recall pinch — that an oracle rerank of the top-K makes recall@1 equal the pool's recall@K — is a statement in exactly that topic's recall vocabulary, and the confident-wrong dip is a drop in recall@1 measured against its definitions, so this topic reads the cascade through the metrics that topic formalized"
+  - topic: "multi-vector-ann-retrieval"
+    relationship: "PLAID's cascade ends in an exact-MaxSim rerank over a pruned survivor set; this topic's cross-encoder is the next, more expressive rerank stage over a candidate pool, and both share the retrieve-then-rerank superset structure whose extreme setting — rerank everything — recovers the brute-force ground truth. The recall-monotone-in-prune-depth fact proved there for an exact rerank is the same monotonicity this topic proves for an oracle cross-encoder rerank in K"
+  - topic: "infonce-contrastive-objective"
+    relationship: "InfoNCE trains the cross-encoder reranker exactly as it trains the dual encoder — a softmax over a positive against in-batch or mined negatives — but now the score is the fused h([q;d]) rather than a separable inner product, so the same contrastive loss optimizes a strictly more expressive function. This topic inherits that framing, and the cross-encoder's job is precisely to separate the hard negatives the contrastive objective most wants distinguished"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "The capstone composes candidate generation, fusion, and rerank into one pipeline and treats an exact scorer as the ground-truth top-k; this topic supplies the reranking stage of that cascade and the honest reason the capstone keeps an exact oracle as truth — a real cross-encoder is lossy and can be confidently wrong, so the pipeline's recall is measured against the oracle the reranker only approximates. The over-fetch law this topic uses for the cost model is imported from that capstone"
+references:
+  - type: "paper"
+    title: "Passage Re-ranking with BERT"
+    authors: "Nogueira & Cho"
+    year: 2019
+    url: "https://arxiv.org/abs/1901.04085"
+    note: "The first BERT cross-encoder reranker: a joint forward pass over [query ; passage] scoring relevance, run over the top candidates of a cheap first stage — the un-precomputable, most-expressive counterpoint to the dual encoder this topic builds on"
+  - type: "paper"
+    title: "Multi-Stage Document Ranking with BERT"
+    authors: "Nogueira, Yang, Cho & Lin"
+    year: 2019
+    url: "https://arxiv.org/abs/1910.14424"
+    note: "monoBERT/duoBERT: the retrieve-then-rerank cascade with a BERT cross-encoder rescoring the top-K candidates from a cheap first stage — the architecture this topic formalizes, and the source of the K-candidate cost framing"
+  - type: "paper"
+    title: "A Cascade Ranking Model for Efficient Ranked Retrieval"
+    authors: "Wang, Lin & Metzler"
+    year: 2011
+    url: "https://doi.org/10.1145/2009916.2009934"
+    note: "The cascade-ranking model the reranking stage instantiates: a sequence of increasingly expensive stages, each pruning candidates for the next, with end-to-end recall and cost the composition of the per-stage trade-offs; the recall pinch and the over-fetch law are this model specialized to one rerank stage; SIGIR 2011"
+  - type: "paper"
+    title: "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks"
+    authors: "Reimers & Gurevych"
+    year: 2019
+    url: "https://doi.org/10.18653/v1/D19-1410"
+    note: "Makes the bi-encoder versus cross-encoder distinction explicit: a cross-encoder jointly encodes each pair for a more expressive but un-precomputable score, the separability-versus-expressivity trade this topic prices; the DOI resolves to the ACL Anthology EMNLP 2019"
+  - type: "paper"
+    title: "On the Theoretical Limitations of Embedding-Based Retrieval"
+    authors: "Weller, Boratko, Naim & Lee"
+    year: 2025
+    url: "https://arxiv.org/abs/2508.21038"
+    note: "The sign-rank ceiling on single-vector dot-product retrieval that the nonlinear cross-encoder escapes, with the multi-vector and fused-scorer escapes named as outside the single-vector bound — the wall Movement 1 routes around"
+  - type: "documentation"
+    title: "Sentence-Transformers: Cross-Encoders"
+    authors: "Reimers et al."
+    year: 2024
+    url: "https://www.sbert.net/examples/cross_encoder/applications/README.html"
+    note: "The production reference for cross-encoder reranking over a bi-encoder's top-K retrieval, the concrete retrieve-then-rerank recipe the finance case study instantiates"
+formalmlPrereqs:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the rank ceiling this topic shows a bilinear score cannot escape is the Eckart-Young-Mirsky rank story of that topic: S = QWG-transpose factors through a d-dimensional bottleneck, so its rank is at most d and the truncated SVD is its best rank-d approximation, exactly the bound a nonlinear cross-encoder leaves behind by not being a matrix product at all — so the SVD topic is the rank framing Movement 1 escapes"
+formalmlConnections:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "that topic studies what a single learned representation can encode, separating each input independently; the cross-encoder abandons separate representations entirely by fusing query and document before scoring, so it sits exactly outside the representation-geometry that topic characterizes — the joint-versus-separate-encoding contrast is the architectural pivot of this topic against that one's single-encoder view"
+  - topic: "vc-dimension"
+    site: "formalml"
+    relationship: "the cross-encoder's freedom to fit a fused pair is a large-capacity hypothesis class, and that topic's combinatorial capacity measure is why that freedom overfits a small training set where the dual encoder's low-capacity inner-product bias generalizes better — the expressivity-versus-generalization crossover the closing remark describes is the retrieval face of the capacity-controls-sample-complexity story that topic develops"
+  - topic: "generalization-bounds"
+    site: "formalml"
+    relationship: "the test-error gap between the high-capacity cross-encoder and the low-capacity dual encoder at small training n is exactly what the margin and complexity bounds of that topic predict: more expressive scorers need more samples to close the generalization gap, so the inner-product inductive bias is a smaller-complexity hypothesis class that wins below a crossover sample size those bounds locate"
+formalstatisticsConnections:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "training the cross-encoder by a softmax cross-entropy over a positive against negatives is maximum-likelihood estimation of a conditional relevance model, and that topic's score-equation, consistency, and asymptotic-efficiency vocabulary is the inference framing under which the fused scorer is fit — the same likelihood machinery the dual encoder uses, now over a non-separable score"
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the softmax that turns the cross-encoder's K candidate logits into a relevance distribution is the canonical link of a categorical exponential family, so the reranker's output layer and its log-partition normalization are exactly the natural-parameter-to-mean map that topic develops, with the cross-entropy loss its negative log-likelihood"
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "fitting only a ridge readout on top of a frozen joint encoder is a convex problem with a closed-form optimum, but training the full nonlinear cross-encoder head is non-convex with no such guarantee — a rigorFlag this topic raises, and that topic supplies the convex-versus-non-convex vocabulary that distinguishes the easy readout from the hard end-to-end fit"
+  - topic: "mean-value-taylor"
+    site: "formalcalculus"
+    relationship: "backpropagation through the cross-encoder's fused layers is the chain rule applied to a deep composition, and the first-order Taylor and mean-value machinery of that topic is the local-linearization foundation that makes the gradient of the joint score well-defined and the optimization step analyzable — the calculus under the reranker's training loop"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import CrossEncoderRerankingLaboratory from '../../components/viz/CrossEncoderRerankingLaboratory.tsx';
+
+## Overview & motivation
+
+[Dense retrieval](/topics/dense-retrieval-dual-encoders) ended on a debt. Its whole architecture rested on *separability* — a dual encoder scores $s(q,d) = \langle E_Q(q), E_P(d)\rangle$, query and document meeting in a single inner product — and three times over the topic named the thing separability forbids. It promised that "the **cross-encoder** that this topic kept invoking as the rank-free, un-precomputable counterpoint becomes the reranker in a retrieve-then-rerank cascade," and deferred *how that extra power is spent* to "a later topic." The [embedding-dimension lower bound](/topics/embedding-dimension-lower-bounds) sharpened the debt into an impossibility — the single-vector wall it proved is one "cross-encoders … pay a quadratic cost to fuse query and document and so are **not factorizations at all**" route around. And [late interaction](/topics/late-interaction-learned-sparse) set the cross-encoder as the far pole of the expressivity axis: where ColBERT keeps matching cheap with a sum of token dot products, "a cross-encoder pays a full joint forward pass for the **most expressive score of all**." This is that topic. We pay the debt, and we charge it.
+
+A **cross-encoder** scores a *fused* pair, $s(q,d) = h([q;d])$, letting query and document attend to each other at every layer rather than meeting once at the end. The first result is the one that explains why this matters at all, and it is more subtle than "more layers, more power." A *learned bilinear* scorer $q^\top W d$ — a dual encoder with a trained similarity metric bolted on — does **not** escape the rank ceiling, because $S = QWG^\top = (QW)G^\top$ is still a product through a $d$-dimensional bottleneck. The escape is not the interaction matrix. It is the *nonlinearity*. Only a genuinely nonlinear joint scorer has no rank to bound, and that is exactly what lifts the cross-encoder out of the sign-rank wall.
+
+That expressivity is bought with a forward pass per pair, which forbids precomputation and rules the cross-encoder out as a first stage. So it becomes a **reranker**: a cheap dual encoder retrieves a candidate pool of $K$ documents, the cross-encoder rescores only those $K$. Two facts govern the cascade. The **recall pinch** says an oracle rerank of the top-$K$ makes recall@1 equal the pool's recall@$K$ — it can lift the first stage, but never past what the first stage retrieved. And **monotonicity**: an oracle reranker only improves as $K$ grows, but a *lossy* one can dip below the first stage by being confidently wrong, and more over-fetch can make the dip worse.
+
+<CrossEncoderRerankingLaboratory client:visible />
+
+The first panel is the rank ceiling: on a full-rank target the dual encoder and the learned bilinear share one descending error curve — both capped at rank $d$ — while the nonlinear cross-encoder sits flat near zero, with no embedding budget at all. The second is the cascade frontier: an oracle rerank tracing the pool's recall@$K$ against the cost $c_\text{ret} + K c_\text{ce}$, with the brute corpus-scan cost a flat line far above. The third is when reranking hurts: a quality slider that fixes hard negatives at one end and breaks true top-1s at the other.
+
+## The cross-encoder and the cascade
+
+Fix a query $q$ and a corpus $\mathcal{C} = \{d_1, \dots, d_n\}$. A dual encoder, as the previous topic established, scores by a separable inner product and so realizes only relevance matrices of bounded rank. We define its expressive opposite and the structure that makes it deployable.
+
+<TheoremBlock type="definition" number={1} title="Cross-encoder and reranking cascade">
+
+A **cross-encoder** is a map $h : \mathcal{Q} \times \mathcal{C} \to \mathbb{R}$ that scores a *fused* pair, $s(q,d) = h([q;d])$, with no requirement that the score factor through separate query and document representations. A **retrieve-then-rerank cascade** is the two-stage pipeline: a cheap first stage (here a dual encoder) returns the top-$K$ documents $\mathcal{T}_K(q) = \operatorname{top\text{-}}K_j\, s_1(q, d_j)$ by its own score $s_1$, and the cross-encoder rescores only that pool, returning $\operatorname{argmax}_{d \in \mathcal{T}_K(q)} h([q;d])$. The first stage's job is **recall** (keep the gold document in the pool); the reranker's is **precision** (surface it within the pool).
+
+</TheoremBlock>
+
+The two stages are not interchangeable. The first stage must be precomputable to run over the whole corpus, so it must be a factorization; the reranker need only run over $K$ documents, so it can afford to fuse. We take $s_1$ to be the dual encoder of the previous topic and ask, in order: how much more can a fused scorer express, what does the cascade buy, and how can it fail.
+
+## Movement 1 — joint encoding breaks the rank ceiling, and the nonlinearity is why
+
+The previous topic proved that a dual encoder's score matrix $S = QG^\top$ has $\operatorname{rank}(S) \le d$, and that a target relevance matrix is realizable exactly if and only if its rank is at most $d$. The natural first guess at escaping this ceiling is to keep the two towers but let them interact through a learned matrix — a bilinear score $q^\top W d$, a trained Mahalanobis similarity. The first result is that this guess fails completely.
+
+<TheoremBlock type="proposition" number={1} title="A learned bilinear stays rank-bounded">
+
+Let $Q \in \mathbb{R}^{m \times d}$ and $G \in \mathbb{R}^{n \times d}$ stack query and document embeddings, and let $W \in \mathbb{R}^{d \times d}$ be any learned interaction matrix. The bilinear score matrix $S = Q W G^\top$ satisfies $\operatorname{rank}(S) \le d$ — the same ceiling as the plain dual encoder. Moreover the best bilinear realization of any target equals the best plain dual encoder's: both are the truncated SVD.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Absorb $W$ into the query tower: $S = QWG^\top = (QW)G^\top$, a product of an $m \times d$ matrix with an $n \times d$ matrix, so $\operatorname{rank}(S) \le \min(\operatorname{rank}(QW), \operatorname{rank}(G^\top)) \le d$. The learned bilinear is *literally* a dual encoder with reparametrized query embeddings $Q' = QW$ — the interaction matrix changes the embeddings, not the realizable set. For the second claim, the set of matrices expressible as $QWG^\top$ over all $(Q, W, G)$ is exactly $\{\,M : \operatorname{rank}(M) \le d\,\}$: taking $Q = U_d$, $G = V_d$ the top-$d$ singular vectors of a target $M$ and $W = \Sigma_d$ its top-$d$ singular values gives $QWG^\top = U_d \Sigma_d V_d^\top$, the truncated SVD, which Eckart–Young makes the optimal rank-$d$ approximation. No bilinear can do better, and no plain dual encoder does worse. $\blacksquare$
+
+</TheoremBlock>
+
+This is the pedagogical hinge of the topic. Adding a learned similarity metric to a pair of frozen encoders feels like buying expressivity; it buys none. Whatever escapes the rank ceiling, it is not the interaction term — it is leaving the bilinear family altogether. A fused, *nonlinear* scorer does exactly that.
+
+<TheoremBlock type="theorem" number={1} title="A joint scorer has no rank ceiling">
+
+For any target relevance matrix $M \in \mathbb{R}^{m \times n}$ there exists a cross-encoder $h$ with $h([q_i; d_j]) = M_{ij}$ for all $i, j$, regardless of $\operatorname{rank}(M)$. The realizable set of a fused scorer is *every* score table, unbounded in rank.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+A cross-encoder reads the pair $[q_i; d_j]$ jointly, so it can in principle assign each pair an independent value; the function $h$ that maps the pair $(q_i, d_j)$ to $M_{ij}$ is well-defined for any $M$. There is no factorization to bottleneck the rank, because there is no factorization at all — this is the sense in which, as the embedding-dimension topic put it, a cross-encoder is *not a factorization*. $\blacksquare$
+
+</TheoremBlock>
+
+The theorem is, by itself, almost trivial: a lookup table realizes any matrix. Its force is the contrast with Proposition 1 and the *constructive* demonstration the laboratory makes. We take the [signed-identity target](/topics/embedding-dimension-lower-bounds) — full rank $n$, $+1$ on the diagonal and $-1$ off it, the cleanest full-rank pattern that topic studied — and reconstruct it three ways as $d$ grows. The rank-$d$ ceiling (the best dual encoder, which is also the best learned bilinear) has relative reconstruction error that descends from $0.745$ at $d=1$ only to $0$ at $d = n = 6$, plateauing strictly above zero for every $d < n$. A *finite* nonlinear cross-encoder — a random-ReLU-feature map on the fused pair with a closed-form ridge readout, our deterministic stand-in for $h$ — reconstructs the target to machine precision at *every* $d$, including $d=1$, and its realized score matrix has full rank $6$. The cross-encoder has no embedding budget to spend; it does not factorize, so there is nothing to bound. (That this finite net realizes the pattern is *demonstrated*: universal approximation guarantees a realizing network exists only asymptotically, and our scorer is a seeded surrogate, not a trained transformer — the load-bearing caveat below.)
+
+The same expressivity shows on the finance geometry. Fit the cross-encoder on the corpus's query–document pairs and it realizes the relevance **exactly** — recall@1 $= 1.0$ — separating the same-sector companies a rank-3 dual encoder ($0.781$ recall@1) confuses. The cross-encoder can resolve hard negatives a single embedding cannot. The catch is that it cannot do so cheaply.
+
+## Movement 2 — the retrieve-then-rerank cascade and the recall pinch
+
+A cross-encoder must run a joint forward pass for every pair it scores, and it cannot precompute anything, so scoring the whole corpus costs $|\mathcal{C}|$ forward passes per query — exactly the cost the dual encoder was built to avoid. The cascade resolves the tension by spending that cost only on a small pool: retrieve $K$ candidates cheaply, rescore $K$ expensively.
+
+<TheoremBlock type="proposition" number={2} title="The cascade cost law">
+
+Let the first stage cost $c_\text{ret}$ per query (one encode plus a MIPS lookup) and let each cross-encoder forward pass cost $c_\text{ce}$. Reranking the top-$K$ pool costs
+
+$$
+\text{cost}_\text{cascade} = c_\text{ret} + K\,c_\text{ce}, \qquad \text{against} \qquad \text{cost}_\text{brute} = |\mathcal{C}|\,c_\text{ce},
+$$
+
+so the cross-encoder's per-query work is constant in the corpus size, set by the over-fetch depth $K$ rather than $|\mathcal{C}|$. The over-fetch needed to keep the gold in the pool with retention $r = $ recall@$K$ is the [imported](/topics/capstone-multimodal-financial-rag) factor $1/r$.
+
+</TheoremBlock>
+
+The cost is exact arithmetic; the question is how large $K$ must be. That is where the cascade's defining identity lives. Because the reranker only ever sees the pool, its ceiling is set entirely by what the first stage retrieved.
+
+<TheoremBlock type="theorem" number={2} title="The recall pinch">
+
+Under a known-item qrel — one gold document $g_q$ per query — let an **oracle** reranker (one that ranks the gold first whenever it is present) rescore the first stage's top-$K$ pool. Then
+
+$$
+\text{recall@1}_{\text{after}} \;=\; \text{recall@}K_{\text{stage-1}}.
+$$
+
+The oracle lifts recall@1 from the first stage's own recall@1 up to its recall@$K$, and caps it there exactly.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+The oracle ranks $g_q$ first among any pool that contains it, by definition. So the post-rerank top-1 is $g_q$ if and only if $g_q \in \mathcal{T}_K(q)$. Averaging the indicator over queries,
+
+$$
+\text{recall@1}_\text{after} = \frac{1}{|\mathcal{Q}|}\sum_q \mathbf{1}[g_q \in \mathcal{T}_K(q)] = \text{recall@}K_\text{stage-1},
+$$
+
+the middle expression being precisely [recall@$K$](/topics/set-metrics-precision-recall-map-mrr) with $|R| = 1$. $\blacksquare$
+
+</TheoremBlock>
+
+The pinch is the whole logic of over-fetch in one line. The reranker's reach is the pool's recall@$K$, so you fetch deep enough that recall@$K$ saturates, then rerank. On the finance toy the rank-3 first stage has recall@1 $= 0.781$ but recall@3 $= 1.0$ — it confuses companies at the very top but keeps the gold within the top three — so reranking a pool of $K = 3$ lifts recall@1 all the way to $1.0$. The laboratory's second panel draws the oracle curve tracing the pool's recall@$K$ exactly, with the cost climbing as $c_\text{ret} + K c_\text{ce}$ against the brute corpus-scan line orders of magnitude above: the knee where recall@$K$ saturates is where you stop. One corollary is worth stating, because it is the reason the first stage's recall is the cascade's true bottleneck.
+
+<TheoremBlock type="corollary" number={1} title="The cascade ceiling">
+
+For *any* reranker — oracle or lossy — $\text{recall@1}_\text{after} \le \text{recall@}K_\text{stage-1}$. A reranker can only reorder the pool; it can never recover a gold document the first stage dropped.
+
+</TheoremBlock>
+
+Under the known-item qrel the recall pinch is an exact identity; with several relevant documents per query the oracle can surface only one at rank 1, and the identity weakens to the inequality of the corollary. We ship the topic on the known-item qrel, where the equality holds and recall@1 is the natural reranking accuracy.
+
+## Movement 3 — monotonicity, and when reranking hurts
+
+The recall pinch is about a *perfect* reranker. Two facts separate the perfect case from the real one. The first is reassuring.
+
+<TheoremBlock type="theorem" number={3} title="Oracle rerank is recall-monotone in K">
+
+An oracle reranker's recall@1 is non-decreasing in the over-fetch depth $K$: deepening the pool never lowers accuracy.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+The top-$(K+1)$ pool is a superset of the top-$K$ pool, $\mathcal{T}_K(q) \subseteq \mathcal{T}_{K+1}(q)$. If the gold $g_q$ was in $\mathcal{T}_K(q)$ it is still in $\mathcal{T}_{K+1}(q)$, and the oracle still ranks it first; the only new event a larger pool admits is $g_q$ entering the pool, which can only turn a miss into a hit. So $\text{recall@1}_\text{after}(K+1) \ge \text{recall@1}_\text{after}(K)$. $\blacksquare$
+
+</TheoremBlock>
+
+This is the same superset argument the [multi-vector ANN](/topics/multi-vector-ann-retrieval) topic used for an exact rerank over a pruned survivor set, and it holds for exactly the same reason — but, exactly as there, only for an *exact* reranker. A real cross-encoder is not exact, and the second fact is the warning.
+
+<TheoremBlock type="remark" title="A lossy cross-encoder can dip below the first stage">
+
+A reranker that is confidently wrong — that assigns a same-sector distractor a higher score than the true document — *breaks* queries the first stage got right, dropping recall@1 below the first stage's own. And because more over-fetch hands such a reranker more chances to err, the dip can *deepen* as $K$ grows: the anti-monotone direction, the sharpest possible contrast to the oracle's guarantee.
+
+</TheoremBlock>
+
+The laboratory's third panel makes this a slider. Model the reranker quality by a corruption level $\sigma$ added to the oracle's scores; at $\sigma = 0$ it is the oracle and fixes all seven same-sector hard negatives the first stage missed, a net recall@1 lift of $+0.219$. As $\sigma$ grows the buckets shift — *fixed* falls, *broke* rises — and the net lift turns negative; a constructed worst-case promoter that always elevates a same-sector distractor breaks every recoverable query. The dip is not a bug in the model. It is the score-versus-ranking gap made operational: a high cross-encoder *score* on the wrong document is a wrong *ranking*, and no amount of over-fetch protects against it. This is why a production stack keeps an exact scorer as ground truth and why the monotonicity guarantee is the oracle's alone.
+
+<TheoremBlock type="remark" title="Expressivity is paid for in samples">
+
+The capacity that lets the cross-encoder realize any relevance table is exactly the capacity that overfits a small training set. A fused scorer is a high-complexity hypothesis class; by the [VC-dimension](/topics/embedding-dimension-lower-bounds) and generalization-bound machinery of learning theory, more expressive scorers need more labeled pairs to close the generalization gap. The dual encoder's separable inner product is a strong *inductive bias* — a low-complexity restriction that generalizes from fewer examples and wins below a crossover sample size. We state this rather than simulate it: the expressivity our laboratory measures is realized on the full relevance, where train and test coincide, and the sample-complexity story belongs to a learning-curve protocol this topic does not run.
+
+</TheoremBlock>
+
+<TheoremBlock type="proposition" number={3} title="What the laboratory measures">
+
+Every number in the three panels is owned by a tested notebook and asserted by the harness: the rank-ceiling reconstruction errors (the ceiling positive for $d <$ rank, the cross-encoder near zero at every $d$); the recall pinch (oracle rerank recall@1 equal to the first stage's recall@$K$ to floating point at every $K$); oracle monotonicity in $K$; the lossy dip below the first stage and its deepening with $K$; and the collapse anchors — reranking the whole corpus ($K = |\mathcal{C}|$) equals the brute-force argmax, and the interpolating cross-encoder matches the imported oracle. The laboratory recomputes only closed forms in the browser: the cost arithmetic $c_\text{ret} + K c_\text{ce}$ and its speedup, and the net lift from the bucket counts.
+
+</TheoremBlock>
+
+<FinanceCaseStudy title="The reranker that pages the desk" modality={["text", "pdf", "news"]}>
+
+A production retrieval system over financial filings, earnings calls, and analyst notes runs a dual encoder first: it encodes the whole document corpus once, offline, and answers a query with one MIPS lookup. That stage is fast and high-recall, but it confuses *same-sector hard negatives* — two refiners, two regional banks, two payment networks whose filings share boilerplate and sit a fraction of a radian apart on the sphere. A single embedding cannot resolve them; the [rank ceiling](/topics/embedding-dimension-lower-bounds) says so. So a **cross-encoder reranker** sits behind the first stage, rescoring the top few hundred hits where its quadratic cost is affordable — and, as the dual-encoder topic put it, *it can never be the first stage*. The recall pinch is the operational rule the desk lives by: the reranker can only surface what the retriever fetched, so the over-fetch depth is tuned until recall@$K$ saturates on held-out queries, and no deeper — every extra candidate is a cross-encoder forward pass. And the confident-wrong dip is the failure the desk fears most: a reranker that scores the wrong refiner's filing highest does not merely miss, it *replaces* a correct retrieval with a wrong one, which is why the pipeline keeps an exact scorer as ground truth and audits the reranker against it.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+The architectural results are exact; their reach is narrower than the demonstrations suggest. That a learned bilinear scorer $q^\top W d$ cannot escape the rank ceiling is a theorem — $W$ absorbs into one tower, leaving a rank-$\le d$ dual encoder — and the recall pinch is an exact identity, but only under a known-item qrel with one gold document per query; with several relevant documents it weakens to the corollary's inequality. That a joint scorer has *no* rank ceiling is exact for the oracle (any score table is a function of the fused pair), but the claim that a *trained* nonlinear model realizes a given pattern is **demonstrated, not proved**: the cross-encoder in the laboratory is a finite random-ReLU-feature scorer with a closed-form ridge head, a deterministic seeded stand-in, not a trained transformer, and universal approximation guarantees a realizing network exists only asymptotically. Monotonicity of recall in $K$ is a theorem for the *exact* (oracle) reranker only; the lossy reranker is modeled as the oracle's scores plus seeded Gaussian corruption (and a constructed confident-wrong promoter), so its dip is a demonstration, not a bound. The cascade's cost advantage is exact arithmetic, but its accuracy gain is measured on the synthetic von Mises–Fisher finance cloud reused from the InfoNCE and DPR topics, restricted to a rank-3 first stage so the first stage is imperfect-but-recoverable — at full embedding width the toy is already perfect at rank 1 and the cascade has nothing to lift. The expressivity that breaks the rank ceiling is paid for in sample complexity; the inner-product restriction is a strong inductive bias, a claim we state and up-link to learning theory rather than prove.
+
+</RigorFlag>
+
+## Where this sits
+
+The cross-encoder closes the expressivity ladder the dense track climbed — single vector, multi-vector late interaction, fused joint scorer — and opens the reranking sub-track. Its cost is the lever the next topics pull. **Knowledge distillation for retrieval** uses the cross-encoder as a *teacher*: its margins supervise a cheap student dual encoder, so the expressive scorer's judgments are compressed back into a precomputable first stage — the MarginMSE recipe, the practical answer to "the reranker is too slow to run everywhere." **Listwise LLM rerankers** push the joint-scoring idea further, scoring a whole candidate list in one context rather than one pair at a time, trading the cross-encoder's pairwise forward passes for a single sequence model that reasons over the pool. And **hard-negative mining** is the training-side counterpart of the hard negatives this topic's reranker exists to resolve: the same same-sector confusions that the cross-encoder fixes at inference are the negatives a first stage should be trained against. Each is named here and developed in its own topic; the cross-encoder is the architecture they all take as given.

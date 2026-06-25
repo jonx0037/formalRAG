@@ -829,6 +829,42 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   arXiv 1805.08206; SelectiveNet ICML 2019 arXiv 1901.09192; Hendrycks–Gimpel ICLR 2017 arXiv 1610.02136 (MSP
   baseline); Kamath–Jia–Liang "Selective QA under Domain Shift" ACL 2020 `10.18653/v1/2020.acl-main.503`; CRC
   Angelopoulos et al. arXiv 2208.02814 (reused).
+- **`cross-encoders-reranking`** (opens the reranking sub-track OFF the neural-retrieval lineage, a sibling of
+  `embedding-dimension-lower-bounds`/`late-interaction-learned-sparse`, NOT a node in the eval/grounding chain):
+  ship = node `planned→published` + drop the title from `curriculum.ts` **tracks[5]** (`neural-retrieval`)
+  `planned[]`; NO edge changes (the `dense→cross` + `cross→{retrieval-distillation,llm-listwise-rerankers}` edges
+  pre-exist; the unblocked successors are PROSE-ONLY/unbuilt). Frontmatter `prerequisites` = the SINGLE inbound
+  edge `dense-retrieval-dual-encoders`; the `.py` IMPORTS `embedding-dimension-lower-bounds` (`signed_identity`),
+  `set-metrics` (`recall_at_k`), `capstone` (`over_fetch_factor`) as **connections/siblings, NOT prereqs** (the
+  recurring import-graph≠DAG rule). **The bilinear-stays-rank-d HINGE is the pedagogical core:** a learned
+  bilinear `qᵀWd` does NOT escape the rank ceiling — `S = QWGᵀ = (QW)Gᵀ` absorbs W into one tower, so rank ≤ d;
+  the best bilinear == truncated SVD (`bilinear_score(U_d, diag(s_d), V_d) == best_rank_d`, and W=I == imported
+  `score_matrix`). Only the NONLINEARITY escapes, not the interaction matrix. **Cross-encoder surrogate = random-
+  ReLU features + closed-form ridge** (deterministic/bit-reproducible — chosen OVER a trained MLP, which violates
+  bake-only-reproducible via SGD; the user picked this). TWO input modes: one-hot pairs `[eᵢ;eⱼ]` for the M1
+  abstract-expressivity reconstruction, real `[q;d]` concat for the finance scorer. **M1 target = imported
+  `signed_identity(6)`** (full rank 6, sv `[4,2,2,2,2,2]`): ceiling recon-error 0.745→0 vs cross ~0 at every d;
+  `CE_LAM=1e-10` (1e-6 left the cross error at 1.1e-6, borderline against a `<1e-6` assert — relax to a `<1e-4`
+  CONTRAST, never decimals). **Recall pinch (the load-bearing identity): oracle-rerank recall@1 == stage-1
+  recall@K EXACTLY** under a known-item `|R|=1` qrel (the DPR toy IS |R|=1), cross-checked vs imported
+  `recall_at_k`; weakens to `≤` for |R|>1. **Too-easy trap fix: full-d dual recall@1≡1, so restrict stage-1 to a
+  best rank-3 dual** (recall@1 0.781, recall@3=1.0 — the cascade sweet spot; assert it). **M3: oracle rerank is
+  recall-monotone in K (superset, EXACT only); a lossy reranker (oracle scores + seeded σ-noise) DIPS below
+  stage-1 AND more K makes it WORSE (anti-monotone)** — use a CONSTRUCTED confident-wrong promoter (elevates a
+  same-sector distractor) as the deterministic guaranteed-dip witness. Cost `c_ret + K·c_ce` vs `|C|·c_ce`: bake
+  `C_RETRIEVE/C_CE/CORPUS_HEADLINE`, TS recomputes cost+speedup closed-form (verified live in-browser: K=3→4 gives
+  247,525× = 25M/101). Collapse anchors (<1e-12 / <1e-9): K=|C| rerank == brute argmax; interpolating CE ==
+  imported `cross_encoder_oracle`; bilinear W=I == `score_matrix`. Panel C's σ-slider flips net lift +0.219→−0.438
+  (the dip), mirroring `BUCKETS_BY_SIGMA`. Cross-site (all `ls`/`curl`-verified): `formalmlPrereqs` **svd** (the
+  Eckart-Young rank ceiling the bilinear inherits); `formalmlConnections` representation-learning/vc-dimension/
+  generalization-bounds (the expressivity↔generalization remark — shipped as a REMARK, not a 4th movement/panel,
+  per the user); `formalstatisticsConnections` maximum-likelihood/exponential-families; `formalcalculusConnections`
+  convex-optimization (ridge convex / full MLP non-convex)/mean-value-taylor. Refs verified (`curl`): Nogueira–Cho
+  "Passage Re-ranking with BERT" arXiv 1901.04085; Nogueira et al. "Multi-Stage…" arXiv 1910.14424; Wang–Lin–
+  Metzler cascade ranking `10.1145/2009916.2009934` (SIGIR 2011, reused from capstone); SBERT `10.18653/v1/D19-1410`;
+  LIMIT (Weller et al.) arXiv 2508.21038; sentence-transformers cross-encoder docs **stable URL**
+  `sbert.net/examples/cross_encoder/applications/README.html` (the old `…/applications/cross-encoder/README.html`
+  301-redirects). NO formalML attention/transformer/mutual-information slug → name in prose.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
