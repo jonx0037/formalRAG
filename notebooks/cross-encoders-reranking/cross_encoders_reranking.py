@@ -15,7 +15,7 @@ pedagogical claim an `assert`:
     strictly positive reconstruction error for d < n, while a random-ReLU-feature cross-encoder on the
     one-hot pair [e_i; e_j] reconstructs it to machine precision at every d.
     (`random_relu_features`, `fit_cross_encoder_ridge`, `cross_encoder_score`, `bilinear_score`,
-    `fit_bilinear`, `recon_error_curve`.)
+    `best_bilinear_ceiling`, `recon_error_curve`.)
 
   MOVEMENT 2 — THE RETRIEVE-THEN-RERANK CASCADE AND THE RECALL PINCH. The cross-encoder is linear in
     what it scores, so it cannot score the whole corpus; it reranks a cheap first stage's top-K. Cost
@@ -97,20 +97,6 @@ def bilinear_score(Q: np.ndarray, W: np.ndarray, P: np.ndarray) -> np.ndarray:
     product through a d-dimensional bottleneck: S = (Q W) P^T, a dual encoder with reparametrized
     queries, so rank(S) <= d. Learning a metric is NOT fusing the pair."""
     return np.atleast_2d(Q) @ np.asarray(W, dtype=float) @ np.atleast_2d(P).T
-
-
-def fit_bilinear(Q: np.ndarray, P: np.ndarray, M: np.ndarray, lam: float = 1e-8) -> np.ndarray:
-    """The best learned interaction W minimizing ||Q W P^T - M||_F (ridge-regularized least squares
-    via the vectorized normal equations: vec(Q W P^T) = (P kron Q) vec(W)). The resulting S = Q W P^T
-    is still rank <= d, so this is the strongest a frozen-embedding bilinear can do — and it cannot
-    beat the rank-d ceiling. GUARD: lam > 0 keeps the normal equations well-posed."""
-    Q = np.atleast_2d(Q)
-    P = np.atleast_2d(P)
-    d = Q.shape[1]
-    A = np.kron(P, Q)                                   # (nq*np) x (d*d): rows = vec of e_q e_d^T blocks
-    y = M.reshape(-1, order="F")                        # column-major vec to match np.kron layout
-    w = np.linalg.solve(A.T @ A + lam * np.eye(d * d), A.T @ y)
-    return w.reshape(d, d, order="F")
 
 
 def random_relu_features(X: np.ndarray, n_feat: int, seed: int, gamma: float = 1.0) -> np.ndarray:
@@ -210,13 +196,11 @@ def stack_pairs(Q: np.ndarray, P: np.ndarray):
     (query, doc). Returns (X, ii, jj) — the cross-encoder's joint input on the finance corpus, the
     real-embedding analogue of the one-hot pairs of Movement 1."""
     Q, P = np.atleast_2d(Q), np.atleast_2d(P)
-    rows, ii, jj = [], [], []
-    for i in range(Q.shape[0]):
-        for j in range(P.shape[0]):
-            rows.append(np.concatenate([Q[i], P[j]]))
-            ii.append(i)
-            jj.append(j)
-    return np.array(rows), np.array(ii), np.array(jj)
+    nq, npass = Q.shape[0], P.shape[0]
+    X = np.hstack([np.repeat(Q, npass, axis=0), np.tile(P, (nq, 1))])
+    ii = np.repeat(np.arange(nq), npass)
+    jj = np.tile(np.arange(npass), nq)
+    return X, ii, jj
 
 
 def cross_encoder_finance_scores(Q: np.ndarray, P: np.ndarray, truth: np.ndarray,
@@ -257,7 +241,7 @@ def oracle_rerank_recall(order: np.ndarray, truth: np.ndarray, K: int) -> float:
     pool = candidate_pool(order, K)
     truth = np.asarray(truth)
     hits = sum(1 for i in range(pool.shape[0]) if truth[i] in pool[i])
-    return hits / pool.shape[0]
+    return hits / max(pool.shape[0], 1)
 
 
 def stage1_recall_at_k(order: np.ndarray, truth: np.ndarray, K: int) -> float:
@@ -267,7 +251,7 @@ def stage1_recall_at_k(order: np.ndarray, truth: np.ndarray, K: int) -> float:
     pool = candidate_pool(order, K)
     truth = np.asarray(truth)
     hits = sum(1 for i in range(pool.shape[0]) if truth[i] in pool[i])
-    return hits / pool.shape[0]
+    return hits / max(pool.shape[0], 1)
 
 
 def rerank_by_scores(order: np.ndarray, rerank_scores: np.ndarray, truth: np.ndarray, K: int) -> float:
@@ -281,7 +265,7 @@ def rerank_by_scores(order: np.ndarray, rerank_scores: np.ndarray, truth: np.nda
         cand = pool[i]
         best = cand[int(np.argmax(rerank_scores[i, cand]))]
         hits += int(best == truth[i])
-    return hits / pool.shape[0]
+    return hits / max(pool.shape[0], 1)
 
 
 def lossy_scores(S_oracle: np.ndarray, sigma: float, seed: int) -> np.ndarray:
@@ -353,7 +337,7 @@ def rerank_buckets(order: np.ndarray, truth: np.ndarray, rerank_scores: np.ndarr
             counts["broke"] += 1
         else:
             counts["missed"] += 1
-    counts["net_lift"] = round((counts["fixed"] - counts["broke"]) / pool.shape[0], 4)
+    counts["net_lift"] = round((counts["fixed"] - counts["broke"]) / max(pool.shape[0], 1), 4)
     return counts
 
 
@@ -733,7 +717,13 @@ def test_guards() -> None:
     assert candidate_pool(order, 0).shape[1] == 1, "K=0 should floor to 1"
     assert oracle_rerank_recall(order, truth, 999) == oracle_rerank_recall(order, truth, npass), \
         "K beyond the corpus should equal K = |C|"
-    print("  [ok] guards: K capped at |C|, K=0 floored to 1")
+    # empty query set: every recall / bucket function returns a sane sentinel, no ZeroDivisionError
+    empty = np.empty((0, npass), dtype=int)
+    assert stage1_recall_at_k(empty, np.array([]), 3) == 0.0
+    assert oracle_rerank_recall(empty, np.array([]), 3) == 0.0
+    assert rerank_by_scores(empty, np.empty((0, npass)), np.array([]), 3) == 0.0
+    assert rerank_buckets(empty, np.array([]), np.empty((0, npass)), 3)["net_lift"] == 0.0
+    print("  [ok] guards: K capped at |C|, K=0 floored to 1, empty query set -> 0.0")
 
 
 def _run_all() -> None:

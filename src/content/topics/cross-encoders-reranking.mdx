@@ -253,7 +253,7 @@ The laboratory's third panel makes this a slider. Model the reranker quality by 
 
 <TheoremBlock type="remark" title="Expressivity is paid for in samples">
 
-The capacity that lets the cross-encoder realize any relevance table is exactly the capacity that overfits a small training set. A fused scorer is a high-complexity hypothesis class; by the [VC-dimension](/topics/embedding-dimension-lower-bounds) and generalization-bound machinery of learning theory, more expressive scorers need more labeled pairs to close the generalization gap. The dual encoder's separable inner product is a strong *inductive bias* — a low-complexity restriction that generalizes from fewer examples and wins below a crossover sample size. We state this rather than simulate it: the expressivity our laboratory measures is realized on the full relevance, where train and test coincide, and the sample-complexity story belongs to a learning-curve protocol this topic does not run.
+The capacity that lets the cross-encoder realize any relevance table is exactly the capacity that overfits a small training set. A fused scorer is a high-complexity hypothesis class; by the VC-dimension and generalization-bound machinery of learning theory, more expressive scorers need more labeled pairs to close the generalization gap. The dual encoder's separable inner product is a strong *inductive bias* — a low-complexity restriction that generalizes from fewer examples and wins below a crossover sample size. We state this rather than simulate it: the expressivity our laboratory measures is realized on the full relevance, where train and test coincide, and the sample-complexity story belongs to a learning-curve protocol this topic does not run.
 
 </TheoremBlock>
 
