@@ -141,7 +141,7 @@
     {
       "id": "negative-sampling-hard-negatives",
       "label": "Hard-Negative Mining and Debiased Contrastive Training (ANCE)",
-      "status": "planned",
+      "status": "published",
       "domain": "neural-retrieval"
     },
     {

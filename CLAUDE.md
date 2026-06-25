@@ -865,6 +865,56 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   LIMIT (Weller et al.) arXiv 2508.21038; sentence-transformers cross-encoder docs **stable URL**
   `sbert.net/examples/cross_encoder/applications/README.html` (the old `…/applications/cross-encoder/README.html`
   301-redirects). NO formalML attention/transformer/mutual-information slug → name in prose.
+- **`negative-sampling-hard-negatives`** (a TRAINING-DYNAMICS topic, sibling off the neural-retrieval
+  lineage like cross-encoders; ship = node `planned→published` + drop the title from `curriculum.ts`
+  **tracks[5]** `planned[]`; NO edge changes — the `infonce→` inbound + `→retrieval-distillation` outbound
+  edges pre-exist; single frontmatter prereq = the one inbound edge `infonce-contrastive-objective`).
+  Unblocks `retrieval-distillation` (MarginMSE, whose OTHER prereq cross-encoders just shipped) — its other
+  successor `cross-modal-alignment` is PROSE-ONLY/unbuilt. The `.py` IMPORTS `negative_weights`/
+  `info_nce_loss`/finance geometry (infonce), `dpr_finance_matrix`/`topk_recall` (dense, a connection NOT a
+  prereq), `normalize` (hypersphere) — all `connections[]`/siblings, the recurring import-graph≠DAG rule.
+  **A deterministic surrogate for SGD-training dynamics, no real network** (the cross-encoders random-ReLU
+  precedent). **M1 build-and-run HEADLINE-KILLER:** the obvious "a hard-mined batch CONCENTRATES the gradient
+  more than a random batch" is **FALSE** — an all-hard batch has near-equal cosines (~0.4–0.58) so its softmax
+  weights SPREAD (high entropy, low top1), while a random batch with one dominant neighbor concentrates;
+  within-batch concentration is the WRONG cut. The ROBUST claims (assert these): (a) in a **MIXED** batch the
+  few same-sector hard negatives carry a gradient SHARE far above their count fraction (`hard_gradient_share`
+  = imported `negative_weights` summed over the hard mask — the `finance_hard_negative_share` generalization;
+  4/28=14% of the batch carry 50% of the gradient at τ=0.2, →100% as τ→0), and (b) a hard-mined batch gives a
+  larger LOSS (0.52 vs 0.19, **average over random draws**, not one lucky batch). **M2 substrate switch
+  (load-bearing):** false negatives need a multi-doc-per-company corpus → mine the **`dpr_finance_matrix()`
+  32-QUERY pool** (4 queries/company; `company=truth`, `sector=sector_of_passage[truth]`), NOT
+  `finance_dataset()` (one doc/other-company → τ⁺≡0, the phenomenon is VACUOUS). Mined τ⁺@k=1 = 1.0 (the
+  nearest neighbor IS same-company), random ≈ class prior 3/31≈0.097; guard `class_prior_tau_plus>0` AND
+  `counts.min()>1` so the substrate provably can exhibit it. **M3 is the SOLE theorem (debiased estimator):**
+  the decomposition `E_{p⁻}[g]=(E_p[g]−τ⁺E_{p⁺}[g])/τ⁻` is EXACT at the full pool with the **empirical
+  per-anchor prior** (`τ⁺=mean(is_pos)`), `<1e-9` every anchor; the convergence demo samples from the
+  unlabeled pool — biased MAE PLATEAUS at the contamination bias (E_p⁺≫E_p⁻ makes it large), debiased→0 (so
+  debiased<biased at every N here — assert what you MEASURE). Collapse/twin anchors: `debiased(τ⁺=0)==biased`;
+  `beta_reweight_weights(s,1/τ)==`imported `negative_weights(s,τ)` `<1e-12` (**the temperature IS Robinson's
+  hardness knob β — the bridge back to M1**); force the `max(·,e^{−1/τ})` clamp with a constructed huge-pos-
+  mean input, don't rely on a random trial binding it; guard `τ⁺∈[0,1)` (the 1−τ⁺ denominator). **M4 ANCE
+  staleness (the systems-math, the design choice):** model encoder drift as a **NON-ISOMETRIC** interpolation
+  `drifted_encoder(X,T,α)=normalize((1−α)X+α·X@Tᵀ)`, `α=1−e^{−t/τ_drift}`, T a single seeded `N(0,1/d)`;
+  **FREEZE the index at refresh**, mine fresh-query-vs-frozen-index, staleness = top-k overlap vs the fresh
+  index. ANTI-TRAP (assert it): a **refreshed/co-rotated** index under an ISOMETRY (orthogonal R on BOTH
+  query+docs) has overlap≡1.0 — staleness exists ONLY because the frozen index LAGS a non-isometric encoder,
+  not from drift per se. Decay 1.0→0.15, stale gold r@1→0 while fresh holds 1.0; refresh interval R trades
+  `avg_staleness` vs cost `1/R`; **no convergence bound** (the load-bearing rigorFlag). Use a RICHER M4 corpus
+  (`dpr_finance_matrix(n_comp=8)`→32 docs) so top-k overlap is a meaningful fraction (8 docs is too coarse).
+  **Reuse:** import `topk_recall` for gold-recall@1 (don't reimplement a recall denominator — the orphan-helper
+  class); pyflakes caught `sample_vmf` unused (reuse dpr's internal sampling). **Viz** (`NegativeSampling
+  Laboratory.tsx`): 4 panels; Panels A (τ→hard share) and C (τ⁺→debiased bar) recompute closed-form **LIVE** —
+  verified in-browser via real `browser_press_key`: A hard share 0.501→0.609 as τ 0.20→0.15, C debiased
+  4.44→7.79 as τ⁺ 0.095→0.065 and meets the oracle (4.445) at the prior. `ts6133` dropped `HARD_SHARE_CURVE`
+  + `M3_TAU` (baked consts the live recompute never references — the `.py` owns them + its test pins them, the
+  live recompute is the source; the recurring "baked const used only by a live recompute" drop). Refs verified:
+  Chuang et al. "Debiased Contrastive Learning" arXiv 2007.00224 (NeurIPS 2020); Robinson et al. "Contrastive
+  Learning with Hard Negative Samples" arXiv 2010.04592 (ICLR 2021); Xiong et al. ANCE arXiv 2007.00808 (ICLR
+  2021); DPR `10.18653/v1/2020.emnlp-main.550` (EMNLP 2020 — venue confirmed via CSL); CPC arXiv 1807.03748.
+  Cross-site (all `ls`-verified): `formalmlPrereqs` representation-learning; `formalmlConnections`
+  concentration-inequalities + kl-divergence; `formalstatisticsPrereqs` **point-estimation** (debiased = a
+  bias-corrected point estimator); `formalstatisticsConnections` maximum-likelihood + hypothesis-testing.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

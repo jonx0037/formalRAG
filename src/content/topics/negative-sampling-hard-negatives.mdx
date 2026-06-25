@@ -1,0 +1,238 @@
+---
+title: "Hard-Negative Mining and Debiased Contrastive Training (ANCE)"
+subtitle: "InfoNCE's gradient weights each negative by its similarity, so random negatives are near-orthogonal noise and the learning signal lives in the same-sector hard negatives — but mining near the anchor is mining where true positives hide, so the mined negatives are contaminated at a false-negative rate τ⁺. The debiased estimator of Chuang et al. solves p = τ⁺p⁺ + τ⁻p⁻ to recover the true-negative expectation from unlabeled samples, and Robinson's β-reweighting concentrates it on the hardest negatives; ANCE then mines globally from an ANN index that goes stale as the encoder drifts, trading a refresh interval against staleness against cost"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "infonce-contrastive-objective"
+tags:
+  - "hard-negative-mining"
+  - "negative-sampling"
+  - "debiased-contrastive-learning"
+  - "false-negatives"
+  - "ance"
+  - "asynchronous-index"
+  - "contrastive-learning"
+  - "dense-retrieval"
+domain: "neural-retrieval"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "One result here is rigorous and three are honest empiricism. The debiased contrastive estimator is EXACT: the decomposition p = τ⁺p⁺ + τ⁻p⁻ lets us solve for the true-negative expectation E_{p⁻}[g] = (E_p[g] − τ⁺E_{p⁺}[g]) / τ⁻, the plug-in estimator is asymptotically unbiased, and at the full pool with the empirical prior it is an exact identity — that is a theorem (Chuang et al., NeurIPS 2020), and the laboratory's debiased curve recovering the true-negative target is its visible consequence. Three seams are softer than the demonstration suggests. First, the estimator needs the class prior τ⁺ — the false-negative rate among mined negatives — and τ⁺ is UNKNOWN in retrieval; we read it off the toy's labels, and the max(·, e^{−1/τ}) floor that keeps the corrected denominator positive is a finite-sample safeguard outside the asymptotic identity. Second, Robinson et al.'s β-reweighting toward harder negatives (ICLR 2021) sharpens the estimator, but the concentration β is an EMPIRICAL hyperparameter with no theorem to pick it — too large and it amplifies the false negatives debiasing removes. Third, and sharpest: ANCE's asynchronous index (Xiong et al., ICLR 2021) mines from an ANN index that goes STALE as the encoder drifts, and the refresh-interval ↔ staleness ↔ cost tradeoff has NO convergence bound — the staleness decay is measured by re-mining against a drifted checkpoint, not derived. The laboratory's numbers are a deterministic synthetic von Mises–Fisher finance stand-in reused from the InfoNCE and DPR topics — a sector is a vMF cluster and a company a tight sub-cluster, so same-sector hard negatives and accidental positives are genuinely near — not a trained dual encoder; the gradient share and the debiased estimator are recomputed closed-form, while the false-negative rate, the convergence curves, and the staleness decay are Monte-Carlo-measured and owned by the companion notebook."
+videoId: null
+notebookPath: "notebooks/negative-sampling-hard-negatives/01_negative_sampling_hard_negatives.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/negative-sampling-hard-negatives.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 31
+abstract: "InfoNCE told us the contrastive gradient weights each negative by its softmax similarity, so the hardest negative dominates; this topic spends that fact and pays its hidden cost. First the geometry: a random negative is near-orthogonal to the query and contributes a vanishing gradient, while the same-sector hard negatives a miner surfaces carry a share of the gradient far above their count fraction — which is why hard-negative mining works. But mining samples near the anchor, and near the anchor is exactly where unlabeled true positives live, so the mined negatives are contaminated at a false-negative rate τ⁺ and the loss pushes accidental positives apart. The rigorous spine is the debiased contrastive estimator of Chuang, Robinson, Lin, Torralba, and Jegelka: writing the unlabeled sampling law as p = τ⁺p⁺ + τ⁻p⁻ recovers the true-negative expectation from unlabeled samples, an asymptotically unbiased correction, and Robinson, Chuang, Sra, and Jegelka's β-reweighting concentrates it toward harder negatives without re-importing the false negatives it removed. The systems counterpart is ANCE: to mine global hard negatives rather than in-batch ones, Xiong et al. retrieve them from an approximate-nearest-neighbor index — which goes stale as the encoder drifts during training, so an asynchronous inferencer rebuilds the index on an interval, and the refresh-interval ↔ staleness ↔ cost tradeoff is the systems-math object, an empirical curve with no convergence bound. A laboratory shows the gradient share under a temperature slider, the false-negative rate rising as the mining radius tightens, the biased, true, and debiased estimators under a τ⁺ slider, and the ANCE staleness-versus-refresh curve with its cost knee; a tested notebook owns every number; and the finance thread is a production document encoder fine-tuned on the same-sector hard negatives a single embedding confuses, debiased against the same-sector filings that are accidentally relevant."
+connections:
+  - topic: "infonce-contrastive-objective"
+    relationship: "The direct prerequisite and the debt this topic pays: that topic proved the InfoNCE gradient is a softmax-weighted repulsion in which the hardest negative dominates, and closed by flagging that hard negatives risk a false-negative trap whose mining is a topic of its own. This is that topic — we take its gradient theorem as the reason hard negatives carry the signal, take its in-batch-negative loss as the baseline we mine beyond, and resolve precisely the false-negative bias it named, reusing its synthetic von Mises–Fisher finance cloud and generalizing its same-sector hard-negative gradient share to a mined batch"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "The dual-encoder topic established that in-batch negatives are free but shared and correlated, named the BM25 hard-negative recipe DPR is famous for as an empirical engineering choice whose mining theory belongs to the negative-sampling topic, and flagged that some sampled negatives are false negatives. This topic supplies that deferred mining theory: it explains why hard negatives beat in-batch ones by the gradient geometry, corrects the false-negative bias the dual encoder could only flag, and replaces the static BM25 miner with ANCE's encoder-derived asynchronous index built on its very corpus"
+  - topic: "cross-encoders-reranking"
+    relationship: "The cross-encoder topic closed by naming hard-negative mining as the training-side counterpart of the hard negatives its reranker exists to resolve: the same same-sector confusions the cross-encoder fixes at inference are the negatives a first stage should be trained against. This is that counterpart — the same-sector hard negatives the cross-encoder reranks at inference are exactly the negatives this topic mines, debiases, and trains the first-stage dual encoder against, so the two topics meet on one finance geometry from opposite ends of the pipeline"
+references:
+  - type: "paper"
+    title: "Debiased Contrastive Learning"
+    authors: "Chuang, Robinson, Lin, Torralba & Jegelka"
+    year: 2020
+    url: "https://arxiv.org/abs/2007.00224"
+    note: "The debiased contrastive estimator: the unlabeled sampling law p = τ⁺p⁺ + τ⁻p⁻ inverted to recover the true-negative expectation from unlabeled samples, asymptotically unbiased — the central theorem of Movement 3, NeurIPS 2020"
+  - type: "paper"
+    title: "Contrastive Learning with Hard Negative Samples"
+    authors: "Robinson, Chuang, Sra & Jegelka"
+    year: 2021
+    url: "https://arxiv.org/abs/2010.04592"
+    note: "The β-reweighting that concentrates the debiased estimator on harder negatives without re-importing the false negatives debiasing removes — the corollary of Movement 3 and the tuned-β caveat, ICLR 2021"
+  - type: "paper"
+    title: "Approximate Nearest Neighbor Negative Contrastive Learning for Dense Text Retrieval"
+    authors: "Xiong, Xiong, Li, Tang, Liu, Bennett, Ahmed & Overwijk"
+    year: 2021
+    url: "https://arxiv.org/abs/2007.00808"
+    note: "ANCE: global hard negatives mined from an ANN index that goes stale as the encoder drifts, rebuilt by an asynchronous inferencer on a refresh interval — the algorithm and the staleness-versus-refresh-cost object of Movement 4, ICLR 2021"
+  - type: "paper"
+    title: "Dense Passage Retrieval for Open-Domain Question Answering"
+    authors: "Karpukhin, Oguz, Min, Lewis, Wu, Edunov, Chen & Yih"
+    year: 2020
+    url: "https://doi.org/10.18653/v1/2020.emnlp-main.550"
+    note: "The BM25 hard-negative recipe and in-batch-negative dual encoder this topic mines beyond: the static gold-standard miner ANCE's encoder-derived index replaces; the DOI resolves to the ACL Anthology EMNLP 2020 main proceedings"
+  - type: "paper"
+    title: "Representation Learning with Contrastive Predictive Coding"
+    authors: "van den Oord, Li & Vinyals"
+    year: 2018
+    url: "https://arxiv.org/abs/1807.03748"
+    note: "The InfoNCE loss whose softmax-weighted gradient makes hard negatives carry the signal and whose true-negative assumption the false-negative problem of Movement 2 violates — the objective this topic mines negatives for"
+formalmlPrereqs:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "hard-negative mining is a property of the learned representation, not of any one loss: which negatives are hard is set by where the encoder has placed the documents on the sphere, so the mining geometry and the false-negative contamination are statements about the representation that topic studies, and the debiased correction is a fix applied to the representation-learning objective it develops in the abstract"
+formalmlConnections:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the debiased estimator is a Monte-Carlo average over mined negatives, so how fast its plug-in expectation concentrates on the true-negative expectation — and how many negatives the correction needs to be reliable — is a concentration statement, the same machinery that governs why a random negative's near-orthogonal similarity concentrates and contributes a vanishing gradient in high dimension"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "Robinson's β-reweighting tilts the negative distribution by e^{βs}, an exponential reweighting whose deviation from the base negative law is measured by the KL divergence that topic defines, so the hardness knob β trades a controlled KL move toward harder negatives against the false-negative mass that move re-imports — the divergence vocabulary is exactly how that tradeoff is stated"
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "the debiased contrastive estimator is a bias-corrected point estimator in the precise sense that topic develops: the naive in-batch estimator of the true-negative expectation is biased by the false-negative contamination, and subtracting the τ⁺-weighted positive term is the bias correction that restores asymptotic unbiasedness, so the whole of Movement 3 is an instance of constructing and correcting an estimator under that topic's bias-variance framing"
+formalstatisticsConnections:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "the contrastive loss the mined negatives feed is the negative log-likelihood of an (N+1)-way softmax classifier, so debiasing its denominator is correcting the likelihood's expectation under a contaminated sampling design, and that topic's score-equation and consistency vocabulary is the inference framing under which the corrected estimator is the asymptotically consistent one"
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "deciding whether a mined candidate is a true negative or an accidental positive is a detection problem with a false-negative rate τ⁺, exactly the type-II-error vocabulary that topic formalizes, and tightening the mining radius is moving the decision threshold — trading more power to find hard negatives against a higher false-negative contamination rate, the operating-point tradeoff of Movement 2"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import NegativeSamplingLaboratory from '../../components/viz/NegativeSamplingLaboratory.tsx';
+
+## Overview & motivation
+
+[Contrastive learning](/topics/infonce-contrastive-objective) ended on a debt. It proved that the InfoNCE gradient on a negative is its softmax weight — $\partial \mathcal{L}/\partial s_i^- = p_i/\tau$ with $p_i = e^{s_i/\tau}/\sum_j e^{s_j/\tau}$ — so the *hardest* negative, the one nearest the query, dominates the push. It then named the catch it would not resolve: in retrieval the sampled negatives "include false negatives," the contrastive setup "assumes TRUE negatives," and choosing better, harder negatives without falling into that trap is "a topic of its own." The [dual-encoder](/topics/dense-retrieval-dual-encoders) topic deferred the same thing, calling the BM25 hard-negative recipe "an empirical engineering choice whose mining theory belongs to the negative-sampling topic." This is that topic. We take the gradient theorem as given, mine the hard negatives it points to, and pay the false-negative bill it warned about.
+
+The arc is four movements. First, *why* we mine: a random negative is near-orthogonal to the query, so its gradient weight is tiny and the encoder learns almost nothing from it; the same-sector hard negatives a miner surfaces carry the gradient. Second, the catch: mining samples *near* the anchor, and near the anchor is exactly where unlabeled true positives live, so the mined "negatives" are contaminated by accidental positives at a rate $\tau^+$. Third, the fix, and the one theorem of the topic: the **debiased contrastive estimator** recovers the true-negative signal from contaminated samples. Fourth, the systems object: **ANCE** mines globally from an approximate-nearest-neighbor index that goes *stale* as the encoder drifts, trading a refresh interval against staleness against cost.
+
+<NegativeSamplingLaboratory client:visible />
+
+The first panel is the gradient geometry: the anchor's mixed negative batch, each bar sized by its softmax weight, with the few same-sector hard negatives carrying a share of the gradient — recomputed live — that climbs toward one as the temperature falls. The second is the false-negative problem: the contamination rate $\tau^+$ of the mined nearest neighbors against the flat baseline of random sampling, as the mining depth $k$ changes. The third is the debiased estimator: the biased, true, and debiased estimates of the negative expectation, with a $\tau^+$ slider that drives the debiased bar onto the oracle exactly at the true prior. The fourth is ANCE staleness: the frozen index's overlap with the fresh encoder decaying as it drifts, and the refresh-interval cost knee.
+
+## The setup and notation
+
+Fix a query $q$ and its relevant document $d^+$, both unit vectors on the sphere $S^{d-1}$, and write the temperature-scaled score $s(q,d) = \langle q, d\rangle / \tau$. From the prerequisite, the gradient weight on a candidate is its softmax share $p_i = e^{s_i}/\sum_j e^{s_j}$. This topic adds the notation the mining story needs. A **miner** ranks the corpus by similarity to $q$ and returns the top $k$; the *mining depth* $k$ is the radius of the net. Because the true relevance labels are unavailable at training time, some returned candidates are unlabeled positives — **false negatives** — and we write $\tau^+$ for their rate (the probability that a sampled "negative" is actually positive) and $\tau^- = 1 - \tau^+$ for the true-negative rate. Robinson's hardness knob is $\beta \ge 0$, the exponent of the reweighting $q_\beta(d^-) \propto e^{\beta s}$. And for ANCE we write $R$ for the *refresh interval* — the number of training steps between rebuilds of the index the miner reads from. The statistic the debiased estimator averages is $g(x) = e^{s(q,x)}$, the contribution of a candidate to the contrastive denominator.
+
+## Movement 1 — why hard negatives: the gradient weights by similarity
+
+The prerequisite's gradient theorem is the whole reason mining is worth the trouble. The update magnitude on a negative *equals* its softmax weight, and that weight is exponential in similarity, so two negatives a fraction of a radian apart in cosine differ by a large multiplicative factor in how hard they push.
+
+<TheoremBlock type="proposition" number={1} title="Hard negatives carry a disproportionate share of the gradient">
+
+Let an anchor's in-batch negatives have similarities $s_1, \dots, s_N$ to the query, and partition them into a *hard* set $H$ (here the same-sector negatives) and the rest. The fraction of the InfoNCE negative gradient that lands on $H$ is the softmax share
+
+$$
+\text{hard share} \;=\; \sum_{i \in H} p_i \;=\; \frac{\sum_{i \in H} e^{s_i/\tau}}{\sum_{j} e^{s_j/\tau}},
+$$
+
+which exceeds $|H|/N$ whenever the hard negatives are more similar than average, and increases monotonically as $\tau \to 0$. A random negative, near-orthogonal to the query at high dimension, contributes a weight near $e^{0}$ and so a vanishing share; the gradient lives on the hard negatives.
+
+</TheoremBlock>
+
+This specializes the prerequisite's proved gradient structure rather than re-deriving it: $p_i \propto e^{s_i/\tau}$ is the InfoNCE weight, and summing it over a subset is just reading the share. The force is what the share *is* on real geometry. On the finance cloud — sectors as von Mises–Fisher clusters, companies as tight sub-clusters — an anchor query has four same-sector hard negatives among its twenty-eight in-batch negatives: only $14.3\%$ of the batch. Yet at $\tau = 0.2$ those four carry $50.1\%$ of the gradient, and as $\tau$ falls the share climbs past $94\%$ at $\tau = 0.05$ toward $1.0$. The first panel of the laboratory recomputes this share live: the hard bars tower over the near-orthogonal ones, and the temperature slider concentrates the gradient onto them. A near-orthogonal random negative is, by contrast, almost inert — the encoder barely moves for it.
+
+The same gap shows in the loss itself. A *hard-mined* batch — the anchor's $k$ nearest true negatives — is harder to classify than a random batch, so its InfoNCE loss, and thus the per-step gradient magnitude, is larger: $0.52$ against $0.19$ for a random batch of the same size on the worked anchor. Hard mining buys a larger, more useful gradient per step. That is the case for mining. Movement 2 is the case against doing it naively.
+
+## Movement 2 — the false-negative problem
+
+The recipe Movement 1 motivates — *sample the negatives nearest the query* — has a defect that is not a tuning issue but structural. The nearest neighbors of a query are, by construction, the documents most similar to it, and the documents most similar to it include its own unlabeled positives. A miner that does not know the labels cannot tell a hard negative from an accidental positive; it surfaces both.
+
+<TheoremBlock type="proposition" number={2} title="Mining hardness and false-negative rate rise together">
+
+Let a query's positives and hard negatives both cluster near it, and let the miner return the $k$ nearest non-anchor items. The false-negative rate among the mined set — the fraction that are actually positive — is highest at the smallest $k$ and falls toward the global class prior as $k$ grows, while uniform random sampling returns false negatives at exactly that class prior for every $k$. Tightening the mining radius therefore raises hardness and contamination *together*; they are not separable.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Order the non-anchor corpus by similarity to $q$. The positives, clustering nearest $q$, occupy the top of that order, so the top-$k$ prefix is enriched in positives relative to the corpus as a whole — the smaller the $k$, the greater the enrichment, with the very nearest item the most likely to be a positive. As $k$ grows the prefix dilutes toward the full corpus, whose positive fraction is the class prior $\tau^+_0$. Uniform random sampling draws from the full corpus at every $k$, so its expected positive fraction is $\tau^+_0$ independent of $k$. Hence mined contamination is a decreasing function of $k$ bounded below by $\tau^+_0$, and random contamination is the constant $\tau^+_0$. $\blacksquare$
+
+</TheoremBlock>
+
+The finance pool makes this concrete because it carries the labels: four queries per company, so same-company duplicates genuinely exist, and a mined "negative" that shares the anchor's company *is* an accidental positive. At $k = 1$ the nearest neighbor is the anchor's own company with probability $1.0$ — every mined top-1 negative is a false negative — falling to $0.19$ at $k = 16$, while random sampling hits accidental positives at the class prior $\tau^+_0 = 0.097$ throughout. The second panel draws the gap as a shaded contamination band between the two curves.
+
+<TheoremBlock type="remark" title="The trap both prerequisites flagged but neither corrected">
+
+This is the false-negative trap the InfoNCE topic named when it noted that retrieval's sampled negatives "include false negatives," and the one the dual-encoder topic meant by its warning that some in-batch negatives are accidentally relevant. Neither corrected it; both deferred it here. The damage is precise: the contrastive loss treats every mined negative as something to push *away* from the query, so a false negative is a true positive the encoder is trained to repel — exactly backwards. Movement 3 corrects it without ever seeing the labels.
+
+</TheoremBlock>
+
+The substrate is load-bearing, and worth stating because it is a build-and-run trap the companion notebook had to navigate. A corpus with one document per company has $\tau^+ \equiv 0$ — there are no same-company duplicates to mine accidentally — and the whole movement is vacuous. The phenomenon is measurable only because the pool carries several queries per company; the notebook asserts $\tau^+ > 0$ before claiming any contamination at all.
+
+## Movement 3 — the debiased contrastive estimator
+
+Here is the topic's one theorem. We cannot remove the false negatives — we do not know which mined candidates they are — but we can correct the *expectation* they bias. The key is that the contaminated sampling distribution decomposes, and the decomposition can be solved for the quantity we actually want.
+
+<TheoremBlock type="theorem" number={1} title="The debiased contrastive estimator (Chuang et al.)">
+
+Write the unlabeled sampling law as the mixture $p = \tau^+ p^+ + \tau^- p^-$, where $p^+$ is the (unobserved) positive distribution, $p^-$ the true-negative distribution, and $\tau^+ = 1 - \tau^-$ the class prior. Then the true-negative expectation of the contrastive statistic $g(x) = e^{s(q,x)}$ is recoverable from the unlabeled and positive distributions alone:
+
+$$
+\mathbb{E}_{p^-}[g] \;=\; \frac{\mathbb{E}_{p}[g] \;-\; \tau^+\, \mathbb{E}_{p^+}[g]}{\tau^-}.
+$$
+
+The plug-in estimator — averaging $g$ over an unlabeled sample for $\mathbb{E}_p[g]$ and over positive examples for $\mathbb{E}_{p^+}[g]$ — is asymptotically unbiased for $\mathbb{E}_{p^-}[g]$, and is taken as $\max\!\big(\cdot,\, e^{-1/\tau}\big)$ to keep the corrected denominator positive in finite samples.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Take the expectation of $g$ under the mixture: $\mathbb{E}_p[g] = \tau^+ \mathbb{E}_{p^+}[g] + \tau^- \mathbb{E}_{p^-}[g]$, by linearity of expectation over $p = \tau^+ p^+ + \tau^- p^-$. Solve the linear equation for the one unknown term, $\mathbb{E}_{p^-}[g] = (\mathbb{E}_p[g] - \tau^+ \mathbb{E}_{p^+}[g])/\tau^-$, which requires only $\tau^- = 1 - \tau^+ > 0$. Replacing the two right-hand expectations by sample means gives an estimator whose bias vanishes as the unlabeled and positive sample sizes grow, since each sample mean is consistent for its expectation. The clamp $\max(\cdot, e^{-1/\tau})$ is a finite-sample floor: the smallest value $g = e^{s/\tau}$ can take is $e^{-1/\tau}$ (at $s = -1$), so the true-negative expectation cannot fall below it, and clamping prevents a noisy correction from producing a negative denominator. $\blacksquare$
+
+</TheoremBlock>
+
+The decomposition is exact, and on the full pool with the empirical prior it holds to floating point: the companion notebook asserts the debiased estimate equals the true-negative oracle to better than $10^{-9}$ for *every* anchor. The interest is what the correction buys under sampling. On the finance pool the three expectations separate sharply — the positive mean $\mathbb{E}_{p^+}[g] = 102.8$ towers over the true-negative mean $\mathbb{E}_{p^-}[g] = 4.4$, and the contaminated mixture mean sits at $\mathbb{E}_p[g] = 14.0$, dragged up by the few accidental positives. The biased in-batch estimator's error against the oracle therefore *plateaus* at the contamination bias no matter how many samples we draw — about $9.4$ at every sample size — while the debiased estimator's error converges toward zero, from $9.3$ at $N = 4$ down to $1.2$ at $N = 512$. The third panel draws both curves; the bias does not wash out with scale, only the debiasing removes it. The $\tau^+$ slider drives the debiased bar across the plane: at $\tau^+ = 0$ it sits on the biased mean (no assumed contamination, no correction), and at the true class prior $\tau^+ = 0.097$ it lands on the oracle.
+
+The hardness knob composes on top, and it closes the loop back to Movement 1.
+
+<TheoremBlock type="corollary" number={1} title="β-reweighting toward harder negatives (Robinson et al.)">
+
+Replacing the uniform average over negatives by the hardness-tilted distribution $q_\beta(d^-) \propto e^{\beta s(q, d^-)}\, p^-(d^-)$ concentrates the estimator on the harder negatives, where the informative gradient lives. The knob $\beta = 0$ recovers the uniform (Chuang) average; and at $\beta = 1/\tau$ the reweighting is *exactly* the InfoNCE softmax weighting of Movement 1 — the hardness knob and the temperature are one dial. The companion notebook verifies this identity to $10^{-12}$.
+
+</TheoremBlock>
+
+<TheoremBlock type="remark" title="β is empirical, and it can re-import what debiasing removed">
+
+The reweighting has no theorem to set $\beta$. Push it too high and the tilt concentrates the estimator on the very nearest neighbors — which, by Movement 2, are exactly the candidates most likely to be false negatives. So $\beta$ trades the informative gradient of hard negatives against the contamination of accidental positives, and the right setting is found by validation, not derived. Debiasing and hard-reweighting pull in tension; the production answer is to do both and tune the balance.
+
+</TheoremBlock>
+
+## Movement 4 — ANCE: the asynchronous index and staleness
+
+Everything so far mined *in-batch*: the negatives for a query were the other documents in the same training batch, a few hundred at most. The hardest negatives in a corpus of millions are almost never in the batch. ANCE mines them *globally* — from an approximate-nearest-neighbor index over the whole corpus — and in doing so creates a systems-math object the in-batch story never had.
+
+<TheoremBlock type="algorithm" number={1} title="ANCE asynchronous hard-negative training">
+
+Maintain an ANN index over the corpus, encoded by a checkpoint of the model. To train: for each query, retrieve its top hard negatives from the index, form the InfoNCE loss against them, and take a gradient step. In parallel, an asynchronous *inferencer* periodically re-encodes the corpus with the latest checkpoint and rebuilds the index, swapping it in every $R$ training steps. The encoder thus always mines against an index that is at most $R$ steps out of date.
+
+</TheoremBlock>
+
+The defect is built into the asynchrony. The index is encoded by an old checkpoint; the model that mines against it has moved on. We model the encoder's drift deterministically — a non-isometric interpolation of the embedding space toward a fixed seeded target, a reproducible stand-in for the SGD trajectory — freeze the index at the last refresh, and measure **staleness** as the top-$k$ overlap between the frozen index's mined set and what the *current* encoder would mine from a fresh index.
+
+<TheoremBlock type="remark" title="Staleness decays, costs recall, and has no convergence bound">
+
+As the steps since the last refresh grow, the frozen index's mined set overlaps the fresh encoder's less and less — on the finance corpus the overlap falls from $1.0$ at refresh to $0.15$ after $64$ steps — and its gold recall@1 collapses from $1.0$ to $0$ while the fresh index holds recall@1 at $1.0$ throughout. A stale index surfaces stale negatives and drops the now-relevant document. The refresh interval $R$ trades this staleness against the re-encode cost: rebuilding every step ($R = 1$) is perfectly fresh and maximally expensive, while a long interval amortizes the cost as $1/R$ at the price of average staleness. The cost-minimizing $R$ depends on how one weights staleness against compute, and the laboratory's fourth panel recomputes the knee live as that weight slides. There is no convergence bound here: that the decay is monotone, that overlap is the right staleness functional, and that training converges under stale negatives are *empirical observations* on this drift model, not theorems.
+
+</TheoremBlock>
+
+The drift must be the right kind, and the reason is a clean anti-trap. A *refreshed* index that happens to be an orthogonal re-encoding of the old one — an isometry — changes no rankings at all: inner products are preserved, so the mined set is identical and the staleness is zero. Staleness exists only because the frozen index *lags* a genuinely non-isometric encoder. The companion notebook asserts both directions: an isometric refreshed index has overlap $1.0$, and the lagging non-isometric index decays. The systems lesson is that the index must keep up with the encoder, and how closely is the refresh-interval knob.
+
+<TheoremBlock type="proposition" number={3} title="What the laboratory measures">
+
+Every number in the four panels is owned by the tested notebook and asserted by the harness: the same-sector gradient share rising as $\tau$ falls (and exceeding the count fraction); the mined false-negative rate above the random rate, which itself equals the class prior; the debiased estimator equal to the true-negative oracle at the full pool to $10^{-9}$ and closer than the biased mean at every sample size; the $\beta = 1/\tau$ reweighting equal to the InfoNCE weighting to $10^{-12}$; and the staleness overlap decaying monotonically while the fresh index holds recall, the isometric refreshed index staying at overlap $1.0$, and the refresh tradeoff trading staleness against cost $1/R$ monotonically. The laboratory recomputes only closed forms in the browser: the softmax gradient weights and hard share, the debiased estimate $(\mathbb{E}_p - \tau^+ \mathbb{E}_{p^+})/(1 - \tau^+)$, and the refresh total-cost knee.
+
+</TheoremBlock>
+
+<FinanceCaseStudy title="Training the encoder that reads the filings" modality={["text", "pdf", "news"]}>
+
+A production retrieval system over financial filings, earnings calls, and analyst notes is only as good as the negatives it was trained against. Train the dual encoder on random in-batch negatives and it learns the easy distinctions — a refiner's 10-K from a biotech's — but never the hard ones the desk actually confuses: two regional banks, two payment networks, two refiners whose filings share boilerplate and sit a fraction of a radian apart. Those same-sector hard negatives are where the gradient signal lives, so we mine them — and immediately hit the false-negative trap, because two filings from the *same* issuer are the nearest neighbors of all, and treating one as a negative trains the encoder to push apart documents that should be together. The debiased estimator is the correction: with $\tau^+$ read off the desk's own de-duplication and similarity-threshold survival rate, the contrastive loss recovers the true-negative signal without ever mislabeling a same-issuer filing. And because the hardest negatives live in the full corpus, not the training batch, the miner reads from an ANN index over every filing — which must be rebuilt as the encoder learns, on a refresh interval set so the index never drifts faster than a trading day's re-index budget. The cross-encoder reranker of the previous topic resolves these same-sector confusions at *inference*; this topic trains the first stage to make fewer of them in the first place.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+One result here is rigorous and three are honest empiricism. The debiased contrastive estimator is **exact**: the mixture decomposition $p = \tau^+ p^+ + \tau^- p^-$ is solved by linearity for the true-negative expectation, the plug-in is asymptotically unbiased, and at the full pool with the empirical prior it is an identity the notebook pins to $10^{-9}$ — that is Chuang et al.'s theorem, and the laboratory's debiased curve meeting the oracle is its visible consequence. Three seams are softer. First, the estimator needs the class prior $\tau^+$, the false-negative rate among mined negatives, and $\tau^+$ is **unknown** in retrieval — we read it off the toy's labels, where in practice it is estimated from de-duplication or assumed, and the $\max(\cdot, e^{-1/\tau})$ floor is a finite-sample safeguard outside the asymptotic identity. Second, Robinson et al.'s $\beta$-reweighting sharpens the estimator onto the informative negatives, but $\beta$ is an **empirical** hyperparameter with no theorem to pick it, and pushed too far it amplifies exactly the false negatives debiasing removes. Third, and sharpest, ANCE's staleness has **no convergence bound**: the encoder drift is a seeded interpolation surrogate for SGD, not trained dynamics; the staleness decay is *measured* by re-mining against a drifted checkpoint, the optimal refresh interval minimizes a cost the laboratory recomputes but does not bound, and convergence under stale negatives is an empirical observation. The ANN index is an exact cosine-argsort stand-in with no quantization or graph error, and the whole laboratory is the deterministic synthetic von Mises–Fisher finance cloud reused from the InfoNCE and DPR topics — a sector a vMF cluster, a company a tight sub-cluster — not a trained dual encoder.
+
+</RigorFlag>
+
+## Where this sits
+
+Hard-negative mining is where the contrastive training story becomes operational: the gradient theorem says hard negatives carry the signal, the false-negative problem says mining them naively poisons it, the debiased estimator fixes the poison, and ANCE supplies the negatives from the whole corpus rather than the batch. The cost it opens is the lever the next topic pulls. **Knowledge distillation for retrieval** turns the expensive cross-encoder of the previous topic into a *teacher*: its margins on exactly these mined hard negatives supervise a cheap student dual encoder, so the reranker's judgments are compressed back into a precomputable first stage — the MarginMSE recipe, the practical answer to "the cross-encoder is too slow to run everywhere, so train the retriever to imitate it." And **cross-modal contrastive alignment** carries the same mining and debiasing into the multimodal setting, where the negatives span text, tables, and charts and the hardest are the cross-modal near-duplicates. Each is named here and developed in its own topic; the mined, debiased hard negative is the training signal they both take as given.
