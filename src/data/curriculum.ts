@@ -59,7 +59,6 @@ export const tracks = [
     description:
       'Learned representations for retrieval, defined by training objectives and expressivity claims: InfoNCE contrastive training, dense dual encoders, late interaction and learned sparse, cross-encoders, distillation, and cross-modal alignment.',
     planned: [
-      'Hard-Negative Mining and Debiased Contrastive Training (ANCE)',
       'Knowledge Distillation for Retrieval: Teacher–Student Transfer (MarginMSE)',
       'Cross-Modal Contrastive Alignment and the Modality Gap',
     ],
