@@ -249,7 +249,7 @@
     {
       "id": "query-transformation-hyde",
       "label": "Query Transformation and HyDE: Correcting Distribution Shift in Embedding Space",
-      "status": "planned",
+      "status": "published",
       "domain": "generation-grounding"
     },
     {
