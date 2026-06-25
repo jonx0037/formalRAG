@@ -688,6 +688,45 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `10.1145/2591796.2591857`; Mossel–Neeman–Sly PTRF `10.1007/s00440-014-0576-6`; Brandes "On Modularity Clustering" IEEE
   TKDE **2008** `10.1109/TKDE.2007.190689` (published 2008 despite the 2007 in the DOI suffix — confirm via CSL);
   Reichardt–Bornholdt PRE 2006 `10.1103/PhysRevE.74.016110`; Edge et al. GraphRAG arXiv 2404.16130; Cover–Thomas reused.
+  Its **query-transformation-hyde successor** (`query-transformation-hyde`, the SECOND generation-grounding topic,
+  a query-SIDE transform): ship = node `planned→published` + drop the title from `curriculum.ts` track 8
+  (`generation-grounding`) `planned[]`, NO edge changes (the `dense→hyde`, `pseudo-rel→hyde`, `hyde→faithfulness`
+  edges already exist; unblocks `faithfulness-groundedness`, named in PROSE only — unbuilt). Frontmatter
+  `prerequisites` = BOTH inbound edges `dense-retrieval-dual-encoders` + `pseudo-relevance-feedback` (the two-edge
+  rule, NOT rvlc's single-prereq); `pipelineStage: retrieve`; `modality: [text, pdf, news]`. IMPORTS hypersphere
+  `normalize`/`sample_vmf`, dense `dpr_finance_matrix`/`dual_encoder_score`/`topk_recall`/`DPR_SEED`. **A prereq that
+  lives in a DIFFERENT representation space is a "reuse the ANCESTOR, not the function" case:** pseudo-relevance-
+  feedback's Rocchio/RM3 centroid is TERM-space (`rocchio_query`/`rm1`/`rm3` welded to a TF-IDF `Index`/`_CORPUS`, no
+  space-agnostic centroid to import) — so honor "reuse the prereq's centroid" by IMPORT-AND-RUN of its `rm3_rank`/
+  `rocchio_rank`/`recall_at_k` to reproduce the term-space improve-then-drift curve (recall@4 0.5→1.0→0.5), then LIFT
+  the Rocchio form `q'=(1−α)q+α·centroid` into embedding space with a GENERATED centroid; the structural identity
+  (`hyde_update == a·q+b·centroid`, <1e-12) is the bridge, NOT a verbatim-centroid import. **Reuse the dense DOCUMENT
+  manifold `P`, BUILD your own off-manifold queries** (the tuned-query exception): DPR's own queries are κ=350-tight →
+  recall@1≡1 (the too-easy trap, asserted at `dense_retrieval_dual_encoders.py:472`). Off-manifold query
+  `q_c(θ)=normalize(cosθ·u_c + sinθ·g)` with `g=normalize(mean(P))` (the generic "document-ness"/corpus-centroid axis)
+  degrades cleanly (recall holds 1.0 to θ=45°, → 0.375 at θ=75°; a fixed-random `g` degrades faster — both work, the
+  centroid is more interpretable). **HyDE is θ-INDEPENDENT by construction** (it discards the bare query's position and
+  synthesizes an on-manifold proxy — that IS why it corrects distribution shift): assert flat-high (1.000) vs the
+  collapsing bare curve, never a θ-dependent HyDE. **Hallucination BIAS-FLOOR needs a per-query RATE p, NOT a continuous
+  tilt — a build-and-run TRAP that falsified the planned headline:** a single continuous tilt
+  `gen_center=normalize(cosφ·u_c+sinφ·b_c)` gives NO partial floor because for ANY ρ=⟨u_c,b_c⟩<1, `u_c` beats `b_c` iff
+  φ<45° (the score gap is `(1−ρ)(cosφ−sinφ)`, ρ-independent) → φ<45° still retrieves the gold (ceiling 1), φ>45° flips
+  ALL queries (ceiling 0): a STEP, not a floor. Use a Bernoulli rate `p` (w.p. p the generator drafts the wrong company,
+  gen_center past 45°) → a clean recall ceiling ≈ 1−p (1.0/0.775/0.515 at p=0/0.25/0.5) that averaging CANNOT break (the
+  bias). **The Monte-Carlo 1/k variance law is ASYMPTOTIC, not small-k:** at a loose generator κ_hyp (=12, d=32) the
+  deficit `1−⟨ĥ_k,μ⟩` falls SLOWER than 1/k at small k (`k·deficit` GROWS 0.66→3.07), the doubling-ratio reaches 0.5
+  only in the tail — don't assert `k·deficit≈const`; assert strictly-decreasing + a tail doubling-ratio (`d16/d8<0.66`,
+  accelerating toward 0.5). Same root: consistency `cos(ĥ_k,u_c)→1` is only cos≈0.94 (deficit 0.06) at k=60 — relax
+  convergence thresholds to the realized concentration, don't demand cos>0.98. Collapse anchor: a perfect (κ→∞, faithful)
+  k=1 hypothetical IS `P[gold]`, so its retrieval is byte-for-byte the gold doc's own (argmax + full ranking identical);
+  plus `hyde_update(α=0)==bare query` <1e-12. Bonus the numbers surfaced: HyDE recall peaks at α=0.75 (0.984) slightly
+  ABOVE pure HyDE α=1 (0.961) — a little original query mixed back in beats the pure pseudo-doc. Cross-site (all
+  `ls`-verified): `formalmlPrereqs` representation-learning (shared embedding space; the gap is a representation mismatch)
+  + kl-divergence (query-vs-doc distribution shift); `formalmlConnections` rate-distortion (spend a generation call to buy
+  down retrieval distortion); `formalstatisticsConnections` maximum-likelihood (the vMF mean-direction MLE = the centroid)
+  + exponential-families (vMF). Refs verified (`curl -sI` + CSL): HyDE Gao–Ma–Lin–Callan ACL 2023
+  `10.18653/v1/2023.acl-long.99`; DPR Karpukhin et al. EMNLP 2020 `10.18653/v1/2020.emnlp-main.550`; Rocchio
+  (Salton–Buckley 1990) + Lavrenko–Croft 2001 reused from the PRF prereq.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
@@ -766,7 +805,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   failure; gemini stays the inline reviewer, and `mergeStateStatus` shows `UNSTABLE` transiently while the
   preview redeploys after a push. Gemini also flags a **nested `arr.map(r => r.map(...))` that returns a
   bare array** (wrap each row in `<g key={i}>` — heatmap/grid labs hit this). (`jupyter execute` does
-  *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.)
+  *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.) Gemini flags a **literal
+  Unicode degree symbol `°` inside KaTeX math** (`$\theta = 75°$`) as medium-priority — use `^\circ`
+  (`$\theta = 75^\circ$`); non-strict KaTeX renders the literal `°` (build exits 0, 0 `.katex-error`) but `^\circ` is
+  the robust form. A plain-JSX `°` in a `.tsx` readout is fine (not KaTeX).
 - Cross-link `learning-theory` does NOT exist as a formalML slug → use `vc-dimension` /
   `generalization-bounds`. `maximum-likelihood` / `exponential-families` are **formalStatistics** slugs,
   not formalML; `shannon-entropy`, `kl-divergence`, `representation-learning`, `concentration-inequalities`
