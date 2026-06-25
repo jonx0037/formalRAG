@@ -118,6 +118,9 @@ function mipsRecallAt(alpha: number): number {
   }
   return hits / SCORES.length;
 }
+// The MIPS recall curve is a pure function of the baked constants, so compute it once at module
+// load — it stays flat under the offset, the whole point, but never needs to recompute per render.
+const MIPS_RECALL_LIVE = ALPHA_GRID.map((a) => mipsRecallAt(a));
 
 function Readout({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
@@ -317,8 +320,9 @@ export default memo(function CrossModalAlignmentLaboratory() {
   const dec = DECOMP[betaIdx];
   const coherentPct = dec.L_align > 0 ? (100 * dec.gap2) / dec.L_align : 0;
 
-  // Panel B live: MIPS recall@1 recomputed from the baked scores at every alpha (it does not move).
-  const mipsLive = ALPHA_GRID.map((a) => mipsRecallAt(a));
+  // Panel B: MIPS recall@1 derived from the baked scores at every alpha (it does not move) — computed
+  // once at module load (MIPS_RECALL_LIVE), since it depends only on the baked constants, not on state.
+  const mipsLive = MIPS_RECALL_LIVE;
   const mipsNow = mipsLive[alphaIdx];
   const cosNow = COSINE_RECALL[alphaIdx];
 
