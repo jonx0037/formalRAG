@@ -267,7 +267,7 @@
     {
       "id": "selective-generation-abstention",
       "label": "Selective Generation: When a RAG System Should Abstain",
-      "status": "planned",
+      "status": "published",
       "domain": "generation-grounding"
     },
     {

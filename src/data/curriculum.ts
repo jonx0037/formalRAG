@@ -94,9 +94,7 @@ export const tracks = [
     layer: 'Generation & Reasoning',
     description:
       'The mathematics of what happens once context is retrieved: the retrieval-vs-long-context tradeoff, query transformation as distribution-shift correction, faithfulness as a measurable quantity, and selective generation.',
-    planned: [
-      'Selective Generation: When a RAG System Should Abstain',
-    ],
+    planned: [],
     dependsOnFormalML: true,
   },
   {
