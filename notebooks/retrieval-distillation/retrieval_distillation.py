@@ -128,8 +128,9 @@ CORPUS_HEADLINE = 1_000_000     # a legible production corpus size for the cost 
 
 def center_rows(T: np.ndarray) -> np.ndarray:
     """The per-query (row) centering T C, C = I - (1/n_d) 1 1^T: subtract each query's mean document
-    score. The margin operator — margins are within-query, across documents. GUARD: empty -> empty."""
-    T = np.asarray(T, dtype=float)
+    score. The margin operator — margins are within-query, across documents. GUARDS: at-least-2d for
+    consistency with margin_mse; empty -> empty."""
+    T = np.atleast_2d(np.asarray(T, dtype=float))
     if T.size == 0:
         return np.empty_like(T)
     return T - T.mean(axis=1, keepdims=True)
@@ -253,18 +254,25 @@ def binary_relevance(truth: np.ndarray, n_d: int) -> np.ndarray:
     Y = np.zeros((nq, int(n_d)), dtype=float)
     if nq == 0 or n_d == 0:
         return Y
-    Y[np.arange(nq), truth] = 1.0
+    valid = (truth >= 0) & (truth < int(n_d))          # guard out-of-bound gold indices
+    rows = np.arange(nq)[valid]
+    Y[rows, truth[valid]] = 1.0
     return Y
 
 
 def mined_hard_negative(pool: dict, anchor_idx: int, k: int) -> int:
     """The hardest NEGATIVE document for an anchor query: the nearest other-company query (mined from
     the labeled pool by `mine_nearest`, the negative-sampling prereq) whose gold document differs from
-    the anchor's gold — that gold document is a genuine hard negative doc. GUARD: none found -> -1."""
+    the anchor's gold — that gold document is a genuine hard negative doc. GUARDS: missing 'company' key
+    or out-of-bound anchor/neighbor -> -1; none found -> -1."""
+    if "company" not in pool:
+        return -1
     truth = pool["company"]
+    if not (0 <= anchor_idx < len(truth)):
+        return -1
     gold = int(truth[anchor_idx])
     for nb in mine_nearest(pool, anchor_idx, k):
-        if int(truth[nb]) != gold:
+        if 0 <= nb < len(truth) and int(truth[nb]) != gold:
             return int(truth[nb])
     return -1
 
@@ -272,14 +280,19 @@ def mined_hard_negative(pool: dict, anchor_idx: int, k: int) -> int:
 def teacher_hard_margins(T: np.ndarray, pool: dict, k: int) -> np.ndarray:
     """The teacher's margin T[i, gold] - T[i, hard_neg] on each query's MINED hardest negative pair.
     The dark knowledge: a GRADED spread (some hard negatives are genuinely more confusable, a smaller
-    margin), where the binary label's margin is the constant 1."""
+    margin), where the binary label's margin is the constant 1. GUARDS: missing 'company' key -> empty;
+    out-of-bound gold/negative indices skipped."""
     T = np.atleast_2d(np.asarray(T, dtype=float))
+    if "company" not in pool:
+        return np.array([])
     truth = pool["company"]
+    nd = T.shape[1]
     margins = []
     for i in range(T.shape[0]):
         hn = mined_hard_negative(pool, i, k)
-        if hn >= 0:
-            margins.append(float(T[i, int(truth[i])] - T[i, hn]))
+        g = int(truth[i]) if i < len(truth) else -1
+        if hn >= 0 and 0 <= g < nd and hn < nd:
+            margins.append(float(T[i, g] - T[i, hn]))
     return np.array(margins)
 
 
