@@ -336,8 +336,12 @@ def debiased_convergence_curve(pool: dict, anchor_idx: int, tau: float, tau_plus
 def beta_reweight_weights(s_neg: np.ndarray, beta: float) -> np.ndarray:
     """Robinson et al.'s hardness reweighting q_beta(x-) propto e^{beta * s(anchor, x-)}: a stable
     softmax of beta * s_neg. beta = 0 is uniform; beta -> infinity concentrates on the hardest negative.
-    At beta = 1/tau this is EXACTLY the InfoNCE negative weighting (the bridge back to Movement 1)."""
-    s = np.asarray(s_neg, dtype=float) * float(beta)
+    At beta = 1/tau this is EXACTLY the InfoNCE negative weighting (the bridge back to Movement 1).
+    GUARD: an empty negative set -> empty weights (no np.max of a zero-size array)."""
+    s = np.asarray(s_neg, dtype=float)
+    if s.size == 0:
+        return np.empty(0)
+    s = (s * float(beta))
     s = s - np.max(s)
     w = np.exp(s)
     return w / w.sum()
@@ -410,6 +414,8 @@ def staleness_overlap(query0: np.ndarray, docs0: np.ndarray, T: np.ndarray,
     d_stale = drifted_encoder(docs0, T, a_ref)
     fresh = mine_with_index(d_fresh, q_now, k)
     stale = mine_with_index(d_stale, q_now, k)
+    if fresh.shape[1] == 0:                              # empty index -> no overlap to measure
+        return 0.0
     overlaps = [len(set(fresh[i]) & set(stale[i])) / fresh.shape[1] for i in range(fresh.shape[0])]
     return float(np.mean(overlaps)) if overlaps else 0.0
 
@@ -861,7 +867,11 @@ def test_guards() -> None:
     assert len(mine_nearest(pool, 0, 999)) == n - 1, "k should cap at the number of other items"
     assert len(mine_nearest(pool, 0, 0)) == 1, "k=0 should floor to 1"
     assert mine_with_index(np.empty((0, 4)), np.ones((2, 4)), 3).shape == (2, 0), "empty index -> empty rows"
-    print("  [ok] guards: empty/singleton pools, k capped/floored, empty index all handled")
+    # an empty index must not divide by zero in the staleness overlap, and an empty negative set
+    # must not take np.max of a zero-size array (the gemini empty-collection class).
+    assert staleness_overlap(np.ones((2, 4)), np.empty((0, 4)), np.eye(4), 1.0, 0.0, 3, DRIFT_TAU) == 0.0
+    assert beta_reweight_weights(np.array([]), 1.0).size == 0
+    print("  [ok] guards: empty/singleton pools, k capped/floored, empty index/negatives all handled")
 
 
 def _run_all() -> None:
