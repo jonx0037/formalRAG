@@ -505,7 +505,9 @@ def calibrated_panel_conf(panel: dict, conf: np.ndarray, calib_mask: np.ndarray,
     sc, yc = cflat[cm], y[cm]
     if method == "platt":
         a, b = platt_scale(sc, yc); return apply_platt(conf, a, b)
-    iso = isotonic_calibrate(sc, yc); return apply_isotonic(conf, iso)
+    if method == "iso":
+        iso = isotonic_calibrate(sc, yc); return apply_isotonic(conf, iso)
+    raise ValueError(f"unknown calibration method {method}")
 
 
 def abstention_frontier(panel: dict, conf: np.ndarray, lam_grid=LAMBDA_GRID) -> list[dict]:
@@ -517,12 +519,12 @@ def abstention_frontier(panel: dict, conf: np.ndarray, lam_grid=LAMBDA_GRID) -> 
         precs, covs, rets = [], [], []
         for qi, ans in enumerate(panel["answers"]):
             keep = conf[qi] >= tau
+            rets.append(float(keep.mean()))         # a fully-abstained answer retains 0.0 (not skipped)
             if keep.sum() == 0:
                 continue
             precs.append(float(ans["y"][keep].mean()))
             attr = [ans["attribution"][i] for i in range(ans["n_claims"]) if keep[i]]
             covs.append(recall_at_k(attr, set(ans["context_facts"]), int(keep.sum())))
-            rets.append(float(keep.mean()))
         rows.append({"tau": float(tau),
                      "faithfulness": float(np.mean(precs)) if precs else 1.0,
                      "coverage": float(np.mean(covs)) if covs else 0.0,

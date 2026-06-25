@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import katex from 'katex';
 
 /**
@@ -63,9 +63,9 @@ const FRONTIER: FrontierRow[] = [
   { tau: 0.4, p: 0.842, r: 0.844, ret: 0.648 }, { tau: 0.44, p: 0.858, r: 0.844, ret: 0.633 },
   { tau: 0.48, p: 0.863, r: 0.833, ret: 0.621 }, { tau: 0.52, p: 0.883, r: 0.833, ret: 0.605 },
   { tau: 0.56, p: 0.888, r: 0.802, ret: 0.586 }, { tau: 0.6, p: 0.888, r: 0.792, ret: 0.578 },
-  { tau: 0.64, p: 0.895, r: 0.771, ret: 0.559 }, { tau: 0.68, p: 0.897, r: 0.763, ret: 0.556 },
-  { tau: 0.72, p: 0.9, r: 0.742, ret: 0.54 }, { tau: 0.76, p: 0.911, r: 0.71, ret: 0.504 },
-  { tau: 0.8, p: 0.913, r: 0.701, ret: 0.487 }, { tau: 0.84, p: 0.928, r: 0.704, ret: 0.417 },
+  { tau: 0.64, p: 0.895, r: 0.771, ret: 0.559 }, { tau: 0.68, p: 0.897, r: 0.763, ret: 0.539 },
+  { tau: 0.72, p: 0.9, r: 0.742, ret: 0.523 }, { tau: 0.76, p: 0.911, r: 0.71, ret: 0.488 },
+  { tau: 0.8, p: 0.913, r: 0.701, ret: 0.441 }, { tau: 0.84, p: 0.928, r: 0.704, ret: 0.352 },
 ];
 const CRC = { lambda: 0.84, alpha: 0.1, realized: 0.031, retention: 0.305 };
 const DIVERGENCE = {
@@ -139,7 +139,7 @@ function Slider({ label, value, min, max, step, onChange, display }: {
     </label>
   );
 }
-const Row = ({ children }: { children: React.ReactNode }) => (
+const Row = ({ children }: { children: ReactNode }) => (
   <div style={{ display: 'flex', gap: '1.4rem', flexWrap: 'wrap', margin: '0.6rem 0 0.2rem' }}>{children}</div>
 );
 const pill = (active: boolean) => ({
