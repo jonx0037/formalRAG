@@ -142,6 +142,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - `pnpm dev` may not land on **4321** — with other `formal*` servers up it picks 4322/4323/…; read
   the dev log for the actual port (a `curl :4321` can hit a *different* project and falsely report
   ready). Stop only your own server with `lsof -ti tcp:<port> | xargs kill`, never `pkill -f astro`.
+- **The Bash tool's working directory PERSISTS across calls** — after any `cd` into a subdir (e.g. a notebook
+  dir), repo-root-relative commands (grep/sed/ls, not just throwaway generators) silently target the wrong
+  path; use ABSOLUTE paths or execute commands in a subshell, e.g., `(cd subdir && command)`.
 - `astro check` reports ~12 pre-existing type errors in the copied viz components
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
   Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes notebooks/<topic>/<topic_underscored>.py`
@@ -153,6 +156,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `.tsx` — never recomputed in TS (`vector_space_model_tfidf.py` / `probability_ranking_principle.py`).
 - **Cast numpy scalars in `viz_constants()` prints** (`round(float(v), 3)`, `int(...)`) — otherwise arrays
   render as `np.float64(...)`/`np.int64(...)` and dirty the values you mirror into the `.tsx`.
+- **Bake only REPRODUCIBLE numbers.** A randomized numerical routine baked into `viz_constants()` drifts
+  run-to-run and silently breaks the viz↔python invariant — seed it. `scipy.sparse.linalg.eigsh`/`svds`/`eigs`
+  use a RANDOM start vector by default, so pass a fixed `v0=np.random.default_rng(0).standard_normal(n)` when
+  baking their output (gemini flags this); the all-ones vector is an exact 0-eigenvector of the modularity
+  matrix `B`, a poor `v0`.
 - **A baked-number change ripples THREE ways, not two:** a review fix that shifts a `viz_constants()` value
   (e.g. re-baking a witness −0.7038→−0.7105) must update the `.py` print, the `.tsx` const, AND any MDX **prose**
   that quotes it in words — grep the topic across both `.tsx` and `.mdx` for the old value before pushing.
