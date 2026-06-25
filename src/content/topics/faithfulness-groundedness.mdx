@@ -1,0 +1,276 @@
+---
+title: "Faithfulness and Groundedness as Measurable Quantities"
+subtitle: "HyDE modeled the quality of a generated answer with a single hallucination rate p. Here we stop modeling it with a knob and measure it on the text itself — as two numbers, not one. Faithfulness is the precision of an answer's atomic claims against the retrieved context (what fraction of what you said is supported); groundedness is the recall (what fraction of the supportable facts you used). They diverge, a noisy judge measures both with a bias we debias and a confidence we calibrate, and trading coverage for guaranteed faithfulness is the abstention frontier."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "query-transformation-hyde"
+  - "pmi-retrieval-value"
+tags:
+  - "faithfulness"
+  - "groundedness"
+  - "precision-recall"
+  - "llm-as-judge"
+  - "calibration"
+  - "conformal-risk-control"
+  - "pointwise-mutual-information"
+  - "claim-decomposition"
+  - "generation-grounding"
+  - "financial-nlp"
+domain: "generation-grounding"
+pipelineStage: "evaluate"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+videoId: null
+notebookPath: "notebooks/faithfulness-groundedness/01_faithfulness_groundedness.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/faithfulness-groundedness.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 30
+abstract: "HyDE modeled the quality of its generated hypothetical with one hallucination rate p and showed no amount of averaging could remove it. This topic stops modeling generation quality with a knob and measures it on the generated text — as two numbers, not one. We decompose an answer into atomic claims and define faithfulness as the precision of those claims against the retrieved context and groundedness as the recall of the supportable facts; together they are the precision–recall curve of generation, the evaluation layer's pair of metrics read over claims instead of documents. The two diverge: a terse answer is faithful but thin, a verbose one covers everything but invents figures, and a single factuality score hides the trade. Because the measurement is an LLM judge — a noisy Bernoulli instrument — the raw faithfulness number is biased, so we debias it with Rogan–Gladen and calibrate the judge's confidence with ECE, Platt, and isotonic recalibration before that confidence can drive a cut. Raising the cut drops low-confidence claims, lifting precision and lowering recall along the frontier, and trading coverage for a guaranteed faithfulness under a distribution-free conformal back-off is exactly the abstention frontier the next topic studies. Finally we read grounding in bits: a supported claim is one whose pointwise mutual information with the context is positive, a hallucination one whose PMI is non-positive. A tested notebook owns every number."
+connections:
+  - topic: "query-transformation-hyde"
+    relationship: "The direct prerequisite and the handoff: HyDE modeled the faithfulness of its generated hypothetical with a single hallucination rate p that no amount of Monte-Carlo averaging could remove. This topic turns that rate into a measured, two-sided quantity on real generated claims rather than a synthetic von Mises–Fisher knob, picking up exactly where HyDE's open question left off."
+  - topic: "pmi-retrieval-value"
+    relationship: "Supplies the bits-of-grounding view: a supported claim is exactly one whose pointwise mutual information with the retrieved context is positive, and a hallucination one whose PMI is non-positive. We import its answer-posterior and entropy machinery to score each atomic claim's grounding in bits, the information-theoretic reading of faithfulness."
+  - topic: "llm-as-judge-ragas"
+    relationship: "The judge that measures faithfulness is the noisy Bernoulli instrument that topic built; faithfulness is the mean of its per-claim verdicts, a biased estimate of the latent supported fraction that Rogan–Gladen debiases. We import its judge form, audited sensitivity and specificity, and Rogan–Gladen correction to read the raw faithfulness number honestly."
+  - topic: "conformal-factuality"
+    relationship: "The distribution-free back-off guarantee that turns a confidence cut into a controlled false-claim rate. We import its conformal-risk-control machinery so that trading coverage for guaranteed faithfulness is a finite-sample guarantee on a monotone loss, not just a heuristic threshold."
+  - topic: "significance-testing-calibration"
+    relationship: "Supplies the calibration suite that makes the judge's confidence a probability before it can drive the back-off cut: the reliability diagram, the expected calibration error, and the Platt and isotonic recalibrators we import to recalibrate the judge in the calibration panel."
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "The root of the evaluation layer and the home of precision and recall, the two metrics this topic recognizes as faithfulness and groundedness over atomic claims rather than retrieved documents. The collapse anchor is exact: a perfect judge's faithfulness equals the imported precision at k to machine precision."
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "Provides the finance document manifold the whole construction sits on: one von Mises–Fisher company prototype per filing, so a supported claim aligns with its company's context direction and a hallucinated claim points off it. We reuse its geometry and separable score to build the claim-grounding model."
+references:
+  - type: "paper"
+    title: "Precise Zero-Shot Dense Retrieval without Relevance Labels"
+    authors: "Gao, Ma, Lin & Callan"
+    year: 2023
+    url: "https://doi.org/10.18653/v1/2023.acl-long.99"
+    note: "HyDE: generate a hypothetical answer, embed it, retrieve real documents near it. The prerequisite whose open question — is the hypothetical faithful? — this topic measures."
+  - type: "paper"
+    title: "FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation"
+    authors: "Min, Krishna, Lyu, Lewis, Yih, Koh, Iyyer, Zettlemoyer & Hajishirzi"
+    year: 2023
+    url: "https://doi.org/10.18653/v1/2023.emnlp-main.741"
+    note: "Decomposes a generated answer into atomic facts and scores the fraction supported by a source — factual precision as the mean of per-claim support, the operational definition of faithfulness here."
+  - type: "paper"
+    title: "RAGAs: Automated Evaluation of Retrieval Augmented Generation"
+    authors: "Es, James, Espinosa-Anke & Schockaert"
+    year: 2024
+    url: "https://doi.org/10.18653/v1/2024.eacl-demo.16"
+    note: "Defines faithfulness (claims entailed by the context) and context recall (ground-truth claims covered) as the precision/recall pair this topic formalizes and measures with a judge."
+  - type: "paper"
+    title: "SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models"
+    authors: "Manakul, Liusie & Gales"
+    year: 2023
+    url: "https://doi.org/10.18653/v1/2023.emnlp-main.557"
+    note: "A sampling-based hallucination detector — evidence that the per-claim support signal a judge produces is a measurable quantity, not a binary verdict."
+  - type: "paper"
+    title: "Estimating Prevalence from the Results of a Screening Test"
+    authors: "Rogan & Gladen"
+    year: 1978
+    url: "https://doi.org/10.1093/oxfordjournals.aje.a112510"
+    note: "The prevalence correction that debiases a measurement made with an imperfect instrument: it inverts the judge's sensitivity and specificity to recover the latent supported fraction."
+  - type: "paper"
+    title: "Conformal Risk Control"
+    authors: "Angelopoulos, Bates, Fisch, Lei & Schuster"
+    year: 2024
+    url: "https://arxiv.org/abs/2208.02814"
+    note: "Generalizes split conformal from a coverage guarantee to the control of any monotone, bounded loss in expectation — the machinery that turns the faithfulness back-off into a finite-sample guarantee."
+  - type: "paper"
+    title: "Language Models with Conformal Factuality Guarantees"
+    authors: "Mohri & Hashimoto"
+    year: 2024
+    url: "https://arxiv.org/abs/2402.10978"
+    note: "Per-claim back-off with a conformal guarantee on the false-claim rate — the generation-layer application this topic frames as the abstention frontier."
+  - type: "paper"
+    title: "Predicting Good Probabilities with Supervised Learning"
+    authors: "Niculescu-Mizil & Caruana"
+    year: 2005
+    url: "https://doi.org/10.1145/1102351.1102430"
+    note: "The empirical study of Platt scaling and isotonic regression as recalibrators — the recalibration this topic applies to the judge's over-confident scores."
+  - type: "paper"
+    title: "Word Association Norms, Mutual Information, and Lexicography"
+    authors: "Church & Hanks"
+    year: 1990
+    url: "https://aclanthology.org/J90-1003/"
+    note: "The origin of pointwise mutual information in language: log of the ratio of joint to independent probability — here, the bits a context adds to a claim."
+  - type: "paper"
+    title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"
+    authors: "Lewis, Perez, Piktus, Petroni, Karpukhin, Goyal, Küttler, Lewis, Yih, Rocktäschel, Riedel & Kiela"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.11401"
+    note: "The RAG framework whose generated answer this topic measures against its retrieved context."
+rigorFlag: "The judge here is a SYNTHETIC Bernoulli rater with KNOWN, audited sensitivity and specificity, not a real language-model judge whose error rates drift across domains and prompts; Rogan–Gladen debiasing is exact only for a homogeneous judge and before the [0,1] clip, and a real judge's heterogeneous, drifting bias is corrected only imperfectly by one audited rate pair. The conformal risk control back-off bounds the EXPECTED false-claim rate over the calibration draw, not a single realization — one deployment can overshoot — and it assumes exchangeability of calibration and test claims, which intra-answer dependence stresses. The whole construction rests on a CLAIM-DECOMPOSITION assumption: that an answer cleanly factors into independent atomic claims each separately checkable against the context, which natural language only approximately satisfies. And 'supported' means supported under the synthetic geometric grounding oracle, not human judgment; faithfulness is exact for the model and illustrative of a deployed generator. A tested notebook runs every claim rather than assuming it and pins the headline numbers to the observed seed."
+formalmlPrereqs:
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "A claim is grounded when the retrieved context moves the answer distribution toward it; the pointwise mutual information that measures bits-of-grounding is a log-likelihood ratio whose expectation over the answer law is the Kullback–Leibler divergence between the context-conditioned posterior and the prior, so that topic's divergence is the average of the per-claim bits this one reports."
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "Faithfulness measured over a finite set of atomic claims is a sample mean of Bernoulli verdicts, and its concentration around the latent supported fraction is what gives the measurement an honest error bar rather than a point number; the conformal-risk-control back-off's finite-sample slack rests on exactly the concentration of the empirical risk that topic proves."
+formalmlConnections:
+  - topic: "conformal-prediction"
+    site: "formalml"
+    relationship: "The back-off guarantee that trades coverage for faithfulness is split conformal applied to the calibrated judge confidence as a nonconformity score; the distribution-free coverage theorem that topic proves is what makes the abstention frontier finite-sample valid under exchangeability alone, and conformal risk control is its monotone-loss generalization."
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "Grounding versus verbosity is a relevance–compression trade: an answer should retain the bits the context contributes about the question while discarding the unsupported padding, the same minimal-sufficient-statistic objective that topic formalizes, here read over an answer's claims."
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "Raw faithfulness is a biased point estimate of the latent supported fraction because the judge is imperfect; the Rogan–Gladen correction is the method-of-moments inversion of the judge's error model, and its variance — inflated by the inverse-square Youden index — is the estimator-variance story that topic develops, applied to a noisy instrument."
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "Faithfulness versus coverage is the precision–recall, Type-I–versus–Type-II trade that topic frames: retaining a claim is failing to reject the null that it is faithful, so raising the confidence cut trades missed true claims for admitted false ones along the same error frontier."
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "The calibrated judge probability is fit by maximum likelihood — Platt scaling is one-parameter logistic regression on the judge's confidence — so the recalibration that makes the back-off cut a probability is the maximum-likelihood estimation that topic develops."
+formalcalculusPrereqs:
+  - topic: "radon-nikodym"
+    site: "formalcalculus"
+    relationship: "The pointwise mutual information that scores bits-of-grounding is the logarithm of a Radon–Nikodym derivative — the density of the context-conditioned answer law with respect to the prior — so a claim is supported precisely when that derivative exceeds one, the change-of-measure that topic builds."
+formalcalculusConnections:
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "The precision–recall frontier of generation is a curve whose area summarizes faithfulness across every confidence cut, and reading that area as average precision is the Riemann sum that topic constructs, here over the answer's claims rather than a retrieval ranking."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import FaithfulnessGroundednessLaboratory from '../../components/viz/FaithfulnessGroundednessLaboratory.tsx';
+
+## From a hallucination rate to a measured quantity
+
+HyDE left us with a knob. It wrote a hypothetical answer, embedded it, and retrieved real documents near it — and its whole risk lived in a single number, the rate $p$ at which the generator hallucinated about the entity in the question. We could turn that knob and watch recall fall, but we never *measured* it. The closing question was explicit: turning $p$ into a measured quantity, on real generated text rather than a synthetic von Mises–Fisher knob, is the next step.
+
+That is the step we take here. The object we measure is not a knob but a *generated answer*, and the first thing to notice is that "is it faithful?" is the wrong question — it has two answers, not one. An answer is a **set of atomic claims**; the context the system retrieved is a **set of supportable facts**. The two sets can fail to coincide in two independent ways. The answer can *say* things the context does not support — it can hallucinate — and it can *omit* things the context does support — it can be incomplete. Faithfulness is the first failure; groundedness is the second. A single "factuality score" collapses them, and in doing so hides the trade between them that every generation system actually makes.
+
+## Faithfulness is precision, groundedness is recall
+
+Write the answer's atomic claims as $C = \{c_1, \dots, c_n\}$, and let $S \subseteq C$ be the subset of claims the context supports. Let $F$ be the set of supportable facts in the context. Each supported claim *grounds* one fact in $F$ — it is an instance of that fact in the answer.
+
+<TheoremBlock type="definition" number={1} title="Faithfulness and groundedness">
+
+The **faithfulness** of an answer is the precision of its claims against the context,
+
+$$
+\text{faithfulness}(C) \;=\; \frac{|S|}{|C|} \;=\; \frac{\#\{\text{supported claims}\}}{\#\{\text{claims made}\}},
+$$
+
+and the **groundedness** (or coverage) is the recall of the supportable facts,
+
+$$
+\text{coverage}(C) \;=\; \frac{|\{\, f \in F : \text{some claim in } S \text{ grounds } f \,\}|}{|F|} \;=\; \frac{\#\{\text{facts the answer used}\}}{\#\{\text{facts available}\}}.
+$$
+
+</TheoremBlock>
+
+These are not new metrics. They are precision and recall — the same pair the evaluation layer built for retrieval — read over an answer's *claims* instead of a ranking's *documents*. Faithfulness divides by the number of claims the answer makes; coverage divides by the number of facts the context offers. The two denominators are different objects, and that difference is the whole story: a precision over claims and a recall over facts can move independently because a longer answer adds to the precision denominator without touching the recall denominator, and a fact can be grounded by many claims or none.
+
+The collapse anchor pins the definition to the imported machinery. A *perfect* judge — one with sensitivity and specificity equal to one — labels each claim's support exactly, so its measured faithfulness is the mean of the true support labels, which is precisely `precision_at_k` over the claim set. The notebook asserts this equality to machine precision; faithfulness is not *like* precision, it *is* precision, over the right index set.
+
+<FaithfulnessGroundednessLaboratory client:visible />
+
+## Terse versus verbose: why the two diverge
+
+Because faithfulness counts over claims and coverage over facts, the two pull apart as the answer's length changes.
+
+<TheoremBlock type="proposition" number={2} title="Precision and recall diverge with verbosity (demonstrated)">
+
+On the worked corpus, a **terse** answer of a single supported claim has faithfulness $1.00$ and coverage $0.33$; a **verbose** answer of a dozen claims, half of them invented, has faithfulness $0.53$ and coverage $1.00$. The two move in opposite directions, and their harmonic mean — the F1 of generation — peaks at an **interior** answer length (five claims here), neither a single claim nor an exhaustive one.
+
+</TheoremBlock>
+
+The intuition is the one any careful writer knows. A terse answer states only what it is sure of: it is faithful but thin. A verbose answer reaches for completeness, and somewhere past the facts it actually has, it begins to invent — coverage saturates while precision erodes. Reporting one number forces a choice the data does not support. The honest summary is the pair, and the geometry that produces it is on the frontier panel above: the terse and verbose answers are the two extremes of one precision–recall curve.
+
+## Measuring with a noisy judge
+
+On synthetic text we have an oracle for support. On real text we do not — we have an LLM judge, and a judge is an *instrument* with error. Its sensitivity (the rate at which it endorses a genuinely supported claim) and its specificity (the rate at which it rejects an unsupported one) are both below one, and a lenient judge that over-endorses will report a faithfulness number that is systematically wrong.
+
+<TheoremBlock type="proposition" number={3} title="The judge biases the measurement">
+
+The naive faithfulness — the mean of the judge's per-claim verdicts — estimates not the latent supported fraction $\pi$ but $p_{\text{obs}} = \pi\,\mathrm{se} + (1-\pi)(1 - \mathrm{sp})$, where $\mathrm{se}, \mathrm{sp}$ are the judge's sensitivity and specificity. For an over-endorsing judge this overstates $\pi$: on the worked panel the judge reports faithfulness $0.70$ where the oracle is $0.62$.
+
+</TheoremBlock>
+
+The fix is the prevalence correction from epidemiology, where the same problem — estimating how many people have a disease from an imperfect test — is a century old.
+
+<TheoremBlock type="theorem" number={4} title="Rogan–Gladen debiasing">
+
+Inverting the bias relation gives the unbiased estimate
+
+$$
+\hat\pi \;=\; \frac{p_{\text{obs}} + \mathrm{sp} - 1}{\mathrm{se} + \mathrm{sp} - 1},
+$$
+
+whose variance scales as $1/J^2$ in the Youden index $J = \mathrm{se} + \mathrm{sp} - 1$ and diverges as the judge degrades toward a coin flip. With the audited rates, the correction recovers the oracle faithfulness exactly; the notebook pins $\hat\pi$ to $0.62$.
+
+</TheoremBlock>
+
+The correction is only as good as the audit, and the judge's confidence carries a second problem: it is not a probability. A judge that says "$0.9$ supported" should be right nine times in ten, and an over-confident one is not. We measure that gap with the expected calibration error and close it with the recalibrators the evaluation layer built — Platt scaling and isotonic regression — fit on held-out claims. The raw judge here has ECE $0.125$; Platt lowers it to $0.120$ and isotonic to near zero, and Platt does so while preserving the ranking exactly, so a recalibrated confidence is a probability we can threshold without disturbing which claims the judge prefers. The calibration panel above shows the reliability diagram move toward the diagonal.
+
+## The frontier and the back-off guarantee
+
+A calibrated confidence is a cut we can turn. Retain only the claims the judge is confident enough about, and the answer's precision rises as its recall falls — the back-off frontier, swept by the confidence cut $\tau$.
+
+<TheoremBlock type="algorithm" number={5} title="Confidence-cut back-off">
+
+Given calibrated per-claim confidences $\tilde c_i$ and a cut $\tau$, the retained answer is $\hat C(\tau) = \{\, i : \tilde c_i \ge \tau \,\}$. Raising $\tau$ removes the least-confident claims; faithfulness rises and coverage falls along the frontier. An empty retained set is an abstention.
+
+</TheoremBlock>
+
+A heuristic cut gives a frontier but no promise. The promise comes from conformal risk control, which fixes the cut so that the *expected* false-claim rate is bounded — a distribution-free, finite-sample guarantee on a monotone loss.
+
+<TheoremBlock type="theorem" number={6} title="Conformal risk control bounds the false-claim rate">
+
+Let the per-answer loss be the fixed-denominator false-claim rate $L(\lambda) = \tfrac{1}{k}\#\{\text{retained and unfaithful at cut } \lambda\}$, which is non-increasing in $\lambda$ and bounded in $[0,1]$. The threshold
+
+$$
+\hat\lambda \;=\; \inf\Big\{ \lambda : \tfrac{n}{n+1}\hat R_n(\lambda) + \tfrac{B}{n+1} \le \alpha \Big\}
+$$
+
+controls the expected test loss, $\mathbb{E}[\,1 - \text{faithfulness}(\hat\lambda)\,] \le \alpha$. On the worked panel at $\alpha = 0.10$ the realized false-claim rate is $0.03$, retaining about a third of the claims.
+
+</TheoremBlock>
+
+The fixed denominator is load-bearing: dividing by the *shrinking* retained count gives a fraction-of-retained loss that is not monotone, and conformal risk control silently fails on it — the notebook reproduces the counterexample so the prose does not claim the naive loss works. And the guarantee is in expectation over the calibration draw, not a single realization: a deployment can overshoot, the honest caveat the rigor note records. Trading coverage for a *guaranteed* faithfulness this way is the entry to selective generation — when the certified-faithful answer is too thin to be useful, the system should abstain rather than emit. Choosing when to abstain is the next topic.
+
+## Bits of grounding
+
+There is a second reading of "grounded," and it is information-theoretic. A claim is grounded when the context *raises its probability* — when knowing the retrieved filings makes the claim more likely than it was a priori. That is exactly a positive pointwise mutual information.
+
+<TheoremBlock type="proposition" number={7} title="A supported claim has positive PMI with the context (demonstrated)">
+
+For a claim whose nearest answer prototype is $a$, the bits the context contributes are
+
+$$
+\mathrm{pmi}(a\,;\,\text{ctx} \mid q) \;=\; \log_2 \frac{p(a \mid \text{ctx}, q)}{p(a \mid q)},
+$$
+
+positive when the context concentrates the answer onto $a$ and non-positive when it argues elsewhere. On the panel, supported claims average $+0.49$ bits and hallucinated claims $-0.73$ bits, with $94\%$ of hallucinations carrying non-positive bits.
+
+</TheoremBlock>
+
+This closes the loop with the prerequisite that supplied the answer model. Faithfulness, the judge's verdict, and positive bits-of-grounding are three views of one event: a claim the retrieved context supports. The bits panel above shows the sign split — the supported claims piled on the positive side of zero, the hallucinations on the negative.
+
+<FinanceCaseStudy title="A filings answer, claim by claim" modality={["text", "pdf", "news"]}>
+
+A portfolio manager asks how a company's most recent quarter looked. The system retrieves the 10-K management discussion and a recent earnings item, and the generator writes a paragraph that decomposes into nine atomic claims. Five are supported by the filings — the revenue figure, the year-over-year growth, the consensus beat, the margin, the raised guidance — and a sixth, the foreign-exchange headwind, is supported by the risk factors. Three are not: a specific cloud-segment growth rate the filings never give, a buyback the company did not announce, and a fabricated data-center location. Faithfulness is six-of-nine; coverage is complete, since every supportable fact appears. The three inventions are exactly the claims a lenient judge endorses at moderate confidence and a careful back-off removes — and exactly the claims whose pointwise mutual information with the retrieved filings is negative. Raising the confidence cut past the inventions recovers a faithful answer without dropping a single supported fact.
+
+</FinanceCaseStudy>
+
+## Where this sits
+
+We began with a knob and end with a measurement. Faithfulness and groundedness are precision and recall over an answer's claims; they diverge, so we report both. A noisy judge measures them with a bias we remove by Rogan–Gladen and an over-confidence we remove by calibration. And the back-off frontier — coverage traded for a conformally guaranteed faithfulness — is the decision surface of the next topic, selective generation, where the system that cannot certify enough faithful claims should abstain rather than guess. The bits-of-grounding reading ties the whole construction back to the information the context carries, the thread the retrieval-information-theory layer began.
+
+<RigorFlag>
+The judge here is a synthetic Bernoulli rater with known, audited sensitivity and specificity, not a real language-model judge whose error rates drift across domains and prompts; Rogan–Gladen debiasing is exact only for a homogeneous judge and before the clip, and a real judge's heterogeneous, drifting bias is corrected only imperfectly by one audited rate pair. The conformal back-off bounds the *expected* false-claim rate over the calibration draw, not a single realization, and assumes exchangeability of calibration and test claims, which intra-answer dependence stresses. The construction rests on a claim-decomposition assumption — that an answer cleanly factors into independent, separately-checkable atomic claims — which natural language only approximately satisfies, and "supported" means supported under the synthetic geometric grounding oracle, not human judgment. The numbers are exact for the model and illustrative of a deployed generator; a tested notebook runs every claim and pins the headline numbers to the observed seed.
+</RigorFlag>
