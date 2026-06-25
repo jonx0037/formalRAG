@@ -1,0 +1,368 @@
+---
+title: "Knowledge Distillation for Retrieval: Teacher–Student Transfer (MarginMSE)"
+subtitle: "A cross-encoder is the most accurate scorer and the least deployable — a joint forward pass per query–document pair forbids precomputation. Distillation spends that accuracy cheaply: train a precomputable dual-encoder student to match the teacher's per-query score MARGIN, not its absolute level. The all-pairs MarginMSE reduces to a centered Frobenius distance 2nₐ‖SC − TC‖², so margins are blind to the teacher's per-query miscalibration (translation-invariance), and the margin-optimal rank-d student is best_rank_d of the per-query-centered teacher — Eckart–Young again. Distillation approaches the teacher's recall at dual-encoder inference cost, but the embedding-dimension rank ceiling still binds it"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "cross-encoders-reranking"
+  - "negative-sampling-hard-negatives"
+tags:
+  - "knowledge-distillation"
+  - "margin-mse"
+  - "teacher-student"
+  - "dark-knowledge"
+  - "dual-encoder"
+  - "cross-encoder"
+  - "low-rank-approximation"
+  - "recall-at-k"
+domain: "neural-retrieval"
+pipelineStage: "rerank"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "Two results here are theorems and the rest is honest modeling. The MarginMSE reduction is EXACT: the all-pairs margin loss equals the centered Frobenius distance 2 n_d ||SC - TC||^2 (a variance identity), from which translation-invariance — that any per-query offset T -> T + b 1^T is invisible to the loss because 1^T C = 0 — is immediate, and the closed-form optima follow by Eckart-Young-Mirsky: the pointwise-MSE-optimal rank-d student is best_rank_d(T) and the MARGIN-optimal one is best_rank_d(TC). Those are proved. The softer seams: the teacher is the deterministic random-ReLU-feature cross-encoder reused from the cross-encoders topic — a seeded stand-in for a trained transformer that realizes the relevance (an expressivity-not-generalization surrogate), not a real BERT reranker, and its width is tuned so it is a GOOD teacher (recall@1 = 1.0) whose scores are still graded. The per-query offset is a MODEL of the documented cross-encoder per-query miscalibration; its magnitude is tuned so the margin-over-pointwise recall gap is seed-robust, not derived (the teacher's own scores already carry a large constant baseline the centering removes, so the gap exists without the offset but is not seed-robust without it). MarginMSE itself is a HEURISTIC loss: the reduction we prove characterizes its optimum, but the loss was chosen empirically (Hofstätter et al., 2020), not derived from a ranking objective. The rank ceiling binds the student no matter how accurate the teacher — a rank-d dual encoder can never exceed the teacher's recall, only approach it. And the dark-knowledge result runs the OTHER way on this toy: the teacher's margins on the mined hard pairs are genuinely graded, but on a clean, block-structured, IN-SAMPLE corpus the binary ground-truth target compresses to low rank at least as well as the soft teacher — the classic soft-beats-hard advantage is a generalization phenomenon a closed-form in-sample fit cannot show, which we state rather than fake. The whole laboratory is the synthetic von Mises-Fisher finance cloud reused from the InfoNCE, DPR, and cross-encoders topics; every number is owned by the companion notebook."
+videoId: null
+notebookPath: "notebooks/retrieval-distillation/01_retrieval_distillation.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/retrieval-distillation.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 28
+abstract: "The cross-encoder topic built the most expressive relevance scorer and proved it could never be a first stage: a joint forward pass per query–document pair forbids precomputation. This topic spends that accuracy where it is affordable — it distills the expensive teacher into a cheap, precomputable dual-encoder student. The transfer loss is MarginMSE (Hofstätter et al., 2020): rather than match the teacher's absolute scores, match its per-query score MARGIN between a positive and a hard negative. The first result is why margins are the right target. The all-pairs MarginMSE between a student S and teacher T reduces, by a variance identity, to a centered Frobenius distance 2 n_d ||SC − TC||² where C row-centers each query's document scores — so adding a per-query offset T ↦ T + b·1ᵀ leaves the loss unchanged. That translation-invariance is the rigorous hinge: cross-encoder scores are per-query miscalibrated, and margins are blind to that miscalibration. The closed-form optima follow from Eckart–Young–Mirsky with no SGD: the pointwise-MSE-optimal rank-d student is best_rank_d(T), and the margin-optimal one is best_rank_d(TC), the per-query-centered teacher. Because the teacher's scores carry a large constant level — its top singular direction — the pointwise student wastes a dimension reproducing it, while the margin student spends every dimension on ranking; at a restricted rank the margin student's recall@1 leads the pointwise student's, and the embedding-dimension rank ceiling binds both below the teacher, which they approach but never exceed. The payoff is the reranking sub-track's whole point: the distilled student gives cross-encoder-quality ranking at dual-encoder inference cost — precompute the documents once, answer by MIPS, never run a per-pair forward pass. A laboratory shows the translation-invariance of the loss under a miscalibration slider, the margin-over-pointwise recall gap across the rank budget with the two spectra that explain it, and the teacher's graded dark-knowledge margins beside the cost speedup; a tested notebook owns every number; and the finance thread is the production dense retriever that inherits a cross-encoder's same-sector discrimination at no extra query-time cost."
+connections:
+  - topic: "cross-encoders-reranking"
+    relationship: "The direct prerequisite and the teacher this topic compresses. That topic built the cross-encoder h([q;d]) as the most expressive but un-precomputable scorer, usable only as a reranker over a cheap first stage; here we take exactly that scorer — the same random-ReLU finance cross-encoder, imported, not reimplemented — as the teacher and distill its judgments into a dual encoder that needs no rerank stage at all. The rank-3 restriction that made the cross-encoder topic's first stage imperfect-but-recoverable is the same restricted rank at which the margin student here outranks the pointwise one"
+  - topic: "negative-sampling-hard-negatives"
+    relationship: "The second prerequisite: the hard-negative triples the margin loss is computed over. MarginMSE matches the teacher's margin between a positive and a HARD negative, and this topic mines those hard negatives from the labeled DPR pool with that topic's exact miner — the nearest other-company query whose gold document is a genuine hard negative — to read off the teacher's graded margin on the pairs that carry the dark knowledge. The same-sector confusions that topic trained a dual encoder against are the confusions the distilled student inherits from the teacher here"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "The student's architecture and the source of its rank ceiling. The distilled student is a dual encoder whose separable score Q Gᵀ is precomputable and MIPS-searchable — exactly the separability-implies-precomputability chain that topic established — and the closed-form distillation here is its truncated-SVD machinery applied to the teacher's score matrix rather than to a relevance matrix. The student is realized as genuine d-dimensional embeddings with that topic's realize_dual_encoder, and scored with its recall"
+  - topic: "embedding-dimension-lower-bounds"
+    relationship: "The ceiling distillation cannot break. That topic proved a single-vector dot-product retriever has a hard rank (and sign-rank) ceiling on the relevance patterns it can realize; here that ceiling binds the student no matter how accurate the teacher — a rank-d dual encoder distilled from a perfect cross-encoder still tops out at rank-d recall, approaching the teacher's ceiling from below. Distillation moves the student toward the teacher within the ceiling, never through it"
+  - topic: "infonce-contrastive-objective"
+    relationship: "The contrastive objective distillation replaces or augments. InfoNCE trains a dual encoder against in-batch or mined negatives with hard labels; MarginMSE instead regresses the student's margins onto a teacher's soft margins, a different supervision signal over the same dual-encoder geometry. The dark-knowledge movement is precisely the contrast between the teacher's graded soft targets and the one-hot labels InfoNCE would use"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "The evaluation vocabulary the distilled student is scored in. The margin-over-pointwise gap and the rank-ceiling story are statements in that topic's recall@k, measured against a known-item qrel with one gold document per query, and the claim that the student recovers a fraction of the teacher's recall@1 is read directly from those definitions"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "The production stack the cost payoff serves and the source of the cost model. The capstone composes cheap candidate generation with expensive rerank; distillation is how that pipeline keeps cross-encoder accuracy without paying the cross-encoder's query-time cost, folding the teacher's judgments into the precomputable dense leg. The inference-cost constants here are the capstone's retrieval-versus-cross-encoder unit costs"
+references:
+  - type: "paper"
+    title: "Improving Efficient Neural Ranking Models with Cross-Architecture Knowledge Distillation"
+    authors: "Hofstätter, Althammer, Schröder, Sertkan & Hanbury"
+    year: 2020
+    url: "https://arxiv.org/abs/2010.02666"
+    note: "The MarginMSE loss this topic formalizes: distill a cross-encoder teacher into a dual-encoder student by regressing the student's positive-minus-negative score MARGIN onto the teacher's, over hard-negative triples — the translation-invariant target whose closed-form optimum we prove is the centered SVD of the teacher"
+  - type: "paper"
+    title: "Distilling the Knowledge in a Neural Network"
+    authors: "Hinton, Vinyals & Dean"
+    year: 2015
+    url: "https://arxiv.org/abs/1503.02531"
+    note: "The origin of knowledge distillation and the 'dark knowledge' idea: a teacher's soft targets carry inter-class similarity structure a one-hot label lacks, transferring more than the hard decision. Movement 4 demonstrates that the teacher's graded margins ARE that dark knowledge, and flags that its advantage is a generalization phenomenon"
+  - type: "paper"
+    title: "Efficiently Teaching an Effective Dense Retriever with Balanced Topic Aware Sampling"
+    authors: "Hofstätter, Lin, Yang, Lin & Hanbury"
+    year: 2021
+    url: "https://doi.org/10.1145/3404835.3462891"
+    note: "TAS-B: the production dense retriever trained by dual cross-encoder distillation with balanced topic-aware sampling, the deployed instance of the teacher–student transfer this topic studies; SIGIR 2021"
+  - type: "paper"
+    title: "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks"
+    authors: "Reimers & Gurevych"
+    year: 2019
+    url: "https://doi.org/10.18653/v1/D19-1410"
+    note: "The bi-encoder versus cross-encoder distinction the distillation bridges: the student is the precomputable bi-encoder, the teacher the expressive cross-encoder; the DOI resolves to the ACL Anthology EMNLP 2019"
+  - type: "paper"
+    title: "Dense Passage Retrieval for Open-Domain Question Answering"
+    authors: "Karpukhin, Oguz, Min, Lewis, Wu, Edunov, Chen & Yih"
+    year: 2020
+    url: "https://doi.org/10.18653/v1/2020.emnlp-main.550"
+    note: "The dual-encoder student architecture and the finance geometry's parent: the precomputable inner-product retriever distillation targets, whose rank ceiling binds the student; the DOI resolves to the ACL Anthology EMNLP 2020 main proceedings"
+formalmlPrereqs:
+  - topic: "svd"
+    site: "formalml"
+    relationship: "the closed-form distilled student IS a truncated SVD: the Eckart-Young-Mirsky theorem of that topic says the best rank-d approximation of a matrix in Frobenius norm is its truncated SVD, so the pointwise-optimal student is best_rank_d(T) and the margin-optimal student is best_rank_d(TC), the centered teacher — distillation is low-rank approximation of the teacher's score matrix, and that topic supplies the optimality theorem the whole construction rests on"
+formalmlConnections:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "distillation is representation transfer: the student learns a representation whose inner-product geometry reproduces the teacher's relevance ordering, so what the student can absorb is governed by the representation-capacity questions that topic studies, and the rank ceiling is exactly the limit on what a single learned representation can encode"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "classical knowledge distillation matches a teacher's soft probability distribution by minimizing the KL divergence between softened teacher and student outputs, the divergence that topic defines; MarginMSE is the ranking-specialized analogue that regresses score margins instead, and the dark-knowledge movement is the same soft-target-carries-more-than-the-label intuition that topic's divergence quantifies"
+formalstatisticsConnections:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "training a student to match a teacher's soft targets is fitting a conditional model by a regression (squared-error) or cross-entropy objective, the estimation framing that topic develops; MarginMSE is the least-squares fit of the student's margins to the teacher's, and its closed-form optimum is the analogue of a likelihood maximizer with a known global solution"
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "the distilled student is a point estimate of the teacher's score function under a rank constraint, and the bias the rank ceiling imposes — the student systematically underfits the teacher's full-rank scores — is exactly the bias-variance framing that topic develops, with the margin student trading the irrelevant level-reproduction bias for ranking fidelity"
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "the MarginMSE objective is a convex quadratic in the student's score matrix, but the rank-d constraint makes the feasible set non-convex; Eckart-Young-Mirsky is the rare case where the non-convex low-rank problem nonetheless has a closed-form global optimum, and that topic supplies the convex-versus-non-convex vocabulary that distinguishes the easy unconstrained least squares from the rank-constrained fit it happily solves"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import RetrievalDistillationLaboratory from '../../components/viz/RetrievalDistillationLaboratory.tsx';
+
+## Overview & motivation
+
+The cross-encoder topic ended on a tension. A joint scorer $h([q;d])$ that lets the query and document
+attend at every layer is the most accurate relevance function we have — and the least deployable,
+because scoring a corpus means one forward pass per query–document pair. We resolved that with a
+cascade: retrieve cheaply, rerank the survivors expensively. This topic resolves it a second way, and
+it is the reranking sub-track's real payoff. Rather than keep the cross-encoder at query time, we
+**distill** it: we train a cheap, precomputable dual-encoder student to imitate the expensive teacher
+once, offline, and then throw the teacher away. The student answers queries by precomputed
+inner products — a dual encoder — yet carries the teacher's discrimination.
+
+The question is what "imitate" should mean. The naive answer, regress the student's scores onto the
+teacher's, is wrong in an instructive way, and the right answer — match the teacher's *margins* — turns
+out to be the same truncated-SVD story the embedding-dimension and cross-encoder topics already taught,
+applied to a centered version of the teacher's score matrix.
+
+<RetrievalDistillationLaboratory client:visible />
+
+Throughout, $T \in \mathbb{R}^{n_q \times n_d}$ is the teacher's score matrix — row $i$ is query $q_i$'s
+scores over the $n_d$ documents — and the student is a dual encoder with score matrix $S = Q G^\top$,
+$Q \in \mathbb{R}^{n_q \times d}$, $G \in \mathbb{R}^{n_d \times d}$, so $\operatorname{rank}(S) \le d$.
+The teacher is the random-ReLU finance cross-encoder imported from the previous topic; it realizes the
+relevance (recall@1 $= 1.0$) while leaving graded scores on the negatives.
+
+## MarginMSE and the centered teacher
+
+<TheoremBlock type="definition" number={1} title="MarginMSE distillation">
+
+For a positive document $d^+$ and a negative $d^-$, the teacher's *margin* is
+$m_T(q, d^+, d^-) = T_{q,d^+} - T_{q,d^-}$, and MarginMSE trains the student to match it:
+
+$$
+\mathcal{L}_{\text{pair}}(S, T) = \big[(S_{q,d^+} - S_{q,d^-}) - (T_{q,d^+} - T_{q,d^-})\big]^2 .
+$$
+
+Summed over every within-query document pair, the **all-pairs MarginMSE** is
+
+$$
+\mathcal{L}(S, T) = \sum_{i}\sum_{j,k}\big[(S_{ij} - S_{ik}) - (T_{ij} - T_{ik})\big]^2 .
+$$
+
+The pointwise alternative, $\lVert S - T\rVert_F^2$, regresses the absolute scores instead of the
+margins. We will see these are different objectives with different optima.
+
+</TheoremBlock>
+
+## Movement 1 — MarginMSE and translation-invariance
+
+The all-pairs margin loss looks like it depends on every pair of documents, but it collapses to a
+single centered distance, and that collapse is the whole reason margins are the right target.
+
+<TheoremBlock type="theorem" number={1} title="The MarginMSE reduction and translation-invariance">
+
+Let $C = I - \tfrac{1}{n_d}\mathbf{1}\mathbf{1}^\top$ be the operator that subtracts each query's mean
+document score (right-multiplication centers the rows). Then
+
+$$
+\mathcal{L}(S, T) = 2\,n_d\,\lVert S C - T C\rVert_F^2 .
+$$
+
+Consequently the loss is **invariant to any per-query offset** of the teacher: for any
+$b \in \mathbb{R}^{n_q}$,
+
+$$
+\mathcal{L}(S,\, T + b\mathbf{1}^\top) = \mathcal{L}(S, T),
+$$
+
+because $\mathbf{1}^\top C = 0$. The margin loss cannot see the teacher's per-query score level.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Fix a query $i$ and write $\delta_j = S_{ij} - T_{ij}$. The inner sum is
+$\sum_{j,k}(\delta_j - \delta_k)^2$. Expanding,
+
+$$
+\sum_{j,k}(\delta_j - \delta_k)^2
+= 2 n_d \sum_j \delta_j^2 - 2\Big(\sum_j \delta_j\Big)^2
+= 2 n_d \sum_j (\delta_j - \bar\delta)^2,
+$$
+
+the variance identity, where $\bar\delta = \tfrac{1}{n_d}\sum_j \delta_j$. Now
+$\delta_j - \bar\delta = (S_{ij} - \bar S_i) - (T_{ij} - \bar T_i) = (SC)_{ij} - (TC)_{ij}$, so the
+inner sum is $2 n_d \sum_j \big[(SC)_{ij} - (TC)_{ij}\big]^2$. Summing over $i$ gives
+$\mathcal{L}(S,T) = 2 n_d \lVert SC - TC\rVert_F^2$. For the offset, $(T + b\mathbf{1}^\top)C = TC + b(\mathbf{1}^\top C) = TC$, since $\mathbf{1}^\top C = \mathbf{1}^\top - \tfrac{1}{n_d}(\mathbf{1}^\top \mathbf{1})\mathbf{1}^\top = \mathbf{1}^\top - \mathbf{1}^\top = 0$. $\blacksquare$
+
+</TheoremBlock>
+
+This is the load-bearing fact. A cross-encoder's absolute scores are *per-query miscalibrated* — the
+same relevance can read as a different logit scale on different queries — which is precisely why
+Hofstätter et al. chose to distill margins. Theorem 1 says the choice is exactly right: the margin loss
+is blind to that miscalibration by construction. Panel A of the laboratory makes this visible. A
+miscalibration slider adds a per-query offset $\alpha\, b$ to the teacher; the pointwise loss of a fixed
+margin student is a parabola that inflates without bound, while its margin loss is a flat line, and the
+teacher's heatmap rows brighten and darken with $\alpha$ while the centered teacher does not move.
+
+## Movement 2 — the closed-form distilled student
+
+Because the loss is a Frobenius distance, the optimal rank-$d$ student is a truncated SVD — no gradient
+descent required, and the two objectives differ only in *what* they take the SVD of.
+
+<TheoremBlock type="proposition" number={1} title="The pointwise-optimal student">
+
+The pointwise-MSE-optimal rank-$d$ student is the truncated SVD of the teacher:
+
+$$
+S^\star_{\text{point}} = \operatorname*{arg\,min}_{\operatorname{rank}(S)\le d} \lVert S - T\rVert_F^2 = \operatorname{best\,rank}_d(T),
+$$
+
+by Eckart–Young–Mirsky.
+
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={2} title="The margin-optimal student is the centered SVD">
+
+The margin-optimal rank-$d$ student is the truncated SVD of the *per-query-centered* teacher:
+
+$$
+S^\star_{\text{margin}} = \operatorname*{arg\,min}_{\operatorname{rank}(S)\le d}\mathcal{L}(S, T) = \operatorname{best\,rank}_d(TC).
+$$
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+By Theorem 1 we minimize $\lVert SC - TC\rVert_F^2$ over rank-$d$ matrices $S$. For any such $S$, the
+product $SC$ has rank at most $d$, so
+
+$$
+\lVert SC - TC\rVert_F^2 \ \ge\ \min_{\operatorname{rank}(R)\le d}\lVert R - TC\rVert_F^2 = \lVert \operatorname{best\,rank}_d(TC) - TC\rVert_F^2
+$$
+
+by Eckart–Young. The bound is achieved by $S = \operatorname{best\,rank}_d(TC)$: because $TC$ has zero
+row sums, its right singular vectors with nonzero singular value are orthogonal to $\mathbf{1}$, so
+$\operatorname{best\,rank}_d(TC)$ also has zero row sums, hence $SC = S$ and
+$\lVert SC - TC\rVert_F^2 = \lVert \operatorname{best\,rank}_d(TC) - TC\rVert_F^2$. So the minimum is
+attained, and the minimizing $S$ is itself a genuine rank-$d$ dual encoder, realizable as $Q G^\top$
+through a thin SVD. $\blacksquare$
+
+</TheoremBlock>
+
+The contrast is the whole story. Pointwise distillation spends its $d$-dimensional budget reproducing
+the *entire* teacher matrix — including its per-query level, which is irrelevant to ranking. Margin
+distillation centers the teacher first, throwing the level away, and spends every dimension on the
+ordering. And the budget is genuinely scarce: a dual encoder is rank-$d$, so it inherits the
+embedding-dimension rank ceiling. Distillation moves the student *toward* the teacher within that
+ceiling and stops at it.
+
+<TheoremBlock type="corollary" number={1} title="The rank ceiling binds the student">
+
+For every $d$, the student's recall is at most the teacher's, with equality of *ranking* once
+$d \ge \operatorname{rank}(TC)$: at full rank the margin student reproduces the centered teacher exactly,
+so its argmax-per-row — and hence its recall@1 — equals the teacher's. A rank-$d$ student approaches
+the teacher's recall from below; it cannot exceed it.
+
+</TheoremBlock>
+
+## Movement 3 — margin beats pointwise, and the cost payoff
+
+Theorem 2 predicts a recall gap at restricted rank, and the laboratory confirms it. The teacher's score
+matrix carries a single dominant singular value — its per-query level, magnified by the miscalibration
+offset — so the pointwise student best_rank_d(T) burns a whole dimension reproducing a constant that
+does nothing for ranking. The centered teacher $TC$ has a flat spectrum: every direction is ranking
+signal. At the restricted rank $d = 3$ the margin student's recall@1 ($0.69$) leads the pointwise
+student's ($0.50$), the gap is positive at every rank tested and seed-robust, and both rise to the
+teacher's $1.0$ only as $d$ approaches full rank — the ceiling of Corollary 1. Panel B plots the two
+recall curves against the rank slider, with the two spectra beside them so the wasted dimension is
+visible as the teacher's lone tall singular value.
+
+<TheoremBlock type="proposition" number={2} title="The inference-cost payoff">
+
+A cross-encoder reranker costs $|C|\, c_{\text{ce}}$ per query — one joint forward pass per document,
+not precomputable. The distilled dual-encoder student costs $|C|\, c_{\text{ret}}$ — precomputed
+document embeddings, one inner product per document (sublinear with an ANN index). With the cascade's
+unit costs $c_{\text{ret}} = 1$, $c_{\text{ce}} = 25$, the student is a constant
+$c_{\text{ce}}/c_{\text{ret}} = 25\times$ cheaper at query time, and the teacher's cost becomes a
+one-time offline training expense.
+
+</TheoremBlock>
+
+This is the reranking sub-track's destination. The cross-encoder topic could only afford the teacher on
+a small candidate pool; distillation pays the teacher once, offline, and folds its judgments into a
+student that is as cheap to query as any dual encoder. Panel C's corpus slider shows the absolute cost
+gap widening with corpus size while the speedup holds at $25\times$ — cross-encoder ranking at
+dual-encoder inference cost.
+
+## Movement 4 — dark knowledge, and an honest in-sample finding
+
+Distillation's classical justification (Hinton et al., 2015) is *dark knowledge*: a teacher's graded
+soft targets carry information a one-hot label does not — which wrong answer is the more dangerous
+confusion. The teacher here has that knowledge. Mining the hardest negative per query from the labeled
+DPR pool — the nearest other-company query, whose gold document is a genuine hard negative — and reading
+off the teacher's margin on those pairs gives a *graded* spread (mean $\approx 0.66$, ranging from
+$0.12$ to $1.29$), where a binary label's margin is the constant $1$. Some hard negatives are far more
+confusable than others, and the teacher knows it.
+
+<TheoremBlock type="remark" title="On this in-sample toy, binary compresses at least as well">
+
+Yet build-and-run delivers an honest surprise: distilling the *soft* teacher's centered scores does not
+beat distilling the *hard* binary labels at restricted rank. The binary relevance matrix is perfectly
+block-structured — four queries per company share one gold document — so its centered SVD compresses to
+low rank cleanly, recovering recall@1 $= 0.875$ at $d = 3$ against the soft teacher's $0.69$. The
+soft-beats-hard advantage of dark knowledge is a *generalization* phenomenon: it helps when labels are
+scarce and the student must extrapolate to unseen queries, which a closed-form *in-sample* fit cannot
+exhibit. The reason to distill the teacher is not that its soft targets compress better here — it is
+that in production you have no gold labels for most queries, and the teacher is the scalable labeler.
+
+</TheoremBlock>
+
+This is the build-and-run discipline doing its job: the obvious headline is false on the toy, and the
+honest finding — dark knowledge is real but its payoff is out-of-sample — is the more useful lesson.
+
+<FinanceCaseStudy title="A reranker the desk never pays for twice" modality={["text", "pdf", "news"]}>
+
+The production multimodal financial RAG system runs a cross-encoder reranker that separates same-sector
+filings a single embedding confuses — the bank whose 10-K reads like its three peers'. It is accurate
+and slow, and at desk-query volume the per-pair forward passes are the dominant cost. Distillation
+retires that cost. We score a large candidate set with the cross-encoder once, offline, and fit a dual
+encoder to its *margins* — the relative ordering of each query's filings, not the raw logits, which
+drift in scale from one filing type to the next. The margin objective is blind to that drift by Theorem
+1, so the student inherits the reranker's sector discrimination without inheriting its calibration
+quirks, and answers desk queries by precomputed inner products at $25\times$ lower cost. The rank
+ceiling sets the honest expectation: the student approaches the cross-encoder's separation, it does not
+match it, and where the last few points of recall matter the cross-encoder still reranks the student's
+shortlist.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+Two results here are theorems and the rest is honest modeling. The MarginMSE reduction is EXACT: the
+all-pairs margin loss equals the centered Frobenius distance $2 n_d \lVert SC - TC\rVert_F^2$ (a variance
+identity), from which translation-invariance — that any per-query offset $T \mapsto T + b\mathbf{1}^\top$
+is invisible because $\mathbf{1}^\top C = 0$ — is immediate, and the closed-form optima follow by
+Eckart–Young–Mirsky: the pointwise-optimal rank-$d$ student is $\operatorname{best\,rank}_d(T)$, the
+margin-optimal one $\operatorname{best\,rank}_d(TC)$. Those are proved. The softer seams: the teacher is
+the deterministic random-ReLU cross-encoder reused from the cross-encoders topic — a seeded stand-in for
+a trained transformer, tuned to a width where it is a good teacher (recall@1 $= 1.0$) with graded scores,
+not a real BERT reranker. The per-query offset is a model of the documented cross-encoder per-query
+miscalibration; its magnitude is tuned so the margin-over-pointwise recall gap is seed-robust, since the
+teacher's own scores already carry a large constant baseline the centering removes (the gap exists
+without the offset but is not seed-robust without it). MarginMSE itself is a heuristic loss — the
+reduction characterizes its optimum, but the loss was chosen empirically, not derived from a ranking
+objective. The rank ceiling binds the student no matter how accurate the teacher. And the dark-knowledge
+result runs the other way on this toy: the teacher's margins on the mined hard pairs are genuinely
+graded, but on a clean, block-structured, in-sample corpus the binary target compresses to low rank at
+least as well — the classic soft-beats-hard advantage is a generalization phenomenon a closed-form
+in-sample fit cannot show, which we state rather than fake. The whole laboratory is the synthetic von
+Mises–Fisher finance cloud reused from the InfoNCE, DPR, and cross-encoders topics; the companion
+notebook owns every number.
+</RigorFlag>
+
+## Where this sits
+
+Distillation is the reranking sub-track's payoff: it spends the cross-encoder's accuracy at
+dual-encoder cost. It sits downstream of the cross-encoder teacher and the hard-negative miner, and
+beside the dual encoder whose rank ceiling it inherits. The thread continues toward cross-modal
+contrastive alignment, where a teacher in one modality supervises a student in another, and toward
+learning-to-rank objectives that target the ordering directly rather than through a regressed margin —
+both build on the same teacher–student transfer this topic makes precise.

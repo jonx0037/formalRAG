@@ -177,7 +177,7 @@
     {
       "id": "retrieval-distillation",
       "label": "Knowledge Distillation for Retrieval: Teacher-Student Transfer (MarginMSE)",
-      "status": "planned",
+      "status": "published",
       "domain": "neural-retrieval"
     },
     {
