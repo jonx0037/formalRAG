@@ -156,6 +156,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `.tsx` — never recomputed in TS (`vector_space_model_tfidf.py` / `probability_ranking_principle.py`).
 - **Cast numpy scalars in `viz_constants()` prints** (`round(float(v), 3)`, `int(...)`) — otherwise arrays
   render as `np.float64(...)`/`np.int64(...)` and dirty the values you mirror into the `.tsx`.
+- **numpy 2.x removed `np.trapz`** → use `np.trapezoid` (bind `_trapz = getattr(np, "trapezoid", None) or np.trapz`
+  so the module runs on either). Bites any notebook baking an area-under-a-curve (AURC, AP-as-PR-area, any Riemann sum).
 - **Bake only REPRODUCIBLE numbers.** A randomized numerical routine baked into `viz_constants()` drifts
   run-to-run and silently breaks the viz↔python invariant — seed it. `scipy.sparse.linalg.eigsh`/`svds`/`eigs`
   use a RANDOM start vector by default, so pass a fixed `v0=np.random.default_rng(0).standard_normal(n)` when
@@ -888,7 +890,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   HIGH-severity catch). It also flags **list-comprehension membership filters over sets** (→ native
   `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del dict[k]` (intersection over a
   dict's keys) or set `.discard(x)` stays safe). It also flags **unused imports** (and a **function a
-  refactor orphans** — it flags dead functions, not just imports) and a hand-rolled sigmoid
+  refactor orphans** — it flags dead functions, not just imports; and an **accepted-but-ignored function
+  parameter** — e.g. a `seed` an inner call hardcodes to a fixed value to preserve the viz↔python invariant —
+  as a misleading signature, so drop the param AND any now-orphaned constant) and a hand-rolled sigmoid
   `1 / (1 + np.exp(-z))` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). It also
   flags **loop-invariant recomputation**: hoist an `n`-independent `(mean, std)` out of an `n`-loop
   (a large `n_max` extrapolation), and precompute per-leg/per-item arrays ONCE before an
