@@ -1,0 +1,290 @@
+---
+title: "Query Transformation and HyDE: Correcting Distribution Shift in Embedding Space"
+subtitle: "A query is question-shaped and a document is answer-shaped, so a bare query sits off the document manifold and its nearest documents are mediocre. HyDE writes a hypothetical answer, embeds that, and retrieves real documents near it — landing back inside the manifold. It is pseudo-relevance feedback with a generated rather than a retrieved centroid, and it trades query-document mismatch for one honest new cost: generation bias, which no amount of Monte-Carlo averaging removes."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "dense-retrieval-dual-encoders"
+  - "pseudo-relevance-feedback"
+tags:
+  - "query-transformation"
+  - "hyde"
+  - "distribution-shift"
+  - "pseudo-relevance-feedback"
+  - "rocchio"
+  - "monte-carlo"
+  - "bias-variance"
+  - "embedding-geometry"
+  - "financial-nlp"
+domain: "generation-grounding"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+videoId: null
+notebookPath: "notebooks/query-transformation-hyde/01_query_transformation_hyde.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/query-transformation-hyde.mdx"
+datePublished: 2026-06-24
+estimatedReadTime: 28
+abstract: "In a dual encoder the query and document encoders share an embedding space, but the two distributions do not coincide on the sphere: a query is question-shaped, an answer is answer-shaped, so a bare query lands off the document manifold and retrieves mediocre neighbors. HyDE (Gao et al., 2023) corrects this distribution shift without any relevance labels — it asks a language model for a hypothetical answer document, embeds that, and retrieves real documents near it. We formalize HyDE on the dense-retrieval finance geometry as two things at once: a distribution-shift correction (the generated proxy lands inside the document manifold, so retrieval recovers the answer at any shift) and the neural generalization of pseudo-relevance feedback (Rocchio/RM3 expand a query toward the centroid of retrieved documents; HyDE expands it toward the centroid of generated ones). Averaging k hypotheticals is a Monte-Carlo estimate of the answer centroid whose variance falls toward the 1/k rate; but if the generator hallucinates on a fraction p of queries, the estimate is consistent for the wrong center and recall plateaus at a ceiling near 1 − p. That irreducible generation bias is the honest price HyDE pays for closing the gap."
+connections:
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "The dual encoder is the architecture whose shared embedding space the gap lives in; we reuse its finance document manifold (one vMF company prototype per passage) and its separable score, then build off-manifold queries the dense topic's own tight queries never exhibit."
+  - topic: "pseudo-relevance-feedback"
+    relationship: "HyDE is the neural generalization of this topic: Rocchio/RM3 move the query toward the centroid of pseudo-relevant retrieved documents; HyDE moves it toward the centroid of generated ones. We import its term-space RM3/Rocchio to reproduce the improve-then-drift curve HyDE inherits."
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "The hypothetical document is a von Mises–Fisher draw near the answer prototype, and averaging k of them is a mean-direction estimator — the sphere geometry and the sampler come straight from this topic."
+  - topic: "retrieval-vs-long-context"
+    relationship: "Its sibling in the generation-grounding track asked how much context to read; this one asks what to retrieve in the first place. Both are distortion-versus-rate trades on the same finance geometry — HyDE buys recall by paying a generation call up front."
+references:
+  - type: "paper"
+    title: "Precise Zero-Shot Dense Retrieval without Relevance Labels"
+    authors: "Gao, Ma, Lin & Callan"
+    year: 2023
+    url: "https://doi.org/10.18653/v1/2023.acl-long.99"
+    note: "HyDE: generate a hypothetical answer document, embed it, and retrieve real documents near it — zero-shot dense retrieval with no relevance labels."
+  - type: "paper"
+    title: "Dense Passage Retrieval for Open-Domain Question Answering"
+    authors: "Karpukhin, Oğuz, Min, Lewis, Wu, Edunov, Chen & Yih"
+    year: 2020
+    url: "https://doi.org/10.18653/v1/2020.emnlp-main.550"
+    note: "DPR, the dual encoder whose shared query/document embedding space is where the distribution-shift gap appears."
+  - type: "paper"
+    title: "Improving Retrieval Performance by Relevance Feedback"
+    authors: "Salton & Buckley"
+    year: 1990
+    url: "https://doi.org/10.1002/(SICI)1097-4571(199006)41:4<288::AID-ASI8>3.0.CO;2-H"
+    note: "The definitive treatment of Rocchio relevance feedback in the vector space model — the q' = a·q + b·centroid update HyDE lifts into embedding space."
+  - type: "paper"
+    title: "Relevance-Based Language Models"
+    authors: "Lavrenko & Croft"
+    year: 2001
+    url: "https://doi.org/10.1145/383952.383972"
+    note: "RM1/RM3, the relevance-model view of pseudo-relevance feedback that the prerequisite implements and this topic imports."
+  - type: "book"
+    title: "Introduction to Information Retrieval"
+    authors: "Manning, Raghavan & Schütze"
+    year: 2008
+    url: "https://nlp.stanford.edu/IR-book/"
+    note: "Chapter 9: relevance feedback and query expansion, the classical ancestor of query transformation."
+rigorFlag: "The hypothetical-document generator is a synthetic von Mises–Fisher model, not a trained language model; the off-manifold query geometry and the corpus-centroid offset axis are demonstrative constructions on the dense-retrieval finance manifold; the Monte-Carlo 1/k variance law holds asymptotically (the small-k regime is pre-asymptotic at this generator concentration); the hallucination-rate p is a modeling knob; and 'HyDE beats pseudo-relevance feedback' is shown on one synthetic geometry, not as a universal ranking. The notebook runs every claim rather than assuming it, and pins the headline numbers to the observed seed."
+formalmlPrereqs:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "The query and document encoders map two different input distributions into one shared representation space; the gap is exactly a mismatch between the two induced distributions on the sphere, and HyDE is a re-encoding that moves the query's representation onto the document distribution."
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "The query-document gap is a distribution shift — the query-embedding distribution and the document-embedding distribution diverge — and HyDE reduces the divergence by replacing the query with a sample from (a proxy of) the document distribution."
+formalmlConnections:
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "HyDE spends rate (a generation call) to buy down distortion (retrieval error) — the same rate-distortion trade the long-context topic frames, here paid query-side before retrieval."
+formalstatisticsConnections:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "The normalized mean of k hypothetical embeddings is the maximum-likelihood estimate of a von Mises–Fisher mean direction; its consistency and variance are the statistics behind 'average more hypotheticals.'"
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "The von Mises–Fisher generator is an exponential family on the sphere, and the bias-variance behavior of its mean-direction estimate is the exponential-family estimation story applied to retrieval."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import QueryTransformationHydeLaboratory from '../../components/viz/QueryTransformationHydeLaboratory.tsx';
+
+## From expanding the query to transforming it
+
+The previous topic on pseudo-relevance feedback fixed a *vocabulary* mismatch. A query said "rate
+guidance"; the relevant filings said "outlook" and "forecast" and never the word "guidance," so the
+bare query missed them — until Rocchio and RM3 expanded the query with terms harvested from the
+top-ranked feedback documents and bridged the gap. That mechanism lives in *term* space: it adds
+words.
+
+Dense retrieval moves the whole problem onto the sphere. A dual encoder maps the query and the
+document into one shared embedding space and scores them by cosine similarity, so there is no
+vocabulary to bridge — only geometry. And the geometry has its own version of the mismatch, sharper
+and harder to see. A query is *question-shaped*: "What did the company guide for next quarter?" A
+document is *answer-shaped*: three sentences of a 10-K stating the number. The two encoders are
+trained to bring a matched pair close, but the *distributions* they induce on the sphere do not
+coincide — questions cluster in one region, answers in another. A bare query therefore lands slightly
+**off the document manifold**, and its nearest documents are mediocre: close enough to be plausible,
+not close enough to be right.
+
+We make this precise on the finance geometry the dense-retrieval topic built. Its document manifold is
+a set of unit company prototypes — one passage per company, grouped into sectors. We reuse that
+manifold exactly, and we build our own queries, because the dense topic drew its queries
+$\kappa = 350$-tight on their own company, so its recall@1 is already $1.0$ — the "too-easy corpus"
+that would hide the very gap we want to study.
+
+<TheoremBlock type="definition" number={1} title="The query–document gap">
+
+Let $u_c$ be the unit embedding of company $c$'s document (its answer prototype) and let $g$ be a
+fixed unit **offset axis** — the "generic document-ness" direction, taken as the normalized corpus
+centroid. A bare query for company $c$ at **distribution-shift angle** $\theta$ is the great-circle
+interpolation from the answer direction toward the offset axis,
+
+$$
+q_c(\theta) \;=\; \operatorname{normalize}\!\big(\cos\theta\,u_c \;+\; \sin\theta\,g\big),
+$$
+
+plus a small von Mises–Fisher spread. At $\theta = 0$ the query sits on the manifold (it *is* the
+answer direction) and recall@1 is $1.0$. As $\theta$ grows every query is pulled toward the *same*
+generic axis $g$, so the queries lose their company specificity and the document nearest $g$ starts to
+win regardless of which company was asked about. Recall@1 falls. The gap is not noise — it is a
+systematic rotation of the query distribution away from the document distribution.
+
+</TheoremBlock>
+
+Panel A of the laboratory traces this. At the operating shift $\theta = 75°$ the bare query's recall@1
+has fallen to $0.375$: most queries retrieve the wrong company's filing. The two-dimensional
+projection shows why — the bare query (hollow square) sits apart from the document cloud, nearer the
+generic center than the gold answer.
+
+<QueryTransformationHydeLaboratory client:visible />
+
+## HyDE: retrieve where the answers live
+
+HyDE's move is disarmingly simple. Do not retrieve with the query. Instead ask a language model to
+*write a hypothetical answer* — a fake document that would answer the question if it existed — embed
+*that*, and retrieve real documents near its embedding. The hypothetical need not be factually correct;
+it only needs to land in the right *neighborhood* of the document manifold. A generated paragraph about
+a company's revenue guidance, however invented its numbers, embeds like a 10-K passage, not like a
+question. It is answer-shaped by construction.
+
+<TheoremBlock type="proposition" number={1} title="HyDE corrects the distribution shift (demonstrated)">
+
+Model the generator as drawing a hypothetical document $h$ from a von Mises–Fisher distribution
+centered at the answer direction $u_c$. Because $h$ lives on the document manifold near $u_c$,
+retrieving with $h$ recovers the gold document — *independently of the bare query's distribution-shift
+angle $\theta$*. HyDE ignores where the query landed and synthesizes an on-manifold proxy in its place.
+On the finance geometry a faithful generator recovers recall@1 $= 1.000$ at every $\theta$, against the
+bare query's $0.375$ at $\theta = 75°$ — the flat green line above the collapsing red one in Panel A.
+
+The **collapse anchor** pins the construction: a *perfect* hypothetical — infinitely concentrated,
+faithful — is exactly the gold document $u_c$, so HyDE retrieval with it reproduces the gold document's
+own retrieval byte-for-byte (top-1 is the answer, and the full ranking is identical). The notebook
+asserts this for every company.
+
+</TheoremBlock>
+
+That HyDE's recall does not depend on $\theta$ is the whole point, and worth dwelling on. The bare
+query's position in embedding space carries the distribution shift; HyDE discards that position and
+keeps only the query's *intent*, which the generator re-expresses in the document distribution's own
+dialect. Distribution shift cannot survive a step that re-samples from the target distribution.
+
+## Averaging hypotheticals: a Monte-Carlo estimator with a bias floor
+
+One hypothetical is a noisy draw. HyDE in practice averages several — generate $k$ hypothetical
+documents, embed each, and retrieve with the normalized mean
+$\hat h_k = \operatorname{normalize}\!\big(\tfrac1k\sum_i h_i\big)$. This is precisely a **Monte-Carlo
+estimator** of the generation distribution's center, and it inherits that estimator's two-sided
+behavior.
+
+<TheoremBlock type="proposition" number={2} title="Variance falls toward the 1/k rate (demonstrated)">
+
+For a faithful generator, $\hat h_k$ is a consistent estimator of the answer direction $u_c$ — the
+maximum-likelihood mean-direction estimate of the von Mises–Fisher samples. Its angular deficit
+$1 - \langle \hat h_k, u_c\rangle$ falls monotonically in $k$ and approaches the Monte-Carlo $1/k$ rate
+asymptotically: each doubling of $k$ drives the deficit-halving ratio toward $\tfrac12$. On the
+finance geometry the deficit falls $0.658 \to 0.153$ across $k = 1 \to 20$, and as the estimate
+sharpens, recall@1 *rises* with $k$ from $0.602$ toward $1.0$ (Panel B, the green curve). Averaging
+denoises the hypothetical.
+
+</TheoremBlock>
+
+So far this only argues for sampling more. The honest result is the other side of the estimator.
+
+<TheoremBlock type="proposition" number={3} title="Hallucination bias is irreducible (demonstrated)">
+
+Suppose the generator **hallucinates** on a fraction $p$ of queries — for those, it writes a document
+about the *wrong* company, so its generation center is not $u_c$ but a wrong direction. Then $\hat h_k$
+is consistent for the *wrong* center: $\langle\hat h_k, \text{center}\rangle \to 1$ while
+$\langle\hat h_k, u_c\rangle$ stays bounded away from $1$, and the query retrieves the wrong document
+no matter how large $k$ is. Recall therefore plateaus at a **ceiling near $1 - p$**: on the finance
+geometry the large-$k$ recall is $1.000$, $0.775$, $0.515$ at hallucination rates $p = 0,\ 0.25,\ 0.5$
+(Panel B, the dashed reference lines). Averaging reduces variance; it cannot reduce bias.
+
+</TheoremBlock>
+
+This is the load-bearing honesty of HyDE, and the cleanest way to state what it costs.
+
+<RigorFlag>
+
+HyDE does not retrieve for free. It trades a problem it can fix — the query-document distribution
+mismatch, which a single re-encoding removes — for a problem it cannot: the generator's bias. A bare
+query is *unbiased but off-manifold*; a hypothetical is *on-manifold but possibly wrong*. Averaging
+$k$ hypotheticals is exactly the move that separates the two: it drives variance toward zero at the
+$1/k$ rate, exposing the bias underneath as an irreducible recall ceiling. When the generation is
+reliable the trade is overwhelmingly worth it (recall $0.375 \to 1.000$ here); when the generator
+hallucinates about the entity in the question, no sampling budget rescues those queries. The honest
+deployment question is not "does HyDE help" but "is my generator faithful enough that $1 - p$ clears
+the bar." Whether a hypothetical is *faithful* is itself a measurable quantity — the subject of
+faithfulness and groundedness, which this topic unblocks.
+
+</RigorFlag>
+
+## HyDE is the neural generalization of pseudo-relevance feedback
+
+Step back and the shape is familiar. Rocchio's relevance feedback moves a query toward the centroid of
+pseudo-relevant documents, $q' = a\,q + b\,\text{centroid}$; RM3 does the language-model version. HyDE
+is the *same update*, lifted onto the sphere, with one substitution: the centroid is taken over
+**generated** hypotheticals instead of **retrieved** documents.
+
+<TheoremBlock type="proposition" number={4} title="Generated feedback beats retrieved feedback on an off-manifold query (demonstrated)">
+
+Write the embedding-space update $q'(\alpha) = (1-\alpha)\,q + \alpha\,\text{centroid}$, renormalized;
+$\alpha = 0$ is the bare query and $\alpha = 1$ is the pure pseudo-document (canonical HyDE). Two ways
+to form the centroid:
+
+- **HyDE** — the mean of generated hypothetical embeddings. On an off-manifold query this centroid is
+  clean (the generator is answer-shaped), so recall climbs from $0.406$ at $\alpha = 0$ to $0.984$ at
+  $\alpha = 0.75$ and $0.961$ at $\alpha = 1$ — a little of the original query mixed in is even slightly
+  better than the pure hypothetical.
+- **Real pseudo-relevance feedback** — the mean of the bare query's top-retrieved documents. Here the
+  feedback is *polluted*: the off-manifold query retrieves the wrong documents, so its centroid points
+  the wrong way and recall *falls* from $0.406$ to $0.195$ as $\alpha$ grows.
+
+Panel C shows the two curves diverging. The lesson is exactly when the neural generalization earns its
+keep: classical relevance feedback bootstraps from retrieved documents, so it inherits the bad query's
+mistakes; HyDE bootstraps from a generator that never saw the corpus, so a bad query cannot poison it.
+
+</TheoremBlock>
+
+The ancestry is not just an analogy — the notebook *imports* the pseudo-relevance-feedback module and
+reruns its term-space RM3 and Rocchio, reproducing the prerequisite's improve-then-drift curve
+(recall@4 $0.5 \to 1.0$ with a little feedback, drifting back to $0.5$ when the feedback set
+over-expands). That is the inset in Panel C. HyDE inherits the improvement and, by generating rather
+than retrieving its feedback, sidesteps the drift that comes from feeding back the wrong documents.
+
+<FinanceCaseStudy title="A news query against a 10-K answer" modality={["text", "pdf", "news"]}>
+
+A portfolio manager asks, in the register of a news headline, *"Is the company walking back its
+margin guidance?"* The answer lives in a 10-K's MD&A section, written in the register of an
+accountant: "gross margin is expected to be in the range of…". The two are answer- and
+question-shaped respectively, and a bare dense query retrieves adjacent-but-wrong passages — last
+year's guidance, a competitor's filing, the risk-factors boilerplate. HyDE asks the model to draft the
+*kind of paragraph that would answer the question* — a plausible MD&A sentence about margin guidance —
+and retrieves against that. The draft may invent the number; it does not matter, because the embedding
+only has to land in the MD&A neighborhood of the right company. The failure mode is the honest one: if
+the model drafts a paragraph about the *wrong* company's margins, HyDE confidently retrieves the wrong
+filing, and averaging more drafts of the same mistake does not help. Faithfulness of the hypothetical
+is the thing to monitor.
+
+</FinanceCaseStudy>
+
+## Where this sits
+
+HyDE is a *query-side* transform: it runs before retrieval, spending one generation call to move the
+query onto the document distribution. Read alongside its sibling on retrieval versus long context, the
+two are the same rate-distortion trade taken on opposite sides of the pipeline — long context spends
+read-time compute to lower answer distortion; HyDE spends generate-time compute to lower retrieval
+distortion. Both are governed by the same geometry of the finance manifold, and both are honest about
+the cost.
+
+What HyDE leaves open is the quality of the thing it generates. Its whole risk is concentrated in
+whether the hypothetical is faithful to the question's intent — a property we have so far only modeled
+with a hallucination rate $p$. Turning that rate into a *measured* quantity, on real generated text
+rather than a synthetic von Mises–Fisher knob, is the next step.
