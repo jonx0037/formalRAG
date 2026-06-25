@@ -149,6 +149,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
   Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes notebooks/<topic>/<topic_underscored>.py`
   before pushing — it catches unused imports/vars (the gemini nit class) faster than a build or a PR round-trip.
+  But the **TS side has no `noUnusedLocals`**: `pnpm build` AND a targeted `pnpm exec tsc --noEmit | grep <File>`
+  BOTH pass with an unused baked viz const (false confidence) — neither catches the `ts6133` an orphaned const
+  trips; only gemini or an adversarial `feature-dev:code-reviewer` subagent will, so eyeball that every baked
+  const is actually READ before pushing (the recurring "drop the baked const the live recompute never reads").
 - **Viz ↔ Python invariant:** `BM25ScoringLaboratory.tsx`'s corpus mirrors `notebooks/bm25/bm25.py`
   to the decimal, and the topic claims they match. Change one → change both. Numbers the viz needs
   but the corpus *doesn't determine* (e.g. a full-document L2 norm that includes filler terms) go in
@@ -915,6 +919,62 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   Cross-site (all `ls`-verified): `formalmlPrereqs` representation-learning; `formalmlConnections`
   concentration-inequalities + kl-divergence; `formalstatisticsPrereqs` **point-estimation** (debiased = a
   bias-corrected point estimator); `formalstatisticsConnections` maximum-likelihood + hypothesis-testing.
+- **`retrieval-distillation`** (the reranking sub-track's PAYOFF — compress the cross-encoder teacher into a
+  precomputable dual-encoder student; a TWO-prereq node off neural-retrieval `tracks[5]`. ship = node
+  `planned→published` + MDX `status: published` + drop the EN-DASH title `'Knowledge Distillation for
+  Retrieval: Teacher–Student Transfer (MarginMSE)'` from `curriculum.ts` tracks[5] `planned[]`; NO edge
+  changes — the two inbound edges `cross-encoders-reranking→` + `negative-sampling-hard-negatives→`
+  pre-exist and it's a TERMINAL node, no outbound). Frontmatter `prerequisites` = BOTH inbound edges (the
+  two-edge rule). The `.py` IMPORTS the teacher `cross_encoder_finance_scores` (cross-encoders),
+  `best_rank_d`/`realize_dual_encoder`/`dpr_finance_matrix`/`topk_recall`/`score_matrix` (dense),
+  `mine_nearest` (negative-sampling) — all connections/siblings (import-graph≠DAG). **THE THEOREM (rigorous
+  spine):** the all-pairs MarginMSE reduces by the variance identity `Σ_{j,k}(a_j−a_k)²=2n_d·Σ_j(a_j−ā)²` to
+  the centered Frobenius distance `L(S,T)=2·n_d·‖SC−TC‖²` (`C=I−11ᵀ/n_d` row-centers per query), so a
+  per-query offset `T→T+b1ᵀ` is INVISIBLE (`1ᵀC=0`) — TRANSLATION-INVARIANCE, the hinge. Closed-form optima
+  (Eckart–Young, no SGD): pointwise-MSE-optimal rank-d student = `best_rank_d(T)`; MARGIN-optimal =
+  `best_rank_d(TC)` (the per-query-CENTERED teacher) — margin distillation spends its rank budget on RANKING,
+  not on the teacher's level. `best_rank_d(TC)` is a valid rank-d student because TC has zero row sums ⇒ its
+  truncated SVD does too (right sing. vecs ⊥ 1) ⇒ `SC=S`; `rank(TC)≤n_d−1` (centering drops a dim).
+  **BUILD-AND-RUN crux (3 traps):** (1) **teacher quality** — `cross_encoder_finance_scores` underfits at
+  small `n_feat` (n_feat=32 → recall@1=0.188, a USELESS teacher, and then the binary student trivially beats
+  it, inverting every headline). Sweep n_feat: it hits recall@1=1.0 at **n_feat≥192** while staying GRADED
+  (the dark knowledge); far above, the scores flatten toward the hard label. Use n_feat=192. (2) **the
+  margin>pointwise gap source** — the teacher's row-mean std is ~0 (constant level), BUT it carries a huge
+  CONSTANT BASELINE (σ₁(T)=42.5 vs σ₂≈2.2) that pointwise `best_rank_d` wastes a dimension reproducing; TC
+  removes it (σ₁(TC)≈2.2, flat). The gap exists on the natural teacher but is NOT seed-robust (ties at 1/7
+  seeds); add a per-query miscalibration OFFSET `b1ᵀ` (mag 3·N(0,1), the documented cross-encoder
+  miscalibration) → margin>pointwise@d=3 robust across all 15 seed combos (0.688 vs 0.500). Restrict to
+  **D_STAGE=3** (cross-encoders precedent; at full rank both recover the teacher, no gap). (3) **dark
+  knowledge (c) is FALSE in-sample** — soft teacher margins do NOT beat hard binary labels here: the binary
+  ground-truth Y is perfectly block-structured (4 queries/company share one gold) and its centered SVD
+  compresses to rank-3 BETTER (hard@3=0.875 > soft@3=0.688). Dark knowledge IS real (mined-hard-pair margins
+  graded: mean 0.66, std 0.26, all>0 via `mine_nearest`→nearest other-company query→its gold doc), but its
+  soft>hard advantage is a GENERALIZATION phenomenon a closed-form IN-SAMPLE fit can't show — DEMOTE (c) to
+  an honest remark, don't fake it. Collapse/twin anchors: all-pairs MarginMSE==`2n_d‖SC−TC‖²` (<1e-9);
+  translation-invariance `L(S,T)==L(S,T+b1ᵀ)`; pointwise==`best_rank_d(T)`; margin==`best_rank_d(TC)` & loss
+  ==`2n_d·Σ_{l>d}σ_l(TC)²`; margin==pointwise on a PRE-CENTERED teacher (the "zero centering" anchor);
+  full-rank (d≥n_d−1 margin / d≥n_d pointwise) recovers the teacher; student is a genuine dual encoder
+  (`realize_dual_encoder`→`score_matrix`==student <1e-9); teacher is the imported scorer. Cost payoff:
+  student `|C|·c_ret` vs teacher `|C|·c_ce`, speedup `c_ce/c_ret=25×` (reuse cross-encoders C_RETRIEVE/C_CE).
+  Viz (`RetrievalDistillationLaboratory.tsx`, 3 panels, ALL live-verified via real `browser_press_key`):
+  A translation-invariance (α-offset slider → pointwise parabola `PW_BASE−2α·PW_LIN+α²·PW_QUAD` vs FLAT
+  margin line + T/TC heatmaps; α 1.0→0.9 pointwise 1811→1465, margin flat 114.2 ✓), B rank-d fidelity
+  (d-slider → baked RANK_RECALL + LIVE TC tail-energy `Σ_{l>d}σ²/Σσ²`; d 3→6 margin 0.688→0.906, recon
+  35%→5% ✓ — bake σ(T) AND σ(TC) so the wasted-dimension is visible as T's lone tall σ₁; do NOT plot T's
+  tail-energy as a quality proxy, the offset dominates it and inverts the story), C dark knowledge + cost
+  (corpus slider → LIVE cost/speedup; 10⁶→10⁴ teacher 25M→250k, 25× ✓). `ts6133` dropped unused baked consts
+  `N_DOCS` + `CORPUS_HEADLINE` (the corpus slider derives `10^exp` itself — the recurring "baked const the
+  live recompute never reads" drop; the build's tsconfig lacks noUnusedLocals so it doesn't fail, but gemini
+  flags them). pyflakes treats an implicitly-concatenated f-string group (`f"..." f"{x}"`) as HAVING a
+  placeholder — no warning — but a STANDALONE no-placeholder f-string does (dropped 2). Refs verified
+  (`curl`): Hofstätter et al. MarginMSE arXiv 2010.02666 (the loss); Hinton–Vinyals–Dean arXiv 1503.02531
+  (distillation/dark-knowledge origin); Hofstätter et al. TAS-B `10.1145/3404835.3462891` (SIGIR 2021, dual
+  cross-encoder distillation); reuse SBERT `10.18653/v1/D19-1410` + DPR `10.18653/v1/2020.emnlp-main.550`.
+  Cross-site (all `ls`-verified): `formalmlPrereqs` **svd** (Eckart–Young IS the closed-form student);
+  `formalmlConnections` representation-learning + kl-divergence (Hinton soft-target KL);
+  `formalstatisticsConnections` maximum-likelihood + point-estimation; `formalcalculusConnections`
+  convex-optimization (convex MSE + non-convex rank constraint, E–Y the closed-form global optimum). Name
+  the unbuilt forward topics cross-modal-alignment / learning-to-rank in PROSE only.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
