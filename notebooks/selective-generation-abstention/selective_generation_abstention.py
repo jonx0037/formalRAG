@@ -107,7 +107,6 @@ from llm_as_judge_ragas import JUDGE_PERFECT                                    
 # correct-rate is non-degenerate (the easy-corpus trap), and a lenient over-endorsing judge so the
 # answer score orders correctness IMPERFECTLY (the perfectly-orders trap).
 # --------------------------------------------------------------------------- #
-SEL_SEED = 0
 PANEL_SEED = 3                     # the imported build_panel default seed (one answer per query)
 SEL_R = 0.72                       # the panel's per-slot faithfulness rate (base correct-rate knob): tuned
                                    # so base correct ~0.59 AND the imported lenient judge's answer score has
@@ -169,9 +168,10 @@ def selective_arrays(panel: dict, conf: np.ndarray, agg: str = "mean"):
 _SETUP: dict | None = None
 
 
-def _setup(seed: int = SEL_SEED) -> dict:
+def _setup() -> dict:
     """Module-scope cache: the panel, its raw + calibrated judge confidence, the calib/test split, and the
-    per-answer (score, correct) pair — built once, deterministically (no baked number drifts)."""
+    per-answer (score, correct) pair — built once, deterministically (the panel seed is fixed at PANEL_SEED
+    to preserve the viz<->python invariant, so there is no seed argument to drift)."""
     global _SETUP
     if _SETUP is None:
         corpus = _corpus()
@@ -427,8 +427,8 @@ def calibration_gap(scores: np.ndarray, correct: np.ndarray, n_bins: int = 8) ->
 # from what this prints (the base correct-rate, the score AUC, the cost-curve interior, the RC slope).
 # =========================================================================== #
 
-def _diagnostics(seed: int = SEL_SEED) -> None:
-    s = _setup(seed)
+def _diagnostics() -> None:
+    s = _setup()
     scores, correct = s["scores"], s["correct"]
     n = scores.size
     print(f"panel: {n} answers (one per query), {PANEL_NCLAIMS} claims each, faithfulness rate r={SEL_R}")
