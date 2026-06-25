@@ -95,7 +95,6 @@ export const tracks = [
     description:
       'The mathematics of what happens once context is retrieved: the retrieval-vs-long-context tradeoff, query transformation as distribution-shift correction, faithfulness as a measurable quantity, and selective generation.',
     planned: [
-      'Faithfulness and Groundedness as Measurable Quantities',
       'Selective Generation: When a RAG System Should Abstain',
     ],
     dependsOnFormalML: true,
