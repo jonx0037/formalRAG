@@ -975,6 +975,51 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `formalstatisticsConnections` maximum-likelihood + point-estimation; `formalcalculusConnections`
   convex-optimization (convex MSE + non-convex rank constraint, E–Y the closed-form global optimum). Name
   the unbuilt forward topics cross-modal-alignment / learning-to-rank in PROSE only.
+  Its **cross-modal-alignment successor** (`cross-modal-alignment`, the TERMINUS of the neural-retrieval
+  track — with it `tracks[5].planned[] → []`, the learned-retrieval arc is COMPLETE): two encoders trained
+  with the symmetric CLIP loss put text and charts in disjoint cones; the modality gap is read three ways.
+  ship = node `planned→published` + MDX `status: published` + empty `tracks[5].planned[]` (NO edge changes —
+  terminal node, two inbound edges pre-exist). Frontmatter `prerequisites` = BOTH inbound edges
+  `[infonce-contrastive-objective, dense-retrieval-dual-encoders]` (the two-edge rule). The `.py` IMPORTS
+  `alignment`/`uniformity`/`info_nce_loss_batch`/`_sphere_step`/`UNIF_T` (infonce), `score_matrix`/`topk_recall`/
+  `symmetric_inbatch_loss` (dense), `normalize`/`sample_vmf`/`mean_resultant_length`/`mle_mu` (hypersphere) —
+  all connections/siblings, NOT prereqs. **The user-chosen thesis: the gap is a CALIBRATION ARTIFACT, invisible
+  to MIPS ranking** (lead with M2, not the descriptive geometry). **M1 (THEOREM) — upgrade the decomposition
+  from "an identity" to an orthogonal Frobenius-Pythagoras PROJECTION:** with the per-pair difference matrix
+  `D=1gᵀ+(D−1gᵀ)`, `⟨coherent,dispersion⟩_F=0` exactly, so `L_align = gap² + dispersion` and `gap²≤L_align` is a
+  projection-contraction corollary (equality iff a rigid translation, all `dᵢ` equal — note `dᵢ` are NOT unit).
+  `L_align == imported alignment` <1e-12. **M2 (THE HEADLINE THEOREM) — gap-invariance of MIPS ranking:** offset
+  `cⱼ→cⱼ+αg` adds the PER-QUERY constant `α⟨tᵢ,g⟩`, so the argsort (and recall@k) are EXACTLY invariant (max
+  score-dev <1e-12, argsort bit-identical). **The corpus MUST be HARD or the contrast vanishes** (the recurring
+  too-easy trap): n_comp=6 / κ_view=120 / d=32 / β=0.5 → MIPS recall 0.458 ∈ (0,1) while cosine (which
+  renormalizes the offset key, breaking the per-query cancellation) MOVES 0.458→1.0 as α→1 removes the gap. The
+  honest split: MIPS gap-invariant, cosine NOT — state it as the rigorFlag; cosine's *improvement* is a MEASURED
+  curve. **M3 (MEASURED, rigorFlag) — "training preserves the gap" is FALSE:** deterministic full-batch projected-
+  GD on the symmetric CLIP loss CLOSES the gap at τ≥0.2; assert ONLY the monotone direction (lower τ → larger
+  residual gap: 0.962→[0.64,0.54,0.31,0,0,0]) + the β=0 no-gap control (gap≈0.11 ≪ 0.95 — two separate vMF draws
+  per company are mean-zero, so β alone makes a systematic gap). **GRADIENT FD GOTCHA:** the symmetric CLIP
+  gradient `grad_T=(1/2nτ)(MC−2C)`, `grad_C=(1/2nτ)(MᵀT−2T)` with `M=P_row+P_col` is the EUCLIDEAN gradient
+  `_sphere_step` projects — FD-check it against a RAW (non-renormalizing) `_raw_symmetric_loss`, NOT the imported
+  `symmetric_inbatch_loss` (which renormalizes inputs → the FD measures the TANGENT-projected gradient, off by the
+  radial component, a deceptive ~2× at (0,0)). The loss anchor still holds: trainer loss == imported
+  `symmetric_inbatch_loss` <1e-12 (at unit inputs raw==imported), one-direction == `info_nce_loss_batch`. **κ/d
+  trap:** d=64 washes the cones out (A_64(60)²≈0.36) — stay d≤32 (M1/M2), d=16 for the M3 training sandbox (keeps
+  the residual-gap signal alive under full-batch GD). **Reuse the geometry, BUILD a fresh two-VIEW corpus**
+  (`dpr_finance_matrix` gives ONE doc/company; need text+chart per company — the negative-sampling substrate-switch
+  precedent). Viz (`CrossModalAlignmentLaboratory.tsx`, 3 panels): Panel B recomputes MIPS recall@1 LIVE in TS from
+  the baked `SCORES`+`GAP_VEC_SCORE` (argsort-invariant → flat as the α slider runs; cosine baked, moves) —
+  verified in-browser via real `browser_press_key` (α 0→1: MIPS 0.4583 pinned, cosine 0.4583→1.0000; β 0.5→0.3:
+  gap² 0.908→0.289, coherent 81%→45%). Dropped `MIPS_RECALL_BAKED` (the recurring `ts6133` "baked const the live
+  recompute never reads"). Cross-site (all `ls`-verified): `formalmlPrereqs` representation-learning (cone effect/
+  alignment-uniformity is a representation phenomenon) + kl-divergence (the CLIP loss is two cross-entropies);
+  `formalmlConnections` information-bottleneck + rate-distortion (the gap is ranking-irrelevant info / a
+  distortion-free DOF) + concentration-inequalities (cone concentration = A_d(κ)); `formalstatisticsConnections`
+  maximum-likelihood (vMF mean-direction MLE for the cone centers) + exponential-families (vMF); `formalcalculus
+  Connections` convex-optimization (the gap is a convex least-squares projection; projected GD). NO formalML
+  contrastive-learning / mutual-information / CLIP slug → name CLIP, the cone effect, Liang et al., Wang–Isola in
+  PROSE. Refs verified (`curl`): Liang et al. "Mind the Gap" NeurIPS 2022 arXiv 2203.02053; Wang–Isola ICML 2020
+  arXiv 2005.10242 (reused); CLIP Radford et al. ICML 2021 arXiv 2103.00020; DPR `10.18653/v1/2020.emnlp-main.550`
+  (reused); CPC arXiv 1807.03748 (reused).
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

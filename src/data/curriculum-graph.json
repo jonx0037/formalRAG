@@ -183,7 +183,7 @@
     {
       "id": "cross-modal-alignment",
       "label": "Cross-Modal Contrastive Alignment and the Modality Gap",
-      "status": "planned",
+      "status": "published",
       "domain": "neural-retrieval"
     },
     {

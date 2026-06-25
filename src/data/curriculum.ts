@@ -58,9 +58,7 @@ export const tracks = [
     layer: 'Learned Retrieval & Ranking',
     description:
       'Learned representations for retrieval, defined by training objectives and expressivity claims: InfoNCE contrastive training, dense dual encoders, late interaction and learned sparse, cross-encoders, distillation, and cross-modal alignment.',
-    planned: [
-      'Cross-Modal Contrastive Alignment and the Modality Gap',
-    ],
+    planned: [],
     dependsOnFormalML: true,
   },
   {

@@ -1,0 +1,241 @@
+---
+title: "Cross-Modal Contrastive Alignment and the Modality Gap"
+subtitle: "Train a text tower and a chart tower with the same symmetric CLIP loss and the two modalities settle into disjoint cones on the sphere — a modality gap between the centroids that contrastive training shrinks but never quite closes. We prove the gap is the coherent, rank-one part of cross-modal misalignment (an orthogonal split L_align = gap² + dispersion) and that it is INVISIBLE to maximum-inner-product ranking: a shared offset is a per-query constant, so recall is exactly gap-invariant. The gap is a calibration artifact — it shifts absolute similarities, never the order — and lower training temperature preserves a larger residual gap."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "infonce-contrastive-objective"
+  - "dense-retrieval-dual-encoders"
+tags:
+  - "cross-modal"
+  - "modality-gap"
+  - "clip"
+  - "alignment-uniformity"
+  - "contrastive-learning"
+  - "calibration"
+  - "maximum-inner-product-search"
+  - "cone-effect"
+domain: "neural-retrieval"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "chart"
+  - "pdf"
+rigorFlag: "Two results here are exact theorems and one is a measured surrogate. The orthogonal decomposition L_align = gap² + dispersion is exact algebra (a Frobenius-Pythagoras split), and the gap-invariance of maximum-inner-product ranking is exact (a shared key offset is a per-query constant, so the argsort cannot move). The honest split is that cosine retrieval renormalizes the offset keys and is therefore NOT gap-invariant — its improvement as the gap is removed is a measured curve, pinned to the corpus. Movement 3 is a deterministic full-batch projected-gradient surrogate, NOT stochastic training: to convergence it closes the gap at moderate temperature, so we assert only the monotone direction (lower temperature preserves a larger residual gap), never that training preserves the gap. We do not reproduce Liang et al.'s finding that forcibly closing the gap can hurt downstream transfer; on this synthetic vMF corpus the gap is a calibration effect on absolute similarities, not a ranking effect. The numbers are a synthetic stand-in, not trained encoders."
+videoId: null
+notebookPath: "notebooks/cross-modal-alignment/01_cross_modal_alignment.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/cross-modal-alignment.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 26
+abstract: "A multimodal retrieval system trains two encoders — a text tower and a chart tower — with the same symmetric contrastive (CLIP) loss, so a text query can retrieve a chart of the same company. Even after training, the two modalities occupy disjoint cones on the sphere: a measurable modality gap between the text and chart centroids. This topic reads the gap three ways. First, an orthogonal decomposition: the cross-modal alignment loss splits exactly as L_align = gap² + dispersion, a Frobenius-Pythagoras decomposition of the per-pair difference matrix into its coherent rank-one part (the gap) and its incoherent complement, so the gap is bounded by the alignment loss and contrastive training can shrink the loss while a coherent gap survives. Second, the headline: the gap is invisible to maximum-inner-product ranking. Shifting one modality by the shared gap vector changes every cross-modal score by a per-query constant, leaving the argsort — and recall@k — exactly invariant, so the gap is a calibration artifact on absolute similarities, not a ranking defect. Cosine retrieval, which renormalizes, is the honest exception. Third, the cone effect: a deterministic full-batch descent on the symmetric loss closes the gap at moderate temperature, and lower temperature preserves a larger residual gap. The finance thread runs throughout: a desk embedding 10-K text and price charts of the same companies retrieves correctly through the gap but miscalibrates a fixed relevance threshold across it."
+connections:
+  - topic: "infonce-contrastive-objective"
+    relationship: "The direct prerequisite and the engine of the whole topic: the symmetric cross-modal loss is two of its in-batch InfoNCE losses, one per direction, and the alignment and uniformity functionals it defines are exactly what the modality gap decomposes — L_align is its alignment loss byte-for-byte, and the cone effect is its alignment/uniformity trade-off read across two encoders instead of one."
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "The second prerequisite: cross-modal retrieval is its maximum-inner-product search with the document tower swapped for a second modality's tower, so the gap-invariance theorem is a statement about its MIPS ranking — a shared key offset is a per-query constant the argsort ignores — and the recall it measures is the recall this topic proves the gap cannot change."
+  - topic: "hypersphere-vmf-geometry"
+    relationship: "The sphere the cones live on: the two modality cones are vMF clusters, the gap is the distance between their mean directions, and the cone concentration that decides whether companies stay resolvable within a cone is the mean resultant length A_d(kappa) developed there."
+  - topic: "significance-testing-calibration"
+    relationship: "Where the gap actually bites: a modality gap leaves ranking untouched but corrupts absolute cross-modal similarities, so a fixed relevance threshold or a temperature-scaled softmax read across modalities is miscalibrated — the gap is a calibration object, recalibrated exactly as that topic recalibrates over-confident retrieval scores."
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "The system this topic supplies the missing mathematics for: the capstone fuses text, charts, and tables of the same companies, and the modality gap it names without proving is the cone separation analyzed here — the reason fusion recombines ranks rather than absolute cross-modal scores."
+references:
+  - type: "paper"
+    title: "Mind the Gap: Understanding the Modality Gap in Multi-modal Contrastive Representation Learning"
+    authors: "Liang, Zhang, Kwon, Yeung & Zou"
+    year: 2022
+    url: "https://arxiv.org/abs/2203.02053"
+    note: "The paper that named and measured the modality gap: a cone effect from random initialization, preserved by contrastive training, that this topic formalizes on a vMF toy."
+  - type: "paper"
+    title: "Understanding Contrastive Representation Learning through Alignment and Uniformity on the Hypersphere"
+    authors: "Wang & Isola"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.10242"
+    note: "The alignment/uniformity decomposition of the contrastive loss; the modality gap is the coherent residual that uniformity cannot remove because alignment only constrains paired distances."
+  - type: "paper"
+    title: "Learning Transferable Visual Models From Natural Language Supervision"
+    authors: "Radford, Kim, Hallacy, Ramesh, Goh, Agarwal, Sastry, Askell, Mishkin, Clark, Krueger & Sutskever"
+    year: 2021
+    url: "https://arxiv.org/abs/2103.00020"
+    note: "CLIP: the symmetric cross-modal contrastive loss whose two in-batch InfoNCE directions this topic trains and decomposes."
+  - type: "paper"
+    title: "Dense Passage Retrieval for Open-Domain Question Answering"
+    authors: "Karpukhin, Oğuz, Min, Lewis, Wu, Edunov, Chen & Yih"
+    year: 2020
+    url: "https://aclanthology.org/2020.emnlp-main.550"
+    note: "The dual-encoder retrieval setting the cross-modal towers inherit; the MIPS ranking whose gap-invariance is the headline theorem."
+  - type: "paper"
+    title: "Representation Learning with Contrastive Predictive Coding"
+    authors: "van den Oord, Li & Vinyals"
+    year: 2018
+    url: "https://arxiv.org/abs/1807.03748"
+    note: "The InfoNCE objective and its mutual-information reading, inherited from the prerequisite and applied symmetrically across modalities."
+formalmlPrereqs:
+  - topic: "representation-learning"
+    site: "formalml"
+    relationship: "the modality gap is a property of learned representations — the cone effect, the alignment/uniformity geometry, and the disjoint-cone structure are exactly the representation phenomena that topic studies in the abstract, and the cross-modal dual encoder here is the concrete two-tower architecture whose representations it analyzes; the claim that contrastive training can collapse dispersion while leaving a coherent gap is a statement about the geometry of the learned representation space"
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "the symmetric cross-modal loss is two InfoNCE cross-entropies, and InfoNCE is a mutual-information lower bound whose tightness is governed by the KL divergence between the joint and the product of marginals, so the loss this topic trains and decomposes is built from the divergence that topic defines, one term per retrieval direction"
+formalmlConnections:
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "the modality gap is information the alignment loss does not pin down — the loss controls paired distances but a coherent offset between the cones is only weakly penalized, exactly the kind of nuisance variation an information-bottleneck objective would compress away while preserving the predictive content; the gap is the part of the cross-modal representation that carries no ranking information"
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "the cross-modal channel that maps a text query to a chart spends representation capacity buying down retrieval distortion, and the gap is a distortion-free degree of freedom — shifting one cone by the gap leaves the MIPS distortion (the ranking) unchanged, so the gap sits in the null space of the rate-distortion trade-off this topic would draw"
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "whether the two cones are genuinely separated and whether companies stay resolvable within a cone is a concentration statement — the mean resultant length A_d(kappa) is how tightly a vMF cluster concentrates on its mean direction, and the same machinery that bounds how fast a contrastive estimate concentrates governs whether the gap is a real cone separation or sampling noise"
+formalstatisticsConnections:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "the cone centers are estimated by the von Mises–Fisher mean-direction MLE — the normalized resultant of the embeddings in each modality — and the gap is the distance between the two MLE mean directions, so measuring the gap is a maximum-likelihood estimation problem on the sphere"
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "each modality cone is a von Mises–Fisher distribution, the exponential-family maximum-entropy law on the sphere with the mean direction as its natural parameter, so the two-cone geometry and the gap between the natural parameters are objects in the exponential-family framework that topic develops"
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "the gap is the orthogonal projection of the cross-modal misalignment onto the rank-one shared-offset subspace, the unique minimizer of the mean squared residual over constant vectors — a convex least-squares problem — and the training surrogate is projected gradient descent on the sphere, the constrained optimization that topic formalizes"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import CrossModalAlignmentLaboratory from '../../components/viz/CrossModalAlignmentLaboratory.tsx';
+
+## Overview and motivation
+
+The prerequisite topics trained a *single* dual encoder: one tower for queries, one for documents, taught by InfoNCE to place a query near its answer, and read by dense retrieval as a maximum-inner-product lookup. A multimodal system trains *two* encoders for two modalities — a text tower and a chart tower — with the same symmetric contrastive loss, so a text query can retrieve a chart of the same company, and a chart can retrieve its filing. This is the CLIP recipe (Radford et al., 2021), and it is the engine of the multimodal financial RAG capstone.
+
+Liang et al. (2022) noticed something unsettling about the result. After training, the two modalities do not interleave on the sphere — they occupy *disjoint cones*. The text embeddings cluster in one region, the chart embeddings in another, and there is a measurable **modality gap** between the two centroids that contrastive training shrinks but never quite closes. The natural worry is that this gap is a defect: if the cones are pulled apart, surely cross-modal retrieval suffers, and surely we should center the embeddings to close it.
+
+We will prove the opposite. The gap is the coherent, rank-one part of cross-modal misalignment, it is bounded by the alignment loss, and — the headline — it is *invisible to ranking*. A modality gap is a calibration artifact: it shifts absolute cross-modal similarities, never their order. The lab below makes all three readings interactive; we develop them in turn.
+
+<CrossModalAlignmentLaboratory client:visible />
+
+We write $z_{\text{text},i}$ and $z_{\text{chart},i}$ for the unit embeddings of company $i$'s text view and chart view, paired by construction (the diagonal $i \leftrightarrow i$ is the positive). The two cones are vMF clusters around modality-specific mean directions; a tilt parameter $\beta$ controls how strongly each view is pulled toward its modality cone versus its company identity, so $\beta = 0$ is the no-gap control and larger $\beta$ pulls the cones apart.
+
+## Movement 1 — what the gap is: an orthogonal decomposition
+
+The contrastive loss controls *paired* distances. The natural measure of how far apart the paired views sit is the **alignment loss** of Wang & Isola (2020), inherited from the prerequisite,
+
+$$L_{\text{align}} = \frac1n \sum_{i=1}^n \lVert z_{\text{text},i} - z_{\text{chart},i}\rVert^2 = \frac1n\sum_i \lVert d_i\rVert^2, \qquad d_i := z_{\text{text},i} - z_{\text{chart},i}.$$
+
+The modality gap is a different object: the distance between the two *centroids*,
+
+$$\text{gap} = \lVert g \rVert, \qquad g := \overline{z_{\text{text}}} - \overline{z_{\text{chart}}} = \frac1n\sum_i d_i,$$
+
+so the gap vector $g$ is the mean of the per-pair differences. These two quantities are related by an exact decomposition.
+
+<TheoremBlock type="theorem" number={1} title="The modality gap is the coherent part of misalignment">
+
+Stack the per-pair differences as the rows of $D \in \mathbb{R}^{n \times d}$, $D_i = d_i$. Then the alignment loss splits orthogonally into the squared gap and a dispersion term,
+
+$$L_{\text{align}} = \lVert g\rVert^2 + \frac1n\sum_i \lVert d_i - g\rVert^2 = \text{gap}^2 + \text{dispersion},$$
+
+where $g = \frac1n\sum_i d_i$ is the gap vector. The gap is the coherent, rank-one component of the misalignment (the shared offset every pair carries); the dispersion is its orthogonal complement.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Decompose the difference matrix into a coherent rank-one part and a remainder, $D = \mathbf{1}\,g^\top + R$, where $\mathbf{1} \in \mathbb{R}^n$ is the all-ones vector and $R = D - \mathbf{1}\,g^\top$ has rows $d_i - g$. The rows of $R$ sum to zero, because $\sum_i (d_i - g) = n g - n g = 0$. The two parts are orthogonal in the Frobenius inner product:
+
+$$\langle \mathbf{1}\,g^\top,\, R\rangle_F = \sum_i \langle g,\, d_i - g\rangle = \Big\langle g,\, \sum_i (d_i - g)\Big\rangle = \langle g, 0\rangle = 0.$$
+
+Pythagoras in $\mathbb{R}^{n\times d}$ then gives $\lVert D\rVert_F^2 = \lVert \mathbf{1}\,g^\top\rVert_F^2 + \lVert R\rVert_F^2 = n\lVert g\rVert^2 + \sum_i \lVert d_i - g\rVert^2$. Dividing by $n$ yields $L_{\text{align}} = \lVert g\rVert^2 + \frac1n\sum_i\lVert d_i - g\rVert^2$. $\blacksquare$
+
+</TheoremBlock>
+
+The decomposition is the geometric content of the modality gap. The gap is exactly the *projection* of the cross-modal misalignment onto the one-dimensional shared-offset subspace — equivalently, $g$ is the constant vector $v$ that minimizes $\frac1n\sum_i\lVert d_i - v\rVert^2$, the centroid. Because a projection can only shorten a vector, the gap is bounded by the loss.
+
+<TheoremBlock type="corollary" number={1} title="The gap is bounded by the alignment loss">
+
+$\text{gap}^2 \le L_{\text{align}}$, with equality if and only if the dispersion vanishes, i.e. every $d_i$ is the same constant vector — a *rigid translation* between the two cones. In general the inequality is strict, and contrastive training can drive $L_{\text{align}}$ down by collapsing the dispersion while a coherent gap survives.
+
+</TheoremBlock>
+
+This is the cone effect in one line. Minimizing the contrastive loss reduces $L_{\text{align}}$, but the loss does not distinguish between reducing the gap and reducing the dispersion. A solution that scatters the incoherent part while keeping a coherent offset between the cones is, to the loss, almost as good as one that closes the gap. **Panel A** of the lab sweeps the tilt $\beta$: the gap² bar climbs toward four-fifths of the alignment loss while the dispersion bar shrinks, and the two-dimensional projection shows the text cone (left) and chart cone (right) pulled apart along the gap vector.
+
+## Movement 2 — the headline: the gap is invisible to ranking
+
+If the gap is a coherent offset between the cones, what does it cost retrieval? The instinct is that pulling the cones apart must hurt: a text query lives in the text cone, the charts live in the chart cone, and the gap is the distance the query must "reach across." We will see that under the scoring rule dense retrieval actually uses — maximum inner product — the gap costs *nothing*.
+
+Cross-modal retrieval scores a text query $t_i$ against every chart $c_j$ by the inner product $S_{ij} = \langle t_i, c_j\rangle$ and returns the top-$k$. To ask what the gap costs, we intervene on it directly: shift every chart embedding by a multiple of the gap vector, $c_j \mapsto c_j + \alpha g$. At $\alpha = 1$ the chart centroid moves onto the text centroid and the gap is removed; at $\alpha = 0$ the gap is intact.
+
+<TheoremBlock type="theorem" number={2} title="Gap-invariance of maximum-inner-product ranking">
+
+Under the offset $c_j \mapsto c_j + \alpha g$, every cross-modal score changes by a quantity that depends only on the query,
+
+$$S'_{ij} = \langle t_i,\, c_j + \alpha g\rangle = \langle t_i, c_j\rangle + \alpha\langle t_i, g\rangle = S_{ij} + \alpha\langle t_i, g\rangle.$$
+
+The added term $\alpha\langle t_i, g\rangle$ is constant in $j$. Therefore, for every query $i$, the ordering of the scores over $j$ — and hence the top-$k$ set and $\text{recall}@k$ — is *exactly* invariant to $\alpha$. The modality gap is invisible to MIPS ranking.
+
+</TheoremBlock>
+
+<TheoremBlock type="proof" title="Proof">
+
+Fix a query $i$. Adding the same constant $\alpha\langle t_i, g\rangle$ to every entry of the score row $S_{i\bullet}$ is a monotone transformation of that row: for any $j, j'$, $S'_{ij} \ge S'_{ij'} \iff S_{ij} \ge S_{ij'}$. A monotone transformation preserves the argsort, so $\operatorname{argsort}_j S'_{ij} = \operatorname{argsort}_j S_{ij}$, and in particular the set of the $k$ largest entries is unchanged. Since this holds for every query, $\text{recall}@k$ is identical for every $\alpha$. $\blacksquare$
+
+</TheoremBlock>
+
+This is the thesis. The gap is not a ranking defect; it is a **calibration artifact**. It shifts the *absolute* similarities — every cross-modal score drops by a per-query amount when the cones are apart — but it leaves the *order* untouched, and ranking reads only the order. **Panel B** of the lab recomputes MIPS recall live from the baked score matrix as you drag $\alpha$: the green line does not move, pinned at its hard-corpus value, while the chart you are reordering is the same one every time. The gap is real, and retrieval does not care.
+
+The honest exception is cosine. Most embeddings are unit-normalized, and cosine retrieval renormalizes the offset key, $c_j + \alpha g \mapsto (c_j + \alpha g)/\lVert c_j + \alpha g\rVert$. The denominator depends on $j$, so the added term no longer factors out of the argsort.
+
+<TheoremBlock type="remark" title="Cosine retrieval is not gap-invariant">
+
+Renormalizing the offset keys reintroduces a $j$-dependence, so cosine ranking is *not* invariant to $\alpha$. On the corpus of the lab, cosine recall@1 starts equal to the MIPS recall at $\alpha = 0$ (both score unit vectors) and *rises* to $1.0$ as $\alpha \to 1$ removes the gap. So removing the gap helps cosine retrieval — but the lesson is not "close the gap," it is that the gap is an *absolute-similarity* effect. Anything that reads the cosine, a fixed relevance threshold, or a temperature-scaled softmax across modalities is miscalibrated by the gap; the pure ranking is not.
+
+</TheoremBlock>
+
+## Movement 3 — where the gap comes from: the cone effect and temperature
+
+The decomposition says the gap *can* survive training; it does not say it *will*. To see where the gap comes from and what controls it, we model the two cones at "initialization" — two vMF clusters separated by the tilt $\beta$ — and then *train*. Training is a deterministic full-batch projected gradient descent on the symmetric CLIP loss, which is two of the prerequisite's in-batch InfoNCE losses, one per direction,
+
+$$\mathcal{L} = \tfrac12\big(\mathcal{L}_{\text{text}\to\text{chart}} + \mathcal{L}_{\text{chart}\to\text{text}}\big),$$
+
+reusing the prerequisite's loss byte-for-byte (the notebook checks this to machine precision). We run the descent to convergence at a range of temperatures and read off the residual gap.
+
+The naive headline — "contrastive training preserves the gap" — is *false* on this toy, and worth stating plainly. Full-batch descent to convergence is far more thorough than stochastic training: at moderate temperature it closes the gap to zero. What survives is a *direction*, not a fixed amount.
+
+<TheoremBlock type="remark" title="Lower temperature preserves a larger residual gap">
+
+Across the temperature ladder, the residual gap after training is monotone: at moderate-to-high temperature ($\tau \ge 0.2$) the descent closes the gap to zero, and as $\tau$ falls the residual gap grows. Lower temperature buys tighter, higher-concentration cones — the inverse-temperature-as-concentration reading of the prerequisite's alignment/uniformity trade-off — and a tighter cone holds a larger coherent offset. We assert only this direction, never a fixed residual.
+
+</TheoremBlock>
+
+This is the cone effect made operational. Temperature is the knob the prerequisite identified as trading alignment against uniformity; here it also sets how much of the initialization gap the trained encoders keep. **Panel C** of the lab reads the ladder: the residual gap rises as $\tau$ falls, with the alignment loss and the union uniformity tracking alongside. In a real CLIP-style system the persistent gap is a stochastic-training and finite-step phenomenon our full-batch surrogate does not model — which is exactly why we keep the claim to the monotone direction and flag the rest.
+
+<FinanceCaseStudy title="A desk that retrieves through the gap but miscalibrates across it" modality={["text", "chart", "pdf"]}>
+
+A research desk embeds two views of each company in its coverage: the text of the latest 10-K filing and the price chart of the trailing year, with two towers trained on paired filing–chart examples. The embeddings form two cones — filings in one, charts in the other — separated by a modality gap of $\lVert g\rVert \approx 0.95$ on our synthetic universe of twenty-four companies across four sectors, with the gap accounting for roughly four-fifths of the cross-modal misalignment.
+
+An analyst issues a text query and asks for the matching chart. **The ranking is untouched by the gap.** Maximum-inner-product retrieval returns the same chart for every shift of the chart cone — the gap adds a per-query constant the argsort ignores — so recall@1 is flat across the offset sweep, exactly as the theorem promises. The desk retrieves correctly *through* the gap.
+
+Now the desk wires in a relevance gate: "show the chart only if its cross-modal similarity clears a threshold $\theta$." Here the gap bites. Because the cones sit apart, the mean cross-modal cosine is depressed — $0.44$ with the gap versus $0.89$ once it is removed — so a threshold calibrated on within-modality similarity over-rejects perfectly relevant charts. The gap is a *calibration* problem, not a *ranking* problem: the same intervention that leaves retrieval order invariant doubles the absolute similarity the gate reads. This is why the multimodal capstone fuses *ranks* (reciprocal-rank fusion) rather than absolute cross-modal scores, and why a cross-modal threshold must be recalibrated across the gap rather than inherited from a single modality.
+
+</FinanceCaseStudy>
+
+## Honest accounting
+
+<RigorFlag>
+
+Two of the three movements are exact theorems, and one is a measured surrogate; the topic is careful about which is which.
+
+**Exact.** The orthogonal decomposition $L_{\text{align}} = \text{gap}^2 + \text{dispersion}$ (Theorem 1) is pure algebra — a Frobenius-Pythagoras split — and $L_{\text{align}}$ is the prerequisite's alignment loss byte-for-byte. The gap-invariance of MIPS ranking (Theorem 2) is exact: a shared key offset is a per-query constant, so the argsort cannot move, and the notebook verifies the score change is a per-query constant to machine precision and that the per-row argsort is bit-identical.
+
+**Measured.** The honest split in Movement 2 is that cosine retrieval renormalizes the offset keys and is therefore *not* gap-invariant; that cosine *improves* as the gap is removed is a measured curve on this corpus, pinned to its seeds, not a theorem. The corpus is deliberately hard — same-sector companies genuinely compete, so MIPS recall@1 sits strictly between 0 and 1 — because on an easy corpus cosine would also stay flat and the contrast would vanish.
+
+**A surrogate, not stochastic training.** Movement 3 is a deterministic full-batch projected-gradient descent, not SGD. To convergence it *closes* the gap at moderate temperature, so we assert only the monotone direction (lower temperature preserves a larger residual gap) and the $\beta = 0$ no-gap control, never that training preserves the gap. We do *not* reproduce Liang et al.'s observation that forcibly closing the gap can hurt downstream transfer — on this synthetic vMF corpus the gap is a calibration effect on absolute similarities, and the downstream consequence we demonstrate is the threshold miscalibration, not a ranking loss. All numbers are a synthetic stand-in for trained encoders, chosen so the geometry exhibits the phenomenon: the cone concentration is sized so companies stay resolvable within a cone at the working dimension, and the temperature sandbox runs at a lower dimension where the residual-gap signal survives full-batch descent.
+
+</RigorFlag>
+
+## Where this sits
+
+This topic closes the neural-retrieval track. The lineage ran from InfoNCE (how a dual encoder is trained) through dense retrieval (how its geometry becomes a MIPS lookup with a rank ceiling), late interaction and learned sparse, cross-encoders and distillation; cross-modal alignment is the same machinery with a second modality bolted on, and the modality gap is what that second tower introduces. The decomposition and the gap-invariance theorem are the new mathematics; everything else — the symmetric loss, the alignment and uniformity functionals, the MIPS ranking, the vMF cone geometry — is imported, never rebuilt.
+
+The forward connections run into evaluation and generation. The gap is a calibration object, so it belongs with the work on recalibrating over-confident retrieval scores; and it is the missing piece under the multimodal capstone, which fuses text, charts, and tables of the same companies and names the modality gap without proving why fusion must recombine ranks rather than cross-modal scores. The answer is Theorem 2: across modalities, ranks are gap-invariant and absolute scores are not.
