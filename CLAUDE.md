@@ -913,7 +913,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
   `gemini-code-assist` review — fetch its nits with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments`
   (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
-  medium-priority robustness/perf/a11y ones before merging. (The consumer `gemini-code-assist` app is
+  medium-priority robustness/perf/a11y ones before merging. To **decline** a nit, post the rationale
+  inline with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments/<comment-id>/replies -X POST -f body=...`
+  (the `<comment-id>` from the fetch). (The consumer `gemini-code-assist` app is
   being SUNSET — new org installs blocked 2026-06-18, all reviews cease 2026-07-17; after that the
   inline-review step won't run, so don't block a merge waiting on it.) It reliably flags **unguarded denominators**
   (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` (incl.
@@ -939,7 +941,12 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   **decline with a posted rationale** the nits that would (a) break a byte-for-byte search twin — caching
   a beam's `worst` is an O(1) heap-peek, no gain, and diverges the twin from its `search_layer` source —
   or (b) SSR a KaTeX formula in a `client:visible` lab via `renderToString`: the island never SSRs, and
-  every lab shares the `useEffect`+ref idiom (consistency beats a marginal CLS win). Gemini posts inline
+  every lab shares the `useEffect`+ref idiom (consistency beats a marginal CLS win); or (c) "escape the
+  literal braces" in a lab's KaTeX `\#\{…\}` TEX string that is **already** escaped (`\{`/`\}` render as
+  literal braces; build shows 0 `.katex-error`, verified in-browser) — gemini also **mis-attributes a
+  `.tsx` KaTeX TEX string to the `.mdx` file's line**, flagging a formula that isn't in the MDX at all.
+  When gemini suggests **OPTIMIZING** a `.py` helper, first confirm it's still **CALLED** — a refactor
+  may have orphaned it (delete, don't optimize). Gemini posts inline
   ~1–3 min after the push; `mergeable` flips to `UNKNOWN` transiently right then. A separate **Vercel
   Agent Review** check also runs but is often `NEUTRAL` (*skipped — insufficient credit*), which is NOT a
   failure; gemini stays the inline reviewer, and `mergeStateStatus` shows `UNSTABLE` transiently while the
