@@ -1,0 +1,385 @@
+---
+title: "Learning to Rank: Pointwise, Pairwise, and RankNet"
+subtitle: "The evaluation layer measured rankings with NDCG and MAP; this topic learns one. Ranking reduces to supervised learning three ways — pointwise regression of scores onto grades, pairwise classification of preferences (RankNet), and a listwise preview — anchored by the theorem that makes the field necessary: NDCG and MAP are piecewise-constant in the scores, with zero gradient almost everywhere, so they cannot be optimized directly, and the smooth pairwise logistic stands in as a surrogate"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "probability-ranking-principle"
+  - "set-metrics-precision-recall-map-mrr"
+tags:
+  - "learning-to-rank"
+  - "ranknet"
+  - "pairwise-loss"
+  - "pointwise-regression"
+  - "surrogate-loss"
+  - "logistic-regression"
+  - "convex-optimization"
+  - "ranking-fusion"
+  - "financial-nlp"
+domain: "ranking-fusion"
+pipelineStage: "fuse"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "audio"
+  - "news"
+rigorFlag: "RankNet's pairwise logistic loss is a SURROGATE, and the honesty is refusing to launder it as the real objective. Minimizing the pairwise cross-entropy does not in general minimize NDCG or MAP: the surrogate is smooth and the target rank metric is piecewise-constant, so the two have different minimizers — this consistency gap is exactly why LambdaRank reweights each pair by the delta-NDCG that swapping it would cause, a correction this topic names but does not build. Convexity is real but conditional: the loss is convex in the weights ONLY for a linear scorer s = w·x, so the single-global-optimum, no-SGD claim holds here and is FALSE for a deep RankNet, whose loss is non-convex. The headline that a learned RankNet over the three retrieval legs beats both each single leg and reciprocal-rank fusion is a single-corpus result on the capstone's synthetic complementary-view token cloud, pinned to the observed winner after running — its +0.019 recall margin over RRF sits inside the confidence interval, so the robust claim is that it matches RRF and clearly beats every single leg, not that learned fusion always wins. The pairwise reduction is position-blind: it treats a swap at ranks 1–2 and a swap at ranks 99–100 as the same unit of loss, the precise gap that listwise objectives and the delta-NDCG weighting address. Relevance grades are exact-MaxSim oracle tertiles — a neutral stand-in for human editorial judgments, not a benchmark."
+videoId: null
+notebookPath: "notebooks/learning-to-rank-pairwise/01_learning_to_rank_pairwise.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/learning-to-rank-pairwise.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 28
+abstract: "The evaluation layer learned to score a ranking; this topic learns to produce one. Learning to rank reduces ranking to supervised learning, and there are three reductions. The pointwise approach regresses each document's score onto its relevance grade by least squares — the global mean-squared-error minimizer, but it optimizes calibration, not order. The pairwise approach, RankNet, models each preference as a Bernoulli trial: the probability that document i outranks document j is the logistic of their score difference, and the loss is the pairwise cross-entropy, exactly the negative log-likelihood of the observed preferences. For a linear scorer this loss is convex in the weights, so it has a single global optimum reachable by Newton's method — no stochastic gradient descent, no learning-rate schedule. The listwise approach, which scores a whole permutation at once, we preview. The rigorous core is the theorem that makes the field necessary: NDCG and MAP are piecewise-constant in the scores, with zero gradient almost everywhere and jump discontinuities exactly at the score ties where the ranking swaps, so they cannot be optimized by gradient descent at all; the smooth pairwise logistic is a surrogate standing in for them. RankNet's gradient factorizes into a per-document lambda force — the net pull on each document from its preference pairs — which is the bridge to LambdaRank. The headline is that ranking is not regression: a model optimal in pointwise mean-squared error can lose on NDCG to a pairwise model with worse error, because order beats calibration. The finance climax learns a RankNet over the three complementary retrieval legs and, on held-out queries, beats every single leg and reciprocal-rank fusion. A tested notebook owns every number the page reports."
+connections:
+  - topic: "probability-ranking-principle"
+    relationship: "the probability ranking principle proved that ordering documents by probability of relevance is optimal for a fixed scoring model; this topic asks the next question — how to LEARN that scoring model from labeled preferences — and RankNet's logistic P(i outranks j) = sigma(s_i - s_j) is the trainable estimate of exactly the relevance ordering that principle takes as given"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "MAP, defined there as the area under the precision–recall curve, is one of the two target metrics this topic proves is piecewise-constant in the scores: like NDCG it is flat between score swaps and jumps at them, so it shares the zero-gradient-almost-everywhere obstruction that forces a smooth surrogate, and the per-query estimator machinery there supplies the confidence interval the learned-versus-RRF comparison is reported against"
+  - topic: "ndcg-discount-geometry"
+    relationship: "that topic built NDCG and noted the swap sensitivity (the change in gain times the change in discount) that pairwise methods weight their gradients by; this topic is the other half of that sentence — it proves NDCG is piecewise-constant in the scores, hence cannot be gradient-optimized, which is precisely WHY a smooth pairwise surrogate exists and why LambdaRank reweights pairs by that delta-NDCG"
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "the dense leg supplies one of the three per-document score features the learned ranker fuses; its pooled dual-encoder similarity is exactly the kind of real-valued relevance signal a pointwise regressor would calibrate and a pairwise RankNet would learn to weight against the lexical and late-interaction signals"
+  - topic: "rank-fusion-rrf"
+    relationship: "reciprocal-rank fusion combines the three legs' rankings with a fixed, unsupervised rule; this topic is the supervised alternative — a RankNet learns the per-leg weights from labeled preferences instead of fixing them, and the finance section reports, on this corpus, the learned fusion edging out RRF while clearly beating every single leg, with the honest caveat that the margin over RRF is within sampling noise"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "the capstone fused three complementary retrieval views with RRF over a synthetic complementary-view token corpus; this topic reuses that exact corpus and its three legs, learning a ranker over their per-document scores so the learned-versus-RRF comparison rides the same complementary-view setup the capstone established"
+references:
+  - type: "paper"
+    title: "Learning to Rank using Gradient Descent"
+    authors: "Burges, Shaked, Renshaw, Lazier, Deeds, Hamilton & Hullender"
+    year: 2005
+    url: "https://doi.org/10.1145/1102351.1102363"
+    note: "The RankNet paper: the pairwise probabilistic model P(i outranks j) = sigma(s_i - s_j), the cross-entropy loss, and gradient-descent training of a neural scorer; Proceedings of ICML 2005"
+  - type: "paper"
+    title: "From RankNet to LambdaRank to LambdaMART: An Overview"
+    authors: "Burges"
+    year: 2010
+    url: "https://www.microsoft.com/en-us/research/publication/from-ranknet-to-lambdarank-to-lambdamart-an-overview/"
+    note: "Microsoft Research technical report MSR-TR-2010-82: the lambda-factorization of the RankNet gradient and the delta-NDCG reweighting that turns RankNet into LambdaRank — the named bridge this topic stops at"
+  - type: "book"
+    title: "Learning to Rank for Information Retrieval"
+    authors: "Liu"
+    year: 2009
+    url: "https://doi.org/10.1561/1500000016"
+    note: "The standard survey: the pointwise / pairwise / listwise taxonomy, surrogate-loss consistency, and the relationship between rank metrics and trainable objectives; Foundations and Trends in Information Retrieval 3(3)"
+  - type: "paper"
+    title: "Learning to Rank: From Pairwise Approach to Listwise Approach"
+    authors: "Cao, Qin, Liu, Tsai & Li"
+    year: 2007
+    url: "https://doi.org/10.1145/1273496.1273513"
+    note: "The ListNet paper: the listwise reduction — a probability distribution over permutations and its cross-entropy — that the listwise preview in this topic points toward; Proceedings of ICML 2007"
+  - type: "book"
+    title: "Learning to Rank for Information Retrieval and Natural Language Processing"
+    authors: "Li"
+    year: 2011
+    url: "https://doi.org/10.1007/978-3-031-02155-8"
+    note: "A synthesis-lecture treatment of the pointwise / pairwise / listwise taxonomy with the IR and NLP applications angle; complements Liu's survey (the linked DOI is the Springer reissue of the Morgan & Claypool lecture)"
+formalstatisticsPrereqs:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "RankNet is pairwise logistic regression fit by maximum likelihood: each observed preference (document i should outrank document j) is a Bernoulli trial with success probability sigma(s_i - s_j), and the pairwise cross-entropy this topic minimizes is exactly the negative log-likelihood of those Bernoulli preferences, so fitting the ranker IS the maximum-likelihood estimation that topic develops, applied to preference data"
+formalstatisticsConnections:
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the Bernoulli preference model with its logistic (sigmoid) link is a one-parameter exponential family in canonical form, with the score difference s_i - s_j as the natural parameter; the convexity of RankNet's loss in the weights is an instance of the convexity of the negative log-likelihood that the exponential-family theory there guarantees"
+formalmlConnections:
+  - topic: "kl-divergence"
+    site: "formalml"
+    relationship: "RankNet's pairwise cross-entropy is, term by term, the KL divergence from the target preference distribution (the label, which is one when i should outrank j) to the model's logistic preference probability, plus the label's own entropy; minimizing the cross-entropy is minimizing that KL, so the loss inherits the information-geometric meaning that topic develops"
+  - topic: "generalization-bounds"
+    site: "formalml"
+    relationship: "two gaps that topic formalizes appear here at once: the surrogate-versus-true-loss gap (we minimize a smooth pairwise logistic as a stand-in for the discontinuous rank metric, and consistency asks whether the surrogate's minimizer is the metric's) and the train-versus-test gap (a ranker fit on labeled preferences must generalize to unseen queries), both of which its uniform-convergence and complexity machinery bound"
+  - topic: "vc-dimension"
+    site: "formalml"
+    relationship: "the pairwise reduction turns ranking into binary classification of preference pairs, so the capacity of the linear scorer as a pairwise classifier — and hence how many labeled preferences are needed before the empirical pairwise error tracks the true one — is governed by the VC dimension that topic defines for linear classifiers"
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "for a linear scorer the pairwise logistic loss is convex in the weights, so it has a single global optimum and Newton's method converges to it without a learning-rate schedule; the first-order optimality condition, the positive-semidefinite Hessian, and the second-order Newton step this topic uses are exactly the convex-optimization machinery that topic builds"
+  - topic: "mean-value-taylor"
+    site: "formalcalculus"
+    relationship: "the Newton step that finds the global optimum is the second-order Taylor expansion of the loss truncated and solved, and the finite-difference gradient check that validates the analytic lambda gradient in the notebook is the mean-value theorem made numerical — the derivative equals the secant slope at some interior point, so a small finite difference must match the closed-form gradient"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import LearningToRankLaboratory from '../../components/viz/LearningToRankLaboratory.tsx';
+
+## Overview & motivation
+
+The [evaluation layer](/topics/set-metrics-precision-recall-map-mrr) taught us to *measure* a ranking:
+precision and recall at a cutoff, Average Precision as the area under the precision–recall curve, and
+[NDCG](/topics/ndcg-discount-geometry) with its graded gains and rank discounts. Every one of those
+numbers grades a ranking that some retriever already produced. This topic asks the inverse question.
+Given labeled examples of what a good ranking looks like, can we *learn* the scoring function that
+produces one — and in particular, can we learn to combine several retrievers better than a fixed rule?
+
+**Learning to rank** is the reduction of that question to supervised learning, and there are three
+reductions, distinguished by what the model is asked to predict. The *pointwise* approach predicts each
+document's grade and regresses for it. The *pairwise* approach predicts, for each pair of documents,
+which one should rank higher. The *listwise* approach scores a whole permutation at once. We develop the
+first two in full — the pairwise method, **RankNet**, is the center of the topic — and preview the
+third.
+
+<LearningToRankLaboratory client:visible />
+
+The lab above is the topic in miniature. Panel A contrasts the three reductions on a worked query;
+Panel B is the theorem that makes the whole field necessary; Panel C dissects RankNet's gradient; and
+Panel D is the finance payoff — a learned combiner of three retrieval legs against reciprocal-rank
+fusion. We score over the capstone's complementary-view finance corpus: $N = 120$ documents, $Q = 40$
+queries, and three retrieval **legs** — a lexical (BM25) leg, a dense dual-encoder leg, and a
+late-interaction leg — each reading a *different* window of every document's tokens, so each recalls
+neighbors the others miss. Each document's feature vector is the triple of leg scores
+$\mathbf{x}_d = [\,s_{\text{lex}}, s_{\text{dense}}, s_{\text{late}}\,]$, standardized within its query;
+the relevance grades come from the same exact-MaxSim oracle the evaluation layer used.
+
+## Three reductions: pointwise, pairwise, listwise
+
+Write the linear scorer as $s_i = \mathbf{w}^\top \mathbf{x}_i$, with feature vector $\mathbf{x}_i$ and
+weight vector $\mathbf{w}$ to be learned. Each document carries a graded relevance label
+$g_i \in \{0,1,2,3\}$. The three reductions differ in the loss they put on $\mathbf{w}$.
+
+<TheoremBlock type="definition" number={1} title="The three learning-to-rank reductions">
+Given training documents with features $\mathbf{x}_i$ and grades $g_i$, grouped by query:
+
+- **Pointwise.** Regress the score onto the grade: $\displaystyle \min_{\mathbf{w},b} \sum_i (\mathbf{w}^\top\mathbf{x}_i + b - g_i)^2$. A standard least-squares problem; the prediction is a calibrated estimate of the grade itself.
+- **Pairwise.** For every *within-query* ordered pair $(i, j)$ with $g_i > g_j$, predict that $i$ outranks $j$, and penalize getting the comparison wrong. RankNet is the canonical instance.
+- **Listwise.** Define a loss on the whole ranked list at once — a probability distribution over permutations, or a direct smoothing of a rank metric. Previewed at the end.
+</TheoremBlock>
+
+A geometric reading separates pointwise from the rest. Pointwise fits a function through the
+$(\text{feature}, \text{grade})$ points and is judged by how close its predictions land to the grades —
+it cares about absolute *values*. The pairwise and listwise losses care only about *order*: which
+document is scored above which. That distinction has a precise consequence.
+
+<TheoremBlock type="remark" number={1} title="Order is invariant to a score shift">
+A ranking is the argsort of the scores, so it is unchanged by adding a constant $c$ to every score:
+$s_i - s_j = (s_i + c) - (s_j + c)$. The pairwise model depends on the scores only through their
+*differences* $s_i - s_j$, so it too is invariant to a constant shift — it fixes order, not absolute
+calibration. Pointwise regression has no such freedom: it must pin each score to a grade, an extra
+burden that, as we will see, can cost it the ranking.
+</TheoremBlock>
+
+This is the same order-not-absolute invariance that appeared as the modality gap in cross-modal
+retrieval: a degree of freedom that the metric we care about is blind to, but that a calibration loss
+spends effort fitting anyway.
+
+## RankNet: preferences as Bernoulli trials
+
+RankNet models each preference probabilistically. For a pair with $g_i > g_j$, the model's belief that
+$i$ should outrank $j$ is the logistic of the score difference, and the loss is the cross-entropy
+against the certain label.
+
+<TheoremBlock type="definition" number={2} title="The RankNet pairwise model and loss">
+For an ordered preference pair $(i, j)$ — meaning $i$ should outrank $j$ — RankNet sets
+$$
+P(i \succ j) \;=\; \sigma(s_i - s_j) \;=\; \frac{1}{1 + e^{-(s_i - s_j)}}.
+$$
+Because the label is certain ($i$ truly should outrank $j$), the per-pair cross-entropy is
+$\ell_{ij} = -\log \sigma(s_i - s_j)$, and the total loss over the labeled preference set $\mathcal{P}$
+is
+$$
+L(\mathbf{w}) \;=\; \sum_{(i,j)\in\mathcal{P}} -\log \sigma(s_i - s_j)
+            \;=\; \sum_{(i,j)\in\mathcal{P}} \log\!\big(1 + e^{-\mathbf{w}^\top(\mathbf{x}_i - \mathbf{x}_j)}\big).
+$$
+</TheoremBlock>
+
+This is exactly the negative log-likelihood of the observed preferences under a Bernoulli model — so
+fitting RankNet is the [maximum-likelihood estimation](https://www.formalstatistics.com/topics/maximum-likelihood)
+of a logistic regression, applied to preference *pairs* rather than to single labels. Term by term the
+cross-entropy is a [KL divergence](https://www.formalml.com/topics/kl-divergence) from the target
+preference distribution to the model's, so minimizing the loss pulls the model's beliefs toward the
+labels. And because the loss is a function of $\mathbf{w}$ through the linear map $\mathbf{w} \mapsto
+\mathbf{w}^\top(\mathbf{x}_i - \mathbf{x}_j)$, it has the property that makes it trainable without any of
+the usual deep-learning machinery.
+
+<TheoremBlock type="theorem" number={1} title="The pairwise logistic loss is convex in the weights">
+For a linear scorer $s = \mathbf{w}^\top\mathbf{x}$, the RankNet loss $L(\mathbf{w})$ is convex in
+$\mathbf{w}$, so it has a single global minimum reachable by Newton's method.
+
+*Proof.* Write $z_{ij} = \mathbf{w}^\top(\mathbf{x}_i - \mathbf{x}_j)$ and the softplus
+$\zeta(u) = \log(1 + e^{u})$. Each term of the loss is $\zeta(-z_{ij})$. The softplus is convex
+(its second derivative $\sigma(u)\big(1-\sigma(u)\big)$ is nonnegative), and $-z_{ij}$ is a *linear*
+function of $\mathbf{w}$; the composition of a convex function with an affine map is convex, and a sum
+of convex functions is convex. Hence $L$ is convex. Concretely its Hessian is
+$$
+\nabla^2 L(\mathbf{w}) = \sum_{(i,j)} \sigma(z_{ij})\big(1-\sigma(z_{ij})\big)\,
+   (\mathbf{x}_i - \mathbf{x}_j)(\mathbf{x}_i - \mathbf{x}_j)^\top,
+$$
+a nonnegative-weighted sum of rank-one outer products, so it is positive semidefinite — the algebraic
+witness of convexity. $\square$
+</TheoremBlock>
+
+Convexity is the whole reason the linear RankNet needs no stochastic gradient descent: there is one
+optimum, and a second-order [convex optimization](https://www.formalcalculus.com/topics/convex-optimization)
+step finds it deterministically. The companion notebook fits it with L-BFGS-B and the closed-form
+gradient, checks the Hessian is positive semidefinite, and confirms that two different starting points
+land on the same weights — a global optimum, fully reproducible. (The convexity is conditional on the
+*linear* scorer; a deep RankNet, where $s$ is a neural network of $\mathbf{x}$, is non-convex and is
+trained by SGD, as the original paper did.)
+
+The gradient has a structure that is the bridge to everything downstream.
+
+<TheoremBlock type="proposition" number={1} title="The gradient factorizes into per-document lambda forces">
+Define the pairwise force $\lambda_{ij} = -\sigma\!\big(-(s_i - s_j)\big)$ for each preference pair
+$(i,j)$, and the per-document force $\lambda_i = \sum_{j} \lambda_{ij}$, summing over the pairs that
+involve document $i$ (with the sign that pushes the higher-graded document up and the lower one down).
+Then
+$$
+\nabla_{\mathbf{w}} L \;=\; \sum_{(i,j)} \lambda_{ij}\,(\mathbf{x}_i - \mathbf{x}_j) \;=\; \sum_i \lambda_i\,\mathbf{x}_i.
+$$
+The gradient is a weighted sum of feature vectors, one weight per document — the *net force* the
+training pairs exert on each document.
+</TheoremBlock>
+
+Panel C draws these forces on the worked query. The single grade-3 document is under-ranked by the
+learned scorer — it sits at rank 6 — and it feels by far the strongest upward $\lambda$, because it
+loses many preference comparisons it should win. This per-document view is the bridge to
+**LambdaRank**: that method keeps the same force structure but multiplies each pairwise $\lambda_{ij}$
+by the $|\Delta\text{NDCG}_{ij}|$ that swapping the pair would cause, so swaps near the top of the list —
+where the rank discount is steep — pull harder than swaps in the tail. LambdaRank and its tree-boosted
+cousin **LambdaMART** are the workhorses of production learning-to-rank; we name them here and stop,
+because the weighting they add is motivated by the theorem of the next section.
+
+## Why learning to rank exists: rank metrics are flat
+
+It would seem more direct to skip the surrogate and optimize NDCG or MAP itself. The reason no one does
+is a theorem.
+
+<TheoremBlock type="theorem" number={2} title="NDCG and MAP are piecewise-constant in the scores">
+Regard NDCG@$k$ (or MAP) as a function of the score vector $\mathbf{s} = (s_1, \dots, s_N)$, with the
+grades fixed. This function is **piecewise-constant**: it is locally constant on every region of score
+space where no two scores are tied, and it changes value only across the hyperplanes $s_i = s_j$ where
+two documents swap. Consequently its gradient is **zero almost everywhere**, with jump discontinuities
+at the swaps — it cannot be optimized by gradient descent.
+
+*Proof.* The ranking is the argsort of $\mathbf{s}$. On any open region of score space where all scores
+are distinct and no pair is tied, a small perturbation of $\mathbf{s}$ leaves the argsort unchanged, so
+the ranking — and therefore NDCG, which depends on $\mathbf{s}$ only through the ranking and the fixed
+grades — is constant. Its gradient is the zero vector throughout that region. The ranking can change
+only when the perturbation crosses a tie hyperplane $s_i = s_j$, where two adjacent documents exchange
+places and NDCG jumps discontinuously. $\square$
+</TheoremBlock>
+
+This is the reason the field exists. A metric whose gradient is zero almost everywhere carries no
+descent direction; you cannot follow it downhill. So learning to rank optimizes a **surrogate** — a
+smooth loss whose minimization *tends to* improve the metric — and RankNet's pairwise logistic is the
+canonical choice. Panel B makes the contrast visible. As the weights morph from the weakest single leg
+toward the learned combiner, NDCG climbs as a *staircase* — flat stretches punctuated by jumps, taking
+only a handful of distinct values from $0.514$ up to $0.767$ — while the pairwise loss we actually
+optimize falls *smoothly* the whole way. The metric is the thing we want; the surrogate is the thing we
+can descend.
+
+<RigorFlag>
+A surrogate is not the metric. Minimizing the pairwise logistic loss does not, in general, minimize
+NDCG or MAP — the smooth surrogate and the piecewise-constant metric have different minimizers, and
+whether a surrogate is *consistent* (its optimum drives the metric to its optimum in the limit) is a
+question of [generalization and surrogate-loss theory](https://www.formalml.com/topics/generalization-bounds),
+not a given. This is precisely the gap LambdaRank's $\Delta\text{NDCG}$ reweighting was invented to
+close: by scaling each pairwise force by the metric change it would cause, it bends the surrogate toward
+the metric. The convexity of Theorem 1, likewise, holds only for the linear scorer.
+</RigorFlag>
+
+## Ranking is not regression
+
+The pointwise reduction looks like the safe, simple choice — least squares, a closed-form solution, a
+calibrated prediction of the grade. But fitting the grade is not the same as fitting the order, and the
+two objectives can genuinely disagree.
+
+<TheoremBlock type="proposition" number={2} title="A pointwise-optimal model can lose on NDCG (demonstrated)">
+There exist labeled rankings on which the least-squares (pointwise) model has strictly **lower**
+mean-squared error than a pairwise RankNet model, yet strictly **worse** NDCG. Order beats calibration.
+
+*Construction.* Take two queries. Query 1 has high grade magnitude but few documents; query 2 has low
+magnitude but more documents, hence more preference pairs. A shared order feature has a *contested* best
+sign: query 1 (whose large grade dominates the squared error) wants a positive weight, query 2 (whose
+many pairs dominate the pairwise count) wants a negative one. A second feature is constant within each
+query — order-irrelevant, but useful to least squares for fitting each query's grade *level*, and
+exactly zero in the pairwise gradient because every within-query difference of a constant vanishes.
+Least squares therefore spends the second feature on calibration and picks the magnitude-favored sign on
+the first, mis-ordering query 2; RankNet ignores the second feature and picks the count-favored sign,
+ordering both queries better. The numbers: pointwise mean-squared error $0.80$ versus pairwise $1.21$,
+yet pointwise NDCG $0.715$ versus pairwise $0.815$. The pointwise model is the *global* MSE minimizer —
+so its MSE is unbeatable — and it still ranks worse. $\square$
+</TheoremBlock>
+
+On the real finance corpus the two reductions come out nearly tied (pointwise NDCG $0.768$, pairwise
+$0.767$), because the corpus is forgiving enough that calibration and order mostly agree — so the
+constructed witness, not the corpus, is the rigorous anchor. But the lesson it isolates is the one that
+motivates the whole pairwise program: a model can be perfectly calibrated and still rank badly, so
+optimizing for the grade is the wrong objective when the grade is only a means to an order.
+
+## Learned fusion of the three legs
+
+The finance payoff is a fusion problem. The three legs read different token windows of each document, so
+each is a partial view: the lexical leg catches exact term matches, the dense leg catches pooled
+semantic similarity, the late-interaction leg catches token-level alignment, and each recalls relevant
+documents the others miss. The capstone combined them with [reciprocal-rank
+fusion](/topics/rank-fusion-rrf) — a fixed, unsupervised rule that adds $1/(c + \text{rank})$ across the
+legs. Learning to rank is the supervised alternative: instead of fixing the combination, learn it from
+labeled preferences.
+
+<TheoremBlock type="algorithm" number={1} title="Learning a fusion ranker over the three legs">
+Each document's feature vector is the triple of standardized leg scores
+$\mathbf{x}_d = [\,s_{\text{lex}}, s_{\text{dense}}, s_{\text{late}}\,]$. Fit a RankNet weight vector
+$\mathbf{w} \in \mathbb{R}^3$ on the preference pairs of the **training** queries by minimizing the
+convex pairwise loss, then score every document of a held-out query by $s_d = \mathbf{w}^\top\mathbf{x}_d$
+and rank by score. The learned weights say how much to trust each leg.
+</TheoremBlock>
+
+Trained on 24 queries and evaluated on the 16 held out, the learned weights are
+$[\,0.70,\ 1.44,\ 0.68\,]$ — it leans hardest on the dense leg but keeps real weight on the other two.
+On the held-out queries the learned ranker reaches recall@10 of $0.637$ and NDCG@10 of $0.767$, against
+the best single leg (dense, recall $0.588$) and reciprocal-rank fusion (recall $0.619$, NDCG $0.733$).
+It beats every single leg comfortably and edges out RRF. Panel D shows the bars and a training-set-size
+slider: with a single labeled query the learned ranker is shaky and sits *below* RRF; by two queries it
+has overtaken RRF, and it plateaus from there — a three-feature linear ranker is data-efficient, but it
+still has to earn its advantage over the first labeled examples.
+
+<FinanceCaseStudy title="Learning to fuse a filings, transcripts, and news retriever" modality={["text", "audio", "news"]}>
+The production system this series tracks retrieves across 10-K and 10-Q filing text, earnings-call
+transcripts, and market news — heterogeneous sources that a single retriever serves unevenly. Lexical
+matching nails a named entity or a reported figure; dense retrieval catches a paraphrased disclosure;
+late interaction aligns a query phrase to a specific clause. Reciprocal-rank fusion combines their
+rankings with one fixed rule and no training. A learned RankNet, given a few dozen labeled queries,
+instead *learns* how much to weight each leg — and on this corpus it beats RRF and every single leg on
+held-out queries. The honest caveat is in the size of the win: the $+0.019$ recall margin over RRF sits
+inside the confidence interval (standard error $0.040$ on 16 test queries), so the defensible claim is
+that the learned ranker matches RRF and clearly beats any single leg — not that learned fusion is
+universally better. The corpus here is a synthetic complementary-view token cloud standing in for those
+documents; every value illustrates the mechanism, not a benchmark.
+</FinanceCaseStudy>
+
+## Beyond pairwise: the listwise preview
+
+The pairwise reduction has a blind spot that the rigor flag named: it is **position-blind**. A swap at
+ranks 1–2, where the rank discount is steep and the user is looking, costs the same one unit of pairwise
+loss as a swap at ranks 99–100, where no one will ever look. RankNet treats them identically.
+
+<TheoremBlock type="remark" number={2} title="What the pairwise reduction misses">
+Two families of methods address the position blindness. The *listwise* approach defines a loss on the
+whole ranked list rather than on isolated pairs: **ListNet** maps the scores to a probability
+distribution over permutations (via the Plackett–Luce model) and minimizes the cross-entropy against
+the ideal list's distribution. The $\Delta\text{NDCG}$-weighted approach keeps the pairwise structure
+but scales each force by the metric change it would cause — **LambdaRank** and **LambdaMART**. And the
+modern listwise direction lets a large language model read the candidate list and emit a permutation
+directly — the **RankGPT**-style listwise rerankers. Each is a response to the same observation: the
+ranking metric weights the top of the list, and a loss that wants to optimize it should too.
+</TheoremBlock>
+
+These are the topics that build on this one. What this topic established is the foundation they share:
+ranking reduces to supervised learning; the rank metric is piecewise-constant and so cannot be optimized
+directly; the pairwise logistic is the convex surrogate that can; and its gradient factorizes into the
+per-document forces that every method downstream reshapes.
+
+<RigorFlag>
+The honest summary. RankNet's pairwise logistic is a **surrogate** — minimizing it does not guarantee
+minimizing NDCG or MAP, the consistency gap that motivates LambdaRank's $\Delta\text{NDCG}$ reweighting.
+Its **convexity** holds only for the linear scorer; a deep RankNet is non-convex and is trained by SGD.
+The headline that **learned fusion beats RRF** is one synthetic corpus, pinned to the observed winner
+after running, and its margin over RRF is within sampling noise — the robust claim is that the learned
+ranker matches RRF and clearly beats every single leg. The pairwise reduction is **position-blind**, the
+gap listwise objectives address. And the relevance **grades** are exact-MaxSim oracle tertiles, a
+neutral stand-in for human editorial judgments, not a benchmark.
+</RigorFlag>
