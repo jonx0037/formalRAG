@@ -1,0 +1,385 @@
+---
+title: "LambdaRank, LambdaMART, and Listwise Objectives"
+subtitle: "RankNet gave each document a gradient force but is position-blind — a swap at the top of the list costs the same as a swap in the tail. This topic makes the objective position-aware three ways: LambdaRank weights each pairwise force by the ΔNDCG a swap would cause, LambdaMART boosts those forces into trees, and listwise objectives replace the heuristic with a proper Plackett–Luce loss — anchored by the honest theorem that LambdaRank's field is the gradient of no scalar loss, while the listwise loss genuinely is one"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "learning-to-rank-pairwise"
+  - "ndcg-discount-geometry"
+tags:
+  - "learning-to-rank"
+  - "lambdarank"
+  - "lambdamart"
+  - "listwise"
+  - "plackett-luce"
+  - "gradient-boosting"
+  - "ranking-fusion"
+  - "financial-nlp"
+domain: "ranking-fusion"
+pipelineStage: "rerank"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "audio"
+  - "news"
+rigorFlag: "LambdaRank optimizes NO scalar loss, and the honesty is naming it a heuristic gradient rather than dressing it as an objective. The lambda field is the gradient of a (weighted-RankNet) loss LOCALLY — within any region of score space where the ranking does not change, the ΔNDCG weights are constant and the Jacobian is symmetric — but GLOBALLY the field is discontinuous: across a swap, a spectator pair's ΔNDCG weight jumps, so no C¹ potential exists. It empirically ascends NDCG (Donmez–Svore–Burges local optimality, named not proved) but that is a property of the iteration, not of a loss it descends. The listwise contrast is the rigorous one: ListMLE is the negative log-likelihood of the Plackett–Luce model, genuinely convex in the scores (log-sum-exp minus linear, a positive-semidefinite Hessian), but convex ONLY for a linear scorer — a deep or tree-boosted listwise model is non-convex. LambdaRank's empirical NDCG win over RankNet on this corpus is small and sits inside the confidence interval; the seed-free, provable claim is the STRUCTURAL one — its gradient mass concentrates at the head of the list because the discount marginal decays with rank. LambdaMART's escape of the linear scorer's rank ceiling is demonstrated on a CONSTRUCTED XOR-interaction instance (NDCG 1.0 versus a 0.89 linear ceiling); on the real three-leg features, near-linear and standardized, the trees roughly tie the linear models and all five learned methods cluster within sampling noise. Relevance grades are exact-MaxSim oracle tertiles, a neutral stand-in for human editorial judgments."
+videoId: null
+notebookPath: "notebooks/lambdarank-lambdamart-listwise/01_lambdarank_lambdamart_listwise.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/lambdarank-lambdamart-listwise.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 27
+abstract: "RankNet reduced ranking to a pairwise logistic surrogate whose gradient factorizes into a per-document lambda force — the net pull on each document from its preference pairs. That force is position-blind: it weights a swap at ranks 1–2 exactly like a swap at ranks 99–100. This topic removes that blindness three ways. LambdaRank multiplies each pairwise force by the absolute change in NDCG that swapping the pair would cause; because the change in NDCG factorizes into a change in gain times a change in discount, and the discount marginal is steep at the head and flat in the tail, the gradient mass concentrates where ranking quality is decided. But this weighting has a price, and the price is the honest core of the topic: the lambda field now depends on the current ranking, so it is the gradient of no scalar loss — locally, within a ranking cell, it is a weighted-RankNet gradient with a symmetric Jacobian, but globally it is discontinuous across swaps and a closed loop integrates to a nonzero value, the classical signature of a non-conservative field. LambdaMART feeds those lambdas as pseudo-residuals to gradient-boosted regression trees, buying a nonlinear scorer demonstrated to escape a rank ceiling no linear model can on a constructed interaction instance. Listwise objectives restore a proper loss: ListMLE is the negative log-likelihood of the Plackett–Luce model over the ideal permutation, convex in the scores, and ListNet its top-one cross-entropy. The arc is pairwise (a loss, position-blind) to LambdaRank (position-aware, not a loss) to listwise (a convex loss). A tested notebook owns every number; the headline NDCG deltas among the methods sit within the confidence interval, so the reported wins are structural."
+connections:
+  - topic: "learning-to-rank-pairwise"
+    relationship: "this topic is the direct successor: it takes RankNet's per-document lambda force, proven there to factorize the gradient, and multiplies each pairwise lambda by the ΔNDCG a swap would cause — the collapse anchor is that setting every weight to one recovers that topic's lambda_forces bit-for-bit, so LambdaRank is a reweighting of RankNet, not a new object, and the whole reason it exists is the position-blindness that topic flagged"
+  - topic: "ndcg-discount-geometry"
+    relationship: "the ΔNDCG weight is built entirely from that topic's machinery — the exponential gain, the log2 discount, and the ideal DCG normalizer — and the seed-free headline that LambdaRank concentrates gradient mass at the head is its marginal-value geometry restated: the discount marginal D(i) − D(i+1) is steep at the top and flat deep down, so a head swap carries far more weight than a tail swap of the same grade gap"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "the held-out method comparison rides that topic's estimator machinery — per-query NDCG is a sample whose mean and standard error give the confidence interval the five learned methods are reported against, and the honest verdict that their aggregate deltas sit inside that interval is exactly the metrics-as-estimators thesis it developed"
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "the substrate is the capstone's complementary-view finance corpus, reused verbatim through the predecessor: three retrieval legs reading disjoint token windows, so each recalls neighbors the others miss and a learned ranker over their per-document scores has genuine headroom over both each leg and reciprocal-rank fusion"
+  - topic: "cross-encoders-reranking"
+    relationship: "both are rerankers that reorder a candidate list, and both turn on an expressivity ceiling: that topic showed a bilinear scorer cannot escape the rank-d ceiling its towers impose, and this one shows a linear LambdaRank cannot order an interaction of features that a tree-boosted LambdaMART resolves exactly — the same lesson that the architecture, not the loss, sets what a ranker can express"
+references:
+  - type: "paper"
+    title: "Learning to Rank with Nonsmooth Cost Functions"
+    authors: "Burges, Ragno & Le"
+    year: 2006
+    url: "https://doi.org/10.7551/mitpress/7503.003.0029"
+    note: "The original LambdaRank paper: rather than a smooth surrogate for the cost, specify the GRADIENT directly — the lambda force scaled by the change in the IR measure a swap would cause — sidestepping the metric's non-smoothness; Advances in Neural Information Processing Systems 19"
+  - type: "paper"
+    title: "Adapting Boosting for Information Retrieval Measures"
+    authors: "Wu, Burges, Svore & Gao"
+    year: 2010
+    url: "https://doi.org/10.1007/s10791-009-9112-1"
+    note: "The LambdaMART paper: feed the LambdaRank lambdas as pseudo-residuals to gradient-boosted regression trees (MART), giving a nonlinear ranker that is the production workhorse of learning-to-rank; Information Retrieval 13(3)"
+  - type: "paper"
+    title: "On the Local Optimality of LambdaRank"
+    authors: "Donmez, Svore & Burges"
+    year: 2009
+    url: "https://doi.org/10.1145/1571941.1572021"
+    note: "The consistency result this topic relies on but does not prove: although LambdaRank's lambda field is the gradient of no global loss, its updates locally ascend the target IR measure (NDCG), empirically reaching a local optimum; Proceedings of SIGIR 2009"
+  - type: "paper"
+    title: "Greedy Function Approximation: A Gradient Boosting Machine"
+    authors: "Friedman"
+    year: 2001
+    url: "https://doi.org/10.1214/aos/1013203451"
+    note: "The gradient-boosting (MART) framework LambdaMART instantiates: fit each round's regression tree to the pseudo-residuals (the negative functional gradient) and take a shrunken step; The Annals of Statistics 29(5)"
+  - type: "paper"
+    title: "Learning to Rank: From Pairwise Approach to Listwise Approach"
+    authors: "Cao, Qin, Liu, Tsai & Li"
+    year: 2007
+    url: "https://doi.org/10.1145/1273496.1273513"
+    note: "The ListNet paper: map scores to a Plackett–Luce distribution over permutations and minimize the top-one cross-entropy against the ideal list — the listwise loss this topic develops as the convex contrast to LambdaRank; Proceedings of ICML 2007"
+  - type: "paper"
+    title: "Listwise Approach to Learning to Rank: Theory and Algorithm"
+    authors: "Xia, Liu, Wang, Zhang & Li"
+    year: 2008
+    url: "https://doi.org/10.1145/1390156.1390306"
+    note: "The ListMLE paper: the listwise likelihood loss — the negative log-likelihood of the Plackett–Luce model given the ideal permutation — together with the consistency theory for listwise surrogates; Proceedings of ICML 2008"
+formalstatisticsPrereqs:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "ListMLE is maximum-likelihood estimation of the Plackett–Luce choice model: the ideal permutation is the observed datum, the document scores are the log-abilities, and minimizing ListMLE is maximizing the Plackett–Luce likelihood of that permutation — so fitting the listwise ranker IS the maximum-likelihood estimation that topic develops, applied to ranking data"
+formalstatisticsConnections:
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the Plackett–Luce model factors into a sequence of softmax (multinomial-logit) choices over the remaining candidates, and each such choice is a categorical exponential family with the scores as natural parameters; the convexity of the ListMLE and ListNet losses in the scores is an instance of the convexity of the negative log-likelihood that exponential-family theory guarantees"
+formalmlConnections:
+  - topic: "gradient-descent"
+    site: "formalml"
+    relationship: "LambdaMART is functional gradient descent — gradient boosting fits each tree to the negative functional gradient (the pseudo-residual) and takes a shrunken step in function space — and LambdaRank itself is a gradient ASCENT on the target measure that, uniquely, specifies the gradient directly without a loss to descend, the limiting case that topic's framework illuminates"
+  - topic: "generalization-bounds"
+    site: "formalml"
+    relationship: "the surrogate-versus-true-loss gap that topic formalizes is the spine here: LambdaRank substitutes a heuristic gradient for the non-smooth NDCG, and the listwise losses substitute a convex Plackett–Luce likelihood — in each case consistency asks whether minimizing the surrogate (or following the heuristic field) optimizes the metric, the question the local-optimality result answers only locally"
+formalcalculusConnections:
+  - topic: "jacobian"
+    site: "formalcalculus"
+    relationship: "the central theorem is an integrability question answered by the Jacobian: a vector field is the gradient of a scalar potential if and only if its Jacobian is symmetric (Clairaut's equality of mixed partials), and the topic shows LambdaRank's lambda field has a symmetric Jacobian within each ranking cell but is discontinuous across cells, so no global potential exists — the exact-differential criterion that topic builds, applied to a ranking gradient"
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "the listwise losses are convex in the linear scorer's weights (log-sum-exp composed with an affine map, with a positive-semidefinite Hessian), so they have a single optimum reachable by a second-order method without a learning-rate schedule, and LambdaMART's per-round step is a line search in function space — both the convexity certificate and the boosting step are the machinery that topic develops"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import LambdaRankLaboratory from '../../components/viz/LambdaRankLaboratory.tsx';
+
+## Overview & motivation
+
+The [previous topic](/topics/learning-to-rank-pairwise) learned a ranking with **RankNet**: model each
+preference $i \succ j$ as a Bernoulli trial $P(i \succ j) = \sigma(s_i - s_j)$, minimize the pairwise
+cross-entropy, and read off the gradient's structure — it factorizes into a per-document **lambda force**
+$\lambda_i = \sum_j \lambda_{ij}$, the net pull each document feels from its preference pairs. That
+factorization is the bridge we cross now. RankNet's force has one blind spot, and it is fatal for ranking
+quality: it is **position-blind**. The force on a pair depends only on the score gap $s_i - s_j$, not on
+*where in the list* the two documents sit. A swap at ranks 1 and 2 — which a user sees immediately —
+contributes exactly as much loss as a swap at ranks 99 and 100, which no one ever reaches.
+
+This topic removes that blindness three ways, and is honest about what each one *is*. **LambdaRank**
+keeps the force structure but scales each $\lambda_{ij}$ by the change in NDCG that swapping the pair
+would cause — a fix that works empirically but, we will prove, optimizes no actual loss. **LambdaMART**
+boosts those lambdas into regression trees, buying a nonlinear scorer. And **listwise** objectives
+abandon the pairwise heuristic for a proper probabilistic loss over the whole permutation. The arc is
+pairwise (a loss, position-blind) $\to$ LambdaRank (position-aware, *not* a loss) $\to$ listwise (a
+convex loss).
+
+<LambdaRankLaboratory client:visible />
+
+The lab is the topic in miniature. Panel A contrasts RankNet's flat force with LambdaRank's
+head-concentrated one; Panel B is the integrability theorem — is the lambda field a gradient? — made
+visible; Panel C is the convex listwise bowl; and Panel D is LambdaMART and the held-out comparison. We
+reuse the predecessor's substrate exactly: the [capstone's](/topics/capstone-multimodal-financial-rag)
+complementary-view finance corpus, $N = 120$ documents and $Q = 40$ queries, with each document's feature
+vector the triple of standardized leg scores
+$\mathbf{x}_d = [\,s_{\text{lex}}, s_{\text{dense}}, s_{\text{late}}\,]$ and grades $g_d \in \{0,1,2,3\}$
+from the [NDCG topic's](/topics/ndcg-discount-geometry) exact-MaxSim oracle tertiles.
+
+## From RankNet to LambdaRank: the ΔNDCG reweight
+
+LambdaRank's idea is a single multiplication. Keep RankNet's pairwise force, but scale it by how much
+swapping that pair would move the metric we actually care about.
+
+<TheoremBlock type="definition" number={1} title="The LambdaRank force">
+For an ordered preference pair $(i, j)$ with $g_i > g_j$, LambdaRank sets
+$$
+\lambda_{ij} \;=\; -\sigma\!\big(-(s_i - s_j)\big)\,\big|\Delta\mathrm{NDCG}_{ij}\big|,
+\qquad
+\lambda_i \;=\; \sum_{j} \lambda_{ij},
+$$
+where $|\Delta\mathrm{NDCG}_{ij}|$ is the absolute change in NDCG that would result from swapping the
+ranks of documents $i$ and $j$ under the current scores, holding all other documents fixed. Setting every
+$|\Delta\mathrm{NDCG}_{ij}| \equiv 1$ recovers RankNet's force exactly — LambdaRank is a *reweighting* of
+RankNet, not a new object.
+</TheoremBlock>
+
+That last sentence is a load-bearing anchor: the companion notebook asserts that the LambdaRank force
+with uniform weights equals the imported `lambda_forces` from the predecessor to machine precision. The
+only new ingredient is the weight, and it has a closed form.
+
+<TheoremBlock type="proposition" number={1} title="The swap sensitivity ΔNDCG has a closed form">
+Let documents occupy 1-indexed ranks $p$ and $q$ under the current scores, with gains $G(g_p), G(g_q)$
+and discounts $D(p), D(q)$ (here $G(g) = 2^g - 1$ and $D(r) = 1/\log_2(r+1)$). Swapping the two documents
+exchanges their positions, so the discounted-cumulative-gain changes by
+$$
+\Delta\mathrm{DCG} \;=\; \big(G(g_p) - G(g_q)\big)\,\big(D(q) - D(p)\big),
+$$
+and since the ideal DCG depends only on the *multiset* of grades — which a permutation leaves unchanged —
+the normalizer is swap-invariant, giving
+$$
+\big|\Delta\mathrm{NDCG}_{ij}\big| \;=\; \frac{\big|G(g_i) - G(g_j)\big|\;\big|D(r_i) - D(r_j)\big|}{\mathrm{IDCG}}.
+$$
+
+*Proof.* Before the swap the two ranks contribute $G(g_p)D(p) + G(g_q)D(q)$ to DCG; after, the documents
+trade places and contribute $G(g_p)D(q) + G(g_q)D(p)$. Subtracting gives
+$\big(G(g_p)-G(g_q)\big)\big(D(q)-D(p)\big)$. Dividing by the (constant) IDCG and taking absolute values
+yields the weight. Using the *untruncated* DCG makes this exact for every pair, including ones that
+straddle the top-$k$ cutoff. $\square$
+</TheoremBlock>
+
+The companion notebook checks this closed form against a physical-swap recomputation of the imported
+NDCG to within $10^{-12}$, over many pairs and queries. The weight factors into a **change in gain** times
+a **change in discount**. The gain factor decides which pairs matter at all; the discount factor decides
+*where on the list* they matter — and because the discount marginal $D(r) - D(r+1)$ is steep at the head
+and flat in the tail (the [marginal-value geometry](/topics/ndcg-discount-geometry) from NDCG), a swap of
+a given grade gap near the top of the list carries far more weight than the same swap in the tail.
+
+<TheoremBlock type="proposition" number={2} title="LambdaRank concentrates gradient mass at the head">
+For a fixed grade gap, the LambdaRank-to-RankNet weight ratio $|\Delta\mathrm{NDCG}_{ij}| / 1$ is
+*strictly decreasing* in the ranks of the pair, because $|D(r_i) - D(r_j)|$ shrinks as both ranks grow.
+The adjacent-rank weight at the head, $|D(1) - D(2)| = 0.369$, exceeds the tail weight
+$|D(9) - D(10)| = 0.012$ by an order of magnitude. Consequently LambdaRank's gradient mass concentrates
+at the top of the list, while RankNet's is governed only by pair counts.
+</TheoremBlock>
+
+Panel A makes this visible: on the worked query, RankNet's force is spread down the list (its top-3 ranks
+hold only $16\%$ of the gradient mass) while LambdaRank's is front-loaded ($40\%$). Same documents, same
+scores — only the weighting moves. This is the **seed-free, provable** statement of LambdaRank's
+advantage; as we will see, its *aggregate* NDCG win over RankNet on this corpus is real but small enough
+to sit inside the confidence interval.
+
+## The catch: LambdaRank optimizes no scalar loss
+
+There is a price for defining the gradient directly instead of deriving it from a loss, and it is the
+honest core of the topic. We have written down a vector field $\boldsymbol{\lambda}(\mathbf{s})$ on score
+space — a force for each document, as a function of the scores. The natural question: is this field the
+gradient of some scalar loss $L(\mathbf{s})$ we could just as well have minimized? For RankNet the answer
+is yes, by construction. For LambdaRank it is no — and the *way* it is no is subtle.
+
+<TheoremBlock type="theorem" number={1} title="The LambdaRank field is locally a gradient, globally not">
+A vector field is the gradient of a scalar potential if and only if its Jacobian
+$\partial \lambda_i / \partial s_j$ is symmetric (Clairaut's equality of mixed partials). Then:
+
+- **Within a ranking cell** — an open region of score space where no two scores are tied, so the sorted
+  order and hence every $|\Delta\mathrm{NDCG}_{ij}|$ is *constant* — the LambdaRank field is exactly
+  $-\nabla \Phi$ for the weighted-RankNet potential
+  $\Phi(\mathbf{s}) = \sum_{i \succ j} |\Delta\mathrm{NDCG}_{ij}|\,\zeta\!\big(-(s_i - s_j)\big)$. Its
+  Jacobian is symmetric; locally, it *is* a gradient.
+- **Across a ranking cell** — when two adjacent documents $a, b$ swap — the rank of $a$ changes, so the
+  weight $|\Delta\mathrm{NDCG}_{ak}|$ of a *spectator* pair $(a, k)$ jumps discontinuously (its discount
+  factor $|D(r_a) - D(r_k)|$ jumps). The field $\lambda_a$ is therefore **discontinuous** across the swap
+  hyperplane. A discontinuous field is the gradient of no $C^1$ potential, so **no global loss exists**.
+</TheoremBlock>
+
+Panel B demonstrates all three faces of this on a three-document toy. Within a cell, both fields have a
+symmetric Jacobian (asymmetry $0$) — so LambdaRank is *not* "broken everywhere," a tempting misreading.
+Drag the probe across the swap boundary: RankNet's force varies smoothly (its across-boundary difference
+shrinks with the step size — a continuous field), while LambdaRank's $\lambda_0$ **jumps** by a fixed
+$0.082$ (the step-stable signature of a genuine discontinuity, here a spectator pair whose weight flips
+its discount). And a closed loop in score space integrates to $0$ for RankNet — a conservative field —
+but to a nonzero $-0.044$ for LambdaRank, the classical witness that a field is not a gradient.
+
+<RigorFlag>
+LambdaRank optimizes nothing — it is a *heuristic gradient*, locally a weighted-RankNet potential but
+globally non-integrable. That it works at all is an empirical fact: Donmez, Svore, and Burges showed the
+LambdaRank updates locally ascend NDCG, reaching a local optimum, but this is a property of the iteration,
+not of a loss it descends. We name this result and rely on it; we do not prove it. The reweighting is the
+correction to RankNet's position-blindness, paid for with the loss itself.
+</RigorFlag>
+
+## Listwise objectives: a proper, convex loss
+
+Listwise methods restore what LambdaRank gave up. Instead of scoring documents in pairs, they put a
+probability distribution over *whole permutations* and minimize a likelihood — a genuine loss with a
+genuine optimum.
+
+<TheoremBlock type="definition" number={2} title="Plackett–Luce, ListMLE, and ListNet">
+The **Plackett–Luce** model turns scores into a distribution over permutations by sequential softmax: the
+probability that $\pi$ is the true order is
+$$
+P(\pi \mid \mathbf{s}) \;=\; \prod_{r=1}^{M} \frac{e^{s_{\pi(r)}}}{\sum_{r' \geq r} e^{s_{\pi(r')}}},
+$$
+each factor a softmax over the documents not yet placed. **ListMLE** minimizes the negative log-likelihood
+of the *ideal* permutation $\pi^*$ (grades descending, ties broken by oracle score):
+$$
+L_{\mathrm{ListMLE}}(\mathbf{s}) \;=\; -\log P(\pi^* \mid \mathbf{s})
+   \;=\; \sum_{r}\Big[\operatorname{logsumexp}\big(s_{\geq r}\big) - s_{\pi^*(r)}\Big].
+$$
+**ListNet** minimizes the top-one cross-entropy between the target distribution
+$\operatorname{softmax}(G(g))$ and the model's $\operatorname{softmax}(\mathbf{s})$.
+</TheoremBlock>
+
+<TheoremBlock type="theorem" number={2} title="The listwise losses are convex in the linear scorer">
+For a linear scorer $\mathbf{s} = X\mathbf{w}$, both $L_{\mathrm{ListMLE}}$ and the ListNet loss are
+convex in $\mathbf{w}$.
+
+*Proof.* Each ListMLE term is $\operatorname{logsumexp}(s_{\geq r}) - s_{\pi^*(r)}$: a log-sum-exp (convex)
+minus a linear function, hence convex; a sum of convex functions composed with the affine map
+$\mathbf{w} \mapsto X\mathbf{w}$ is convex. The Hessian is
+$\sum_r X_{\geq r}^\top\big(\mathrm{diag}(p_r) - p_r p_r^\top\big) X_{\geq r}$, a sum of softmax
+covariances, which are positive semidefinite. The ListNet loss is likewise $\operatorname{logsumexp} -$
+linear. $\square$
+</TheoremBlock>
+
+The notebook verifies the gradients by finite differences, confirms the Hessian is positive semidefinite,
+and checks that two starting points converge to the same optimum — a genuine single optimum, the
+principled contrast to LambdaRank's non-integrable field. Panel C draws the convex bowl: a single basin
+whose loss decreases monotonically as the slider walks toward the optimum. Two cautions keep this honest.
+The convexity is only PSD, not strict — ListMLE is invariant to a global shift of all scores, a null
+direction — and ListMLE reaches zero only in the *limit* as a perfectly-ordered score is scaled up, not
+at any finite optimum.
+
+<TheoremBlock type="remark" number={1} title="The candidate set and the ideal permutation">
+Running Plackett–Luce over all $120$ documents is meaningless — $110$ of them are grade-0 and the
+likelihood would be dominated by ordering noise. We restrict each query's listwise loss to a **candidate
+set**: the $10$ graded documents plus the $10$ hardest grade-0 negatives (highest oracle score). The
+ideal permutation $\pi^*$ is grades descending, ties broken by oracle score then document id — a
+deterministic total order, resolving the non-uniqueness that grade ties would otherwise leave.
+</TheoremBlock>
+
+That ListMLE is the maximum-likelihood estimate of the Plackett–Luce model connects it directly to
+[maximum likelihood](https://www.formalstatistics.com/topics/maximum-likelihood): the ideal permutation is
+the datum, the scores are the log-abilities, and the per-stage softmax choices are categorical
+[exponential families](https://www.formalstatistics.com/topics/exponential-families), whose
+negative-log-likelihood convexity is exactly the theorem above.
+
+## LambdaMART: boosting the lambdas into trees
+
+LambdaRank's force is a heuristic gradient; nothing requires the scorer it updates to be linear. **MART** —
+multiple additive regression trees, Friedman's gradient boosting — fits a regression tree to the negative
+gradient each round and takes a shrunken step. LambdaMART is the marriage: the per-document LambdaRank
+lambda *is* the pseudo-residual the trees regress.
+
+<TheoremBlock type="algorithm" number={1} title="LambdaMART">
+Initialize scores $F_0 \equiv 0$. For each round $t = 1, \dots, T$:
+
+1. Score every training document with the current ensemble and rank within each query.
+2. Compute the LambdaRank force $\lambda_d$ for each document (using the current ranking's
+   $|\Delta\mathrm{NDCG}|$ weights).
+3. Fit a regression tree $h_t$ to the pseudo-residuals $-\lambda_d$ (the ascent direction, since
+   $\lambda_d = \partial L / \partial s_d$).
+4. Update $F_t = F_{t-1} + \nu\, h_t$, with shrinkage $\nu$.
+
+The trees are exact-greedy and seeded (`random_state=0`), so the ensemble is deterministic — no
+stochastic gradient descent. An empty ensemble ($T = 0$) leaves the base scores unchanged.
+</TheoremBlock>
+
+The payoff is expressivity. A linear scorer can only produce rankings that are linear separations of the
+feature cloud; if the optimal ranking requires a *nonlinear interaction* of the leg scores, no weight
+vector can express it.
+
+<TheoremBlock type="proposition" number={3} title="LambdaMART escapes a rank ceiling no linear scorer can reach">
+Consider a query whose relevance is an **XOR** of two features: documents are relevant exactly when the
+two features *agree* in sign ($(+,+)$ and $(-,-)$ are relevant; $(+,-)$ and $(-,+)$ are not). No linear
+scorer $w_1 a + w_2 b$ can rank both relevant archetypes above both irrelevant ones — that would require
+$-|w_1 + w_2| > |w_1 - w_2|$, which is impossible — so every linear scorer is capped below NDCG $1$. A
+depth-2 regression tree splits on $a$ then $b$ and realizes the partition exactly. On this instance
+LambdaMART reaches NDCG $1.0$ against a best-linear ceiling of $0.89$.
+</TheoremBlock>
+
+<RigorFlag>
+The XOR result is a *constructed* instance, where the gap is provable: the linear ceiling is below 1 by
+an impossibility argument, and the trees reach 1 by realizing the partition. On the real three-leg
+features — near-linear and standardized — the trees do *not* meaningfully beat the linear models; the
+boosting curve plateaus near the linear NDCG and the gain is within sampling noise. The headline "trees
+beat linear" holds where there is a nonlinear interaction to capture, which a synthetic standardized
+leg-score cloud does not supply. We report the real-corpus result honestly and pin the escape to the
+constructed witness.
+</RigorFlag>
+
+## The finance comparison
+
+The climax puts all five learned methods — RankNet, LambdaRank, ListNet, ListMLE, LambdaMART — on the
+held-out test queries against reciprocal-rank fusion and the best single leg.
+
+<TheoremBlock type="remark" number={2} title="The methods cluster within the confidence interval">
+On the $16$ held-out queries, every learned method clearly beats RRF (NDCG $\approx 0.77$ versus $0.733$)
+and the best single leg ($0.689$). Among themselves they cluster tightly — RankNet $0.767$, LambdaRank
+$0.770$, ListMLE $0.769$, LambdaMART $0.772$, ListNet $0.773$ — a spread of $0.006$ against a confidence
+interval of half-width $\approx 0.075$. The aggregate NDCG differences are *within sampling noise*; the
+provable separations are structural, not aggregate.
+</TheoremBlock>
+
+<FinanceCaseStudy>
+In a production financial-retrieval reranker — fusing a lexical signal over filings, a dense signal over
+earnings-call transcripts, and a late-interaction signal over news — LambdaMART is the default choice, and
+for a real reason: feature interactions are common (a document strong on dense *and* late-interaction but
+weak on lexical is often more relevant than the sum of its parts suggests), and trees capture them where a
+linear weighting cannot. On this synthetic complementary-view corpus the three standardized leg scores are
+near-linear, so the methods tie within noise — the honest caveat. The seed-free lesson that *does*
+transfer is LambdaRank's head-concentration: weighting by $\Delta\mathrm{NDCG}$ spends the model's
+gradient where the user actually looks, which matters far more on a real corpus with a long, noisy tail
+than on this forgiving one.
+</FinanceCaseStudy>
+
+## Where this points
+
+LambdaMART and the listwise losses are the workhorses of classical learning-to-rank, but they share an
+assumption: the model scores each document from a fixed feature vector, blind to the *other* documents in
+the list except through the loss. The next step drops that assumption. **LLM listwise rerankers** — RankGPT
+and its successors — feed the whole candidate list into a language model and ask it to emit a permutation
+directly, scoring documents *in each other's context*. That is a listwise objective of a different kind,
+and the subject of the next topic in this track. The thread that carries forward is the one this topic
+made rigorous: a ranking objective is only as honest as the loss it descends, and when there is no loss —
+as with LambdaRank, and as with an autoregressive permutation model — we owe the reader the caveat, not a
+laundered claim.
+
+<RigorFlag>
+Three honesty checks close the topic. LambdaRank optimizes no scalar loss — it is locally a
+weighted-RankNet gradient, globally a discontinuous field, and its empirical success rests on a
+local-optimality result we cite but do not prove. The listwise convexity is genuine but conditional on the
+linear scorer; a tree-boosted or deep listwise model is non-convex. And the method comparison's headline
+deltas sit inside the confidence interval, so the reported wins — LambdaRank's head-concentration,
+LambdaMART's escape of the linear ceiling — are the structural, seed-free ones, not the aggregate scores.
+</RigorFlag>

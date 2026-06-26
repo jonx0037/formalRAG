@@ -68,7 +68,6 @@ export const tracks = [
     description:
       'The mathematics of producing, combining, and reordering ranked lists: learning-to-rank, reciprocal rank fusion and its social-choice grounding, cross-encoder cascades, and LLM listwise rerankers.',
     planned: [
-      'LambdaRank, LambdaMART, and Listwise Objectives',
       'LLM Rerankers: Listwise Permutation Objectives and RankGPT',
     ],
     dependsOnFormalML: false,

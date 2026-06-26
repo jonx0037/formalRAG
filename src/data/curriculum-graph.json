@@ -195,7 +195,7 @@
     {
       "id": "lambdarank-lambdamart-listwise",
       "label": "LambdaRank, LambdaMART, and Listwise Objectives",
-      "status": "planned",
+      "status": "published",
       "domain": "ranking-fusion"
     },
     {

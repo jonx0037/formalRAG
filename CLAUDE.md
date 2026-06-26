@@ -131,6 +131,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   **Scope DOM assertions to the lab container** — the topic page has other SVGs (DAG/connection graphs)
   that inflate document-wide `circle`/`path`/`text` counts. Hydration is per-load: a fresh navigation
   needs another `scrollIntoView` before any click, **tab/panel switches included** (not just sliders).
+  **A button/toggle `.click()` via `browser_evaluate` re-renders React ASYNCHRONOUSLY** — reading the
+  readout in the SAME `browser_evaluate` call returns the STALE pre-render DOM (cost two extra round-trips
+  this session); split into two calls (one to `.click()`, a separate one to read). For sliders, `PageUp`/
+  `PageDown` (~10% jumps) and `End`/`Home` (max/min) cross a wide range in far fewer real `browser_press_key`
+  presses than repeated `ArrowRight`.
 - Pagefind UI assets 404 in `astro dev` (generated only by `postbuild`) — expected, harmless.
 - **Don't hyperlink prose forward-references to unbuilt topics** — the link 404s until that topic
   ships. Link only to slugs that already have MDX; name a future topic in prose without a link.
@@ -1075,6 +1080,72 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `10.1145/1102351.1102363`; Liu FnTIR 2009 `10.1561/1500000016`; ListNet Cao et al. ICML 2007
   `10.1145/1273496.1273513`; Li synthesis-lecture `10.1007/978-3-031-02155-8` (the old `10.2200/...` 301-redirects
   to it); Burges 2010 "From RankNet to LambdaRank to LambdaMART" MSR-TR-2010-82 (url, no DOI).
+  Its **lambdarank-lambdamart-listwise successor** (`lambdarank-lambdamart-listwise`, the SECOND node of the
+  ranking-fusion LTR sub-track; `domain: ranking-fusion`, **`pipelineStage: rerank`** — a learned scorer that
+  REORDERS a candidate list, contrast the predecessor's `fuse`): ship = node `planned→published` + MDX
+  `status: published` + drop the title from `curriculum.ts` **tracks[6]** `planned[]` — it leaves **ONE** (RankGPT/
+  `llm-listwise-rerankers`), NOT empty; NO edge changes (both inbound edges `learning-to-rank-pairwise→` +
+  `ndcg-discount-geometry→` AND the outbound `→llm-listwise-rerankers` pre-exist). Frontmatter `prerequisites` =
+  the TWO graph edges `[learning-to-rank-pairwise, ndcg-discount-geometry]` (the two-edge rule — set-metrics is a
+  `connections[]` sibling, NOT a prereq). RankGPT named in PROSE only (unbuilt → `pnpm validate` ERRORS in
+  `connections[]`). The `.py` IMPORTS the predecessor `_corpus`/`lambda_forces`/`fit_ranknet`/`within_query_pairs`/
+  `ranking_from_w`/`mean_recall_over`/`mean_leg_metric`/`mean_rrf_metric`, ndcg `ndcg_at_k`/`ideal_dcg_at_k`/
+  `marginal_value`, set-metrics `metric_summary`, capstone `recall_at_k` — all connections/siblings, reimplements
+  none (import-graph≠DAG). sklearn `DecisionTreeRegressor(random_state=0)` (the JL/matryoshka dep precedent).
+  **ΔNDCG closed form:** swapping ranks p,q → `ΔDCG=(G(g_p)−G(g_q))(D(q)−D(p))`, `|ΔNDCG|=|ΔG||ΔD|/IDCG` (IDCG
+  swap-invariant — permutation preserves the grade multiset). **Use UNTRUNCATED DCG (k=n_docs) for the weight** —
+  what real LambdaRank does — or the two-term identity FAILS for a pair straddling the top-k cutoff (a truncated
+  `ndcg_at_k@10` silently drops the out-of-window term); twin vs physical-swap brute <1e-12. **Collapse anchor:**
+  uniform-weight `lambdarank_forces` == imported `lambda_forces` bit-for-bit (LambdaRank is a REWEIGHTING of
+  RankNet, the RankNet bridge made executable). **THE NOVEL CORE — the integrability theorem (is λ a gradient?):
+  frame in SCORE space ℝⁿ, NEVER weight space ℝ³** (the 3-feature map degenerates the field). A field is a
+  gradient iff its Jacobian is symmetric (Clairaut). WITHIN a no-swap cell the |ΔNDCG| weights are CONSTANT, so
+  BOTH RankNet and LambdaRank have a symmetric Jacobian (LambdaRank is locally a weighted-RankNet gradient — the
+  asymmetry is 0, a tempting false "it's integrable"). GLOBALLY LambdaRank is DISCONTINUOUS: across a swap of
+  adjacent docs a,b, a **SPECTATOR** pair (a,k)'s weight jumps (its discount factor `|D(r_a)−D(r_k)|` jumps when
+  `r_a` changes) — so the witness needs **≥3 docs with DISTINCT grades** (a 2-doc toy shows NO jump → falsely
+  reads integrable; the discontinuity lives in a third doc's pair, not the swapping pair). **Discontinuity-witness
+  eps-scaling (a build-and-run TRAP): the naive `jump_RankNet<1e-9` assert FAILS** — the witness `λ_a(s_b+ε)−
+  λ_a(s_b−ε)` includes the SMOOTH drift of a continuous field over 2ε (slope≈0.45 → ~9e-5 at ε=1e-4), NOT a
+  discontinuity. Assert the SCALING instead: RankNet's witness is O(ε) (shrinks ~10× when ε→ε/10 → continuous),
+  LambdaRank's is Θ(1) (ε-stable, =0.082, matches the hand-calc `−σ(−1)·3·(D(1)−D(2))/IDCG`). **Loop circulation
+  `∮λ·ds` was build-and-run NONZERO (RankNet 0, LambdaRank −0.044) → PROMOTE to a hard test** (the CLAUDE.md gate
+  said gate-on-run; it ran clean, so it's a hard anchor, not just the viz illustration). **Listwise:** ListMLE =
+  −log P(π*|s) Plackett–Luce, convex (logsumexp−linear) but **NOT strict** (global-shift null direction → assert
+  `eigmin≥−1e-9`, NEVER `>0`); ListMLE→0 is a **LIMIT** (assert `<1e-3` at scale c=20, not `==0` at a finite fit).
+  Restrict to a per-query **candidate set** (K graded ∪ ~10 hardest grade-0 negs, cap 20) — PL over the 110-doc
+  grade-0 tail is meaningless; π* = grade-desc, **oracle-score tiebreak** (a deterministic total order). ListNet
+  target = `softmax(gain(grade))`. **LambdaMART:** pseudo-residual = the **LambdaRank** λ (ΔNDCG-weighted, NOT raw
+  RankNet λ), NEGATED (λ=dL/ds, ascend NDCG with −λ); 0-rounds == base == identity argsort. Real-corpus trees≈
+  linear (3 standardized near-linear leg features → vacuous) → the provable headline is a **CONSTRUCTED XOR toy**:
+  4 archetypes `(+,+)/(−,−)→g3`, `(+,−)/(−,+)→g0`; best-linear NDCG 0.89<1 by impossibility (`−|w1+w2|>|w1−w2|`
+  can't hold), depth-2 tree=1.0 (the cross-encoders rank-ceiling precedent); round-count/ceiling build-and-run.
+  **Headline honesty (the recurring quality-ladder vacuity):** the seed-free win is STRUCTURAL — LambdaRank's
+  top-3 gradient share 0.40 ≫ RankNet's 0.16 (the `marginal_value` decay) + the strict weight-ratio
+  `|D(1)−D(2)|=0.369 ≫ |D(9)−D(10)|=0.012`. The 5 learned methods CLUSTER 0.767–0.773 within CI (se 0.038), all
+  beat RRF 0.733 + best-leg 0.689 — pin to run, report deltas honest; WINNER=listnet by a hair (do NOT force
+  LambdaRank to top the table). **Viz** (`LambdaRankLaboratory.tsx`, 4 panels): Panel B recomputes the score-space
+  λ field + the discontinuity LIVE in TS (closed form) — verified via real `browser_press_key` (probe across the
+  swap: λ₀ −0.132→−0.211 = the 0.082 jump); Panels C/D sliders live too. **GEMINI-CLASS BUG caught by an
+  adversarial `feature-dev:code-reviewer` PRE-PUSH: a baked 2-D loss bowl built `bowl[i_dense][j_li]` (outer loop
+  = w_dense) but the TS `lerpBowl`/heatmap read `bowl[j0][i0]` — TRANSPOSED**; the non-symmetric bowl made the
+  optimum readout 41.36 (the transposed cell) vs 39.57 (correct), and my browser read SURFACED it (the optimum ≠
+  the true grid min). Fix: read `bowl[i0][j0]`, render outer→x, cell-center `gx/gy`. Always trace a baked-grid's
+  outer/inner index convention against how TS reads it. Boost-curve interp guard `next[0]===prev[0]` (the
+  unguarded-denominator class). Dropped the unused `MUTED` const (ts6133). Cross-site (all `ls`/`curl`-verified):
+  `formalstatisticsPrereqs` maximum-likelihood (ListMLE = Plackett–Luce MLE); `formalstatisticsConnections`
+  exponential-families (PL/softmax = categorical exp-family, the convexity guarantee); `formalmlConnections`
+  gradient-descent (functional GD/boosting; LambdaRank = gradient-ascent WITHOUT a loss to descend) +
+  generalization-bounds (surrogate-vs-metric consistency); `formalcalculusConnections` **jacobian** (the
+  symmetric-Jacobian/Clairaut exact-differential test — "is λ a gradient?", the load-bearing up-link) +
+  convex-optimization. formalML has NO LTR slug → name LambdaRank/LambdaMART/ListNet/Plackett–Luce in prose.
+  **Ref-DOI GOTCHA (the curl+CSL rule earned its keep):** the guessed Donmez "On the Local Optimality of
+  LambdaRank" DOI `10.1145/1571941.1571999` RESOLVES (302 location looks fine) but is the WRONG SIGIR 2009 paper
+  (Li et al., location-sensitive IR) — the CSL title check caught it; the correct DOI is `10.1145/1571941.1572021`
+  (found via Crossref `query.bibliographic`). Refs verified: LambdaRank original Burges–Ragno–Le NIPS 19
+  `10.7551/mitpress/7503.003.0029`; LambdaMART Wu–Burges–Svore–Gao Information Retrieval 2010
+  `10.1007/s10791-009-9112-1`; Friedman GBM AoS 2001 `10.1214/aos/1013203451`; ListNet Cao et al. ICML 2007
+  `10.1145/1273496.1273513`; ListMLE Xia et al. ICML 2008 `10.1145/1390156.1390306`.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
@@ -1093,6 +1164,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   (`curl -sL -H "Accept: application/vnd.citationstyles.csl+json" https://doi.org/<doi>`) — the 302
   location doesn't catch a wrong venue (Filtered-DiskANN is **WWW 2023**, not the NeurIPS 2023 Big-ANN
   competition; ACORN is SIGMOD/PACMMOD 2024).
+  To FIND the correct DOI when a guess resolves to the WRONG paper, query Crossref:
+  `curl -s 'https://api.crossref.org/works?query.bibliographic=<title>&rows=3'` and read
+  `.message.items[].DOI`/`title`/`container-title`. The guessed Donmez "On the Local Optimality of
+  LambdaRank" DOI `…1571999` RESOLVED and was even the right venue (SIGIR 2009) but a *different* paper —
+  only the CSL **title** caught it; the correct DOI was `10.1145/1571941.1572021`.
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
 - `status` gates only **listings** (homepage / `/topics` / `/paths`) + prereq availability;
