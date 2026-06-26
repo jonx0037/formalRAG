@@ -131,6 +131,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   **Scope DOM assertions to the lab container** — the topic page has other SVGs (DAG/connection graphs)
   that inflate document-wide `circle`/`path`/`text` counts. Hydration is per-load: a fresh navigation
   needs another `scrollIntoView` before any click, **tab/panel switches included** (not just sliders).
+  **A button/toggle `.click()` via `browser_evaluate` re-renders React ASYNCHRONOUSLY** — reading the
+  readout in the SAME `browser_evaluate` call returns the STALE pre-render DOM (cost two extra round-trips
+  this session); split into two calls (one to `.click()`, a separate one to read). For sliders, `PageUp`/
+  `PageDown` (~10% jumps) and `End`/`Home` (max/min) cross a wide range in far fewer real `browser_press_key`
+  presses than repeated `ArrowRight`.
 - Pagefind UI assets 404 in `astro dev` (generated only by `postbuild`) — expected, harmless.
 - **Don't hyperlink prose forward-references to unbuilt topics** — the link 404s until that topic
   ships. Link only to slugs that already have MDX; name a future topic in prose without a link.
@@ -1159,6 +1164,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   (`curl -sL -H "Accept: application/vnd.citationstyles.csl+json" https://doi.org/<doi>`) — the 302
   location doesn't catch a wrong venue (Filtered-DiskANN is **WWW 2023**, not the NeurIPS 2023 Big-ANN
   competition; ACORN is SIGMOD/PACMMOD 2024).
+  To FIND the correct DOI when a guess resolves to the WRONG paper, query Crossref:
+  `curl -s 'https://api.crossref.org/works?query.bibliographic=<title>&rows=3'` and read
+  `.message.items[].DOI`/`title`/`container-title`. The guessed Donmez "On the Local Optimality of
+  LambdaRank" DOI `…1571999` RESOLVED and was even the right venue (SIGIR 2009) but a *different* paper —
+  only the CSL **title** caught it; the correct DOI was `10.1145/1571941.1572021`.
 - The curriculum is the full 50-topic DAG in `src/data/curriculum.ts` + `curriculum-graph.json`;
   unauthored topics live in `tracks[].planned` and as `status: draft` MDX stubs.
 - `status` gates only **listings** (homepage / `/topics` / `/paths`) + prereq availability;
