@@ -256,10 +256,10 @@ because front-to-back advances a buried document by just one window per pass.
 </TheoremBlock>
 
 <RigorFlag>
-A single pass guarantees the *top-1*, not the full top-k. The comparison-sorting lower bound $\Omega(n\log
-n)$ (Knuth) is the reason: a bounded-window sweep makes $O(n/s)$ comparisons per pass, far fewer than the
-$n\log n$ a correct sort needs, so it cannot be exact in one pass. Recall climbs with passes toward a
-noise-limited plateau and may dip slightly past it as the noisy oracle re-sorts an already-good list —
+A single pass guarantees the *top-1*, not the full top-k. The comparison-sorting lower bound
+$\Omega(n\log n)$ (Knuth) is the reason: a bounded-window sweep makes $O(n/s)$ comparisons per pass, far
+fewer than the $n\log n$ a correct sort needs, so it cannot be exact in one pass. Recall climbs with passes
+toward a noise-limited plateau and may dip slightly past it as the noisy oracle re-sorts an already-good list —
 which is why we report a seed-averaged curve and never claim per-seed monotonicity.
 </RigorFlag>
 

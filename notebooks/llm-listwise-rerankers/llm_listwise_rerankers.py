@@ -255,8 +255,9 @@ def oracle_window_perm(corpus: dict, q: int, window_docs: list[int], tau: float,
     center-of-window documents as weaker (the lost-in-the-middle dip; see M3)."""
     ab = oracle_abilities(corpus, q, window_docs)
     if bias:
+        # positional_weight is in (0, 1] for dip < 1; guard the log against a degenerate dip >= 1.
         ab = ab + POS_BIAS_GAIN * np.array(
-            [math.log(positional_weight(p, len(window_docs))) for p in range(len(window_docs))])
+            [math.log(max(positional_weight(p, len(window_docs)), 1e-12)) for p in range(len(window_docs))])
     perm_local = pl_sample(ab, tau, rng)
     return [window_docs[i] for i in perm_local]
 
