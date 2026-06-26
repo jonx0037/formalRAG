@@ -1,0 +1,389 @@
+---
+title: "LLM Rerankers: Listwise Permutation Objectives and RankGPT"
+subtitle: "Classical learning-to-rank scored each document from a fixed feature vector, blind to the rest of the list except through the loss. The LLM reranker drops that — feed the whole candidate list into one model and it emits a permutation, scoring documents in each other's context. But context fits only a window of candidates, so RankGPT slides a window and locally re-sorts (a bubble sort), the order is position-biased (lost in the middle), windows must be aggregated (social choice), and the costly teacher is distilled into a cheap student — anchored by the honest caveat that an autoregressive permutation model, like LambdaRank, descends no scalar loss at inference."
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "lambdarank-lambdamart-listwise"
+  - "cross-encoders-reranking"
+tags:
+  - "llm-reranking"
+  - "rankgpt"
+  - "listwise"
+  - "permutation"
+  - "plackett-luce"
+  - "rank-aggregation"
+  - "sliding-window"
+  - "distillation"
+  - "ranking-fusion"
+  - "financial-nlp"
+domain: "ranking-fusion"
+pipelineStage: "rerank"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "news"
+  - "audio"
+rigorFlag: "The LLM is a SIMULATED noisy permutation oracle — this site bakes only reproducible numbers and never calls a real model, so every 'LLM' quality figure is a controlled stand-in and 'the LLM is the most accurate reranker' is empirical, unshowable synthetically, and explicitly OUT of scope. The provable content is algorithmic. An autoregressive permutation model, like LambdaRank, descends NO scalar loss in its weights at inference; the Plackett–Luce objective is what a DISTILLED student is trained on, not what the teacher optimizes per query. One back-to-front sliding-window pass with a perfect comparator guarantees only the global best in the top window, not the full top-k — recall climbs with passes and is never exact in one pass, the Ω(n log n) comparison lower bound being the reason a bounded-window sort cannot be exact in O(n/s) comparisons. The positional bias is EMPIRICAL (Liu et al.), modeled as a baked per-position attention kernel, not derived. The 1/√K aggregation law is the variance-reduction (central-limit) rate for K noisy ballots, a sample-complexity statement asserted on the simulated oracle, not a universal constant; the Kemeny consensus it approximates is NP-hard. The per-call cost ratio that prices the windowed LLM call above a cross-encoder pass is a stipulated model assumption, not measured. On this forgiving synthetic finance corpus the method deltas sit inside the confidence interval — the seed-free wins are STRUCTURAL (the call-count law, the bias-correction flattening, the aggregation variance reduction, the distillation speedup), not the aggregate scores. Relevance grades are exact-MaxSim oracle tertiles, a neutral stand-in for human editorial judgments."
+videoId: null
+notebookPath: "notebooks/llm-listwise-rerankers/01_llm_listwise_rerankers.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/llm-listwise-rerankers.mdx"
+datePublished: 2026-06-25
+estimatedReadTime: 28
+abstract: "The predecessor scored each document from a fixed feature vector. An LLM reranker drops that assumption: feed the whole candidate list into one model and it emits a permutation directly, scoring documents in each other's context — the most listwise objective there is. We model the LLM as a Plackett–Luce sampler at temperature τ (the ListMLE bridge made operational): as τ→0 it emits the ideal order byte-for-byte; as τ→∞ it is uniform. But an LLM context fits only a window of w ≪ n candidates, so RankGPT slides a window back-to-front and locally re-sorts — a bubble sort whose call count is O(n/s) per pass against the O(n²) of all-pairs comparison, with one perfect pass guaranteeing the global best in the top window and recall climbing toward a plateau under noise. The in-window order is position-biased (lost in the middle); presenting each window in several random orders and aggregating flattens it. Multiple windows produce multiple noisy permutations, reconciled by Borda, RRF, the NP-hard Kemeny median, or the Dwork et al. Markov-chain consensus — a comparison random walk's stationary distribution — with the consensus error falling at the 1/√K central-limit rate. Finally the expensive teacher is distilled into a cheap linear listwise student: a perfect teacher's student is exactly the predecessor's own fit, and it answers at zero inference LLM calls. The cost–quality frontier is the systems story. A tested notebook owns every number; the LLM is a simulated noisy oracle, so the provable wins are algorithmic, and the aggregate quality deltas sit inside the confidence interval."
+connections:
+  - topic: "lambdarank-lambdamart-listwise"
+    relationship: "the direct predecessor — its ListMLE Plackett–Luce loss is exactly the permutation objective this topic makes listwise in the strongest sense; there the score came from a fixed feature vector and the loss coupled documents only through the gradient, whereas the LLM emits a permutation directly, and we IMPORT its optimal_permutation, plackett_luce_logprob, listmle_loss, and fit_listmle verbatim"
+  - topic: "cross-encoders-reranking"
+    relationship: "the other inbound prerequisite — a cross-encoder reranks each (query, document) pair with a joint forward pass; the LLM listwise reranker generalizes that joint pass to the WHOLE candidate list at once, trading the cross-encoder's per-pair cost for a per-window permutation, the same retrieve-K-then-rescore cascade at higher context, and we reuse its per-call cost constants as the unit the LLM call is priced against"
+  - topic: "rank-fusion-rrf"
+    relationship: "aggregating K noisy LLM permutations IS rank fusion — Borda, RRF, and the Kemeny median this topic averages over windows are exactly that topic's social-choice machinery, here with the ballots being LLM windows rather than retrieval legs, and we import its rrf_fuse, borda, kendall_tau, and kemeny_bruteforce"
+  - topic: "retrieval-distillation"
+    relationship: "the cost payoff is permutation distillation — the expensive LLM teacher's orderings train a cheap student (RankVicuna, RankZephyr), the teacher-student transfer that topic formalizes, applied to permutations rather than score margins, and we reuse its query-time cost model to price the teacher against the student"
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "every quality figure here is a top-k recall or NDCG sample whose mean and confidence interval come from that topic's metrics-as-estimators machinery — the honest verdict that the method deltas sit inside the confidence interval is its central thesis, and we import its metric_summary"
+  - topic: "retrieval-vs-long-context"
+    relationship: "the positional-bias panel reuses that topic's lost-in-the-middle U-curve — the same Liu et al. attention profile, here a per-window erasure kernel that biases the LLM's in-context ranking and is flattened by averaging presentation orders — and we import its positional_weight verbatim"
+  - topic: "learning-to-rank-pairwise"
+    relationship: "the pairwise-ranking-prompting variant of LLM reranking (Qin et al.) is this track's pairwise approach reborn as prompts — O(n²) pair comparisons sorted into an order — and the all-pairs LLM on the cost–quality frontier is exactly that O(n²) method, the pairwise objective that topic developed lifted to a language model"
+references:
+  - type: "paper"
+    title: "Is ChatGPT Good at Search? Investigating Large Language Models as Re-Ranking Agents"
+    authors: "Sun, Yan, Ma, Ren, Yin, Wang, Chen, Yin, Ren & Ren"
+    year: 2023
+    url: "https://doi.org/10.18653/v1/2023.emnlp-main.923"
+    note: "The RankGPT paper: sliding-window listwise permutation re-ranking with an LLM, and permutation distillation into a specialized student; EMNLP 2023 (arXiv 2304.09542)"
+  - type: "paper"
+    title: "Zero-Shot Listwise Document Reranking with a Large Language Model"
+    authors: "Ma, Zhang, Mei, Zhu, Lin & Ma"
+    year: 2023
+    url: "https://arxiv.org/abs/2305.02156"
+    note: "Listwise Reranking (LRL): an LLM directly generates a reordered list of document identifiers, the zero-shot listwise baseline"
+  - type: "paper"
+    title: "Large Language Models are Effective Text Rankers with Pairwise Ranking Prompting"
+    authors: "Qin, Bai, Zhuang, Hui, Han, Wang, Liu, Jagerman, Wang, Bendersky & Najork"
+    year: 2024
+    url: "https://doi.org/10.18653/v1/2024.findings-naacl.97"
+    note: "Pairwise Ranking Prompting (PRP): the pairwise approach reborn as prompts, sorting O(n²) pair comparisons into an order; Findings of NAACL 2024 (arXiv 2306.17563)"
+  - type: "paper"
+    title: "A Setwise Approach for Effective and Highly Efficient Zero-shot Ranking with Large Language Models"
+    authors: "Zhuang, Zhuang, Koopman & Zuccon"
+    year: 2024
+    url: "https://doi.org/10.1145/3626772.3657813"
+    note: "Setwise prompting: compare a SET of candidates per call, a sorting-algorithm view that cuts the LLM call count between pointwise and listwise; SIGIR 2024 (arXiv 2310.09497)"
+  - type: "paper"
+    title: "RankVicuna: Zero-Shot Listwise Document Reranking with Open-Source Large Language Models"
+    authors: "Pradeep, Sharifymoghaddam & Lin"
+    year: 2023
+    url: "https://arxiv.org/abs/2309.15088"
+    note: "RankVicuna: distilling RankGPT's permutations into an open 7B student, the cost-payoff teacher-student step"
+  - type: "paper"
+    title: "RankZephyr: Effective and Robust Zero-Shot Listwise Reranking is a Breeze!"
+    authors: "Pradeep, Sharifymoghaddam & Lin"
+    year: 2023
+    url: "https://arxiv.org/abs/2312.02724"
+    note: "RankZephyr: a stronger distilled listwise student, closing the gap to the proprietary teacher"
+  - type: "paper"
+    title: "Rank Aggregation Methods for the Web"
+    authors: "Dwork, Kumar, Naor & Sivakumar"
+    year: 2001
+    url: "https://doi.org/10.1145/371920.372165"
+    note: "Kemeny optimization, its NP-hardness, the footrule approximation, and the Markov-chain (MC4) rank-aggregation random walk whose stationary distribution is the consensus; WWW 2001"
+  - type: "paper"
+    title: "Mathematics Without Numbers"
+    authors: "Kemeny"
+    year: 1959
+    note: "The Kemeny consensus — the median permutation minimizing total Kendall-τ disagreement; Daedalus 88(4), pp. 577–591 (no DOI)"
+  - type: "paper"
+    title: "Lost in the Middle: How Language Models Use Long Contexts"
+    authors: "Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni & Liang"
+    year: 2024
+    url: "https://doi.org/10.1162/tacl_a_00638"
+    note: "The empirical lost-in-the-middle result the positional-bias panel models as a per-window attention kernel; TACL 12 (2024), preprint arXiv:2307.03172"
+  - type: "paper"
+    title: "The Analysis of Permutations"
+    authors: "Plackett"
+    year: 1975
+    url: "https://doi.org/10.2307/2346567"
+    note: "The Plackett model — the sequential-softmax distribution over permutations the listwise objective maximizes; Applied Statistics 24(2)"
+  - type: "book"
+    title: "Individual Choice Behavior: A Theoretical Analysis"
+    authors: "Luce"
+    year: 1959
+    url: "https://doi.org/10.1037/14396-000"
+    note: "Luce's choice axiom — the independence-of-irrelevant-alternatives form that gives each Plackett–Luce stage its softmax"
+  - type: "book"
+    title: "The Art of Computer Programming, Volume 3: Sorting and Searching"
+    authors: "Knuth"
+    year: 1998
+    note: "Bubble and selection sort and the Ω(n log n) comparison lower bound — why a bounded-window sort cannot be exact in O(n/s) comparisons; Addison-Wesley, 2nd ed. (no DOI)"
+formalstatisticsPrereqs:
+  - topic: "maximum-likelihood"
+    site: "formalstatistics"
+    relationship: "the listwise permutation objective is Plackett–Luce maximum-likelihood estimation: the ideal ordering is the observed datum, the document scores are the log-abilities, and fitting the distilled student maximizes the Plackett–Luce likelihood — so the LLM's objective and the student's training are both the maximum-likelihood estimation that topic develops, applied to ranking data"
+formalstatisticsConnections:
+  - topic: "exponential-families"
+    site: "formalstatistics"
+    relationship: "the Plackett–Luce model factors into a sequence of softmax (multinomial-logit) choices over the remaining candidates, each a categorical exponential family with the LLM's scores as natural parameters, so the convexity of the distilled student's listwise loss is the exponential-family negative-log-likelihood convexity instantiated for permutations"
+  - topic: "order-statistics-and-quantiles"
+    site: "formalstatistics"
+    relationship: "top-k selection from a candidate list is an order-statistic problem — the reranker returns the k largest of n noisy scores — and the sliding window's top-k recall is governed by the distribution of the k-th order statistic under the simulated oracle's noise, a direct application of the order-statistic machinery that topic builds"
+formalmlConnections:
+  - topic: "random-walks"
+    site: "formalml"
+    relationship: "Dwork's Markov-chain rank aggregation builds a random walk over candidates whose transition matrix encodes pairwise comparison wins, and the consensus ranking is its stationary distribution — so aggregating the LLM's noisy permutations is reading off a comparison random walk's stationary distribution, the construction that topic builds, here made ergodic by a small restart"
+  - topic: "generalization-bounds"
+    site: "formalml"
+    relationship: "permutation distillation substitutes a cheap student's surrogate ordering for the expensive teacher's, and the surrogate-versus-true-loss gap that topic formalizes is exactly the question of whether matching the teacher's permutations transfers its ranking quality to held-out queries"
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "the 1/√K shrinkage of the aggregated ranking's error is a concentration statement — K noisy ballots concentrate on the consensus at the central-limit rate, and the comparison-sorting lower bound is a sample-complexity floor — the tail-bound machinery that topic develops, here bounding how many LLM windows a reliable consensus needs"
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "the distilled student's listwise loss is convex in its linear weights (log-sum-exp composed with an affine map), and the Kemeny consensus this topic averages toward is the integer program whose linear-programming relaxation that topic's duality machinery analyzes — both the convex training objective and the LP relaxation are its tools"
+  - topic: "stability-dynamics"
+    site: "formalcalculus"
+    relationship: "the sliding-window bubble sort is a discrete dynamical system whose fixed point is the sorted order — each pass is an iteration that converges to a stable ordering — and the number of passes to convergence is the stability and transient analysis that topic develops for iterative maps, applied to a sorting recurrence"
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import LLMRerankerLaboratory from '../../components/viz/LLMRerankerLaboratory.tsx';
+
+## Overview & motivation
+
+The [previous topic](/topics/lambdarank-lambdamart-listwise) closed on a quiet limitation. Every learned
+ranker we have built — pointwise regression, pairwise RankNet, LambdaRank, the listwise ListMLE loss —
+scores each document from a **fixed feature vector** $\mathbf{x}_d$. The documents are coupled only through
+the loss: ListMLE's Plackett–Luce likelihood compares a document against the suffix of the ranking, but the
+*score* of any one document never depends on which other documents are present. A relevance model that
+reads document $d$ in isolation can never notice that $d$ is redundant given $d'$, or that $d$ answers the
+query only because $d'$ supplies the context.
+
+An LLM reranker drops that assumption. Feed the whole candidate list into one model and it emits a
+**permutation** directly — it ranks the documents by reading them in each other's presence. This is the
+most listwise objective there is: not a loss that couples documents, but a model whose output *is* the
+ordered list. We will build it up in four movements, each a piece of genuine mathematics, and we will be
+honest throughout about what a synthetic study can and cannot show.
+
+<LLMRerankerLaboratory client:visible />
+
+The lab is the topic in miniature. Panel A is the sliding window as a bubble sort — the call-count law and
+the recall climb across passes; Panel B is the lost-in-the-middle positional bias and its correction; Panel
+C is the aggregation of noisy permutations and the $1/\sqrt{K}$ concentration; and Panel D is distillation
+and the cost–quality frontier. We reuse the predecessor's substrate exactly: the
+[capstone's](/topics/capstone-multimodal-financial-rag) complementary-view finance corpus, with each
+query's rerank pool a set of $n = 60$ candidates — the $10$ relevant documents scattered among $50$ hard
+negatives — and grades $g_d \in \{0,1,2,3\}$ from the [NDCG topic's](/topics/ndcg-discount-geometry)
+exact-MaxSim oracle tertiles.
+
+A word on the model, because it is load-bearing. This site bakes only reproducible numbers and never calls
+a cloud service, so there is **no real LLM** anywhere in this topic. We model the LLM as a *seeded noisy
+permutation oracle*: it sees a window of candidates and emits the ideal ranking $\pi^\*$ corrupted by
+Plackett–Luce noise at a temperature $\tau$ and, in one movement, a position-dependent bias. Every provable
+claim is therefore **algorithmic** — a sorting guarantee, an aggregation variance, a distillation cost —
+never "the LLM is the most accurate reranker." That last claim is empirical, and we mark it out of scope.
+
+## The listwise permutation objective
+
+Begin where the predecessor ended: the **Plackett–Luce** model, the probability distribution over
+permutations whose negative log-likelihood is the ListMLE loss. We use it now not as a loss to minimize
+but as a *generative* model of what the LLM emits.
+
+<TheoremBlock type="definition" number={1} title="The LLM as a Plackett–Luce sampler">
+Assign each document an **ability** $a_d$ equal to $-\,\mathrm{rank}_d$, the negative of its position in
+the ideal order $\pi^\*$ (so the best document has the largest ability). At temperature $\tau$ the LLM emits
+a permutation $\pi$ with probability
+$$
+P_\tau(\pi \mid a) \;=\; \prod_{r=1}^{n} \frac{\exp(a_{\pi(r)}/\tau)}{\sum_{r' \geq r}\exp(a_{\pi(r')}/\tau)},
+$$
+a sequential softmax: at each rank the next document is drawn in proportion to its exponentiated ability
+among those not yet placed. Equivalently — and this is how we sample reproducibly — $\pi$ is the argsort of
+$a/\tau$ perturbed by independent Gumbel noise.
+</TheoremBlock>
+
+The temperature is the noise dial. As $\tau \to 0$ the deterministic abilities dominate any finite Gumbel
+draw and the sample is exactly $\pi^\*$; as $\tau \to \infty$ the noise dominates and the order is uniform.
+Because we index the abilities by $\pi^\*$-rank rather than by raw oracle score, the $\tau \to 0$ limit
+reproduces the *grade-first* ideal order byte-for-byte, for any relationship between grades and scores.
+
+<TheoremBlock type="proposition" number={2} title="The ListMLE bridge (collapse anchors)">
+Two facts tie the simulated oracle to the predecessor's exact machinery. First, the $\tau \to 0$ sample
+equals the imported `optimal_permutation` $\pi^\*$ for every query and every seed. Second, the negative
+log-likelihood of *any* emitted permutation under the temperature-$\tau$ abilities equals the imported
+`listmle_loss_scores` evaluated at those abilities, to machine precision. The LLM reranker is, by
+construction, a Plackett–Luce sampler whose mean is the listwise objective we already studied.
+</TheoremBlock>
+
+This is the whole conceptual move. The LLM does not optimize a loss when it emits a permutation; it
+*samples* from a distribution whose mode is the ideal ranking. Everything that follows asks what we can
+guarantee about that sampling under the one real constraint a language model imposes: a bounded context.
+
+## The sliding window is a bubble sort
+
+An LLM context fits only $w \ll n$ candidates. RankGPT (Sun et al.) handles this exactly as a
+comparison sort with a bounded comparator: slide a window of size $w$ across the list with step $s$,
+re-sorting the documents inside each window, and repeat for $P$ passes. The window slides **back-to-front**
+— the last window first — so that a relevant document buried in the tail can rise toward the front in a
+single sweep.
+
+<TheoremBlock type="algorithm" number={3} title="Sliding-window reranking">
+Given the current order of $n$ candidates, a window size $w$, a step $s$, and a pass count $P$:
+for each pass, for each window start $t = n-w,\, n-w-s,\, \dots,\, 0$ (back to front), replace the block of
+documents at positions $[t,\, t+w)$ with the oracle's emitted permutation of that block. Return the final
+order. Each window placement is one oracle call.
+</TheoremBlock>
+
+The cost is the heart of the systems story. There are $\lceil (n-w)/s \rceil + 1$ window placements per
+pass, so the total is
+$$
+\text{calls} \;=\; P\cdot\Big(\Big\lceil \tfrac{n-w}{s} \Big\rceil + 1\Big) \;=\; O\!\Big(\tfrac{n}{s}\Big)\,P.
+$$
+For our pool ($n = 60$, $w = 15$, $s = 10$, $P = 4$) that is **24** oracle calls — against the
+$\binom{60}{2} = 1770$ comparisons an all-pairs method would make, a structural saving of about $74\times$.
+Pointwise scoring sits between, at $n = 60$ single-document judgments.
+
+<TheoremBlock type="proposition" number={4} title="One pass bubbles the best; passes refine">
+With a *perfect* comparator ($\tau \to 0$), one back-to-front pass places the global best document inside
+the top window $[0, w)$ — the bubble-sort guarantee, since each overlapping window carries the strongest
+remaining document one window-length toward the front. With a *noisy* comparator the guarantee weakens to a
+trend: the seed-averaged top-k recall is monotone in the number of passes, climbing from $0.167$ (the
+scrambled pool) through $0.525,\ 0.758,\ 0.846$ to $0.868$ at four passes, then plateauing. And the slide
+direction matters: one back-to-front pass reaches recall $0.508$ where front-to-back reaches only $0.247$,
+because front-to-back advances a buried document by just one window per pass.
+</TheoremBlock>
+
+<RigorFlag>
+A single pass guarantees the *top-1*, not the full top-k. The comparison-sorting lower bound $\Omega(n\log
+n)$ (Knuth) is the reason: a bounded-window sweep makes $O(n/s)$ comparisons per pass, far fewer than the
+$n\log n$ a correct sort needs, so it cannot be exact in one pass. Recall climbs with passes toward a
+noise-limited plateau and may dip slightly past it as the noisy oracle re-sorts an already-good list —
+which is why we report a seed-averaged curve and never claim per-seed monotonicity.
+</RigorFlag>
+
+## Positional bias: lost in the middle
+
+A real LLM does not attend to its context uniformly. It attends most to the **ends** and least to the
+**middle** — the lost-in-the-middle effect (Liu et al.) we met in the
+[long-context topic](/topics/retrieval-vs-long-context). We import that topic's U-curve verbatim and add it
+to each document's ability as a function of its position in the window: a document near the center of the
+window is perceived as weaker than it is.
+
+The bias **bites**. With a sharp oracle, so that the position effect is isolated from sampling noise,
+recall@10 falls from $0.981$ (the unbiased oracle) to $0.910$ when the dip is on. The fix is the one the
+literature uses: present each window in several *random* orders and aggregate the results. A document at the
+center in one presentation is at an edge in another, so the position-dependent penalty averages to a
+constant across documents and its systematic component cancels — recovering recall to $0.968$, toward but
+not beyond the unbiased ceiling. (Reversing a window does *not* work: the center of a reversed window is
+still its center, so the trough is fixed; random presentations are required.)
+
+<RigorFlag>
+The U-curve is an *empirical* stand-in for trained-transformer behavior (Liu et al.), baked as a
+per-position attention multiplier, not derived from first principles. Its depth is a model parameter; we
+flag it as a knob, not a constant. What is provable is the mechanism: averaging a position-indexed penalty
+over presentations in which each document visits every position flattens that penalty to its mean.
+</RigorFlag>
+
+## Aggregating noisy permutations
+
+A reranker that emits multiple windows, or is sampled multiple times, or is shown the candidates in several
+orders, produces $K$ noisy permutations that must be reconciled into one. This is the **rank-aggregation**
+problem from social choice, and we reuse the [fusion topic's](/topics/rank-fusion-rrf) machinery directly:
+Borda count, reciprocal-rank fusion, and the **Kemeny median** — the permutation minimizing total
+Kendall-$\tau$ disagreement, which is NP-hard.
+
+The elegant aggregator is the one Dwork, Kumar, Naor, and Sivakumar built for the web: a **Markov chain**.
+
+<TheoremBlock type="theorem" number={5} title="Aggregation as a comparison random walk">
+Build a random walk over the candidates: from document $i$, step to a uniformly chosen document $j$ if the
+*majority* of the $K$ ballots rank $j$ above $i$, and otherwise stay. With a small restart probability the
+chain is ergodic, and its **stationary distribution** scores the documents — a candidate beaten by many
+others is rarely visited, a candidate that beats many is visited often. Ranking by stationary mass gives a
+consensus that approximates the Kemeny median in polynomial time. On a six-document subset its Kendall-cost
+ratio to the brute-force optimum is $1.00$, against $1.03$ for Borda and RRF.
+</TheoremBlock>
+
+Why aggregate at all? Because $K$ noisy ballots concentrate on the truth. The per-document averaged rank is
+a sample mean, so its standard deviation shrinks at the central-limit rate $1/\sqrt{K}$ — in our run the
+quantity $\mathrm{std}\cdot\sqrt{K}$ stays near-constant across $K$. The consequence is that the consensus
+Kendall-$\tau$ to $\pi^\*$ falls monotonically: from about $29.5$ discordant pairs at $K=1$ down through
+$15.3,\ 9.9,\ 6.4$ to $3.2$ at $K=32$, for all three aggregators.
+
+<TheoremBlock type="remark" number={6} title="K = 1 is the single ballot">
+Borda and RRF return the lone permutation unchanged when $K = 1$ — a single voter's consensus is its own
+ballot — so the aggregation curve begins exactly at the un-aggregated reranker and improves from there. The
+Markov chain is the one exception: with a single ballot its walk is absorbed at that ballot's top document,
+so its $K = 1$ behavior is degenerate; we anchor it instead to the Kemeny approximation and the monotone
+$\tau$-decrease.
+</TheoremBlock>
+
+## Distilling the permutation oracle
+
+The teacher is expensive: at $O(n/s)$ windowed calls per query, each call an autoregressive generation over
+$w$ documents, it cannot run at retrieval scale. The fix that made open listwise reranking practical —
+RankVicuna, RankZephyr — is **distillation**: train a cheap student to imitate the teacher's permutations.
+
+Our student is a linear listwise scorer, fit by the imported ListMLE solve to the teacher's *emitted*
+orders in place of the ideal $\pi^\*$. This gives a clean collapse anchor.
+
+<TheoremBlock type="proposition" number={7} title="A perfect teacher's student is the predecessor's fit">
+A perfect teacher ($\tau \to 0$) emits $\pi^\*$ for every query, and the listwise fit to $\pi^\*$ *is* the
+predecessor's `fit_listmle`. Therefore the distilled student of a noiseless LLM teacher equals
+`fit_listmle` byte-for-byte — the distilled student of a perfect permutation oracle is exactly the listwise
+scorer we started from. A noisy teacher's student degrades gracefully but still beats the best single leg,
+and — the payoff — it answers at **zero** inference LLM calls, the teacher's cost having been paid once,
+offline. Pricing the windowed teacher call an order of magnitude above a precomputed-embedding lookup, the
+student's query-time speedup is about $6000\times$.
+</TheoremBlock>
+
+This is the honest reading of "the LLM is a heuristic, not a loss." The teacher does not descend an
+objective when it emits a permutation per query; the Plackett–Luce loss enters only when we *train the
+student* on the teacher's outputs. The objective lives in the distillation, not in the inference.
+
+## The cost–quality frontier
+
+<FinanceCaseStudy>
+A production financial reranker fuses a lexical signal over filings, a dense signal over earnings-call
+transcripts, and a late-interaction signal over news — the same three-leg substrate throughout this track.
+Putting six rerankers on one shared pool, with cost measured in **LLM calls per query** (the cross-encoder
+is the unit a windowed call is priced against, not a competitor here), traces a clean Pareto frontier. The
+two no-LLM baselines anchor the cheap end: the best single leg reaches NDCG@10 $0.689$ and reciprocal-rank
+fusion $0.732$, both at zero LLM calls. The **distilled student** dominates them at the same zero cost,
+$0.769$. The LLM rerankers climb the quality axis at rising cost: the **sliding window** reaches $0.865$ at
+$24$ calls, **pointwise** $0.868$ at $60$, and the **all-pairs** method $0.944$ at $1770$ — the quality
+ceiling, because it aggregates the most comparisons, at the highest price.
+</FinanceCaseStudy>
+
+The frontier is the systems verdict, and it is structural rather than statistical. The sliding window
+reaches within a confidence interval of the all-pairs ceiling at a $74\times$ saving in calls; the distilled
+student buys most of the no-LLM ceiling's improvement at zero inference cost. These are the seed-free wins —
+the $O(n/s)$ call-count law, the $1/\sqrt{K}$ aggregation rate, the distillation speedup — and they hold
+regardless of the seed. The *quality* deltas among the methods, by contrast, sit inside the confidence
+interval on this forgiving corpus, exactly as the predecessor warned, and we do not over-read them.
+
+## Where this points
+
+This is the **terminal node** of the ranking-fusion learning-to-rank sub-track. With it the track is
+complete: pointwise and pairwise reductions, LambdaRank and the listwise objectives, the cross-encoder
+cascade, and now the LLM reranker that emits a permutation directly. There is no further topic in this
+sub-track to point to.
+
+The thread that carries forward is one of honesty about objectives. An autoregressive permutation model,
+like LambdaRank before it, descends *no scalar loss* at inference — it is a heuristic ordering procedure,
+and the Plackett–Luce loss enters only when we distill it into a student. The reader who wants to keep
+pulling that thread can return to the [evaluation layer](/topics/set-metrics-precision-recall-map-mrr),
+where a metric is an estimator with a confidence interval, and ask the question this topic has been quietly
+answering all along: when the seed-free wins are structural and the quality deltas sit inside the interval,
+which differences are real?
+
+<RigorFlag>
+Three honesty checks close the topic. The LLM is a *simulated* noisy permutation oracle — no real model is
+called, so every quality figure is a controlled stand-in and "the LLM is most accurate" is out of scope.
+The provable content is algorithmic: the call-count law $P\cdot(\lceil (n-w)/s\rceil + 1)$, the bubble-sort
+bubbling and its $\Omega(n\log n)$ floor, the presentation-averaging that flattens the positional bias, the
+$1/\sqrt{K}$ concentration of $K$ ballots, and the byte-for-byte collapse of a perfect teacher's student to
+the predecessor's fit. And the seed-free wins are structural — the costs and the rates — not the aggregate
+scores, which sit inside the confidence interval.
+</RigorFlag>
