@@ -266,8 +266,7 @@ This is the reason the field exists. A metric whose gradient is zero almost ever
 descent direction; you cannot follow it downhill. So learning to rank optimizes a **surrogate** — a
 smooth loss whose minimization *tends to* improve the metric — and RankNet's pairwise logistic is the
 canonical choice. Panel B makes the contrast visible. As the weights morph from the weakest single leg
-toward the learned combiner, NDCG climbs as a *staircase* — flat stretches punctuated by jumps, taking
-only a handful of distinct values from $0.514$ up to $0.767$ — while the pairwise loss we actually
+toward the learned combiner, NDCG climbs as a *staircase* — flat stretches punctuated by jumps, from $0.514$ up to $0.767$ — while the pairwise loss we actually
 optimize falls *smoothly* the whole way. The metric is the thing we want; the surrogate is the thing we
 can descend.
 
@@ -299,8 +298,8 @@ query — order-irrelevant, but useful to least squares for fitting each query's
 exactly zero in the pairwise gradient because every within-query difference of a constant vanishes.
 Least squares therefore spends the second feature on calibration and picks the magnitude-favored sign on
 the first, mis-ordering query 2; RankNet ignores the second feature and picks the count-favored sign,
-ordering both queries better. The numbers: pointwise mean-squared error $0.80$ versus pairwise $1.21$,
-yet pointwise NDCG $0.715$ versus pairwise $0.815$. The pointwise model is the *global* MSE minimizer —
+fixing query 2 at the cost of query 1 and winning on the mean. The numbers: pointwise mean-squared error $0.80$ versus pairwise $1.21$,
+yet pointwise mean NDCG $0.715$ versus pairwise $0.815$. The pointwise model is the *global* MSE minimizer —
 so its MSE is unbeatable — and it still ranks worse. $\square$
 </TheoremBlock>
 

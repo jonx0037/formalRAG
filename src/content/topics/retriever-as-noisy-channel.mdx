@@ -1,6 +1,7 @@
 ---
 title: "The Retriever as a Noisy Channel: Recall, Precision, and Information Limits"
 subtitle: "Read the retriever as a communication channel: a query enters, a context comes back, a generator decodes an answer. A recall failure ERASES the relevant filing, so the bits delivered fall exactly as recall × I(A;D|Q) — the capacity of a binary erasure channel — and Fano's inequality turns the residual entropy H(A|Q,D) into a floor on the answer error that no generator beats. A precision failure SUBSTITUTES a plausible distractor, and the generator answers confidently wrong while that same entropy floor sees nothing. Recall sets the floor; precision governs whether you hit it."
+rigorFlag: "Fano's inequality bounds the model's BAYES answer error, not the realized error — the gap between the two is the calibration story, so the floor is a property of the channel's residual entropy rather than a guarantee about any single generator. The answer model is a synthetic von Mises–Fisher softmax stand-in (exact for the model, illustrative of a real decoder), and on this deliberately easy corpus recall@k saturates, so the precision panel measures confident contamination as bits rather than a rising error curve."
 status: "published"
 difficulty: "advanced"
 prerequisites:
@@ -215,7 +216,7 @@ below this floor.
 The loose form on the right makes the structure visible. The floor is **vacuous while $H(A\mid Q,D) < 1$
 bit**: a channel that leaves less than one bit of uncertainty permits, in principle, a perfect decoder. As
 recall falls and the residual climbs past one bit, the floor lifts off zero and rises — on this corpus the
-crossover is at $\mathrm{recall} \approx 0.92$, after which the floor climbs to $0.67$ at full erasure, where
+crossover is at $\mathrm{recall} \approx 0.94$, after which the floor climbs to $0.67$ at full erasure, where
 the generator can do no better than guess. Panel B draws all of it: the residual entropy rising, the Fano
 floor (loose and tight) lifting off at the one-bit line, and the model's Bayes error sitting above the floor
 at every operating point, exactly as the theorem requires (<code>test_fano_is_a_theorem</code>). This is the

@@ -416,7 +416,7 @@ export default memo(function SetMetricsLaboratory() {
       {panel === 'estimator' && <EstimatorPanel n={n} setN={setN} />}
       <p style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: '0.7rem', lineHeight: 1.45 }}>
         {N_DOCS} synthetic finance documents, {N_QUERIES} queries; relevance is the top-{R_SIZE} exact-MaxSim
-        neighbour set (a neutral oracle). Numbers mirror <code>set_metrics_precision_recall_map_mrr.py</code>; the lab
+        neighbor set (a neutral oracle). Numbers mirror <code>set_metrics_precision_recall_map_mrr.py</code>; the lab
         recomputes precision, recall, the PR/AP area, the mean, and the CI in closed form.
       </p>
     </div>

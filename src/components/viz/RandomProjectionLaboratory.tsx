@@ -47,8 +47,6 @@ const HIST: number[][] = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19, 304, 3033, 14821, 34372, 40031, 23173, 7352, 1447, 182, 15, 1, 0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// jl_min_dim(n=500, eps): the guaranteed target dimension (all pairs, worst case)
-const THRESHOLD: [number, number][] = [[0.1, 5327], [0.15, 2456], [0.2, 1435], [0.3, 691], [0.5, 299]];
 // distortion std at k=64 for each family (test_projection_families_agree)
 const FAMILY_STD: [string, number][] = [['Gaussian', 0.154], ['Rademacher', 0.1658], ['Sparse ±1/0', 0.1622]];
 

@@ -37,12 +37,10 @@ const BRIDGE_DOT_ANSWER = 0.725;     // the mention the bridge carries
 const REFORMULATED_DOT_ANSWER = 0.981; // after reformulation the answer is reachable
 const RECALL_SINGLE_HOP = 0.0;
 const RECALL_MULTI_HOP = 1.0;
-const RECALL_1HOP_CONTROL = 1.0;
 const GRAPH_DIST_ANSWER = 2;
 
 // Panel B — compounding recall + FKG + over-fetch
-const DEMO_R1 = 0.6, DEMO_R2 = 0.5;
-const CHAIN_SUCCESS = 0.3;           // = R1·R2
+const CHAIN_SUCCESS = 0.3;           // = 0.6·0.5 (illustrative per-hop retentions)
 const OVER_FETCH = 3.333;            // = 1/(R1·R2)
 const FKG_SWEEP = [
   { rho: -0.6, Rtrue: 0.198, Rindep: 0.3, gap: -0.102 },
@@ -57,7 +55,6 @@ const FKG_SWEEP = [
 // Panel C — the worked 3-hop trajectory (bridge, bridge, answer) + adaptive stopping
 const TRAJ3_RESID = [0.543, 0.589, 0.397];          // > REFORM_EPS until the terminal hop
 const TRAJ3_KL_MOVES = [0.13, 8.015, 7.709];        // bridge hops small, answer hop large
-const TRAJ3_MASS_ON_TRUTH = [0.002, 0.0, 0.005, 0.998]; // belief: ~0 until the answer hop
 const HOPS_BY_CLASS: Record<string, number> = { '1-hop': 1, '2-hop': 2, '3-hop': 3 };
 
 // Panel D — the supermodular synergy

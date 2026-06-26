@@ -56,7 +56,7 @@ const BUDGET_TRADE = [
 const TRUE_MAXSIM = 2.5;
 
 // Panel C: the cascade frontier on the 16-D corpus, one shared truth. cost = distance comps / query.
-const N_DOCS = 120, NLIST = 32, TOPK = 10, M_Q = 4, M_D = 8;
+const TOPK = 10;
 const BRUTE = { recall: 1.0, cost: 3840.0 };
 const CENTROID_ONLY = { recall: 0.78, cost: 128.0 };
 const KNEE_KEEP = 40;

@@ -85,7 +85,7 @@ The catch is in the assumption. We rarely have real relevance judgments at query
 
 <QueryExpansionFeedbackLab client:visible />
 
-The laboratory above runs RM3 over a worked corpus for the query *rate guidance*. Two of the four relevant documents are synonym-only — they say *outlook* and *forecast*, never "guidance" — so the no-feedback ranking misses them and recall@4 is only $0.5$. Slide the feedback size to one or two documents and the relevance model adds *outlook* and *forecast*, the synonym filings surface, and recall reaches $1.0$. Keep sliding: off-topic feedback documents add *segment* and *budget*, the query drifts, and a relevant document drops back out.
+The laboratory above runs RM3 over a worked corpus for the query *rate guidance*. Two of the four relevant documents are synonym-only — they say *outlook* and *forecast*, never "guidance" — so the no-feedback ranking misses them and recall@4 is only $0.5$. Slide the feedback size to one or two documents and the relevance model adds *outlook* and *forecast*, the synonym filings surface, and recall reaches $1.0$. Keep sliding: off-topic feedback documents add *budget* and *costs*, the query drifts, and a relevant document drops back out.
 
 ### What we cover
 
@@ -198,7 +198,7 @@ Everything above assumed the feedback documents are relevant. Pseudo-relevance f
 
 Pseudo-relevance feedback is effective on average but carries three honest qualifications:
 
-1. **The relevance assumption is often false.** PRF treats the top-k retrieved documents as relevant. When one is not — a *tax rate* filing surfacing for an interest-*rate* query — its terms enter the relevance model and the query **drifts** toward them. The notebook makes this concrete: recall@4 climbs from $0.5$ to $1.0$ with one or two feedback documents, then falls back toward $0.5$ as the feedback set grows to include off-topic documents whose terms (*segment*, *budget*) crowd out the bridging ones.
+1. **The relevance assumption is often false.** PRF treats the top-k retrieved documents as relevant. When one is not — a *tax rate* filing surfacing for an interest-*rate* query — its terms enter the relevance model and the query **drifts** toward them. The notebook makes this concrete: recall@4 climbs from $0.5$ to $1.0$ with one or two feedback documents, then falls back toward $0.5$ as the feedback set grows to include off-topic documents whose terms (*budget*, *costs*) crowd out the bridging ones.
 2. **No per-query guarantee.** PRF improves *mean* effectiveness across queries while hurting some individual queries outright. There is no theorem that it never lowers recall for a given query — and the drift curve shows it plainly does.
 3. **The parameters are tuned.** Rocchio's $\alpha, \beta, \gamma$, RM3's $\alpha$, the number of feedback documents, and the number of expansion terms are all set empirically; the smoothing used in the re-ranking must itself be scaled to document length. None of them are derived from first principles.
 

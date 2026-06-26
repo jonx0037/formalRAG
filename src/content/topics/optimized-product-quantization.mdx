@@ -227,7 +227,7 @@ $$
 \mathbb{E}_q\big[\, w(\langle q, x \rangle)\,\langle q,\, x - \tilde x \rangle^2 \,\big] \;=\; h_\parallel\,\lVert r_\parallel \rVert^2 \;+\; h_\perp\,\lVert r_\perp \rVert^2,
 $$
 
-and for any weight $w$ that is zero on negative scores and non-decreasing on positive ones, $h_\parallel \ge h_\perp$. For the threshold weight $w(t) = \mathbf{1}[t \ge T]$, the ratio $\eta = h_\parallel / h_\perp$ grows with dimension and, in the large-$d$ limit,
+and for any weight $w$ that is zero on negative scores and non-decreasing on positive ones, $h_\parallel \ge h_\perp$. For the threshold weight $w(t) = \mathbf{1}[t \ge T]$, the ratio $\eta = h_\parallel / h_\perp$ grows with dimension and, for $T$ bounded away from $0$, has the large-$d$ form
 
 $$
 \eta \;\approx\; (d-1)\,\frac{(T/\lVert x \rVert)^2}{1 - (T/\lVert x \rVert)^2} .
@@ -235,7 +235,7 @@ $$
 
 </TheoremBlock>
 
-The ratio $\eta \ge 1$ is the entire content of the result: the parallel error is penalized at least as heavily as the orthogonal error, and strictly more as the score threshold $T$ rises. At $T = 0$ every query counts equally, $\eta = 1$, and the loss collapses back to ordinary reconstruction. As $T \to \lVert x \rVert$ only near-perfectly-aligned queries count and $\eta \to \infty$, penalizing only the parallel error. So the score-aware quantizer minimizes
+The ratio $\eta \ge 1$ is the entire content of the result: the parallel error is penalized at least as heavily as the orthogonal error, and strictly more as the score threshold $T$ rises. At $T = 0$ every query counts equally and the exact ratio is $\eta = 1$ — the isotropic endpoint that the displayed large-$d$ form, which tracks only how $\eta$ grows as $T$ rises, does not itself capture — and the loss collapses back to ordinary reconstruction. As $T \to \lVert x \rVert$ only near-perfectly-aligned queries count and $\eta \to \infty$, penalizing only the parallel error. So the score-aware quantizer minimizes
 
 $$
 \ell(x, \tilde x, \eta) \;=\; \eta\,\lVert r_\parallel \rVert^2 \;+\; \lVert r_\perp \rVert^2, \qquad \eta \ge 1,

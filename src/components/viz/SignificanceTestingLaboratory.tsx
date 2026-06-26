@@ -486,7 +486,7 @@ function DriftPanel({ knob, setKnob }: { knob: number; setKnob: (v: number) => v
         KS p {fmt(NULL_KS_P, 2)}). The subtle cases: a <strong>silent decay</strong> at σ = {SILENT.sigma} the aggregate
         two-CI read calls a tie is caught by the <strong>paired</strong> test (p = {fmtP(SILENT.pairedP)}); and a pure{' '}
         <strong>covariate shift</strong> fires the input PSI ({fmt(IN_OUT.inputPsiCov, 2)}) with no quality loss
-        (paired outcome 0), so input drift alone cannot diagnose decay — you need a labelled paired outcome test.
+        (paired outcome 0), so input drift alone cannot diagnose decay — you need a labeled paired outcome test.
       </p>
     </div>
   );

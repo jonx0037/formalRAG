@@ -171,7 +171,7 @@ What the hierarchy buys is a cheaper entry, and the payoff is robust because it 
 
 <TheoremBlock type="proposition" number={3} title="The hierarchy reaches a given recall at lower cost">
 
-On the synthetic cloud of $500$ vectors, HNSW attains recall@10 of $1.0$ at about $92$ distance computations per query, while the flat navigable small-world graph needs about $134$ to reach the same recall. Sweeping the beam width $\mathrm{ef}$, the HNSW frontier sits at or below the flat-graph frontier at every recall level: the upper layers replace a long beam search from a fixed hub with a short descent to a query-adapted entry. Recall is non-decreasing in $\mathrm{ef}$, and at a wide beam both reach the exact answer.
+On the synthetic cloud of $500$ vectors, HNSW reaches recall@10 of $0.9$ at about $92$ distance computations per query, while the flat navigable small-world graph needs about $134$ for the same recall — and at that $92$-computation budget HNSW is in fact already exact, where the flat graph still sits at $0.9975$ and does not reach a full $1.0$ until roughly $184$. Sweeping the beam width $\mathrm{ef}$, the HNSW frontier sits at or below the flat-graph frontier at every recall level: the upper layers replace a long beam search from a fixed hub with a short descent to a query-adapted entry. Recall is non-decreasing in $\mathrm{ef}$, and at a wide beam both reach the exact answer.
 
 </TheoremBlock>
 

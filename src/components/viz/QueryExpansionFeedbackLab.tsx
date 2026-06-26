@@ -6,7 +6,7 @@ import { useState } from 'react';
  *   A. recall@4 vs number of feedback documents — the improve-then-drift curve.
  *   B. the RM1 relevance-model expansion terms and weights at the selected
  *      feedback size, colored by whether they bridge the query (outlook/forecast)
- *      or pollute it (segment/budget/tax) — drift made visible.
+ *      or pollute it (budget/costs/tax) — drift made visible.
  *   C. the re-ranked top-6 with the four relevant documents highlighted.
  *
  * Every number is mirrored to the decimal from pseudo_relevance_feedback.py's
@@ -119,7 +119,7 @@ export default function QueryExpansionFeedbackLab() {
           })}
         </ol>
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.6rem', marginBottom: 0 }}>
-          A little feedback (1–2 docs) adds <em>outlook</em>/<em>forecast</em> and surfaces the synonym filings — recall climbs to 1.0. Push the slider higher and off-topic feedback adds <em>segment</em>/<em>budget</em>, the query drifts, and a relevant document drops out.
+          A little feedback (1–2 docs) adds <em>outlook</em>/<em>forecast</em> and surfaces the synonym filings — recall climbs to 1.0. Push the slider higher and off-topic feedback adds <em>budget</em>/<em>costs</em>, the query drifts, and a relevant document drops out.
         </p>
       </div>
     </div>

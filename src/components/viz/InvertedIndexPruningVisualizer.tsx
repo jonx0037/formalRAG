@@ -107,7 +107,7 @@ const heat = (c: number) => {
   return `color-mix(in srgb, var(--color-accent) ${Math.round((c / max) * 80 + 15)}%, transparent)`;
 };
 
-function MethodTab({ id, label, active, onClick }: { id: Method; label: string; active: boolean; onClick: () => void }) {
+function MethodTab({ label, active, onClick }: { id: Method; label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       role="radio" aria-checked={active} onClick={onClick}

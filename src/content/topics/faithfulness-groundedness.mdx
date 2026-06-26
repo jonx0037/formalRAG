@@ -231,7 +231,7 @@ A heuristic cut gives a frontier but no promise. The promise comes from conforma
 
 <TheoremBlock type="theorem" number={6} title="Conformal risk control bounds the false-claim rate">
 
-Let the per-answer loss be the fixed-denominator false-claim rate $L(\lambda) = \tfrac{1}{k}\#\{\text{retained and unfaithful at cut } \lambda\}$, which is non-increasing in $\lambda$ and bounded in $[0,1]$. The threshold
+Let the per-answer loss be the fixed-denominator false-claim rate $L(\lambda) = \tfrac{1}{k}\#\{\text{retained and unfaithful at cut } \lambda\}$, which is non-increasing in $\lambda$ and bounded above by $B = 1$. Writing $\hat R_n(\lambda)$ for the empirical mean of $L(\lambda)$ over the $n$ calibration answers, the threshold
 
 $$
 \hat\lambda \;=\; \inf\Big\{ \lambda : \tfrac{n}{n+1}\hat R_n(\lambda) + \tfrac{B}{n+1} \le \alpha \Big\}

@@ -301,7 +301,7 @@ function PositionPanel({ pos, setPos }: { pos: number; setPos: (v: number) => vo
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Transformers read the <strong>middle</strong> of a long context at attenuated attention (lost-in-the-middle, Liu et
-        al. 2023). We model that as a U-shaped weight <span style={{ color: FLOOR }}>u(pos)</span> — about{' '}
+        al. 2024). We model that as a U-shaped weight <span style={{ color: FLOOR }}>u(pos)</span> — about{' '}
         {fmt(1 - POS_DIP, 2)} at the center versus 1 at the ends. A relevant passage buried mid-context is read at low weight:
         a <strong>soft erasure</strong> that drops <span style={{ color: NEG }}>answer quality</span> even though the passage
         was retrieved. The U-shape is an <em>empirical</em> property baked in, not derived.
