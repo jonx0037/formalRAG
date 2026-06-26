@@ -137,8 +137,8 @@ the relevance grades come from the same exact-MaxSim oracle the evaluation layer
 ## Three reductions: pointwise, pairwise, listwise
 
 Write the linear scorer as $s_i = \mathbf{w}^\top \mathbf{x}_i$, with feature vector $\mathbf{x}_i$ and
-weight vector $\mathbf{w}$ to be learned. Each document carries a graded relevance label $g_i \in
-\{0,1,2,3\}$. The three reductions differ in the loss they put on $\mathbf{w}$.
+weight vector $\mathbf{w}$ to be learned. Each document carries a graded relevance label
+$g_i \in \{0,1,2,3\}$. The three reductions differ in the loss they put on $\mathbf{w}$.
 
 <TheoremBlock type="definition" number={1} title="The three learning-to-rank reductions">
 Given training documents with features $\mathbf{x}_i$ and grades $g_i$, grouped by query:

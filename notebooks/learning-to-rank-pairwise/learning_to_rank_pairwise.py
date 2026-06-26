@@ -589,9 +589,10 @@ def test_ranknet_translation_invariant() -> None:
     deltas = within_query_pairs(c["feats"][q], c["y"][q])
     s = score_docs(c, q, w)
     base = ranknet_loss(w, deltas)
-    # the loss uses only differences, so a constant shift of the scores cannot change it
-    shifted_deltas = (c["feats"][q][np.where(c["y"][q][:, None] > c["y"][q][None, :])[0]]
-                      - c["feats"][q][np.where(c["y"][q][:, None] > c["y"][q][None, :])[1]])
+    # adding a constant vector to EVERY document's features cancels in the pairwise differences
+    # x_i - x_j, so the loss must be unchanged — the genuine translation-invariance check.
+    shifted_feats = c["feats"][q] + 1.234
+    shifted_deltas = within_query_pairs(shifted_feats, c["y"][q])
     assert np.allclose(ranknet_loss(w, shifted_deltas), base, atol=1e-12)
     order_a = np.argsort(-s, kind="stable")
     order_b = np.argsort(-(s + 3.14159), kind="stable")
