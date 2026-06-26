@@ -189,7 +189,7 @@
     {
       "id": "learning-to-rank-pairwise",
       "label": "Learning to Rank: Pointwise, Pairwise, and RankNet",
-      "status": "planned",
+      "status": "published",
       "domain": "ranking-fusion"
     },
     {

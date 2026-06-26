@@ -1020,6 +1020,61 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   PROSE. Refs verified (`curl`): Liang et al. "Mind the Gap" NeurIPS 2022 arXiv 2203.02053; Wang–Isola ICML 2020
   arXiv 2005.10242 (reused); CLIP Radford et al. ICML 2021 arXiv 2103.00020; DPR `10.18653/v1/2020.emnlp-main.550`
   (reused); CPC arXiv 1807.03748 (reused).
+- **`learning-to-rank-pairwise`** (the ROOT of the ranking-fusion learning-to-rank sub-track; `domain:
+  ranking-fusion`, `pipelineStage: fuse`): ship = node `planned→published` + MDX `status: published` + drop
+  the title from `curriculum.ts` **tracks[6]** (`ranking-fusion`) `planned[]` — it leaves **TWO** (LambdaRank,
+  RankGPT), NOT empty; NO edge changes (both inbound edges + the outbound→lambdarank pre-exist). Frontmatter
+  `prerequisites` = the TWO graph edges `[probability-ranking-principle, set-metrics-precision-recall-map-mrr]`
+  (the two-edge rule — **NOT** ndcg, which is a `connections[]` sibling import). Name forward topics
+  LambdaRank/LambdaMART, ListNet, RankGPT (`llm-listwise-rerankers`) in PROSE only (unbuilt → `pnpm validate`
+  ERRORS on them in `connections[]`). **SUBSTRATE (the load-bearing decision): the set-metrics legs are a
+  QUALITY LADDER (late-interaction ≈ the oracle) where learned fusion is structurally vacuous** — so IMPORT the
+  **capstone** complementary-view corpus instead (`capstone_corpus`; the legs read disjoint token windows, so a
+  learned weighting has headroom: build-and-run best-leg 0.547 < RRF 0.580 < best-linear 0.620). Capstone is a
+  sibling numeric import, NOT a prereq (import-graph≠DAG, the multi-hop precedent). Feature = the three legs'
+  per-(q,d) SCORES (zero-fill BM25's omitted docs — the SPLADE gotcha), **standardized per query** (incompatible
+  scales; the `platt_scale` `sd==0→1` guard); grades re-derived by the ndcg tertile recipe on the capstone
+  oracle (`{grade≥1}≡truth_sets[q]` the nesting anchor). Train 24/test 16 by a seeded query split. **Math:**
+  RankNet `P(i≻j)=σ(s_i−s_j)`, pairwise cross-entropy = neg-log-likelihood; **convex for the LINEAR scorer**
+  (softplus∘linear → PSD Hessian) so L-BFGS-B reaches the global optimum, **no SGD** (the cross-encoders
+  random-ReLU / retrieval-distillation closed-form precedent); gradient factorizes `∇L=Σλ_i x_i`, `λ_{ij}=
+  −σ(−(s_i−s_j))` (the LambdaRank bridge, prose only). **THE BACKBONE THEOREM:** NDCG/MAP are
+  piecewise-constant in the scores (zero gradient a.e., jumps at swaps) → can't be gradient-optimized → the
+  pairwise logistic is a SMOOTH SURROGATE (the load-bearing rigorFlag: minimizing it ≠ minimizing the metric,
+  the consistency gap LambdaRank's ΔNDCG reweighting closes; convex only for linear). **H1 build-and-run TRAP
+  (ranking≠regression): the calibrated-MSE inequality is DEGENERATE in 1-D** — any nonzero-slope direction
+  affine-recalibrates to the same line, so MSE_pairwise==MSE_pointwise EXACTLY (the first witness was vacuous).
+  Need **≥2 features**: 2 queries whose magnitude-vs-pair-count tension flips the order-feature's best sign,
+  PLUS a query-LEVEL constant feature — order-irrelevant within a query (so the pairwise gradient along it is
+  EXACTLY 0; least squares spends it on calibration). Pointwise MSE 0.80 < pairwise 1.21 yet NDCG 0.715 < 0.815
+  (always holds, the asserted anchor); on the REAL corpus pointwise≈pairwise (0.768 vs 0.767, no flip) → demote
+  to a reported observation (the retrieval-distillation "in-sample closed-form can't show generalization"
+  precedent). **H2 (finance, pin to the run):** learned recall 0.637 > RRF 0.619 > best leg 0.588 (beats every
+  leg + RRF), but the +0.019 over RRF is WITHIN the CI (se 0.040) → honest claim "matches RRF, clearly beats any
+  single leg", never "always beats RRF". Learn curve: n=1 shaky (0.581, BELOW RRF), overtakes by n=2, plateaus
+  (a 3-feature linear ranker is data-efficient — start the curve at n=1 to show the climb). **Panel B sweep from
+  the WEAKEST leg's direction → the learned combiner** (a rising NDCG staircase); the pointwise→pairwise sweep is
+  FLAT (they're tied on this corpus). **Surrogate stepwise-vs-smooth assert must be SCALE-FREE** (the loss sums
+  over ~1000 pairs → an absolute 2nd-difference bound is fragile): NDCG flat on >80% of steps + change
+  concentrated in a few jumps (`max-jump/total-variation > 0.2`); loss changes on every step + spread evenly
+  (`max-step/TV < 0.1`). `check_grad` bar is **1e-4** not 1e-5 (√eps step on a ~1000-pair loss lands ~1.3e-5).
+  Collapse/twin anchors: `pointwise_solve`==normal-equations <1e-9; one-feature RankNet==the imported leg
+  argsort (w>0); `Σλ_i x_i`==`ranknet_grad` <1e-9; perfect ranking → AP==1 & NDCG==1 (the meaningful
+  metric anchor — a `avg_precision(r)==avg_precision(r)` tautology is a gemini-flagged vacuous twin); two x0 →
+  same w* (convex). **JS `toFixed` gotcha for the viz↔prose invariant:** `(0.6375).toFixed(3)="0.637"` (rounds
+  DOWN) but `(0.5875).toFixed(3)="0.588"` (rounds UP) — match MDX prose to the VIZ DISPLAY, not mathematical
+  round-half-up (a `0.638`→`0.637` prose fix). Gemini-class self-review caught before push: guard
+  `WORKED_GRADE.indexOf(3)` against −1; precompute `within_query_pairs` blocks ONCE for the learn-curve prefix
+  loop (don't recompute per `ntr`); `pick_worked_query` accepts the already-fitted weights. Cross-site (all
+  `ls`/`curl`-verified): `formalstatisticsPrereqs` maximum-likelihood (RankNet = pairwise logistic-regression
+  MLE); `formalstatisticsConnections` exponential-families (Bernoulli/logit canonical family); `formalmlConnections`
+  kl-divergence (cross-entropy = KL) + generalization-bounds (surrogate-vs-true + train-vs-test) + vc-dimension
+  (pairwise = binary preference classification); `formalcalculusConnections` convex-optimization + mean-value-taylor
+  (Newton = 2nd-order Taylor; the FD check = MVT). formalML has NO learning-to-rank/MLE/exp-family slug → name
+  RankNet/LambdaRank/MLE in prose. Refs verified (`curl -sI` + CSL): RankNet Burges et al. ICML 2005
+  `10.1145/1102351.1102363`; Liu FnTIR 2009 `10.1561/1500000016`; ListNet Cao et al. ICML 2007
+  `10.1145/1273496.1273513`; Li synthesis-lecture `10.1007/978-3-031-02155-8` (the old `10.2200/...` 301-redirects
+  to it); Burges 2010 "From RankNet to LambdaRank to LambdaMART" MSR-TR-2010-82 (url, no DOI).
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
