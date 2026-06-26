@@ -58,7 +58,6 @@ const SEEDS: Seed[] = [
 ];
 
 // --- baked from finance_rate_distortion() : 256-d synthetic finance codebook ----------
-const FINANCE_D0 = 17247.0;
 const FINANCE_RAW_BITS = 8192; // 256 float32 dimensions
 const FINANCE_RD = [
   { k: 2, bits: 1, norm: 0.7127, recall: 0.000 },

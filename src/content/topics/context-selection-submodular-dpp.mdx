@@ -435,7 +435,9 @@ $$
 
 The quantity $c - b^\top M^{-1} b$ is the Schur complement of $M$ — in the Gaussian-process reading where
 $L$ is a covariance, it is the *posterior variance* of feature $e$ after conditioning on the features in
-$S$. The $+I$ shift makes $M \succeq I$, so $b^\top M^{-1} b \le b^\top b \le L_{ee} = c - 1$ and the
+$S$. The $+I$ shift is what makes this clean: the full block matrix is $I + L_{S \cup \{e\}} \succeq I$, so
+its inverse is $\preceq I$. The Schur complement $c - b^\top M^{-1} b$ is the reciprocal of the $(e,e)$
+diagonal entry of that inverse, and since every diagonal entry of a matrix $\preceq I$ is at most $1$, the
 Schur complement is $\ge 1$; hence $\Delta_F(e \mid S) \ge 0$ and $F$ is monotone. For submodularity, the
 Schur complement is *nonincreasing* under additional conditioning — conditioning on more elements can only
 reduce posterior variance (the "information never hurts" fact for Gaussians, the Loewner-order monotonicity

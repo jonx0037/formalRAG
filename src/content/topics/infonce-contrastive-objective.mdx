@@ -201,7 +201,7 @@ The third reading is the most operational, and the cleanest to prove. It explain
 
 <TheoremBlock type="theorem" number={3} title="The InfoNCE gradient is a softmax-weighted repulsion">
 
-Write $p_i = \operatorname{softmax}(s/\tau)_i$ for the softmax weight of candidate $i$. The gradient of the single-positive loss with respect to the scores is
+Write $s_i = \langle \hat q, \hat d_i\rangle$ for the bare cosine logit of candidate $i$ — here, unlike Definition 1's temperature-scaled $s$, we differentiate with respect to the pre-temperature score — and $p_i = \operatorname{softmax}(s/\tau)_i$ for its softmax weight. The gradient of the single-positive loss with respect to these cosine logits is
 
 $$
 \frac{\partial \mathcal{L}}{\partial s^+} = -\frac{1 - p^+}{\tau}, \qquad

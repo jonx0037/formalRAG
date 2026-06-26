@@ -100,7 +100,6 @@ export default function ExchangeArgumentLaboratory() {
     g.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5));
     g.append('text').attr('x', W / 2).attr('y', H - 4).attr('text-anchor', 'middle').attr('font-size', 11).text('cutoff  k');
 
-    const ks = d3.range(1, N + 1);
     const lineGen = (data: number[]) =>
       d3.line<number>().x((_, i) => x(i + 1)).y((v) => y(v))(data) as string;
 

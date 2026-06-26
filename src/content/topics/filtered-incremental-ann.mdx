@@ -175,7 +175,7 @@ That last sentence is the honest heart of Movement 2. Percolation gives a clean 
 
 Now the unification pays off. A query predicate — "only documents of this type," "only filings after this date" — partitions the index into passing and failing nodes *for this query*. Failing nodes are tombstones that exist only for the duration of the search: keep them as routing waypoints, drop them from results. Everything from Movement 1 transfers, starting with the law itself.
 
-<TheoremBlock type="theorem" number={2} title="The post-filter over-fetch law and the recall cliff">
+<TheoremBlock type="theorem" number={3} title="The post-filter over-fetch law and the recall cliff">
 
 Let a predicate have **selectivity** $s$ — a fraction $s$ of nodes pass — and let passing be independent of position in the ranked stream. Post-filtering (search normally, then drop failing results) must scan, in expectation,
 

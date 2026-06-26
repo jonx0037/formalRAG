@@ -58,8 +58,9 @@ from bm25 import build_inverted_index, bm25_rank, ndcg_at_k, tokenize  # noqa: E
 #   Each leg alone strands one qrel-3 disclosure at #3 (NDCG 0.98); RRF, which rewards
 #   documents ranked decently by BOTH, recovers the ideal order with both prizes on
 #   top (NDCG 1.0) -> hybrid beats either leg. A bonus contrast for the rigor section:
-#   `filing-hedging` is every leg's #2, so the OPTIMAL Kemeny consensus elevates it to
-#   #1 -- yet the RRF heuristic ranks it only #3, a concrete case of RRF != consensus.
+#   `filing-hedging` is every leg's #2; the Kemeny optimum is a 6-way tie at cost 3 (one tie
+#   elevates it to #1), and RRF's own order is itself one of those optima -- so RRF is *a* Kemeny
+#   consensus here, differing only in which co-optimal tie it selects (test_kemeny_optimum_nonunique).
 # --------------------------------------------------------------------------- #
 _FILLER = ("management discussion covered operations segment guidance headcount capex "
            "logistics demand pricing momentum outlook regions inventory supply chain")
@@ -368,6 +369,23 @@ def test_hybrid_beats_either_leg() -> None:
     print(f"  [ok] hybrid wins: NDCG RRF={n_rrf:.3f} > lexical={n_lex:.3f}, dense={n_den:.3f}")
 
 
+def test_kemeny_optimum_nonunique() -> None:
+    """The finance Kemeny optimum is a 6-way tie at cost 3, and RRF's own order is one of them — so
+    RRF is *a* Kemeny consensus here, not a worse approximation of a unique one (the rigor-flag claim,
+    made precise: the difference from the tie that elevates the unanimous-#2 is only the tie-break)."""
+    _, _, lex_order, den_order = _legs()
+    lists = [lex_order, den_order]
+    items = sorted({d for r in lists for d in r})
+    costs = [(list(p), kemeny_cost(list(p), lists)) for p in itertools.permutations(items)]
+    best = min(c for _, c in costs)
+    optima = [p for p, c in costs if c == best]
+    rrf = rrf_fuse(lists)
+    assert best == 3, f"Kemeny min cost {best} != 3"
+    assert len(optima) == 6, f"expected 6 co-optimal Kemeny orderings, got {len(optima)}"
+    assert rrf in optima, "RRF ordering is not itself Kemeny-optimal"
+    print(f"  [ok] Kemeny optimum is a {len(optima)}-way tie at cost {best}; RRF's order is one of them")
+
+
 def finance_demo() -> None:
     lex, den, lex_order, den_order = _legs()
     rrf = rrf_fuse([lex_order, den_order])
@@ -381,8 +399,12 @@ def finance_demo() -> None:
     kem, kem_cost = kemeny_bruteforce([lex_order, den_order])
     print(f"  Kemeny consensus  = {kem}  (total Kendall-tau {kem_cost})")
     print(f"  footrule aggregate = {footrule_aggregate([lex_order, den_order])}")
-    print(f"  -> the Kemeny optimum puts {kem[0]!r} (every leg's #2) first; "
-          f"the RRF heuristic ranks it #{rrf.index(kem[0]) + 1} -- RRF != consensus.")
+    items = sorted({d for r in (lex_order, den_order) for d in r})
+    n_optima = sum(kemeny_cost(list(p), [lex_order, den_order]) == kem_cost
+                   for p in itertools.permutations(items))
+    print(f"  -> the Kemeny optimum is a {n_optima}-way tie at cost {kem_cost}; one tie puts "
+          f"{kem[0]!r} (every leg's #2) first while RRF breaks it differently, yet RRF's own order "
+          f"is itself Kemeny-optimal -- RRF is *a* consensus, not a worse approximation of one.")
     print(f"  Kendall-tau(lexical, dense) = {kendall_tau(lex_order, den_order)} discordant pairs")
 
 
@@ -393,6 +415,7 @@ if __name__ == "__main__":
     test_rrf_to_borda()
     test_footrule_2approx()
     test_hybrid_beats_either_leg()
+    test_kemeny_optimum_nonunique()
     print("Finance demo:")
     finance_demo()
     print("All checks passed.")

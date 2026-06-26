@@ -34,8 +34,6 @@ const FUNNEL_SHORTLIST = [10, 15, 25, 50, 100, 200];
 const FUNNEL_RECALL = [0.9353, 0.9987, 1.0, 1.0, 1.0, 1.0];
 const FUNNEL_COST = [0.0362, 0.0387, 0.0437, 0.0563, 0.0813, 0.1313];
 
-const FINANCE = { dim: 1536, short: 96, recallNested: 0.937, recallRotated: 0.12, funnelRecall: 1.0, funnelCost: 0.088, funnelM: 48 };
-
 type Panel = 'recall' | 'nested' | 'funnel';
 
 const PLOT_W = 540;

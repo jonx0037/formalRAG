@@ -53,7 +53,6 @@ const EDGES_BY_LAYER: [number, number][][] = [
   // L3 (apex node 15 alone, no edges)
   [],
 ];
-const ENTRY = 15;
 const TOP_LEVEL = 3;
 const QUERY: Pt2 = [2.671, 7.191];
 const DESCENT_PATH: [number, number][] = [[3, 15], [2, 15], [1, 17], [0, 3]]; // (layer, node) top-first

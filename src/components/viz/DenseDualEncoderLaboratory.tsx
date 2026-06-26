@@ -37,15 +37,11 @@ const COST_VS_CORPUS = [
   { corpus: 100000, bi_passes: 1, cross_passes: 100000 },
 ];
 const CORPUS_HEADLINE = 21_000_000;
-const EMB_DIM_HEADLINE = 768;
 
 // Panel B: the finance score matrix S = Q P^T (32 queries x 8 company documents, dim 32). Its singular
 // values and the recall@1/recall@3 of the best rank-d dual encoder, measured over all 32 queries.
-const DPR_DIM = 32;
-const N_QUERIES = 32;
 const N_PASSAGES = 8;
 const INTRINSIC_RANK = 8;
-const SINGULAR_VALUES = [4.8565, 3.6269, 2.7845, 1.8407, 0.8633, 0.6188, 0.5457, 0.3357];
 const RANK_RECALL = [
   { d: 1, r1: 0.25, r3: 0.5312, recon_err: 0.723 },
   { d: 2, r1: 0.4375, r3: 1.0, recon_err: 0.5065 },
@@ -70,7 +66,6 @@ const DISPLAY_MATRIX = [
   [0.218, 0.3756, 0.2148, 0.4384, 0.0335, -0.0674, 0.9604, 0.763],
   [0.3949, 0.3857, 0.0322, 0.142, -0.039, -0.0286, 0.7344, 0.9632],
 ];
-const DISPLAY_SECTOR = [0, 0, 1, 1, 2, 2, 3, 3];
 // The thin SVD of DISPLAY_MATRIX, so TS can reconstruct the best rank-d approximation in closed form.
 const DISPLAY_U = [
   [-0.3266, 0.4034, -0.1516, 0.4898, -0.494, 0.2345, -0.3697, 0.1792],
@@ -95,13 +90,6 @@ const DISPLAY_VT = [
 ];
 
 // Panel C: the counting law and the in-batch Gram matrix (= DISPLAY_MATRIX; the batch is the 8 companies).
-const COUNTING = [
-  { B: 2, passes: 4, negatives: 2 },
-  { B: 4, passes: 8, negatives: 12 },
-  { B: 8, passes: 16, negatives: 56 },
-  { B: 16, passes: 32, negatives: 240 },
-  { B: 64, passes: 128, negatives: 4032 },
-];
 const GRAM_TAU = 0.05;
 const INBATCH_LOSS = 0.0045;
 
@@ -109,11 +97,7 @@ const POS_COLOR = '#5fa873';        // the positive — a query's own document
 const ACCENT = 'var(--color-accent)';
 const HARD_COLOR = '#7C3AED';        // same-sector hard negatives / the highlighted row
 const CEIL_COLOR = '#6a8caf';
-const SECTOR_COLORS = ['#5fa873', '#7C3AED', '#c97a30', '#3b7dab'];
 
-// round derived coordinates to a fixed precision so SSR (Node) and client (browser) serialize identical
-// strings — full-precision arithmetic differs in the last ULP across engines and warns on hydrate.
-const r2 = (v: number) => Math.round(v * 100) / 100;
 const clampIdx = (i: number, n: number) => Math.max(0, Math.min(i, n - 1));
 
 // closed-form truncated SVD reconstruction M_d = sum_{k<d} s_k u_k v_k^T from the baked factors.

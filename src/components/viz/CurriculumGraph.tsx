@@ -74,7 +74,6 @@ export default function CurriculumGraph({ nodes, edges }: CurriculumGraphProps) 
     // Read theme colors
     const style = getComputedStyle(document.documentElement);
     const textColor = style.getPropertyValue('--color-text').trim() || '#1A1A1A';
-    const surfaceColor = style.getPropertyValue('--color-surface').trim() || '#FFFFFF';
     const borderColor = style.getPropertyValue('--color-border').trim() || '#E5E5E0';
 
     // Simulation nodes/edges
@@ -188,7 +187,6 @@ export default function CurriculumGraph({ nodes, edges }: CurriculumGraphProps) 
       .style('pointer-events', 'none');
 
     // Hover highlighting
-    const nodeIds = new Set(nodes.map((n) => n.id));
     node
       .on('mouseenter', (_, d) => {
         const neighbors = new Set<string>([d.id]);
@@ -214,8 +212,8 @@ export default function CurriculumGraph({ nodes, edges }: CurriculumGraphProps) 
         window.open(d.url, '_blank', 'noopener,noreferrer');
         return;
       }
-      if (d.status === 'published' && d.url) {
-        window.location.href = d.url;
+      if (d.status === 'published') {
+        window.location.href = d.url ?? `/topics/${d.id}`;
         return;
       }
       const rect = svgRef.current!.getBoundingClientRect();

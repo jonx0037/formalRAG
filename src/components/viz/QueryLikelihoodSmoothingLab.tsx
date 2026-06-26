@@ -32,7 +32,6 @@ import katex from 'katex';
 // share one set of numbers by construction.
 type Doc = { id: string; label: string; dl: number; tf: Record<string, number> };
 const QUERY = ['interest', 'rate', 'exposure'];
-const COLL_LEN = 316;
 const collProb: Record<string, number> = { interest: 0.025316, rate: 0.034810, exposure: 0.018987 };
 const CORPUS: Doc[] = [
   { id: 'filing-onpoint', label: '10-K · net interest margin sensitivity', dl: 15, tf: { interest: 2, rate: 2, exposure: 1 } },

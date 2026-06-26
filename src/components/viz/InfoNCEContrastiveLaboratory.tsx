@@ -32,15 +32,6 @@ import katex from 'katex';
 // hardest first. The gradient weights are the closed form softmax(cos/tau), recomputed in TS.
 const POS_COS = 0.92;
 const NEG_COS = [0.86, 0.71, 0.58, 0.44, 0.31, 0.17, 0.02, -0.15];
-const TAU_GRID = [0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.7, 1.0];
-// Baked top-1 mass and weight entropy of softmax(NEG_COS/tau) — the decimal anchor on the closed form.
-const TEMP_CURVE = [
-  { tau: 0.01, top1: 1.0, entropy: 0.0 }, { tau: 0.02, top1: 0.9994, entropy: 0.0047 },
-  { tau: 0.05, top1: 0.949, entropy: 0.2157 }, { tau: 0.1, top1: 0.7667, entropy: 0.7254 },
-  { tau: 0.2, top1: 0.5106, entropy: 1.355 }, { tau: 0.35, top1: 0.3454, entropy: 1.7469 },
-  { tau: 0.5, top1: 0.2742, entropy: 1.8969 }, { tau: 0.7, top1: 0.2277, entropy: 1.9805 },
-  { tau: 1.0, top1: 0.1943, entropy: 2.0292 },
-];
 // Panel B: the MI lower bound log(N+1) - L on a Gaussian joint with I_true = 2.0 nats, Bayes-optimal
 // critic, against its ceiling log(N+1). The bound is MEASURED (Monte-Carlo) and baked.
 const MI_TARGET_NATS = 2.0;
@@ -52,7 +43,6 @@ const MI_BOUND = [
 ];
 // Panel C: the alignment/uniformity convergence — a random init and the two coincident optima — plus the
 // trained config at each temperature (alignment, uniformity). All MEASURED on a d=3 sphere toy and baked.
-const UNIF_T = 2.0;
 const CONVERGE = [
   { label: 'init', alignment: 1.8921, uniformity: -2.0646, mean_resultant: 0.1637 },
   { label: 'align+unif', alignment: 0.0, uniformity: -2.2377, mean_resultant: 0.0013 },
@@ -69,18 +59,10 @@ const ALIGN_UNIF = [
   { tau: 0.7, kappa_equiv: 1.43, alignment: 0.0, uniformity: -2.207 },
   { tau: 1.0, kappa_equiv: 1.0, alignment: 0.0, uniformity: -2.1821 },
 ];
-// Finance: the same-sector hard-negative share of the gradient at three temperatures (baked, measured).
-const FIN_SHARE = [
-  { tau: 0.05, hard_share: 0.9379, max_hard_weight: 0.7143 },
-  { tau: 0.2, hard_share: 0.5747, max_hard_weight: 0.2646 },
-  { tau: 1.0, hard_share: 0.2767, max_hard_weight: 0.0992 },
-];
-
 const POS_COLOR = '#5fa873';        // the positive — the target to pull toward
 const NEG_COLOR = 'var(--color-accent)';
 const HARD_COLOR = '#7C3AED';        // the hardest negative, highlighted
 const CEIL_COLOR = '#6a8caf';
-const THEORY_COLOR = 'var(--color-text-secondary)';
 
 // round trig-derived coordinates to a fixed precision so SSR (Node) and client (browser) serialize
 // identical strings — full-precision Math.cos/sin differ in the last ULP across engines and warn on hydrate.

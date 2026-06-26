@@ -29,7 +29,6 @@ import katex from 'katex';
 // --- baked from viz_constants() -------------------------------------------------------
 const HYDE_N_DOCS = 8;
 const HYDE_SECTOR = [0, 0, 1, 1, 2, 2, 3, 3];
-const HYDE_THETA_OP = 75;
 
 // Panel A — the query–document gap
 const SHIFT_GRID = [0, 30, 45, 60, 70, 75, 80, 85];                 // θ in degrees

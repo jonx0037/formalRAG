@@ -169,7 +169,7 @@ function ChannelPanel({ recall, setRecall }: { recall: number; setRecall: (v: nu
 }
 
 // ===== Panel B — the recall floor (Fano) ============================================================
-const ACTIVATE_RECALL = 0.9152;   // recall where H(A|Q,D) crosses 1 bit (1 = 0.876r + 3(1−r))
+const ACTIVATE_RECALL = 0.9416;   // recall where H(A|Q,D) crosses 1 bit (1 = 0.876r + 3(1−r))
 function RecallFloorPanel({ recall, setRecall }: { recall: number; setRecall: (v: number) => void }) {
   const W = 520, H = 230, padL = 36, padR = 40, padT = 16, padB = 32;
   // x = recall, drawn 1.0 (left) -> 0.0 (right): degradation goes rightward.

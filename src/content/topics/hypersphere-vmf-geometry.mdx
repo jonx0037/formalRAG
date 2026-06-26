@@ -327,7 +327,7 @@ $$
 
 <TheoremBlock type="proof">
 
-The log-likelihood is $\ell(\mu, \kappa) = n \log C_d(\kappa) + \kappa\,\mu^{\top}R$, subject to $\lVert\mu\rVert = 1$. For fixed $\kappa > 0$, only the term $\kappa\,\mu^{\top}R$ depends on $\mu$, and by the [Cauchy–Schwarz inequality](https://formalcalculus.com/topics/change-of-variables) $\mu^{\top}R \le \lVert\mu\rVert\,\lVert R\rVert = \lVert R\rVert$ with equality exactly when $\mu$ aligns with $R$, so $\hat{\mu} = R/\lVert R\rVert$. Substituting $\hat\mu$ gives $\mu^{\top}R = \lVert R\rVert$, so $\ell$ as a function of $\kappa$ is $n\log C_d(\kappa) + \kappa\lVert R\rVert$. Differentiating and using $\tfrac{d}{d\kappa}\log C_d(\kappa) = -A_d(\kappa)$ from Proposition 2,
+The log-likelihood is $\ell(\mu, \kappa) = n \log C_d(\kappa) + \kappa\,\mu^{\top}R$, subject to $\lVert\mu\rVert = 1$. For fixed $\kappa > 0$, only the term $\kappa\,\mu^{\top}R$ depends on $\mu$, and by the Cauchy–Schwarz inequality $\mu^{\top}R \le \lVert\mu\rVert\,\lVert R\rVert = \lVert R\rVert$ with equality exactly when $\mu$ aligns with $R$, so $\hat{\mu} = R/\lVert R\rVert$. Substituting $\hat\mu$ gives $\mu^{\top}R = \lVert R\rVert$, so $\ell$ as a function of $\kappa$ is $n\log C_d(\kappa) + \kappa\lVert R\rVert$. Differentiating and using $\tfrac{d}{d\kappa}\log C_d(\kappa) = -A_d(\kappa)$ from Proposition 2,
 
 $$
 \frac{\partial \ell}{\partial \kappa} = -n\,A_d(\kappa) + \lVert R\rVert = 0 \;\Longrightarrow\; A_d(\hat\kappa) = \frac{\lVert R\rVert}{n} = \bar{r}.

@@ -234,7 +234,7 @@ The **permutation (randomization) test** uses that under $H_0$ the two systems a
 each query, so each difference is equally likely to be $+d_q$ or $-d_q$. Enumerating (or sampling) the
 $2^Q$ sign vectors $s \in \{\pm 1\}^Q$ gives the null distribution of $\overline{s \odot d}$, and the
 two-sided p-value is the tail mass beyond $|\overline{d}|$. The **paired bootstrap test** resamples
-the $Q$ differences with replacement, recentres to impose $H_0$, and reads the same tail. Neither
+the $Q$ differences with replacement, recenters to impose $H_0$, and reads the same tail. Neither
 assumes normality; the permutation test is *exact* under exchangeability.
 </TheoremBlock>
 
@@ -377,7 +377,7 @@ mix moves from easy to hard, the retriever unchanged — fires the input-distrib
 score PSI is $0.43$, observable without any labels) while the model's quality on a fixed query set is
 *exactly* unchanged (the paired outcome difference is zero). A genuine model decay, by contrast, drops
 the paired outcome ($-0.60$, $p \approx 10^{-21}$). So an input-drift alarm cannot diagnose decay on
-its own; you also need a labelled, paired *outcome* test. Monitor both, and read them together: input
+its own; you also need a labeled, paired *outcome* test. Monitor both, and read them together: input
 moved with outcome flat is data drift; outcome moved is decay.
 
 <RigorFlag>
@@ -397,7 +397,7 @@ The production system this series tracks retrieves over 10-K and 10-Q filing tex
 transcripts, and the three questions here are the three the desk actually faces. *Is the new retriever
 better?* A five-point NDCG gain over forty evaluation queries is not a reason to switch — the paired
 test says lexical and dense are indistinguishable at that gap, and the power calculation says it would
-take on the order of a hundred labelled queries to be sure, so the disciplined answer is a paired
+take on the order of a hundred labeled queries to be sure, so the disciplined answer is a paired
 p-value and a required-n, not a leaderboard delta. *Can we trust the confidence the retriever reports?*
 Only if it is calibrated: a raw top-1 cosine of $0.42$ is meaningless across queries, but a calibrated
 $0.42$ says roughly two in five passages scoring this high are the right disclosure — exactly the
