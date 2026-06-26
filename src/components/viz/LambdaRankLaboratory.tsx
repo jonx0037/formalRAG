@@ -466,7 +466,7 @@ type Panel = 'forces' | 'field' | 'listwise' | 'boost';
 const TEX: Record<Panel, string> = {
   forces: '\\lambda_{ij}=-\\sigma\\!\\big(-(s_i-s_j)\\big)\\,\\big|\\Delta\\mathrm{NDCG}_{ij}\\big|,\\quad \\big|\\Delta\\mathrm{NDCG}_{ij}\\big|=\\frac{|G(g_i)-G(g_j)|\\,|D(r_i)-D(r_j)|}{\\mathrm{IDCG}}',
   field: '\\partial\\lambda_i/\\partial s_j = \\partial\\lambda_j/\\partial s_i\\ \\text{(RankNet, everywhere)};\\qquad \\oint \\boldsymbol{\\lambda}\\cdot d\\mathbf{s}\\neq 0\\ \\text{(LambdaRank)}',
-  listwise: 'L_{\\text{ListMLE}}(s)=-\\log P(\\pi^\\*\\mid s)=\\sum_{r}\\Big[\\operatorname{logsumexp}\\big(s_{\\geq r}\\big)-s_{\\pi^\\*(r)}\\Big]',
+  listwise: 'L_{\\text{ListMLE}}(s)=-\\log P(\\pi^*\\mid s)=\\sum_{r}\\Big[\\operatorname{logsumexp}\\big(s_{\\geq r}\\big)-s_{\\pi^*(r)}\\Big]',
   boost: 'F_T(\\mathbf{x})=\\sum_{t=1}^{T}\\nu\\,h_t(\\mathbf{x}),\\qquad h_t \\leftarrow \\text{tree fit to } -\\lambda^{(t)}',
 };
 
