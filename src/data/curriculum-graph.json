@@ -207,7 +207,7 @@
     {
       "id": "llm-listwise-rerankers",
       "label": "LLM Rerankers: Listwise Permutation Objectives and RankGPT",
-      "status": "planned",
+      "status": "published",
       "domain": "ranking-fusion"
     },
     {

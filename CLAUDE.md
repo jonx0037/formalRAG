@@ -1146,6 +1146,78 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `10.7551/mitpress/7503.003.0029`; LambdaMART Wu–Burges–Svore–Gao Information Retrieval 2010
   `10.1007/s10791-009-9112-1`; Friedman GBM AoS 2001 `10.1214/aos/1013203451`; ListNet Cao et al. ICML 2007
   `10.1145/1273496.1273513`; ListMLE Xia et al. ICML 2008 `10.1145/1390156.1390306`.
+  Its **llm-listwise-reranker terminal successor** (`llm-listwise-rerankers`, the TERMINAL node of the
+  ranking-fusion LTR sub-track — with it `tracks[6].planned[] → []`, the track is COMPLETE): models the LLM
+  reranker as a SIMULATED noisy permutation oracle (NO real LLM call — the load-bearing constraint; every
+  provable claim is ALGORITHMIC, "the LLM is most accurate" is OUT of scope/rigorFlag). ship = node
+  `planned→published` + MDX `status: published` + drop the title from `curriculum.ts` **tracks[6]** `planned[]`
+  (leaves `[]`); NO edge changes (both inbound edges `lambdarank-lambdamart-listwise→` + `cross-encoders-reranking→`
+  pre-exist; terminal node, no outbound — no graph-forward topic to name). Frontmatter `prerequisites` = the
+  TWO inbound edges (two-edge rule; set-metrics/rank-fusion-rrf/retrieval-distillation/retrieval-vs-long-context
+  are `connections[]` siblings). The `.py` IMPORTS lambdarank `_corpus`/`optimal_permutation`/`candidate_set`/
+  `plackett_luce_logprob`/`listmle_loss_scores`/`listmle_loss`/`listmle_grad`/`fit_listmle`/`ranking_from_w`/
+  `mean_recall_over` (+ re-exported `ndcg_at_k`/`recall_at_k`/`metric_summary`), rank-fusion-rrf `rrf_fuse`/
+  `borda`/`kendall_tau`/`kemeny_bruteforce`/`kemeny_cost` (the social-choice machinery WHOLESALE — only MC4 is
+  built fresh), retrieval-vs-long-context `positional_weight`/`POS_DIP`, cross-encoders `C_RETRIEVE`/`C_CE` (cost
+  UNITS only) — import-graph≠DAG. **THE REPRODUCIBILITY FOOTGUN (the build-and-run catch that mattered most):
+  Python `hash()` of strings is RANDOMIZED per process (PYTHONHASHSEED), so `hash(name) % 7919` seeding a baked
+  number silently DRIFTS run-to-run** (sliding NDCG 0.8705→0.8947 across two runs) — never seed with `hash(str)`;
+  use a deterministic `_SEED_TAG` int map. Diff two full runs to PROVE reproducibility before baking. **M1 PL
+  abilities = `−rank_in_π*`, NOT raw oracle_scores** — the order-faithful construction makes the τ→0 Gumbel-max
+  PL sample reproduce `optimal_permutation` byte-for-byte for ANY grade/oracle relationship; BUT on this corpus
+  grades are oracle-tertiles so they COINCIDE (the "−rank differs from oracle" justification is VACUOUS here —
+  build-and-run killed a `differ≥1` assert; reframe as order-faithfulness, not a numeric difference). emitted-NLL
+  == `listmle_loss_scores(abilities/τ, perm)` is the twin. **M2 sliding-window=bubble-sort: the call-count law
+  `P·(⌈(n−w)/s⌉+1)` is the exact systems claim** (24 vs all-pairs C(60,2)=1770, ~74×); ONE perfect back-to-front
+  pass bubbles the global best into the top window (top-1, NOT top-k — Ω(n log n) floor, rigorFlag). **Window
+  OVERLAP `w−s` is the tuning crux: overlap 10 (w=20,s=10) is too powerful (one pass nearly sorts → "passes help"
+  vacuous); no-overlap (w=s) is STUCK (docs can't migrate between windows, 0.34 flat); overlap 5 (w=15,s=10) gives
+  the clean monotone climb** 0.167→0.525→0.758→0.846→0.868. Non-vacuity needs a **seeded-SHUFFLED start** (the
+  candidate_set is gold-first → every reranking headline vacuous otherwise) and a non-saturating metric: a
+  **60-doc pool (10 gold scattered among 50 negs) + recall@10** ranges ~0.17→1.0 (NOT recall@10 over a
+  20-doc/10-gold set, which saturates at 1.0). Direction asymmetry (back-to-front 0.508 > front-to-back 0.247)
+  is provable AND needs the shuffle. Noisy recall is monotone only seed-AVERAGED, never per-seed. **M3 lost-in-the-
+  middle: reversing a window leaves the center FIXED (the center of a reversed list is still its center) → the
+  correction MUST be multiple RANDOM presentations + Borda, not reversal.** The bias is swamped by PL noise at the
+  M2 τ — use a SEPARATE sharp `TAU_BIAS=0.6` to ISOLATE the position effect (a `(TAU_BIAS, gain, npres)` sweep);
+  at τ=1.0 the multi-presentation Borda's AGGREGATION benefit exceeds the bias it corrects so corrected>none (the
+  honesty violation), the sharp TAU_BIAS keeps corrected≤none (0.981→0.910→0.968). **M4 MC4 (Dwork random-walk,
+  the standout up-link): a naive MC4 has an ABSORBING top state at K=1 (mass collapses to the single best doc) →
+  the "K=1==single perm" collapse holds for Borda/RRF ONLY, not MC4** — make MC4 ergodic with a PageRank-style
+  restart (`damp=0.15`) and anchor it to Kemeny-approximation (ratio 1.0) + monotone τ-decrease instead. **The
+  1/√K law lives in the per-doc averaged-RANK std (the CLT, `std·√K`≈const), NOT the τ-to-truth** (which decays
+  FASTER than 1/√K — majority voting per pair is ~exponential; don't overlay a 1/√K curve on the τ chart). **M5
+  distillation: the spec's "perfect-teacher student == retrieval-distillation's DPR optimum" is UNACHIEVABLE
+  (different corpus — DPR 32×8 vs the 3-leg 40×120)** — re-anchor WITHIN-corpus (user-chosen): student = a 3-leg
+  linear ListMLE scorer fit to the teacher's emitted perms via a thin re-expression of `fit_listmle`'s L-BFGS
+  (substituting teacher perms for π*; the ONE place we re-express not import), so a perfect teacher's student ==
+  imported `fit_listmle` byte-for-byte (`fit_listmle` fits to π* by construction); DROP `distill_margin`. Speedup
+  `O(n/s)·C_LLM : C_RETRIEVE` = 6000×; `C_LLM` is a STIPULATED ratio (rigorFlag). **M6 frontier: cross-encoder is
+  the cost UNIT (C_CE), NOT a recall point (cross-corpus = the trap)** — all 6 methods on ONE shared pool, cost =
+  LLM calls/query; recall@10 saturates so report NDCG@10 (allpairs 0.944 ceiling @1770 calls, sliding 0.865 @24,
+  distilled 0.769 @0 inference); pin winner to run (allpairs), seed-free wins are STRUCTURAL (call-count, speedup),
+  deltas inside the CI. **Importing `retrieval_vs_long_context` for `positional_weight` pulls pmi + noisy-channel
+  + the deep chain** (heavy but lazy — no corpus built at import); a `_SEED_TAG` int map + a fresh deterministic
+  reproducibility diff are cheaper than chasing a hash-drift later. Viz (`LLMRerankerLaboratory.tsx`, 4 panels,
+  ALL live-verified via real `browser_press_key`): A call-count law `⌈(n−w)/s⌉·P` live (passes 4→3 → 24→18); B
+  U-curve from POS_DIP live (dip 0.55→0.60 → center 0.450→0.400); C Borda consensus + Kendall-τ live from
+  WORKED_PERMS[:K] (K 8→1 → τ 11→20, the K=1 collapse); D Pareto hull + log/linear cost-axis re-layout live
+  (sliding x 249→48). Dropped baked `BIAS_KERNEL` (the live `posWeight` recompute owns it — the recurring ts6133
+  "baked const the live recompute never reads"). Adversarial `feature-dev:code-reviewer` PRE-PUSH caught 3
+  gemini-class mediums (loop-invariant `oracle_abilities`/`len(perms)/2` hoists, a tautological
+  `distill_speedup()==teacher/student` twin → assert the concrete 6000.0). Refs verified (`curl -sI` + CSL):
+  RankGPT Sun et al. EMNLP 2023 `10.18653/v1/2023.emnlp-main.923` (arXiv 2304.09542); LRL arXiv 2305.02156; PRP
+  Qin et al. Findings-NAACL 2024 `10.18653/v1/2024.findings-naacl.97` (arXiv 2306.17563); Setwise Zhuang et al.
+  SIGIR 2024 `10.1145/3626772.3657813` (arXiv 2310.09497); RankVicuna arXiv 2309.15088; RankZephyr arXiv
+  2312.02724; Dwork-Kumar-Naor-Sivakumar WWW 2001 `10.1145/371920.372165` (reused); Kemeny 1959 Daedalus
+  (pre-DOI, url-less); Lost-in-the-Middle Liu et al. TACL 2024 `10.1162/tacl_a_00638` (reused); Plackett 1975
+  `10.2307/2346567`; Luce 1959 `10.1037/14396-000`; Knuth TAOCP vol 3 (no DOI). Cross-site (all `ls`-verified):
+  `formalstatisticsPrereqs` maximum-likelihood (PL=listwise MLE); `formalstatisticsConnections` exponential-families
+  + **order-statistics-and-quantiles** (top-k = an order statistic, a NEW up-link); `formalmlConnections`
+  **random-walks** (MC4=comparison-walk stationary distribution, the standout) + generalization-bounds +
+  concentration-inequalities (1/√K); `formalcalculusConnections` convex-optimization + stability-dynamics
+  (bubble-sort iteration→fixed-point). formalML has NO LLM/transformer/sorting slug → name RankGPT/sliding-window/
+  Kemeny/bubble-sort in prose.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
