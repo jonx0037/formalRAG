@@ -213,7 +213,7 @@ export const architectures: readonly Architecture[] = [
     name: 'Adaptive RAG',
     industryAliases: ['routing RAG', 'query routing', 'strategy selection'],
     kind: 'architecture',
-    status: 'gap',
+    status: 'shipped',
     flow: 'branch',
     stages: ['select', 'retrieve', 'generate'],
     mechanism:
@@ -223,11 +223,12 @@ export const architectures: readonly Architecture[] = [
     failureMode:
       'Routing is worthless — regardless of how good the classifier is — when the arms’ advantage ordering does not vary across queries. The achievable gain is exactly a Jensen gap between the expected maximum and the maximum expectation, and that gap is zero when one arm is uniformly best. A router tuned and scored on the same queries will also look roughly twice as good as it is.',
     composedOf: [
+      'adaptive-retrieval-routing',
       'selective-generation-abstention',
       'retrieval-vs-long-context',
       'multi-hop-iterative-retrieval',
     ],
-    keystone: null,
+    keystone: 'adaptive-retrieval-routing',
   },
   {
     id: 'reranking',

@@ -641,6 +641,13 @@ def viz_constants() -> None:
 
     print(f"const FIXED_ARM_POINTS = {[[_r(a, 3), _r(b, 4)] for a, b in fixed_arm_points(Qm, costs)]};")
     print(f"const N_QUERIES = {c['n_queries']};  const N_PER_CLASS = {N_PER_CLASS};")
+    # The full per-query quality matrix, so the lab can recompute the Jensen gap LIVE for any
+    # lambda rather than reading a baked curve -- the strongest form of the viz<->python invariant.
+    print("const Q_MATRIX = [" + ", ".join(
+        "[" + ",".join(f"{_r(v, 4)}" for v in row) + "]" for row in Qm) + "];")
+    print(f"const KLASS_OF_QUERY = {[str(k) for k in klass]};")
+    cal_i, test_i = split_indices(c["n_queries"])
+    print(f"const TEST_IDX = {[int(i) for i in test_i]};")
 
     rep_rows = []
     for l in (0.02, 0.05, 0.10, 0.20):
