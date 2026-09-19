@@ -1,0 +1,264 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TopicCard from '../components/ui/TopicCard.astro';
+import { getCollection } from 'astro:content';
+import { architectures, type Architecture } from '../data/architectures';
+import { stages, stageOrder } from '../data/pipeline';
+
+const allTopics = await getCollection('topics');
+const bySlug = new Map(allTopics.map((t) => [t.id, t]));
+
+const difficultyOrder = { foundational: 0, intermediate: 1, advanced: 2 };
+
+// Resolve composedOf slugs to live entries, ordered by difficulty so the
+// foundational topic leads. A slug with no MDX is dropped rather than rendered
+// as an empty card; the build-time check below turns that into a loud failure.
+function resolve(a: Architecture) {
+  const found = a.composedOf.map((s) => bySlug.get(s)).filter((t) => t !== undefined);
+  return found.sort(
+    (x, y) => difficultyOrder[x.data.difficulty] - difficultyOrder[y.data.difficulty],
+  );
+}
+
+const missing = architectures.flatMap((a) =>
+  a.composedOf.filter((s) => !bySlug.has(s)).map((s) => `${a.id} -> ${s}`),
+);
+if (missing.length > 0) {
+  throw new Error(`architectures.ts references topics with no MDX: ${missing.join(', ')}`);
+}
+
+const groups = [
+  {
+    kind: 'architecture' as const,
+    title: 'The architectures',
+    blurb:
+      'Each of these changes the structure of the system: how many times retrieval fires, what the retrieval unit is, or what a document is in the index. They are not interchangeable, and none of them dominates.',
+  },
+  {
+    kind: 'operator' as const,
+    title: 'Operators, not architectures',
+    blurb:
+      'This bolts onto any pattern above without changing its topology. It is worth separating out, because most of what gets marketed as "Advanced RAG" is this — a maturity level rather than a design.',
+  },
+  {
+    kind: 'contrast' as const,
+    title: 'The contrast class',
+    blurb:
+      'Not retrieval at all. It belongs here because it is the baseline every architecture above has to beat in order to justify its own complexity.',
+  },
+];
+
+const flowNote: Record<Architecture['flow'], string> = {
+  linear: 'Retrieval fires once; stages run in order.',
+  cycle: 'A stage sends control backwards — the number of retrievals depends on the data.',
+  branch: 'A decision picks among alternative paths before committing the effort.',
+};
+
+const statusBadge: Record<Architecture['status'], { label: string; cls: string }> = {
+  shipped: {
+    label: 'One topic is this',
+    cls: 'bg-[var(--color-badge-green-bg)] text-[var(--color-badge-green-text)]',
+  },
+  composed: {
+    label: 'Composed from several',
+    cls: 'bg-[var(--color-badge-blue-bg)] text-[var(--color-badge-blue-text)]',
+  },
+  gap: {
+    label: 'Gap — not yet built',
+    cls: 'bg-[var(--color-badge-amber-bg)] text-[var(--color-badge-amber-text)]',
+  },
+};
+---
+
+<BaseLayout
+  title="RAG Architectures"
+  description="The named RAG architectures, mapped onto the mathematics that constitutes them — and the condition under which each one fails."
+>
+  <section class="mx-auto max-w-5xl px-6 py-12">
+    <h1 class="text-3xl font-semibold font-[family-name:var(--font-sans)] mb-2">RAG Architectures</h1>
+    <p class="text-[var(--color-text-secondary)] mb-6 max-w-2xl leading-relaxed">
+      The popular cheat sheets present these as a flat list of parallel systems. They are not —
+      and the flattening is why the same system keeps appearing under several names.
+    </p>
+
+    <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 mb-12 max-w-3xl">
+      <h2 class="text-sm font-semibold font-[family-name:var(--font-sans)] uppercase tracking-wider text-[var(--color-text-secondary)] mb-3">
+        Three axes, not one list
+      </h2>
+      <dl class="space-y-2 text-sm leading-relaxed">
+        <div class="flex gap-3">
+          <dt class="font-medium min-w-[9rem] flex-shrink-0">Control flow</dt>
+          <dd class="text-[var(--color-text-secondary)]">How many times retrieval fires, and what decides.</dd>
+        </div>
+        <div class="flex gap-3">
+          <dt class="font-medium min-w-[9rem] flex-shrink-0">Index structure</dt>
+          <dd class="text-[var(--color-text-secondary)]">What the retrieval unit is — a flat chunk, an entity graph, a summary.</dd>
+        </div>
+        <div class="flex gap-3">
+          <dt class="font-medium min-w-[9rem] flex-shrink-0">Representation</dt>
+          <dd class="text-[var(--color-text-secondary)]">What a document is in the index — one vector, many, or an image.</dd>
+        </div>
+      </dl>
+      <p class="mt-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+        Read along those axes, most of the catalogue collapses. Below, each architecture is given
+        the mathematics that constitutes it, the condition under which it wins, and — the part the
+        cheat sheets leave out — the condition under which it provably fails.
+      </p>
+    </div>
+
+    {/* The stage band legend */}
+    <div class="mb-12">
+      <h2 class="text-lg font-semibold font-[family-name:var(--font-sans)] mb-1">The eight stages</h2>
+      <p class="text-sm text-[var(--color-text-secondary)] mb-4 max-w-2xl leading-relaxed">
+        Every system below is a path through these. The architectures differ by a handful of edges
+        over one shared skeleton.
+      </p>
+      <ol class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {stages.map((s, i) => (
+          <li class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+            <div class="flex items-baseline gap-2">
+              <span class="font-[family-name:var(--font-mono)] text-xs text-[var(--color-text-secondary)]">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span class="font-medium font-[family-name:var(--font-sans)] text-sm">{s.label}</span>
+            </div>
+            <p class="mt-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">{s.blurb}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    {groups.map((group) => {
+      const items = architectures.filter((a) => a.kind === group.kind);
+      if (items.length === 0) return null;
+      return (
+        <div class="mb-16">
+          <h2 class="text-2xl font-bold font-[family-name:var(--font-sans)] tracking-tight mb-2 border-t border-[var(--color-border)] pt-8">
+            {group.title}
+          </h2>
+          <p class="text-sm text-[var(--color-text-secondary)] mb-8 max-w-2xl leading-relaxed">
+            {group.blurb}
+          </p>
+
+          <div class="space-y-14">
+            {items.map((a) => {
+              const touched = new Set(a.stages);
+              const topics = resolve(a);
+              const badge = statusBadge[a.status];
+              const reduced = a.reducesTo
+                ? architectures.find((x) => x.id === a.reducesTo)
+                : undefined;
+              return (
+                <article id={a.id} class="scroll-mt-24">
+                  <div class="flex flex-wrap items-baseline gap-3 mb-1">
+                    <h3 class="text-xl font-semibold font-[family-name:var(--font-sans)]">{a.name}</h3>
+                    <span class={`text-xs font-medium font-[family-name:var(--font-sans)] px-2 py-0.5 rounded-full ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                  <p class="text-xs text-[var(--color-text-secondary)] mb-4 font-[family-name:var(--font-mono)]">
+                    also called {a.industryAliases.join(' · ')}
+                  </p>
+
+                  {reduced && (
+                    <p class="mb-4 text-sm leading-relaxed rounded-lg border border-[var(--color-muted-border)] bg-[var(--color-muted-bg)] px-4 py-3">
+                      <strong class="font-medium">Same mechanism as {reduced.name}.</strong>{' '}
+                      The legs differ; the topology does not. It is listed separately because the
+                      name is used separately, not because it is a distinct design.
+                    </p>
+                  )}
+
+                  {/* Stage band with this architecture's path highlighted */}
+                  <div class="mb-4">
+                    <ol class="flex flex-wrap gap-1.5" aria-label={`Stages used by ${a.name}`}>
+                      {stages.map((s) => {
+                        const on = touched.has(s.id);
+                        return (
+                          <li
+                            class:list={[
+                              'rounded px-2.5 py-1 text-xs font-[family-name:var(--font-mono)] border',
+                              on
+                                ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-medium'
+                                : 'border-[var(--color-border)] text-[var(--color-disabled-text)]',
+                            ]}
+                          >
+                            {s.label}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    <p class="mt-2 text-xs text-[var(--color-text-secondary)]">
+                      <span class="font-[family-name:var(--font-mono)]">
+                        {a.stages.map((s) => s).join(' → ')}
+                      </span>
+                      {' — '}
+                      {flowNote[a.flow]}
+                    </p>
+                  </div>
+
+                  <dl class="space-y-3 mb-5 max-w-3xl">
+                    <div>
+                      <dt class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] font-[family-name:var(--font-sans)]">Mechanism</dt>
+                      <dd class="mt-1 text-sm leading-relaxed">{a.mechanism}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] font-[family-name:var(--font-sans)]">Wins when</dt>
+                      <dd class="mt-1 text-sm leading-relaxed">{a.winCondition}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] font-[family-name:var(--font-sans)]">Fails when</dt>
+                      <dd class="mt-1 text-sm leading-relaxed">{a.failureMode}</dd>
+                    </div>
+                  </dl>
+
+                  {a.status === 'gap' && (
+                    <p class="mb-5 text-sm leading-relaxed rounded-lg border border-[var(--color-badge-amber-bg)] bg-[var(--color-badge-amber-bg)]/30 px-4 py-3 max-w-3xl">
+                      Every arm this router would choose between is published below. The router
+                      itself is not — it is the one genuine gap this map turned up, and it is being
+                      built rather than quietly omitted.
+                    </p>
+                  )}
+
+                  {topics.length > 0 && (
+                    <>
+                      <h4 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] font-[family-name:var(--font-sans)] mb-3">
+                        The mathematics it rests on
+                      </h4>
+                      <div class="grid gap-4 sm:grid-cols-2">
+                        {topics.map((t) => (
+                          <TopicCard
+                            id={t.id}
+                            title={t.data.title}
+                            subtitle={t.data.subtitle}
+                            abstract={t.data.abstract}
+                            difficulty={t.data.difficulty}
+                            domain={t.data.domain}
+                            prerequisiteCount={t.data.prerequisites.length}
+                            showStartHere={t.id === a.keystone}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      );
+    })}
+
+    <div class="mt-4 border-t border-[var(--color-border)] pt-8">
+      <h2 class="text-lg font-semibold font-[family-name:var(--font-sans)] mb-2">What this map leaves out</h2>
+      <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-2xl">
+        Roughly half the published topics are not named above. Approximate nearest-neighbor index
+        structures, vector quantization, embedding geometry, and the evaluation machinery underpin
+        every architecture here without being any one of them — which is why they are organized by
+        the mathematics instead, on the{' '}
+        <a href="/paths" class="text-[var(--color-accent)] hover:underline">curriculum roadmap</a>.
+        A comparison that measured these architectures against each other, rather than describing
+        them, would need all of it.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

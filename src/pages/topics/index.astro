@@ -18,15 +18,19 @@ const domains = [...new Set(publishedTopics.map((t) => t.data.domain))].sort();
       Browse all published topics in the mathematics of retrieval-augmented generation.
     </p>
 
-    <!-- Domain filters (static, no JS needed) -->
+    <!-- Domain chips. Each jumps to that track's section on /paths, which
+         already emits an id={domain} anchor per track. -->
     <div class="mb-8 flex flex-wrap gap-2">
-      <a href="/topics" class="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-[family-name:var(--font-sans)] hover:bg-[var(--color-muted-bg)]">
-        All
+      <a href="/architectures" class="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-[family-name:var(--font-sans)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)]/40">
+        By architecture &rarr;
       </a>
       {domains.map((domain) => (
-        <span class="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-[family-name:var(--font-sans)] capitalize text-[var(--color-text-secondary)]">
+        <a
+          href={`/paths#${domain}`}
+          class="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-[family-name:var(--font-sans)] capitalize text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)]/40"
+        >
           {domain}
-        </span>
+        </a>
       ))}
     </div>
 
