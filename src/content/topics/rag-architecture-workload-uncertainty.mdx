@@ -1,0 +1,272 @@
+---
+title: "The Workload You Do Not Know: Choosing an Architecture from an Estimate"
+subtitle: "The previous topic read the architecture off a partition of the workload simplex and treated the workload as given — it is estimated, and a partition is exactly the structure that punishes estimation error hardest where it is hardest to avoid"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "rag-architecture-pareto"
+tags:
+  - "rag-architectures"
+  - "decision-theory"
+  - "minimax-regret"
+  - "shrinkage"
+  - "dirichlet-posterior"
+  - "estimation-error"
+domain: "rag-information-theory"
+pipelineStage: "select"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "One result here is an identity and survives any corpus: utility is linear in the workload, so the expected utility of an arm over any posterior equals its utility at the posterior mean — exactly. That demotes the Bayes rule from a third rule to the plug-in rule at a shrunk estimate, and it is what makes the whole simulation affordable. Everything else is a measurement on a synthetic corpus inherited unchanged from two predecessor topics, and the decimals describe this arm set and no other. Three choices are modeling decisions rather than discoveries and each changes the numbers: the prior is Dirichlet with alpha = 1, which is what defines 'the middle of the simplex' that the hedge shrinks toward; worst-case regret is a 0.95 quantile rather than a maximum, because a maximum over draws grows with the draw count and cannot be baked at all; and the price and amortization horizon are pinned at the predecessor's headline values, so every cell boundary here is the boundary at THOSE prices. The utility table's own coordinates carry a sampling error of roughly 0.11 from twenty queries per class, so boundary locations are soft: the topic asserts that a boundary exists and that behavior differs sharply across it, never where it sits to three decimals. Finally, the regret decay approaches a 1/sqrt(n) law from above rather than obeying it, and is reported that way."
+videoId: null
+notebookPath: "notebooks/rag-architecture-workload-uncertainty/01_rag_architecture_workload_uncertainty.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/rag-architecture-workload-uncertainty.mdx"
+datePublished: 2026-09-20
+estimatedReadTime: 21
+abstract: "The previous topic ended with a partition: fix the price and the deployment size, look up your workload mixture on the simplex, and read off the architecture. It treated the mixture as known. You do not know it — you estimate it from traffic, and a partition is precisely the structure that turns a small estimation error into a completely different recommendation, because the map from workload to architecture is piecewise constant. Estimation error is therefore free in the interior of a cell and maximally expensive at a boundary. Three decision rules are compared, and one of them turns out not to be a rule at all: because utility is linear in the workload, expected utility over any posterior equals utility at the posterior mean, so the Bayes rule is the plug-in rule applied to a shrunk estimate and nothing more. That leaves the genuine contrast, between committing to the estimate and hedging against what it might be hiding. The hedge is not a safe default — deep inside a cell it is that cell's own arm — and it is not free either: it is a bet that the traffic is more central than the data says, and the bet loses, by more than it wins elsewhere, when the truth sits in a narrow cell just past a boundary."
+connections:
+  - topic: "rag-architecture-mechanisms"
+    relationship: "Supplies, through the import chain, the entire measurement this topic reasons about: six architectures, five local query classes and a global regime, with quality and both costs for each pairing. Nothing here re-measures any of it. What this topic adds is that the query-class mixture — which that topic fixed by construction, twenty queries per class — is in a deployment an unknown quantity estimated from traffic."
+  - topic: "adaptive-retrieval-routing"
+    relationship: "The sharpest contrast in the arc, because both topics reason under uncertainty and about completely different things. That topic is uncertain about WHICH QUERY it is looking at and chooses a strategy per query, so its uncertainty is resolved query by query and never accumulates. This one is uncertain about WHAT THE TRAFFIC IS and commits to a single architecture for all of it, so its uncertainty is a property of the deployment rather than of any request — and it shrinks only with observed volume."
+  - topic: "significance-testing-calibration"
+    relationship: "Establishes the estimators-have-error discipline this topic applies one level up. There the quantity with a standard error was a retrieval metric; here it is the workload mixture itself, and the consequence is worse than a wide interval, because the decision that consumes the estimate is discontinuous. A confidence interval on a continuous quantity degrades gracefully; one that straddles a cell boundary does not degrade at all, it flips."
+  - topic: "selective-generation-abstention"
+    relationship: "The nearest decision-theoretic sibling, and a useful contrast in what is being hedged. Chow's rule trades an error rate against an abstention rate for a single answer under a calibrated posterior; the minimax rule here trades regret across a whole deployment under a posterior on the workload. Both are arg-min problems over a loss the model does not get to see directly, and both are only as good as the distribution they average or maximize over."
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "Its water-filling allocation assumed a known workload exactly as the pareto topic did, and the same caveat applies one level down: an allocation tuned to a measured traffic mixture inherits that mixture's estimation error. The lesson transfers in shape rather than in decimals — a budget split that is optimal at the estimate can be far from optimal at the truth when the optimum sits near a kink."
+references:
+  - type: "book"
+    title: "Statistical Decision Theory and Bayesian Analysis"
+    authors: "James O. Berger"
+    year: 1985
+    url: "https://doi.org/10.1007/978-1-4757-4286-2"
+    note: "The canonical treatment of minimax, Bayes and minimax-regret rules, and of when a hedge is worth its premium."
+  - type: "paper"
+    title: "Statistical Decision Functions Which Minimize the Maximum Risk"
+    authors: "Abraham Wald"
+    year: 1945
+    url: "https://doi.org/10.2307/1969022"
+    note: "The origin of the minimax criterion this topic's third rule instantiates."
+  - type: "book"
+    title: "Theory of Games and Statistical Decisions"
+    authors: "David Blackwell, M. A. Girshick"
+    year: 1954
+    url: "https://archive.org/details/theoryofgamessta0000blac"
+    note: "Regret as the object a hedge is built on, rather than loss."
+  - type: "paper"
+    title: "Savage Revisited"
+    authors: "Glenn Shafer"
+    year: 1986
+    url: "https://doi.org/10.1214/ss/1177013426"
+    note: "On minimax regret's origin in Savage's minimax-loss criterion, and on what the criterion does and does not justify."
+  - type: "book"
+    title: "Multicriteria Optimization"
+    authors: "Matthias Ehrgott"
+    year: 2005
+    url: "https://doi.org/10.1007/3-540-27659-9"
+    note: "Carried over from the predecessor: the partition of the parameter space whose boundaries this topic's estimation error has to cross."
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "The workload mixture is a point estimate with a sampling distribution, and every property that topic develops — bias, variance, consistency — is what determines whether the architecture chosen from it is the architecture you would have chosen from the truth. The wrinkle this topic adds is that the estimate is consumed by a discontinuous decision rule, so the usual comfort that an estimator is consistent buys much less than it normally does."
+  - topic: "bayesian-foundations-and-prior-selection"
+    site: "formalstatistics"
+    relationship: "The Dirichlet posterior over the workload, and the reason the prior is load-bearing rather than a formality: alpha = 1 defines where 'the middle of the simplex' is, and the middle of the simplex is precisely what both the Bayes rule and the hedge shrink toward. A different prior moves the hedge, which is why the topic reports the prior as a modeling choice rather than burying it."
+formalstatisticsConnections:
+  - topic: "hierarchical-bayes-and-partial-pooling"
+    site: "formalstatistics"
+    relationship: "Shrinkage toward a common center is exactly the mechanism at work here, and the accounting is the same: pooling helps when the truth really is near the center and costs you when it is not. What this topic adds is a decision rule downstream of the shrinkage that is discontinuous, so the usual smooth bias-variance trade becomes a question of which side of a boundary the shrunk estimate lands on."
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "A credible region on the simplex is the object the hedge maximizes regret over, and its width in the direction that matters — perpendicular to the nearest cell boundary — is the entire content of 'how much traffic is enough'. The duality with testing is the useful framing: the question is whether the region can be separated from the boundary, not how large it is overall."
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "Asking whether your workload is on one side of a boundary is a testing problem, and it inherits the usual difficulty: near the boundary the two hypotheses are nearly indistinguishable, so no amount of traffic separates them quickly. That is the statistical statement of this topic's central measurement, which is that the data requirement explodes exactly where the decision is most delicate."
+formalmlConnections:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "How fast the empirical mixture concentrates on the truth is what makes the data requirement finite at all, and the multinomial rate is what the observed decay of worst-case regret is a picture of. The honest note is that the decay here approaches a 1/sqrt(n) law from above rather than obeying it at the scales simulated, so the topic asserts monotone decrease and a tail band rather than the rate."
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "Utility is affine in the workload, which is the fact the whole topic turns on twice: it collapses expected utility over a posterior to utility at the posterior mean, and it turns the maximum over a credible region into a linear program over a simplex. The minimax-regret rule is then an inner maximization of a convex piecewise-linear function followed by an outer minimization, which is the standard shape that topic's duality machinery describes."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import WorkloadUncertaintyLaboratory from '../../components/viz/WorkloadUncertaintyLaboratory.tsx';
+
+## A lookup table with a missing input
+
+The previous topic ended with something that looks like an answer. Fix the price of a generator
+call and the size of the deployment, locate your workload mixture $w$ on the simplex, and read off
+the architecture that the cell you landed in recommends. The map $w \mapsto \hat a(w)$ partitions
+the simplex; you look yourself up.
+
+Except that you do not know $w$. You estimate it — from a sample of traffic, from a week of logs,
+from an intuition about what users will ask — and the estimate $\hat w$ carries error like any
+other. The obvious question is how much that error matters.
+
+The obvious answer would be "a little, and less as you collect more data". It is the right answer
+in the interior of a cell and badly wrong near a boundary, for a structural reason:
+
+<TheoremBlock type="remark" title="A partition is the worst possible consumer of an estimate">
+
+The map from workload to architecture is **piecewise constant**. A piecewise constant function is
+maximally insensitive to its input almost everywhere and maximally sensitive on a measure-zero
+set, and there is no in-between. So estimation error is *free* in the interior of a cell — the
+recommendation does not move at all, however wrong you were — and at a boundary an arbitrarily
+small error flips it outright.
+
+Neither half of that is what "the estimate has error" usually implies, and the second half is why
+a Pareto verdict cannot simply be annotated with an error bar.
+
+</TheoremBlock>
+
+## Three rules, and one of them is not a rule
+
+Write $\pi$ for a posterior over $w$ given $n$ observed queries: with a Dirichlet prior it is
+$\mathrm{Dir}(n\hat w + \alpha)$, and $n$ is what concentrates it. Three ways to choose an
+architecture from it:
+
+$$
+\hat a_{\text{plug}} = \arg\max_a U(a, \hat w), \qquad
+\hat a_{\text{Bayes}} = \arg\max_a \mathbb{E}_{\pi}[U(a, w)], \qquad
+\hat a_{\text{mm}} = \arg\min_a \max_{w} \big[ U(a^\ast(w), w) - U(a, w) \big].
+$$
+
+The first pretends the estimate is the truth. The second averages over what it does not know. The
+third minimizes the worst regret it could come to feel — the amount by which the arm it picked
+trails whichever arm turns out to have been right.
+
+That looks like three genuinely different ideas. It is two:
+
+<TheoremBlock type="proposition" number={1} title="The Bayes rule is the plug-in rule at a shrunk estimate">
+
+Utility is affine in the workload — each arm's quality and both its costs are averages over
+question kinds, weighted by $w$. Therefore, for any posterior $\pi$ whatsoever,
+
+$$
+\mathbb{E}_{\pi}\big[ U(a, w) \big] = U\big(a, \mathbb{E}_{\pi}[w] \big),
+$$
+
+with no approximation. The Bayes rule is the plug-in rule evaluated at the posterior mean, and for
+a Dirichlet posterior that mean is available in closed form:
+
+$$
+\mathbb{E}_\pi[w] = \frac{n \hat w + \alpha}{n + C\alpha},
+$$
+
+which is $\hat w$ shrunk toward the prior with weight $C\alpha/(n + C\alpha)$.
+
+</TheoremBlock>
+
+So the entire difference between plug-in and Bayes is a shrinkage that vanishes like $1/n$. Both
+are *point* rules: they collapse the posterior to a single workload and look it up. Only the
+minimax rule uses the shape of the posterior rather than its location, and it is the only one of
+the three with no closed form.
+
+That asymmetry is worth holding onto, because it reappears as an engineering fact. In the
+laboratory below, the plug-in and Bayes rules are recomputed live and exactly in the browser,
+while the hedge is read from a precomputed grid — not an implementation compromise, but
+Proposition 1 showing up in the software.
+
+<WorkloadUncertaintyLaboratory client:visible />
+
+## The hedge is not a safe default
+
+A natural suspicion about minimax rules is that they retreat to something bland — the option that
+is never terrible, chosen forever. Measured, that is not what happens here. Deep inside a cell the
+minimax arm *is* that cell's arm: on bridge-heavy traffic it is the iterative architecture, on
+global-heavy traffic the graph one, and those are different arms. The hedge tracks where the
+posterior sits.
+
+It departs from the plug-in rule in a narrow band around a boundary, and over workloads drawn
+without regard to where the boundaries are — which is the situation a deployment is actually in —
+the two rules differ on 7.67% of them.
+
+## How much traffic is enough
+
+The natural question, once the estimate is admitted to be an estimate, is how much traffic settles
+it. The measurement is a sharp two-regime answer.
+
+Inside a cell, almost none: the rules agree from n = 10 when the truth sits inside a cell, because
+the recommendation is simply not sensitive to where in the cell you are. On a boundary the same
+question is still paying at n = 5120 — about five hundred times as much traffic for a decision
+between two arms that are, at that point, nearly tied in value.
+
+The worst-case regret itself decays monotonically with $n$, and it is tempting to write down the
+$1/\sqrt n$ law that the multinomial rate would suggest. The halving ratios measured here are
+$0.98, 0.84, 0.88, 0.74, 0.77, 0.75, 0.72, 0.72, 0.69$ against the $0.707$ such a law implies:
+they approach it from above rather than sitting on it. What the topic asserts is the monotone
+decay and the tail, not the rate.
+
+<TheoremBlock type="remark" title="Why a maximum could not be used">
+
+Worst-case regret is reported as the $0.95$ quantile of the regret distribution over 2000 draws,
+not as a maximum over them. A maximum is an extreme statistic whose value *grows with the number
+of draws* — run the simulation longer and the "worst case" gets worse, without anything about the
+problem having changed. Nothing computed that way can be baked into a figure or compared across
+runs. A quantile estimates a fixed property of the distribution instead, and a test pins its
+stability across seeds before any number here is quoted.
+
+</TheoremBlock>
+
+## What the hedge costs
+
+Hedging is usually discussed as though its only cost were a little foregone upside. Here the
+accounting is measurable, and it is less comfortable than that.
+
+Both the Bayes rule and the hedge shrink toward the middle of the simplex. That is not a neutral
+act — it is a **bet that the traffic is more central than the data says**. Below the boundary the
+bet pays handsomely: the plug-in rule's realized regret is several times the hedge's, because the
+plug-in rule keeps being fooled by samples that stray across the boundary. Above it, where the
+truth genuinely sits in a narrow cell, the plug-in rule was correctly confident all along and the
+hedge drags it back out of the cell it was right about.
+
+And the loss on that side is *larger* than the gain on the other. A hedge here is a trade, not
+insurance bought at a discount, and which way it goes depends on something you cannot observe:
+whether your true workload is nearer the middle of the simplex than your estimate suggests.
+
+<FinanceCaseStudy title="A week of logs, and a decision that does not wait" modality={["text", "pdf", "news"]}>
+
+The practical version: you are choosing one retrieval stack for a filings assistant, and what you
+have is a week of queries — a few hundred, unevenly distributed, from an early cohort that is not
+quite the eventual user base.
+
+If that sample puts you clearly inside one cell, the decision is easy and no amount of extra data
+would change it; collect no more, and commit. If it puts you near a boundary, the uncomfortable
+finding is that a week is not the problem and a year would not obviously fix it — the traffic
+would have to grow by two or three orders of magnitude before the estimate separated the two
+candidate architectures.
+
+The useful move there is not more data. It is to notice that being near a boundary means the two
+architectures are nearly tied in value, and to choose on something the model never saw: which one
+is easier to operate, which one degrades more gracefully if the mixture drifts, which one your
+team can debug at two in the morning.
+
+</FinanceCaseStudy>
+
+<RigorFlag>
+
+One result here is an identity and survives any corpus: utility is affine in the workload, so
+expected utility over any posterior equals utility at the posterior mean — exactly. That is what
+demotes the Bayes rule to the plug-in rule at a shrunk estimate, and it is also what makes the
+simulation affordable, since it collapses two thousand posterior draws into one matrix product.
+
+Everything else is a measurement on a synthetic corpus inherited unchanged from two predecessors,
+and the decimals describe this arm set and no other. Three modeling choices change the numbers
+and are stated rather than buried: the prior is Dirichlet with $\alpha = 1$, which is what defines
+the "middle of the simplex" the hedge shrinks toward; worst-case regret is a quantile rather than
+a maximum, for the reason given above; and the price and deployment size are pinned at the
+predecessor's headline values, so every boundary here is a boundary *at those prices*.
+
+The inherited utility table carries a sampling error of roughly 0.11 per coordinate, from twenty
+queries per class. Boundary locations are therefore soft, and the topic asserts that a boundary
+exists and that behavior differs sharply across it — never where it sits to three decimals.
+
+</RigorFlag>

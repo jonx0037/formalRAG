@@ -317,6 +317,12 @@
       "label": "The Architecture Pareto Frontier: What \"Which One Should We Use?\" Actually Depends On",
       "status": "published",
       "domain": "rag-information-theory"
+    },
+    {
+      "id": "rag-architecture-workload-uncertainty",
+      "label": "The Workload You Do Not Know: Choosing an Architecture from an Estimate",
+      "status": "published",
+      "domain": "rag-information-theory"
     }
   ],
   "edges": [
@@ -659,6 +665,10 @@
     {
       "source": "rag-architecture-mechanisms",
       "target": "rag-architecture-pareto"
+    },
+    {
+      "source": "rag-architecture-pareto",
+      "target": "rag-architecture-workload-uncertainty"
     }
   ]
 }
