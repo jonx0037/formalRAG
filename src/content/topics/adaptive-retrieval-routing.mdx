@@ -1,0 +1,257 @@
+---
+title: "Adaptive Retrieval Routing: Choosing a Strategy per Query"
+subtitle: "The published gate decided whether to answer; this one decides how hard to try — a router over retrieval strategies whose optimum is Chow's rule with more than two actions, whose achievable region is a convex hull, and whose entire possible gain is a Jensen gap that vanishes exactly when the strategies never change places"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "selective-generation-abstention"
+  - "retrieval-vs-long-context"
+tags:
+  - "adaptive-rag"
+  - "query-routing"
+  - "chow-rule"
+  - "jensen-gap"
+  - "cost-quality-frontier"
+  - "decision-theory"
+  - "selective-prediction"
+domain: "generation-grounding"
+pipelineStage: "select"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "Three results here are theorems and one is an observation, and the difference matters. THEOREM: the K-action rule is the pointwise minimizer of the expected loss, and at K=2 it reduces exactly — verified to floating point across four cost ratios — to the published Chow gate. THEOREM: the achievable cost–quality region is the convex hull of the lambda-indexed policies, because randomizing between adjacent deterministic policies fills the segment between them. THEOREM: the gain available to any router is the Jensen gap E[max] − max[E], non-negative always and zero exactly when the arms' advantage ordering does not vary; a constructed control pins the degenerate case at zero. OBSERVATION, and the load-bearing one: a REALIZABLE router captures only part of that gap, and on this corpus only part at some operating points and NONE at others. At lambda = 0.10 the fitted router is beaten by always-retrieving-once on held-out queries although the oracle would win there by +0.054, and only one of the four operating points shows a gain a paired t-test can distinguish from zero at n = 36. The predictor's expected calibration error is 0.14–0.18, which is the mechanism: a router is no better than the calibration of the numbers it compares, exactly the caveat Chow's rule carried one level down. Everything is a designed mechanism study on a synthetic vMF finance corpus, not a benchmark. The query classes, the arm costs, the mention angle, the concentrations and the feature set were all chosen against this corpus — the cross-sector feature in particular was added because the first three features left the compositional class sitting between the other two and the router gained nothing. Transferable is the shape of the argument; the decimals are not. The answer model is a softmax over prototypes, so it can speak to how evidence moves an answer posterior and cannot speak to generation quality or instruction-following."
+videoId: null
+notebookPath: "notebooks/adaptive-retrieval-routing/01_adaptive_retrieval_routing.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/adaptive-retrieval-routing.mdx"
+datePublished: 2026-09-19
+estimatedReadTime: 24
+abstract: "Selective generation ended with a binary gate: emit the answer or abstain, cut at Chow's threshold. This topic is that gate with more than two actions. A router chooses among retrieval strategies — answer from the query alone, retrieve once, or iterate — using only features available before any retrieval fires, and the pointwise optimum is the same argmax Chow's rule was a special case of, reducing to it exactly when the actions are emit and abstain. Sweeping the cost weight traces a family of policies whose convex hull is the achievable cost–quality region, and the most any router can win over the best single strategy is a Jensen gap between the expected maximum and the maximum expectation — strictly positive if and only if the strategies actually change places across queries. The honest half is what a realizable router collects: on a corpus where the oracle gap is positive at every operating point, a fitted router captures 58% of it at one, 3.5% at another, and less than nothing at a third, where it loses to always-retrieving-once. Only one of four gains is distinguishable from zero. A gap that exists is not a gap you can collect."
+connections:
+  - topic: "multi-hop-iterative-retrieval"
+    relationship: "The iterative arm is that topic's reformulation operator used as one action among several rather than as the method: its residual step q' = normalize(d − ⟨d,q⟩q) is imported verbatim, and the compositional query class here is built on the same mention geometry, so the arm that wins on those queries wins for exactly the reason that topic proved — a single retrieval cannot reach a company that is named rather than described. What is new is that iterating is now a choice with a price rather than the plan."
+  - topic: "pmi-retrieval-value"
+    relationship: "The router's cheapest feature is the entropy of that topic's query-only answer distribution, and its no-retrieval arm IS that distribution — the degenerate zero-weight case of the multi-document posterior. The bits-of-retrieval framing is what makes a no-retrieval arm principled rather than a stub: when retrieval adds nothing measurable to the answer posterior, paying for it is pure cost, and the router is the mechanism that declines to pay."
+  - topic: "significance-testing-calibration"
+    relationship: "Supplies both halves of the honest accounting: the paired t-test that decides whether a routing gain of +0.043 at n = 36 is distinguishable from zero at all, and the expected-calibration-error machinery that measures the predictor the router compares. The calibration number is not decoration — it is the mechanism behind the router failing to collect the gap that Theorem 3 says is there."
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "The capstone allocated one budget across the stages of a single pipeline by water-filling, equalizing marginal recall per unit cost; this allocates across whole strategies rather than stages, and the lambda sweep is the same Lagrangian structure one level up. Its lesson transfers intact and was decisive here: without genuine cost asymmetry between the arms the allocation problem is vacuous, which is why the arm costs are spread 0 : 1 : 3 rather than clustered."
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "Supplies the metrics-as-estimators thesis this topic applies to its own headline. A routing gain is a sample mean over queries and gets a standard error and a paired test, not a victory lap — which is how the finding that only one of four operating points is significant came to be reported rather than quietly averaged away."
+references:
+  - type: "paper"
+    title: "On Optimum Recognition Error and Reject Tradeoff"
+    authors: "C. K. Chow"
+    year: 1970
+    url: "https://doi.org/10.1109/TIT.1970.1054406"
+    note: "The two-action rule this topic generalizes: the optimal reject threshold is one minus the cost ratio. Theorem 1 here reduces to it exactly when the actions are emit and abstain; IEEE Transactions on Information Theory 16(1):41–46"
+  - type: "paper"
+    title: "Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity"
+    authors: "Jeong, Baek, Cho, Hwang & Park"
+    year: 2024
+    url: "https://doi.org/10.18653/v1/2024.naacl-long.389"
+    note: "The system this topic formalizes: a classifier routes each query to no retrieval, single-step, or iterative retrieval. NAACL 2024; the paper supplies the architecture, not the optimality analysis"
+  - type: "paper"
+    title: "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection"
+    authors: "Asai, Wu, Wang, Sil & Hajishirzi"
+    year: 2024
+    url: "https://arxiv.org/abs/2310.11511"
+    note: "The same routing decision relocated inside the generator as reflection tokens rather than into an external classifier — one of three papers occupying the same point in the design space, differing only in where the decision lives"
+  - type: "paper"
+    title: "Corrective Retrieval Augmented Generation"
+    authors: "Yan, Khyalia, Sun, Zhang & Hovy"
+    year: 2024
+    url: "https://arxiv.org/abs/2401.15884"
+    note: "The third placement of the decision: an external evidence grader triggers re-retrieval. Read alongside Self-RAG and Adaptive-RAG, the differences are about where the gate sits, not about control flow"
+  - type: "paper"
+    title: "Selective Classification for Deep Neural Networks"
+    authors: "Geifman & El-Yaniv"
+    year: 2017
+    url: "https://arxiv.org/abs/1705.08500"
+    note: "The risk–coverage machinery the prerequisite topic imported; the oracle-versus-achievable gap that reappears here between arms rather than within one"
+formalmlPrereqs:
+  - topic: "conformal-prediction"
+    site: "formalml"
+    relationship: "The prerequisite gate obtained its threshold by distribution-free calibration rather than by trusting a score, and the same distinction governs the router: its argmax compares ESTIMATED per-arm qualities, so the excess loss over the true optimum is controlled by estimation error rather than by anything the rule itself guarantees. The conformal machinery is what a router would need to bound its own regret rather than merely report it."
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "The router's realized gain is a sample mean over queries, so how fast it concentrates decides whether +0.043 at thirty-six held-out queries is a finding or noise — the question this topic answers with a paired test rather than assuming. The same inequalities bound how far the fitted per-arm quality estimates can sit from their population values, which is the quantity Proposition 4 turns into an excess-loss bound."
+formalmlConnections:
+  - topic: "rate-distortion"
+    site: "formalml"
+    relationship: "The cost–quality frontier this topic traces IS a rate–distortion curve with retrieval calls as the rate and answer error as the distortion, and the lambda sweep is exactly the Lagrangian that generates such a curve point by point. The convex hull of Theorem 2 is the standard convexity of that region, obtained here by randomizing between adjacent deterministic policies rather than over channels."
+  - topic: "information-bottleneck"
+    site: "formalml"
+    relationship: "A router trades a budget against how much task-relevant information it extracts, choosing per query how much evidence to admit — the same tension the bottleneck formalizes between compression and predictive sufficiency, with the arms playing the role of operating points along it and the pre-retrieval features playing the role of what the system knows before it spends."
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "The router substitutes a fitted estimate of each arm's conditional quality for the unknown truth and takes an argmax over the estimates, so its excess loss is a functional of estimation error in exactly the sense that topic formalizes — and the in-sample-versus-held-out inflation measured here is that topic's optimism phenomenon appearing in a decision rule rather than in a risk estimate."
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "Whether the router beats the best single strategy is a paired comparison over queries, and this topic answers it by computing a paired t-test rather than by comparing two averages — which is how the finding that three of four operating points are indistinguishable from zero survived into the write-up instead of being smoothed into a headline."
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "Every routing gain reported here carries an interval, and the operating points whose intervals cover zero are named as such; the duality with testing is what lets one number do both jobs, and it is the reason a +0.002 gain and a +0.043 gain are described differently despite both being positive."
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "Theorem 2 is a convexity result: the achievable set is the convex hull of the lambda-indexed policy points, its upper boundary is concave, and a hard budget is met by randomizing between the two adjacent policies that bracket it — the standard Lagrangian correspondence between a penalized and a constrained program, instantiated over retrieval strategies."
+  - topic: "riemann-integral"
+    site: "formalcalculus"
+    relationship: "Reading the frontier as an area rather than as a point is the same move the evaluation track made when it integrated a risk–coverage curve into AURC, and the same Riemann construction underlies both — a summary of a whole operating range rather than a verdict at one arbitrarily chosen point on it."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import AdaptiveRoutingLaboratory from '../../components/viz/AdaptiveRoutingLaboratory.tsx';
+
+## From a binary gate to a choice of effort
+
+The selective-generation topic ended with a decision that had two actions. Given a candidate answer and a score meant to be its probability of correctness, emit it or abstain, cutting at Chow's threshold $t^\star = 1 - c_{\mathrm{abs}}/c_{\mathrm{err}}$. That gate is genuinely useful and genuinely limited: it can decline to answer, but it cannot try harder.
+
+Trying harder is what the rest of the stack is for. A query that a single dense retrieval fails on might be answered by iterating — retrieving, reading, reformulating from what was read, retrieving again. A query whose answer the system already holds might need no retrieval at all. These are not refinements of one method; they are different strategies with different prices, and nothing so far decides between them.
+
+So the object changes again. Where the gate chose between answering and declining, a *router* chooses among strategies, and it has to choose before it knows how any of them will turn out — using only what is visible about the query itself. The decision is now genuinely economic: every arm has a cost, the expensive ones are sometimes worth it, and the entire question is whether you can tell in advance which times those are.
+
+That last clause is where this topic spends most of its honesty. It is easy to show that a router *could* help. The harder and more useful result is a precise statement of how much it could help at most, and a measurement of how much of that a real one actually collects.
+
+## The rule, with more than two actions
+
+Fix a set of arms $a \in \{1, \dots, K\}$ — here: answer from the query alone, retrieve once, or iterate. Each arm applied to query $x$ yields an answer of quality $Q_a(x) \in [0,1]$ and consumes a resource cost $c_a > 0$. A *router* is a policy $\pi$ mapping $x$ to an arm, using only a feature vector $\phi(x)$ computable **before** any retrieval fires. That restriction is not fastidiousness: a feature that requires the retrieved set has already paid the cost the router exists to decide about, and a rule that uses one is a reranker wearing a router's name.
+
+<TheoremBlock type="theorem" number={1} title="The K-action rule, and Chow's rule as its two-action case">
+
+Let the expected loss of taking arm $a$ on query $x$ be the cost of being wrong plus the cost of the work:
+
+$$
+L_a(x) = c_{\mathrm{err}}\big(1 - Q_a(x)\big) + c_a .
+$$
+
+Minimizing pointwise over $a$, and discarding the constant $c_{\mathrm{err}}$, gives
+
+$$
+\pi^\star(x) = \arg\max_a \Big\{ c_{\mathrm{err}}\, \mathbb{E}\big[Q_a \mid \phi(x)\big] - c_a \Big\} = \arg\max_a \Big\{ \mathbb{E}\big[Q_a \mid \phi(x)\big] - \lambda\, c_a \Big\},
+$$
+
+writing $\lambda = 1/c_{\mathrm{err}}$ for the price of a unit of retrieval in units of answer quality.
+
+Now take $K = 2$ with the actions *emit* and *abstain*. Emitting has quality $s$, the probability the answer is correct, and no resource cost. Abstaining has quality $0$ and bookkeeping cost $c_{\mathrm{abs}} - c_{\mathrm{err}}$, which is exactly what makes its loss $c_{\mathrm{err}}(1-0) + (c_{\mathrm{abs}} - c_{\mathrm{err}}) = c_{\mathrm{abs}}$. The rule then reads
+
+$$
+\text{emit} \iff c_{\mathrm{err}}(1 - s) < c_{\mathrm{abs}} \iff s > 1 - \frac{c_{\mathrm{abs}}}{c_{\mathrm{err}}} = t^\star,
+$$
+
+which is Chow's rule. The router does not replace the published gate; it contains it.
+
+</TheoremBlock>
+
+That reduction is verified rather than asserted: the notebook computes the $K=2$ rule and the imported `chow_decision` on the same scores across four cost ratios and requires them to agree on every query. It is worth insisting on, because it fixes what kind of object a router is. It is not a heuristic bolted on top of a retrieval stack. It is the same decision-theoretic argmax the stack already used, with the action set widened from two to three.
+
+## What a router can win, at most
+
+Suppose the estimation problem were solved — the router knew each arm's quality on each query exactly. How much better than a fixed strategy would it be? The answer is clean, and it is the result to carry out of this topic.
+
+Write $U_a(x) = Q_a(x) - \lambda c_a$ for the utility of arm $a$ on query $x$.
+
+<TheoremBlock type="theorem" number={2} title="The routing gain is a Jensen gap">
+
+Let the *oracle* be the policy that picks the best arm for each query with perfect foresight, and the *best fixed arm* be the single arm with the highest average utility:
+
+$$
+\mathrm{Oracle} = \mathbb{E}\Big[\max_a U_a(x)\Big], \qquad \mathrm{BestFixed} = \max_a \mathbb{E}\big[U_a(x)\big].
+$$
+
+Then
+
+$$
+\mathrm{Oracle} - \mathrm{BestFixed} = \mathbb{E}\big[\max_a U_a\big] - \max_a \mathbb{E}\big[U_a\big] \;\ge\; 0 ,
+$$
+
+since the maximum of expectations is bounded by the expectation of the maximum. The inequality is **strict if and only if** $\arg\max_a U_a(x)$ is not almost surely constant.
+
+</TheoremBlock>
+
+The corollary is what makes this worth knowing.
+
+<TheoremBlock type="corollary" number={3} title="Routing is worthless when the arms never change places">
+
+If one arm maximizes $U_a(x)$ for almost every $x$, the gap is zero and *no router, however well estimated, beats simply always using that arm.* The gain available to routing is not a property of the classifier. It is a property of whether the strategies ever reverse.
+
+</TheoremBlock>
+
+This is a sharper claim than the usual argument for adaptive retrieval, which tends to observe that some queries are harder than others and conclude that routing must therefore pay. Heterogeneity in *difficulty* is not enough. If iterating is better than retrieving once on the hard queries *and* on the easy ones — merely by a smaller margin — then the ordering never reverses, the gap is zero, and the right system always iterates. What routing needs is heterogeneity in *which arm wins*, and those are different conditions.
+
+The laboratory's second panel makes the corollary a thing you can do rather than read. The gap is recomputed in the browser from the per-query quality matrix for any cost weight; toggling the control gives every arm the same per-query signal plus a fixed offset, so the ordering cannot vary, and the gap collapses to exactly zero while the arms remain visibly different from one another.
+
+<AdaptiveRoutingLaboratory client:visible />
+
+## The achievable region is a hull
+
+Theorem 1 gives a family of policies indexed by $\lambda$, not a single policy. Sweeping $\lambda$ from zero upward moves from buying quality at any price to refusing to retrieve at all, and each value yields one deterministic policy and one point in the cost–quality plane.
+
+<TheoremBlock type="proposition" number={4} title="The achievable set is the convex hull of the lambda-indexed policies">
+
+Let $P_\lambda = (\mathbb{E}[c_{\pi_\lambda}], \mathbb{E}[Q_{\pi_\lambda}])$. Randomizing between two policies with probability $\theta$ and $1-\theta$ produces the corresponding convex combination of their points, because both coordinates are expectations and expectation is linear. Hence every point on the segment joining two achievable points is achievable, the achievable set is $\mathrm{conv}\{P_\lambda\}$, and its upper-left boundary is concave.
+
+Under a hard budget $\mathbb{E}[c_\pi] \le B$ rather than a price $\lambda$, the optimum is attained by randomizing between the two adjacent deterministic policies that bracket $B$ — the familiar correspondence between a penalized and a constrained program.
+
+</TheoremBlock>
+
+Three frontiers therefore sit one above another: the hull of the fixed arms, which is what is achievable with no features at all; the achievable frontier of a fitted router; and the oracle's. The vertical distance between the first and the third is the Jensen gap of Theorem 2, and the position of the middle curve is the empirical question.
+
+On the held-out half of this corpus, the oracle reaches mean quality $0.546$ at a mean cost of $1.25$ retrievals, while always iterating — the best fixed arm — reaches only $0.522$ at a cost of $3.0$. Perfect routing would buy better answers for a little over forty percent of the price. That is the prize. The rest of the topic is about how much of it is collectible.
+
+## What a real router collects
+
+Replace $\mathbb{E}[Q_a \mid \phi(x)]$ with an estimate $\widehat{Q}_a(\phi(x))$ fitted on held-aside queries, and the rule becomes $\hat\pi(x) = \arg\max_a \{\widehat{Q}_a(\phi(x)) - \lambda c_a\}$.
+
+<TheoremBlock type="proposition" number={5} title="Excess loss is controlled by estimation error">
+
+For any $x$, if $\hat\pi(x) \ne \pi^\star(x)$ then the utility forgone is at most $\sum_a \big| \widehat{Q}_a(\phi(x)) - \mathbb{E}[Q_a \mid \phi(x)] \big|$, since the chosen arm's estimated utility was at least the optimal arm's, and each can be off by at most its own error. Taking expectations bounds the excess loss of $\hat\pi$ over $\pi^\star$ by the summed $L_1$ estimation error across arms.
+
+</TheoremBlock>
+
+The router is therefore no better than the calibration of the numbers it compares — precisely the caveat Chow's rule carried one level down, where the threshold was only as good as the score it cut. And the measurement is unkind. On this corpus the fitted quality model has an expected calibration error of $0.14$ to $0.18$, and the consequences are visible at every operating point:
+
+- At $\lambda = 0.20$ the router gains $+0.043$ over the best fixed arm on held-out queries, which is $58\%$ of the oracle's $+0.075$, and a paired $t$-test puts it at $p = 0.022$.
+- At $\lambda = 0.02$ it gains $+0.018$, about $31\%$ of the available gap — but $p = 0.24$, so at thirty-six held-out queries this is not distinguishable from zero.
+- At $\lambda = 0.05$ it gains $+0.002$: $3.5\%$ of a gap of $+0.062$, and $p = 0.90$. The gap is there; the router does not find it.
+- At $\lambda = 0.10$ it gains $-0.020$. The oracle would win by $+0.054$ here, and the fitted router **loses to always retrieving once**.
+
+That last line is the one worth sitting with. A positive Jensen gap is a statement about what perfect foresight would buy. It is not a promise that any realizable rule captures any of it, and at one of four operating points here the realizable rule is worse than not routing at all. A gap that exists is not a gap you can collect.
+
+And in-sample measurement conceals exactly this. At every operating point the router's gain measured on the queries that fitted it exceeds its gain on held-out queries — which is why the penalty on the quality model is chosen by cross-validation *inside* the calibration half. Choosing it against the test half would be the same optimism one level up, and would have produced a considerably more flattering set of numbers.
+
+## Why the compositional class is the hard part
+
+The three query classes were built to make the arms reverse: a class answerable from the query alone, a class needing one retrieval, and a compositional class whose answer is a company that a bridge filing *names* rather than *describes*. On the last of these, a single retrieval reaches the answer in none of the twenty-four cases, and iterating reaches it in fourteen — the reversal Theorem 2 requires.
+
+But the router has to identify that class *before* retrieving, and the obvious features do not. Entropy of the query-only answer distribution, the nearest-prototype cosine, and the margin between the top two cosines all place the compositional class *between* the other two rather than apart from them. The reason is geometric and slightly counterintuitive: a compositional query's closest competitor is not the company it mentions but a neighbor of the company it is about, sitting in the same sector shell. The top-two margin is measuring the wrong pair.
+
+What separates the class is the largest cosine to a prototype *outside the sector of the nearest one* — a direct measure of whether the query reaches across sectors at all. With the first three features the router collapses to always-retrieving-once at moderate $\lambda$ and gains nothing whatsoever; with the fourth it becomes the imperfect but occasionally useful rule measured above. That feature was chosen against this corpus, and the honest reading is that the transferable claim is Theorem 2 rather than any particular feature set.
+
+<FinanceCaseStudy title="What to spend on a question about a filing" modality={["text", "pdf", "news"]}>
+
+The three classes correspond to three genuinely different questions an analyst asks. *What was this company's reported figure?* is answerable from a system that already holds the company's filings — retrieval adds confidence but not correctness, and on this corpus all three arms answer it correctly every time, so the only question is what you are willing to pay. *Which company in this sector is being described?* needs one retrieval to resolve among near neighbors. *Which counterparty does this filing name, and what is its exposure?* cannot be answered by retrieving about the filing's own subject at all; it requires reading the filing, extracting the named entity, and retrieving again.
+
+A system that always iterates answers all three and pays triple for the first two. A system that never iterates answers the first two and silently fails the third — silently, because it returns a confident answer about the wrong company rather than an error. The router is the mechanism that would charge the third question more than the first, and Theorem 2 is the statement of when that is worth building: not when the questions differ in difficulty, but when they differ in *which* strategy serves them.
+
+</FinanceCaseStudy>
+
+## Where this sits
+
+Adaptive-RAG, Self-RAG, and Corrective RAG are routinely presented as three architectures. Read along the axes that matter — how many times retrieval fires, what the retrieval unit is, how a document is represented — they occupy one point, and differ only in where the decision to continue is housed: in a front-door classifier, inside the generator as reflection tokens, or in an external evidence grader. This topic formalizes the first placement, and the analysis is indifferent to which is chosen. Theorem 2 constrains all three equally, because it is a statement about the arms rather than about the mechanism that selects among them.
+
+What is left open is the part this corpus cannot reach. A router that bounded its own regret rather than merely reporting it would need the distribution-free machinery the prerequisite gate used for its threshold, applied now to a comparison among arms rather than to a single cut. And the question of whether the advantage ordering reverses on real corpora — as opposed to on one built so that it does — is an empirical one that a synthetic study is not entitled to answer.
+
+<RigorFlag>
+
+Three results here are theorems and one is an observation, and the difference is load-bearing. The $K$-action rule and its exact reduction to Chow's gate, the convex hull, and the Jensen gap are proved and verified. What is *measured* — and what could have come out differently — is whether a realizable router collects the gap. On this corpus it collects $58\%$ of it at one operating point, $3.5\%$ at another, and less than none at a third, where it loses to always retrieving once. Only one of four gains is distinguishable from zero at $n = 36$. In-sample measurement overstates the gain at every operating point.
+
+The corpus is a designed mechanism study, not a benchmark. The query classes, the arm costs, the mention angle, the concentrations, and the feature set were all chosen against this corpus, and the cross-sector feature exists specifically because the first three features left the router gaining nothing. The arm costs are spread $0 : 1 : 3$ deliberately: with costs clustered the frontier collapses to a point and the whole allocation problem is vacuous, a lesson inherited intact from the capstone's water-filling. The answer model is a softmax over prototypes, so it can speak to how evidence moves an answer posterior and cannot speak to generation quality, instruction-following, or anything about a real language model's behavior under a longer context.
+
+</RigorFlag>

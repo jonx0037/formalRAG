@@ -20,7 +20,7 @@
     },
     {
       "id": "hypersphere-vmf-geometry",
-      "label": "Normalization, the Hypersphere, and von Mises–Fisher Geometry",
+      "label": "Normalization, the Hypersphere, and von Mises\u2013Fisher Geometry",
       "status": "published",
       "domain": "embedding-geometry"
     },
@@ -267,6 +267,12 @@
     {
       "id": "selective-generation-abstention",
       "label": "Selective Generation: When a RAG System Should Abstain",
+      "status": "published",
+      "domain": "generation-grounding"
+    },
+    {
+      "id": "adaptive-retrieval-routing",
+      "label": "Adaptive Retrieval Routing: Choosing a Strategy per Query",
       "status": "published",
       "domain": "generation-grounding"
     },
@@ -595,6 +601,10 @@
       "target": "context-selection-submodular-dpp"
     },
     {
+      "source": "retrieval-vs-long-context",
+      "target": "adaptive-retrieval-routing"
+    },
+    {
       "source": "context-selection-submodular-dpp",
       "target": "multi-hop-iterative-retrieval"
     },
@@ -621,6 +631,10 @@
     {
       "source": "multi-vector-ann-retrieval",
       "target": "capstone-multimodal-financial-rag"
+    },
+    {
+      "source": "selective-generation-abstention",
+      "target": "adaptive-retrieval-routing"
     }
   ]
 }
