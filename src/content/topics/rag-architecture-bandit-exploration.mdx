@@ -1,0 +1,334 @@
+---
+title: "The Arm You Did Not Run: Learning an Architecture Under a Switching Cost"
+subtitle: "Four topics chose an architecture from a table of measured quality and cost — a deployment has no table, only the arm it ran, and once the choice must be learned rather than looked up the benchmark the whole arc optimized turns out to be beatable"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "rag-architecture-switching-hysteresis"
+tags:
+  - "rag-architectures"
+  - "bandits"
+  - "exploration"
+  - "regret"
+  - "switching-cost"
+  - "online-learning"
+domain: "rag-information-theory"
+pipelineStage: "select"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "The identity this topic leans on is exact and survives any corpus: total cost is affine in the price of a switch, so a policy's trajectory is independent of that price and an entire price sweep is arithmetic on one simulation. Everything else is a measurement on a synthetic corpus inherited unchanged from four predecessor topics, and the decimals describe this arm set at these prices and no other. Four honest limits travel with it. The reward is a Bernoulli outcome per query plus a deterministic per-class cost, which makes the noise cleaner than production traffic and therefore makes every policy here look better than it would. The workload drifts once, slowly; a sliding window is the standard remedy for a moving target and on this single changeover it does NOT measurably beat plain UCB, which is reported rather than explained away. Regret is measured against the best fixed arm in hindsight, which under drift is a weak benchmark — that is the second movement's point, not a flaw in the measurement, but it does mean the negative numbers are not a claim to have beaten an oracle. And the celebrated sqrt(T) and T^(2/3) rates are minimax statements about worst cases over instances; a fixed corpus has a fixed gap and exhibits the logarithmic instance-dependent rate instead, so those exponents are cited here and deliberately not fitted."
+videoId: null
+notebookPath: "notebooks/rag-architecture-bandit-exploration/01_rag_architecture_bandit_exploration.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/rag-architecture-bandit-exploration.mdx"
+datePublished: 2026-09-20
+estimatedReadTime: 21
+abstract: "Four topics have now chosen a retrieval architecture, and each removed one assumption from the one before it: what six named patterns buy, what the choice depends on, that the workload is estimated rather than known, that it moves. All four share an assumption none of them names — that the table of quality and cost is available to read. It is not. A deployment runs one architecture per query and observes that row only; the other five entries in every column are counterfactual and stay that way, so the table is not an input to the decision but something the decision estimates, one query at a time, paying for every query it spends on a bad arm. Making the table unknown changes three things the arc could not have seen. An exploring policy achieves negative regret against the best fixed architecture in hindsight — not by beating an oracle, but because drift makes that benchmark weak, and the fixed-arm framing the whole arc optimized was leaving value uncollected. The previous topic's instrument, a constant margin a challenger must clear, does not need retuning so much as replacing: across its entire range the differences vanish into noise, because a constant cannot express how well any particular arm is currently known. And a switching cost turns out to be a tax on exploration specifically, levied in proportion to how much a policy explores, with a price past which the rule that knows least wins because it has stopped paying to find out."
+connections:
+  - topic: "rag-architecture-switching-hysteresis"
+    relationship: "The direct predecessor, and the source of the drift path, the deployment horizon and the instrument this topic puts under stress. There a constant margin had a clean interior optimum, and both ends of its range lost on every seed. Here the same parameter stops resolving: most of its range is within one standard error of the best of it. The difference is not the value of the margin but its premise — that topic's estimates of every arm refreshed each window because utility was a known function of an observed workload, and here they refresh only for the arm you actually ran."
+  - topic: "rag-architecture-workload-uncertainty"
+    relationship: "Established that the inputs to the decision are estimated rather than known. This topic moves the uncertainty one level down: there the workload mixture was estimated and the quality table was given, here the table itself is what must be learned, and it can only be learned by deploying. The estimator is no longer a separate measurement process but the deployment's own behavior, which is what makes the error self-inflicted and the cost of reducing it real."
+  - topic: "rag-architecture-pareto"
+    relationship: "Supplies the utility every reward here is denominated in, and the fixed prices that make one number out of quality and two costs. Its frontier was computed from a table read as ground truth; this topic is the statement of what that table costs to obtain. The amortization argument transfers in shape: there an offline build was paid once and repaid over queries, here the price of exploration is paid in bad answers early and repaid in good ones later."
+  - topic: "rag-architecture-mechanisms"
+    relationship: "The root of the arc and, through the import chain, the origin of every per-query outcome here. Its measurement of six architectures over five question classes is exactly the table that this topic hides from the policy and then scores it against. Nothing about retrieval is re-measured; what is new is the feedback structure laid over it."
+  - topic: "adaptive-retrieval-routing"
+    relationship: "The nearest sibling and the sharpest contrast, because both topics are about not knowing which architecture to use and are about completely different ignorance. That topic knows each arm's quality and does not know which kind of query it is looking at, so it classifies per query and its uncertainty never accumulates. This one knows the query perfectly well and does not know what the arms are worth, so it must spend queries finding out and commits one arm to all traffic while it does. Routing has no exploration problem because routing is never uncertain about the thing it would have to experiment to learn."
+  - topic: "significance-testing-calibration"
+    relationship: "Supplies the paired test used here, imported rather than rewritten, and the discipline behind reaching for it. The unpaired standard errors on these policies overlap heavily; pairing cancels the shared difficulty of a traffic draw and the separations become unambiguous. It is also the source of the restraint in the third movement: the sliding-window variant looks better than plain UCB and does not clear the noise, so it is reported as not significant instead of promoted."
+references:
+  - type: "paper"
+    title: "Asymptotically Efficient Adaptive Allocation Rules"
+    authors: "T. L. Lai and Herbert Robbins"
+    year: 1985
+    url: "https://doi.org/10.1016/0196-8858(85)90002-8"
+    note: "The logarithmic lower bound: on a fixed instance no policy can do better than log T, which is the rate this topic's corpus actually exhibits and the reason the minimax exponents cannot be read off it."
+  - type: "paper"
+    title: "Finite-time Analysis of the Multiarmed Bandit Problem"
+    authors: "Peter Auer, Nicolò Cesa-Bianchi, and Paul Fischer"
+    year: 2002
+    url: "https://doi.org/10.1023/A:1013689704352"
+    note: "UCB1, and the confidence-bound argument that makes the exploration bonus a function of how often an arm has been tried rather than a constant."
+  - type: "paper"
+    title: "On the Likelihood That One Unknown Probability Exceeds Another in View of the Evidence of Two Samples"
+    authors: "William R. Thompson"
+    year: 1933
+    url: "https://doi.org/10.2307/2332286"
+    note: "Posterior sampling, thirty years before the problem had a name. The most exploratory policy measured here, and therefore the one a switching cost punishes hardest."
+  - type: "paper"
+    title: "On Upper-Confidence Bound Policies for Switching Bandit Problems"
+    authors: "Aurélien Garivier and Eric Moulines"
+    year: 2011
+    url: "https://doi.org/10.1007/978-3-642-24412-4_16"
+    note: "Discounted and sliding-window UCB for a target that moves. The remedy the third movement tries and cannot distinguish from plain UCB on a single slow changeover."
+  - type: "paper"
+    title: "Bandits with Switching Costs: T^{2/3} Regret"
+    authors: "Ofer Dekel, Jian Ding, Tomer Koren, and Yuval Peres"
+    year: 2014
+    url: "https://doi.org/10.1145/2591796.2591868"
+    note: "The switching-cost regret floor, cited rather than demonstrated: it is a minimax statement over instances, and one corpus cannot exhibit it."
+  - type: "paper"
+    title: "Optimal Exploration-Exploitation in a Multi-armed Bandit Problem with Non-stationary Rewards"
+    authors: "Omar Besbes, Yonatan Gur, and Assaf Zeevi"
+    year: 2019
+    url: "https://doi.org/10.1287/stsy.2019.0033"
+    note: "Non-stationary bandits under a variation budget, and the formal reason the best fixed arm is the wrong benchmark once the environment moves. The journal version of the 2014 result."
+formalmlPrereqs:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "Hoeffding's bound IS the exploration bonus. The whole difference between the instrument that fails here and the one that works is that the second adds a term which shrinks like one over the square root of how often an arm has been tried, and that term is a confidence interval rather than a tuning constant."
+formalmlConnections:
+  - topic: "always-valid-inference"
+    site: "formalml"
+    relationship: "The modern form of exactly this problem: the data are collected adaptively, by a policy that chose what to sample based on what it had already seen, so a fixed-sample confidence interval is not valid at a stopping time the policy itself determined. Confidence sequences are what make the bonus honest, and they are the reason a bandit's intervals are not the intervals of an experiment designed in advance."
+  - topic: "random-walks"
+    site: "formalml"
+    relationship: "A policy's trajectory through the arms is a walk whose transition structure it is simultaneously estimating, and the switching cost is a per-step charge on that walk. The quantity the fourth movement sweeps is exactly the price of a step."
+  - topic: "generalization-bounds"
+    site: "formalml"
+    relationship: "Regret is the online analogue of excess risk, and the shape of the argument is the same: a quantity estimated from a sample is compared against the best achievable in a class. What differs is that the sample here was chosen by the learner, which is what turns a bound into a trade-off."
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "Each arm's mean is a point estimate, and the sample it comes from was chosen by the policy being evaluated. That is what makes this harder than the predecessor's estimation problem: the number of observations per arm is not a design parameter but an outcome of the decisions already made, so a poorly-estimated arm stays poorly estimated precisely because it looked bad early."
+formalstatisticsConnections:
+  - topic: "bayesian-foundations-and-prior-selection"
+    site: "formalstatistics"
+    relationship: "Thompson sampling is posterior sampling, and its prior is load-bearing in the same way the Dirichlet prior was for the predecessor: it decides how long an arm keeps being tried after early evidence goes against it. A flatter prior explores longer and, once switching is priced, pays more for the privilege."
+  - topic: "empirical-bayes"
+    site: "formalstatistics"
+    relationship: "Six arms measured on shared traffic are the natural setting for pooling, and the pooled estimate is what a practitioner reaches for when no single arm has enough data. The tension this topic surfaces is that pooling reduces variance across arms while the decision needs precisely the differences between them."
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "Deciding whether one architecture genuinely beats another from a sample the policy itself chose is a testing problem with the awkward feature that the design is endogenous. The paired test used in the third movement is imported from the calibration topic for exactly this reason: pairing removes the shared difficulty of a traffic draw without needing the design to have been fixed in advance."
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "Total cost is affine in the price of a switch, which is what makes the entire price sweep arithmetic on a single simulation rather than a re-run per price — the same linearity the predecessor had to be refactored to exploit, appearing again one level up."
+  - topic: "stability-dynamics"
+    site: "formalcalculus"
+    relationship: "A policy that both selects and estimates is a feedback loop, and its failure mode is the one that loop analysis predicts: an arm that looks bad early is tried less, so its estimate stops improving, so it keeps looking bad. The exploration bonus is the term that breaks the fixed point."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import BanditExplorationLaboratory from '../../components/viz/BanditExplorationLaboratory.tsx';
+
+Four topics have now chosen a retrieval architecture, and each removed one assumption from the
+one before it. The first measured what six named patterns actually buy and where each one fails.
+The second showed that the choice resolves only after a workload mixture, a price ratio and an
+amortization horizon are fixed. The third unfixed the mixture and made it something you estimate
+from traffic. The fourth let it move, and found that most apparent changes are the estimator
+rather than the workload.
+
+All four share an assumption that none of them names. Each of them **reads a table**. Quality and
+both costs, for six architectures across six kinds of question, measured once and available to
+consult. Every argument in the arc is an argument about which row of that table to pick.
+
+A deployment has no such table. It runs one architecture per query and sees how that one did.
+The other five entries in every column are counterfactual, and they stay counterfactual — there
+is no way to learn what the arm you did not run would have returned on the query you already
+answered. The table is not an input to the decision. It is **estimated by the decision**, one
+query at a time, and every query spent measuring a bad architecture is a query answered badly.
+
+<RigorFlag>
+Nothing about retrieval is re-measured here. The six architectures, their per-query outcomes and
+their costs arrive unchanged through the import chain from the four predecessor topics. The only
+new object is the **feedback structure** — what a deployment is allowed to observe — and every
+claim below is a claim about policies rather than about retrieval.
+</RigorFlag>
+
+## What a deployment can and cannot see
+
+The setup carries over intact. Traffic is a mixture over five kinds of question; each
+architecture $a$ has a quality on each kind and two costs, netted at fixed prices into a utility
+$u(a, w)$ that is affine in the workload $w$. The predecessor's drift path carries the bridge
+share from $0.20$ to $0.70$ over the deployment, and the architecture that is genuinely best
+changes from `hybrid` to `agentic` on the way.
+
+What is new is the observation model. At query $t$ the deployment commits to one architecture
+$a_t$, and observes
+
+$$
+r_t = Q(a_t, q_t) - \lambda\big[\mathrm{ops}(a_t, q_t) + \rho\,\mathrm{calls}(a_t, q_t)\big]
+$$
+
+and nothing else. The full outcome table for this corpus is $6 \times 100$; a deployment of
+$2{,}400$ queries collects $2{,}400$ observations out of the $14{,}400$ outcomes that exist — one
+in six — and the five-sixths it misses are exactly the ones that would say whether the arm it ran
+was the right one.
+
+Regret is measured against the best **fixed** architecture in hindsight, which is the object the
+whole arc has been optimizing:
+
+$$
+R_T = \max_{a} \sum_{t=1}^{T} u(a, w_t) \; - \; \sum_{t=1}^{T} u(a_t, w_t) .
+$$
+
+<FinanceCaseStudy>
+The practical shape of this is a team that can run one retrieval stack in production. They can
+read a benchmark, but a benchmark is someone else's traffic; what their own traffic rewards is
+knowable only by serving it. Every week spent running a configuration to find out what it is
+worth is a week of answers produced by a configuration that may be the wrong one, and the bill
+for finding out arrives whether or not the answer is useful.
+</FinanceCaseStudy>
+
+## An exploring policy beats the best fixed arm
+
+Four policies on the same deployments, averaged over $24$ of them:
+
+| policy | regret | spread | switches | beats the best fixed arm |
+|---|---|---|---|---|
+| greedy | 123.1 | 143.4 | 16.2 | 1 / 24 |
+| constant margin $\delta = 0.10$ | 123.5 | 117.3 | 9.0 | 0 / 24 |
+| Thompson sampling | 42.4 | 47.7 | 1517.5 | 4 / 24 |
+| **UCB** | **−93.2** | **27.8** | 396.6 | **24 / 24** |
+
+The last row is negative, on every deployment. An uncertainty-weighted policy does not approach
+the best fixed architecture — it beats it outright.
+
+<TheoremBlock type="remark" title="This is a weak benchmark, not a beaten oracle">
+Negative regret against the best arm in hindsight sounds like a contradiction and is not one. The
+best *fixed* arm is the best single choice held for the whole deployment, and the workload drifts
+across a boundary partway through: `hybrid` is right early, `agentic` is right late, and no single
+row is right throughout. Choosing the best arm at every moment instead would have been worth
+$929.6$ more than the best fixed arm collects — and a policy that keeps measuring collects part of
+that gap simply by following the change.
+
+The uncomfortable implication runs backwards through the arc. Every previous topic optimized a
+fixed-arm deployment, carefully, under progressively weaker assumptions — and the benchmark they
+were all optimizing is one that a policy with no table at all can beat, provided it keeps looking.
+</TheoremBlock>
+
+<BanditExplorationLaboratory client:visible />
+
+## The previous topic's instrument stops resolving
+
+The fourth topic's whole apparatus was a scalar: how much better must a challenger look before
+the incumbent is displaced? It found a clean interior optimum in that parameter, with both ends of
+the range losing on every seed.
+
+Applied here, with the table unknown, the same sweep gives:
+
+| margin $\delta$ | regret | standard error |
+|---|---|---|
+| −0.20 | 136.4 | 26.6 |
+| −0.12 | 119.4 | 25.4 |
+| −0.08 | 115.7 | 25.6 |
+| **−0.05** | **112.4** | 25.7 |
+| 0.00 | 123.1 | 29.3 |
+| +0.10 | 123.5 | 23.9 |
+| +0.20 | 171.3 | 37.6 |
+
+**Ten of the twelve** settings sit within one standard error of the best of them. There is no
+longer an optimum to find.
+
+<TheoremBlock type="remark" title="A constant cannot express what is worth knowing">
+The natural guess is that the optimal margin has moved, or changed sign — that where hysteresis
+once counselled patience, ignorance now counsels restlessness. The measurement does not support
+that, and the reason is structural rather than numerical.
+
+In the previous topic every arm's estimated utility refreshed every window, because utility was a
+known function of an observed workload. A margin could therefore compare two numbers that were
+equally fresh. Here an arm's estimate refreshes only when that arm is run, so the comparison is
+between one well-measured incumbent and five numbers of wildly varying quality — and a *constant*
+margin has no way to say which is which. The quantity that matters is not how much better a
+challenger looks but how confident you are in the comparison, and no single number carries that.
+
+It shows up as unreliability as much as error: the margin rule's spread across deployments is
+$4.53\times$ that of an uncertainty-weighted policy.
+</TheoremBlock>
+
+Paired against UCB on the same deployments — which cancels the shared difficulty of a traffic
+draw, since some draws are simply harder than others — the separations are unambiguous: greedy
+$+216.3$ at $p = 3.1 \times 10^{-7}$, the constant margin $+216.6$ at $p = 1.3 \times 10^{-8}$,
+Thompson $+135.5$ at $p = 1.9 \times 10^{-12}$.
+
+One comparison in that table does **not** separate. A sliding window is the standard remedy for a
+bandit whose target moves, and it is directionally better here — $-7.9$ against plain UCB — but at
+$p = 0.19$ it does not clear the noise. On a single slow changeover, a policy whose confidence
+intervals are already wide enough to keep sampling every arm does not need to be told to forget.
+We report that rather than explaining it away; a faster or repeated drift would very likely change
+it, and that is a different corpus.
+
+## A switching cost is a tax on exploration
+
+Exploration means running an architecture you do not currently believe in, and in this arc
+changing architecture costs something real. Total cost is regret plus the price of every switch,
+and because a policy's trajectory does not depend on that price, the whole sweep is arithmetic on
+one simulation:
+
+$$
+\mathrm{total}(p) = R_T + p \cdot \#\{\text{switches}\} .
+$$
+
+The switch counts are what decide it. A rule that mostly holds still switches $16.2$ times; UCB
+switches $396.6$; Thompson sampling switches $1{,}517.5$. The tax is levied per switch, so it is
+levied on exploration in direct proportion to how much of it a policy does.
+
+At a price of $0.56$ per switch the ordering flips: past that point the cheap rule that rarely
+moves wins, not because it has learned anything but because it has stopped paying to find out.
+
+<TheoremBlock type="remark" title="Ignorance as an optimal policy">
+That crossover is the honest end of the arc's cost reasoning. The previous four topics treated
+information as free and choice as expensive. Here information is the thing being bought, the
+price is per switch, and above a threshold the rational move is to stop buying — to hold an
+architecture you are not confident in, because confirming your doubt costs more than the doubt
+does. It is worth noticing which policy wins there: not the best-informed one, but the one that
+gave up on being informed.
+</TheoremBlock>
+
+## Why the famous rate cannot be read off this corpus
+
+Bandit regret is usually quoted as $\sqrt{T}$, and under a switching cost as $T^{2/3}$ — a
+genuinely striking result, since it says a switching cost changes the *exponent* rather than the
+constant. It is tempting to look for that exponent in a simulation, and the temptation should be
+resisted here.
+
+| horizon $T$ | UCB regret |
+|---|---|
+| 300 | 23.7 |
+| 600 | 36.1 |
+| 1200 | 54.3 |
+| 2400 | 71.8 |
+| 4800 | 83.8 |
+
+Regret against $\log T$ is linear with $R^2 = 0.995$. That is the instance-dependent rate: on a
+corpus with a fixed gap between the arms, UCB's regret is logarithmic, which is the Lai–Robbins
+result and is as good as any policy can do.
+
+<TheoremBlock type="remark" title="A power law fitted to a logarithm">
+Fit a power law to those same five points anyway and it returns a slope of $0.464$ — close enough
+to $\tfrac{1}{2}$ to read as a confirmation of the $\sqrt{T}$ rate, and it confirms nothing. It is
+a power law fitted to a logarithm over less than two decades, and it would have looked just as
+convincing had the true behavior been anything else smooth.
+
+The rates are **minimax**: worst cases over instances, where the gap between arms is allowed to
+shrink with the horizon so the problem stays hard as $T$ grows. A fixed corpus has one fixed gap.
+No amount of simulating it at larger $T$ will produce those exponents, because the quantity they
+describe is a maximum over problems and this is one problem.
+</TheoremBlock>
+
+## What this establishes, and what it does not
+
+On this instance: an uncertainty-weighted policy beats the best fixed architecture outright, on
+every deployment tested, because drift makes that benchmark weak; a constant margin — the previous
+topic's entire instrument — stops resolving once the table must be learned, with ten of twelve
+settings indistinguishable and $4.53\times$ the spread of the alternative; and a switching cost
+taxes exploration in proportion to how much of it a policy does, with a crossover past which the
+least informed rule wins.
+
+What it does not establish is any of the numbers as transferable. The crossover price is in this
+arc's utility units at this arc's prices. The reward model is a Bernoulli outcome plus a
+deterministic per-class cost, which is cleaner than production traffic and flatters every policy
+here. And the drift is a single slow changeover, which is the most forgiving non-stationarity
+there is — it is why forgetting did not measurably pay, and a workload that moved faster or
+repeatedly would likely reverse that.
+
+The transferable content is the shape. If you cannot say what your alternatives are worth on your
+own traffic, that is not a gap in your benchmark; it is a cost you have not yet decided whether to
+pay. This topic is a measurement of what it costs and of what declining to pay it leaves behind.
