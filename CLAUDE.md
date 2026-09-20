@@ -33,6 +33,9 @@ pnpm validate             # validateConnections.ts. Roadmap nodes in curriculum-
 pnpm audit:cross-site     # Cross-repo reciprocity validator (needs sibling repos adjacent / FORMAL_*_PATH).
 # Python pillar (per-topic, no shared venv):
 uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topic>.py
+# Verify the narrative .ipynb executes (jupyter execute does NOT write outputs back, so it won't dirty
+# the output-free notebook). Needs jupyter+ipykernel on top of the .py's own deps:
+uv run --with numpy --with scipy --with nbformat --with jupyter --with ipykernel jupyter execute notebooks/<topic>/01_<topic_underscored>.ipynb
 ```
 
 ## Content schema (`src/content.config.ts`) — departures from formalML
@@ -56,7 +59,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   outputs, and **normalize** a hand-written `.ipynb` (nbformat — add cell ids, clear outputs) or
   `jupyter execute` warns (a future hard error). Reliable path: emit the `.ipynb` from a throwaway
   `uv run --with nbformat` generator (sequential `cell-N` ids, `outputs: []`, `execution_count: null`),
-  then `jupyter execute` to verify exit 0. `notebooks/bm25/` is the exemplar. The full per-topic
+  then `jupyter execute` to verify exit 0. In that generator a code cell's source string can't split one
+  f-string `{...}` field across concatenated string literals (compute the value into a var first, else the
+  cell `SyntaxError`s at run time). `notebooks/bm25/` is the exemplar. The full per-topic
   workflow lives in `STARTER-PROMPT.md` (repo root) — keep it current as conventions evolve.
 - **A dependent topic's `.py` IMPORTS its prereq's `.py`, never reimplements it** — add the prereq's
   **hyphenated dir** to the path, then import its **underscored module**:
@@ -1447,6 +1452,11 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   And commit CLAUDE.md learnings **inside the topic PR or a dedicated chore PR** — a post-merge local
   `docs: learnings` commit strands on the topic branch after the topic PR merges (the DPR one had to
   be cherry-picked).
+  But VERIFY a commit is genuinely stranded by CONTENT, NOT `git branch --contains <sha>`: a squash
+  merge folds the branch in under a NEW sha, so `--contains` reports the original sha absent from
+  `origin/main` even when its content already landed — grep `git show origin/main:CLAUDE.md` for a
+  unique phrase (or note that the cherry-pick comes up EMPTY) before re-applying. An empty cherry-pick
+  means it's already there, not that it failed.
 - **Multiple topics in one session = feature branches off `main`.** They merge in any order *only if*
   each depends solely on already-published prereqs. If a batch topic lists a **sibling** as prereq (e.g.
   pseudo-relevance-feedback needs query-likelihood), sequence them: re-sync `main` only **after** its
@@ -1494,7 +1504,9 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 
   **THE REVIEW CHECKLIST** (hand this to the subagent). Flag **unguarded denominators**
   (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` (incl.
-  `k≤0` on a recall fn and an empty matrix before `np.linalg.svd`) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
+  `k≤0` on a recall fn, an empty matrix before `np.linalg.svd`, `np.max`/`np.argmax` on a possibly-empty
+  array in a softmax/reweight helper, and an overlap/Jaccard ratio dividing by a row/set size that can be
+  0) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
   slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
   and stale refs in d3 drag handlers — guard array-index lookups (`C[labels[i]]`, `colors[a[i] ?? 0]`)
   and compute drag-end distortion from live points/centroids, not a render-lagging ref. Flag
