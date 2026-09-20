@@ -153,10 +153,10 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
 - `astro check` reports ~12 pre-existing type errors in the copied viz components
   (DAGGraph/CurriculumGraph/Figure), inherited from formalML — not regressions. Keep NEW code clean.
   Preflight the notebook `.py` with `uv run --with pyflakes python -m pyflakes notebooks/<topic>/<topic_underscored>.py`
-  before pushing — it catches unused imports/vars (the gemini nit class) faster than a build or a PR round-trip.
+  before pushing — it catches unused imports/vars (the reviewer-nit class) faster than a build or a review round-trip.
   But the **TS side has no `noUnusedLocals`**: `pnpm build` AND a targeted `pnpm exec tsc --noEmit | grep <File>`
   BOTH pass with an unused baked viz const (false confidence) — neither catches the `ts6133` an orphaned const
-  trips; only gemini or an adversarial `feature-dev:code-reviewer` subagent will, so eyeball that every baked
+  trips; only an adversarial `feature-dev:code-reviewer` subagent will (gemini is gone), so eyeball that every baked
   const is actually READ before pushing (the recurring "drop the baked const the live recompute never reads").
 - **Viz ↔ Python invariant:** `BM25ScoringLaboratory.tsx`'s corpus mirrors `notebooks/bm25/bm25.py`
   to the decimal, and the topic claims they match. Change one → change both. Numbers the viz needs
@@ -1268,31 +1268,39 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   prereq PR then carries both topics to `main` in one merge. Each removes its title
   from a track's `planned[]` array, so the **2nd+ merge needs a trivial one-line `curriculum.ts`
   `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge; but a
-  DAG *edge* re-source is a real content edit — keep it on one branch). PRs also get an automated
-  `gemini-code-assist` review — fetch its nits with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments`
-  (inline comments carry the severity badges; the `/reviews` body is often empty), and address the
-  medium-priority robustness/perf/a11y ones before merging. To **decline** a nit, post the rationale
-  inline with `gh api repos/jonx0037/formalRAG/pulls/<n>/comments/<comment-id>/replies -X POST -f body=...`
-  (the `<comment-id>` from the fetch). (The consumer `gemini-code-assist` app is
-  being SUNSET — new org installs blocked 2026-06-18, all reviews cease 2026-07-17; after that the
-  inline-review step won't run, so don't block a merge waiting on it.) It reliably flags **unguarded denominators**
+  DAG *edge* re-source is a real content edit — keep it on one branch). **AUTOMATED GITHUB REVIEW IS GONE — the pre-push gate is now an adversarial subagent.**
+  The consumer `gemini-code-assist` app ceased ALL reviews 2026-07-17 (new org installs blocked
+  2026-06-18), and the remaining GH review agents fail on quota rather than posting. Confirmed on
+  PR #69 (Sep 2026): zero inline comments, zero reviews, only the Vercel bot. Two consequences —
+  never block a merge waiting for a bot, and **never read an empty `/pulls/<n>/comments` as a clean
+  bill of health**, which is the trap now that the endpoint returns `[]` for a real reason.
+  **Instead: run an adversarial `feature-dev:code-reviewer` subagent over the branch diff BEFORE
+  pushing, on every topic PR**, and hand it the checklist below. That checklist is the accumulated
+  record of what the bot used to catch and every item on it was a real defect here at least once, so
+  it is worth more as a prompt than it ever was as a description. (Historic mechanics, should a bot
+  ever return: nits arrived at `gh api repos/jonx0037/formalRAG/pulls/<n>/comments` with severity
+  badges inline and an often-empty `/reviews` body; a nit was declined by posting a rationale to
+  `.../comments/<comment-id>/replies -X POST -f body=...`.) A separate **Vercel Agent Review** check
+  still appears and is usually `NEUTRAL` (*skipped — insufficient credit*), which is NOT a failure;
+  `mergeStateStatus` also shows `UNSTABLE` transiently while the preview redeploys after a push.
+
+  **THE REVIEW CHECKLIST** (hand this to the subagent). Flag **unguarded denominators**
   (`avgdl`, `|d|+μ`, query length, Σ-of-weights) and empty-collection cases in the notebook `.py` (incl.
   `k≤0` on a recall fn and an empty matrix before `np.linalg.svd`) — add those guards up front. In the viz `.tsx` it reliably flags **transient state-length mismatches** (a
   slider that grows `points` before the reset effect refreshes `assignments` → a crash on `C[labels[i]]`)
   and stale refs in d3 drag handlers — guard array-index lookups (`C[labels[i]]`, `colors[a[i] ?? 0]`)
-  and compute drag-end distortion from live points/centroids, not a render-lagging ref. It also flags
+  and compute drag-end distortion from live points/centroids, not a render-lagging ref. Flag
   recall/`topk` denominators (`hits/(nq·topk)`), `np.argpartition(d, topk)` when `topk>n` (cap
   `topk=min(topk, n)`), and **tuple-arity mismatches in a fallback `return`** (a 6- vs 7-tuple path — a real
-  HIGH-severity catch). It also flags **list-comprehension membership filters over sets** (→ native
+  HIGH-severity catch). Flag **list-comprehension membership filters over sets** (→ native
   `s1.intersection(s2)` / `s1 - s2` — both snapshot, so an in-loop `del dict[k]` (intersection over a
-  dict's keys) or set `.discard(x)` stays safe). It also flags **unused imports** (and a **function a
+  dict's keys) or set `.discard(x)` stays safe). Flag **unused imports** (and a **function a
   refactor orphans** — it flags dead functions, not just imports; and an **accepted-but-ignored function
   parameter** — e.g. a `seed` an inner call hardcodes to a fixed value to preserve the viz↔python invariant —
   as a misleading signature, so drop the param AND any now-orphaned constant) and a hand-rolled sigmoid
-  `1 / (1 + np.exp(-z))` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). It also
-  flags **loop-invariant recomputation**: hoist an `n`-independent `(mean, std)` out of an `n`-loop
+  `1 / (1 + np.exp(-z))` (→ `scipy.special.expit`, which avoids an overflow `RuntimeWarning`). Flag **loop-invariant recomputation**: hoist an `n`-independent `(mean, std)` out of an `n`-loop
   (a large `n_max` extrapolation), and precompute per-leg/per-item arrays ONCE before an
-  `itertools.combinations` loop, not once per pair. It also flags **biased / edge-cased numerical samplers**
+  `itertools.combinations` loop, not once per pair. Flag **biased / edge-cased numerical samplers**
   (a submodularity/Monte-Carlo witness restricted to `n≥k`, or permutation-cuts that can draw `A==B`) → prefer a
   **partition sampler**: pick the test element `e` first, then assign each remaining item to {A and B}/{B only}/
   {neither} (works for any `n≥1`, no degenerate cut). But
@@ -1303,12 +1311,8 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   literal braces" in a lab's KaTeX `\#\{…\}` TEX string that is **already** escaped (`\{`/`\}` render as
   literal braces; build shows 0 `.katex-error`, verified in-browser) — gemini also **mis-attributes a
   `.tsx` KaTeX TEX string to the `.mdx` file's line**, flagging a formula that isn't in the MDX at all.
-  When gemini suggests **OPTIMIZING** a `.py` helper, first confirm it's still **CALLED** — a refactor
-  may have orphaned it (delete, don't optimize). Gemini posts inline
-  ~1–3 min after the push; `mergeable` flips to `UNKNOWN` transiently right then. A separate **Vercel
-  Agent Review** check also runs but is often `NEUTRAL` (*skipped — insufficient credit*), which is NOT a
-  failure; gemini stays the inline reviewer, and `mergeStateStatus` shows `UNSTABLE` transiently while the
-  preview redeploys after a push. Gemini also flags a **nested `arr.map(r => r.map(...))` that returns a
+  When the reviewer suggests **OPTIMIZING** a `.py` helper, first confirm it's still **CALLED** — a refactor
+  may have orphaned it (delete, don't optimize). Flag a **nested `arr.map(r => r.map(...))` that returns a
   bare array** (wrap each row in `<g key={i}>` — heatmap/grid labs hit this). (`jupyter execute` does
   *not* write outputs back, so re-running to verify won't dirty the output-free `.ipynb`.) Gemini flags a **literal
   Unicode degree symbol `°` inside KaTeX math** (`$\theta = 75°$`) as medium-priority — use `^\circ`
