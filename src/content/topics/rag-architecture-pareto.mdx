@@ -1,0 +1,340 @@
+---
+title: "The Architecture Pareto Frontier: What \"Which One Should We Use?\" Actually Depends On"
+subtitle: "Two cost currencies make cost a partial order rather than a number — and the winner turns out to depend on the workload mixture, the price of a generator call, and the size of the deployment, none of which is a property of any architecture"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "rag-architecture-mechanisms"
+tags:
+  - "rag-architectures"
+  - "pareto-frontier"
+  - "cost-quality-tradeoff"
+  - "scalarization"
+  - "multi-objective"
+  - "amortization"
+domain: "rag-information-theory"
+pipelineStage: "select"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "Two results here are theorems about the decision procedure and survive any corpus. Linear scalarization can only ever return a vertex of the lower convex hull, so a Pareto-optimal option strictly inside the hull is selected by no weights whatsoever — that is convex geometry, not a fact about retrieval. And domination is defined relative to a workload, so a change of mixture can create or destroy it; the witness here is measured but the possibility is structural. Everything else is a measurement inherited from the predecessor topic and is exactly as synthetic as that topic's corpus, which was designed so that each mechanism has somewhere to succeed and somewhere to fail. The specific decimals — a 22.4% gap rate, a bridge crossover at 0.43, a five-way split of the simplex — describe this arm set on this corpus and would move on another. Three quantities are DELIBERATELY not measured because they are not measurable here: the price ratio rho between a generator call and a similarity operation is a fact about a vendor contract; lambda, the price of cost in units of quality, is a product decision; and N, the deployment size, is a business fact. The topic's claim is about the SHAPE of the dependence on all three, not about where any of them sits. The amortization model is thin at this scale — the crossover is a few queries at K=25 — so the K-scaling is reported rather than the single number, and the online-cost extrapolation to larger K is an explicit model rather than a measurement. Finally, the cost unit counts similarity evaluations, which means the community detection's graph combinatorics register as zero: real work this unit cannot see, stated rather than smuggled in."
+videoId: null
+notebookPath: "notebooks/rag-architecture-pareto/01_rag_architecture_pareto.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/rag-architecture-pareto.mdx"
+datePublished: 2026-09-19
+estimatedReadTime: 22
+abstract: "The predecessor measured six named RAG architectures and found no row that wins both regimes. It reported cost in two currencies — similarity operations and generator calls — and refused to collapse them, because the exchange rate between them is exactly what a cost model should not invent. That refusal left a Pareto set rather than a winner, and this topic is what you do with it. Two currencies make cost a partial order rather than a number, and the consequences are sharper than they look. One arm's cost varies by a factor of ten across the kind of question it meets, so a single cost figure for it is simply wrong. An arm beaten on every axis at once by the aggregate numbers becomes the only one worth deploying once the traffic tilts toward the questions it was built for, because domination is a property of an architecture and a workload, never of an architecture alone. And the standard way of breaking a tie — weight the objectives and take the argmax — provably cannot recommend an option lying inside the convex hull, at any weights, which happens on 22.4% of randomly drawn workloads here. The answer to \"which architecture should we use\" is a partition of a simplex, not a name."
+connections:
+  - topic: "adaptive-retrieval-routing"
+    relationship: "The closest sibling and the sharpest contrast. That topic chooses a strategy PER QUERY under a single scalar cost; this one chooses one fixed architecture for a whole deployment under two currencies that do not convert. Setting the price of a generator call to zero collapses this topic's cost model onto that one exactly, and a test asserts it — so the routing topic is recoverable here as a degenerate case, which is also the cleanest statement of what the second currency buys."
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "The capstone allocated one budget across the stages of a single pipeline by water-filling, equalizing marginal recall per unit cost. That is this topic's problem with the answer already assumed: a scalar budget, a scalar cost, and therefore a well-defined optimum. What breaks here is exactly what water-filling needs — a single currency — and the capstone's own lesson that cost asymmetry is load-bearing recurs as the reason the two currencies cannot be collapsed."
+  - topic: "cross-encoders-reranking"
+    relationship: "Supplies the cost-ratio machinery this topic generalizes. There a cascade's saving was a single ratio between a cheap retrieval and an expensive re-scoring, and the speedup followed from it directly. Here the same arithmetic runs into a second currency and a workload that varies, and the corrective arm — which IS that cascade — turns out to be the one arm whose cost cannot be quoted as a number at all."
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "Supplies the reading discipline the frontier needs. Every quality figure entering the decision layer is a sample mean over twenty queries, so the boundaries in the winner map are soft and are reported as existing rather than located. A Pareto verdict computed from noisy coordinates is itself noisy, which is why the topic asserts the SHAPE of each dependence and never a crossover to three decimals."
+  - topic: "multi-hop-iterative-retrieval"
+    relationship: "The arm at the center of the headline is that topic's reformulation operator deployed as an architecture. It is the arm the aggregate numbers dominate on every axis and the arm that linear pricing most often cannot see, and both of those follow from the same property: it buys a capability that is worthless on most traffic and indispensable on a little of it. That is what a compositional question does to a cost model."
+references:
+  - type: "book"
+    title: "Multicriteria Optimization"
+    authors: "Matthias Ehrgott"
+    year: 2005
+    url: "https://doi.org/10.1007/3-540-27659-9"
+    note: "The supporting-hyperplane result behind the scalarization gap: weighted-sum scalarization reaches exactly the supported efficient solutions, and unsupported ones exist whenever the efficient set is non-convex."
+  - type: "book"
+    title: "Convex Optimization"
+    authors: "Stephen Boyd, Lieven Vandenberghe"
+    year: 2004
+    url: "https://web.stanford.edu/~boyd/cvxbook/"
+    note: "Chapter 4 on scalarizing a multicriterion problem, and why the achievable set's convexity decides whether the sweep is exhaustive."
+  - type: "paper"
+    title: "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods"
+    authors: "Gordon V. Cormack, Charles L. A. Clarke, Stefan Büttcher"
+    year: 2009
+    url: "https://doi.org/10.1145/1571941.1572114"
+  - type: "paper"
+    title: "From Local to Global: A Graph RAG Approach to Query-Focused Summarization"
+    authors: "Darren Edge, Ha Trinh, Newman Cheng, Joshua Bradley, Alex Chao, Apurva Mody, Steven Truitt, Jonathan Larson"
+    year: 2024
+    url: "https://arxiv.org/abs/2404.16130"
+  - type: "paper"
+    title: "Corrective Retrieval Augmented Generation"
+    authors: "Shi-Qi Yan, Jia-Chen Gu, Yun Zhu, Zhen-Hua Ling"
+    year: 2024
+    url: "https://arxiv.org/abs/2401.15884"
+  - type: "documentation"
+    title: "BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models"
+    authors: "Nandan Thakur, Nils Reimers, Andreas Rücklé, Abhishek Srivastava, Iryna Gurevych"
+    year: 2021
+    url: "https://arxiv.org/abs/2104.08663"
+    note: "The canonical demonstration that retrieval rankings reorder across task mixtures — the empirical shadow of this topic's simplex partition."
+formalmlConnections:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "Every coordinate of every point on this frontier is a sample mean over twenty queries, so the points have error bars of roughly 0.11 in quality and the boundaries between cells in the winner map are soft. How many queries a workload would need before a Pareto verdict computed on it meant anything is a concentration question, and it is the reason the topic asserts shapes rather than locations."
+formalstatisticsConnections:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "A Pareto frontier computed from estimates is an estimate, and the domination relation is a discontinuous function of its inputs — a coordinate moving by one query's worth can create or destroy a domination. That is the worst possible interaction between estimation error and a decision rule, and it is why the conclusions here are about dependence structure rather than about which arm sits where."
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "The question a frontier invites is whether two arms genuinely differ or merely differ in this sample, and at twenty queries per condition most adjacent pairs here do not separate. The topic declines to rank arms that sit within each other's error, which is the same discipline the predecessor applied to its matrix one level down."
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "The scalarization theorem is convex geometry and nothing else: maximizing a linear functional over a finite point set returns an extreme point of its convex hull, so the set of options reachable by ANY weighting is exactly the hull's vertex set. Unsupported efficient points — Pareto-optimal and interior — are then invisible by construction, which is the topic's sharpest result and is the standard supporting-hyperplane argument specialized to six points."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import RagArchitectureParetoLaboratory from '../../components/viz/RagArchitectureParetoLaboratory.tsx';
+
+## The question that has no answer
+
+The predecessor to this topic ran six named RAG architectures as arms over two regimes and found
+that no row won both. It also did something quieter that mattered more: it reported cost in **two
+currencies** — similarity operations and generator calls — and refused to collapse them into one,
+on the grounds that the exchange rate between them is precisely what a cost model should not
+invent.
+
+That refusal is what leaves us here, with a Pareto set rather than a winner, and the obvious next
+question. *Which one should we deploy?*
+
+The answer is that the question, as asked, has none. It acquires one only after three further
+things are fixed, and none of the three is a property of any architecture:
+
+- the **workload mixture** $w$ — what fraction of your traffic is each kind of question;
+- the **price ratio** $\rho$ — what one generator call costs in units of a similarity operation;
+- the **amortization horizon** $N$ — how many queries an offline index build is spread over.
+
+Move any one and the winner changes. That is not a disclaimer, it is the subject. This topic is
+about the *shape* of the dependence: a partition of a simplex, a hull the price slides along, and
+a crossover in deployment size.
+
+## Movement 1 — cost is a pair, and it is not a constant
+
+Write $\mathrm{ops}_{a,k}$ and $\mathrm{calls}_{a,k}$ for what arm $a$ spends on a question of
+kind $k$. A workload is a probability vector $w$ over the six kinds of question, and an arm's cost
+on it is
+
+$$
+\mathrm{cost}(a, w) = \Big( \textstyle\sum_k w_k\, \mathrm{ops}_{a,k},\ \ \sum_k w_k\, \mathrm{calls}_{a,k} \Big) \in \mathbb{R}^2 .
+$$
+
+Two things about that expression are worth saying slowly.
+
+The first is that it lands in $\mathbb{R}^2$, and $\mathbb{R}^2$ has no total order. "Cheaper" is
+no longer a comparison two architectures can always settle. An arm spending a hundred operations
+and no generation is not more or less expensive than one spending twenty-five and four generator
+calls; the two are simply incomparable until somebody supplies a price.
+
+The second is that $\mathrm{ops}_{a,k}$ genuinely depends on $k$ for some arms, and this is where
+the familiar "cost" column of a comparison table stops being merely imprecise and becomes wrong.
+Adaptivity turns out to be a spectrum rather than a property, and the spread across question kinds
+measures where on it an arm sits. Four of these six are fixed pipelines that do the same work
+whatever they are asked, at exactly $1.00\times$. A fifth, the agentic arm, is *nearly* flat at
+$1.11\times$ — it stops hopping early when a filing it reads opens no new direction, so its cost is
+query-gated too, just barely. Only the corrective arm is adaptive enough for a single cost figure
+to be actively misleading rather than merely imprecise: its grader fires on some questions and not
+others, and its cost **varies by a factor of 9.95** across the kinds of question it might meet.
+
+So the cost of an adaptive architecture is a function of the workload it meets. There is no number
+to put in the column.
+
+<RagArchitectureParetoLaboratory client:visible />
+
+## Movement 2 — domination, and what it is a property of
+
+<TheoremBlock type="definition" number={1} title="Domination on a workload">
+
+Arm $a$ **dominates** arm $b$ on workload $w$ when it is at least as good on every axis and
+strictly better on one:
+
+$$
+q_a(w) \ge q_b(w), \quad \mathrm{ops}_a(w) \le \mathrm{ops}_b(w), \quad \mathrm{calls}_a(w) \le \mathrm{calls}_b(w),
+$$
+
+with at least one inequality strict. The **Pareto set** is the set of arms no arm dominates. Note
+that both the relation and the set carry $w$ — they are not properties of the architectures.
+
+</TheoremBlock>
+
+On the mixture the predecessor implicitly reported at — its local regime, every class equally
+likely — the Pareto set is `hybrid`, `hyde`, `corrective`, `graph`. Two arms are outside it, and
+one of those two is outside it comprehensively. The agentic arm is beaten by the naive baseline on
+**every axis at once**: lower quality (0.280 against 0.290), more operations (288 against 100), and
+more generator calls (2.88 against 0). It is beaten by the graph arm as well.
+
+A reader who stopped there would conclude, correctly by the evidence in front of them, that this
+architecture should never be deployed. And then:
+
+<TheoremBlock type="proposition" number={2} title="Domination does not survive a change of mixture">
+
+Let $a$ be dominated by $b$ on workload $w$. It does not follow that $a$ is dominated by $b$ on
+workload $w'$, and in general it is false — because both sides of every inequality in Definition 1
+are linear functionals of $w$, and a linear functional's sign is not preserved when its argument
+moves.
+
+Concretely: `agentic` is dominated on the aggregate local workload, and on a workload consisting
+only of the bridge questions it was built for it is the unique arm scoring above zero. The
+crossover is measured — it becomes the arm to deploy once the **bridge fraction reaches 0.43**.
+
+</TheoremBlock>
+
+This is the topic's central claim and it is worth resisting the urge to soften it. The aggregate
+numbers were not wrong. They were computed correctly, on a mixture, and they support a conclusion
+that a different mixture reverses. Domination is a property of an architecture *and* a workload,
+and reporting it as a property of an architecture is a category error that a Pareto table makes
+very easy to commit.
+
+## Movement 3 — the winner map partitions the simplex
+
+Fixing a price $\rho$ for generation and a price $\lambda$ for cost in units of quality gives a
+selection rule, the one every cost-aware evaluation computes:
+
+$$
+\hat a(w) = \arg\max_a \Big\{ q_a(w) - \lambda\big(\mathrm{ops}_a(w) + \rho\, \mathrm{calls}_a(w)\big) \Big\}.
+$$
+
+The map $w \mapsto \hat a(w)$ partitions the workload simplex into cells. What the partition looks
+like is the whole content of "which architecture should we use", and on this arm set it is
+genuinely contested: at the headline price all five arms that ever win hold real territory —
+`corrective` 68%, `graph` 14%, `hybrid` 9%, `agentic` 6%, `hyde` 3% of randomly drawn workloads.
+
+Raising $\lambda$ collapses the map onto the cheapest arm; lowering it collapses the map onto the
+most accurate one. Both limits are degenerate and neither is wrong, which is the uncomfortable
+part: **a benchmark's cost weighting decides its verdict before any measurement is taken.** The
+weighting is usually chosen once, early, by whoever set up the harness, and is rarely reported at
+all.
+
+## Movement 4 — what no price can buy
+
+There is a tempting response to all of this: sweep the prices. If the answer depends on $\lambda$
+and $\rho$, vary them, and collect every architecture that wins somewhere. That set — the options
+a cost-weighted evaluation can *ever* recommend — is the honest output.
+
+It is not, and the reason is geometry rather than retrieval.
+
+<TheoremBlock type="theorem" number={3} title="Linear scalarization reaches only the hull's vertices">
+
+Fix $\rho$, and write each arm as the point $(c_a, q_a)$ with $c_a = \mathrm{ops}_a + \rho\,
+\mathrm{calls}_a$. For every $\lambda \ge 0$,
+
+$$
+\arg\max_a\ \big\{ q_a - \lambda c_a \big\} \in \operatorname{vert} \operatorname{conv} \big\{ (c_a, q_a) \big\},
+$$
+
+because a linear functional on a finite point set attains its maximum at an extreme point of the
+convex hull. Consequently an arm that is Pareto-optimal but lies in the *interior* of the hull is
+returned by **no** $\lambda$ whatsoever, and sweeping $\rho$ as well does not help: the argument
+holds for each $\rho$ separately.
+
+Such arms are the **unsupported efficient solutions** of multicriteria optimization, and they exist
+exactly when the efficient set fails to be convex.
+
+</TheoremBlock>
+
+The practical content is that a Pareto-optimal architecture can be unrecommendable by any weighting
+of the objectives — not because the weights were tuned badly, but because no weights exist. It is
+dominated by no single arm, and beaten at every price by a *mixture* of two others it sits between.
+
+How often does that bite? Here, **on 22.4% of randomly drawn workloads**, and the arm that goes
+missing most often is `agentic` — the same arm the aggregate numbers already dominated. Its second
+and third most frequent companions are `hyde` and `corrective`, which is to say: the arms that
+spend the second currency.
+
+That convergence is the topic's sharpest point. Both of the standard ways of picking a winner —
+compute aggregate domination, or sweep a weighted objective — fail on the *same* architecture, and
+for the same underlying reason. It buys a capability that is worthless on most traffic and
+indispensable on a little of it, and neither an average nor a linear price can represent that.
+
+## Movement 5 — and the frontier moves under you anyway
+
+One free parameter remains, and it is the one most often left out of a cost model entirely.
+
+The graph arm holds an index nobody else builds: the entity–entity similarity matrix its community
+detection runs on, which is $K(K-1)/2$ similarity evaluations. Charged against a deployment of $N$
+queries, its cost per query is $\mathrm{ops}_{\text{online}} + B/N$. Below the crossover the build
+has not paid for itself, and the domination reverses — at this corpus size the **crossover at
+N\* = 3.33** queries.
+
+That number is small, and the honest reading is not that amortization does not matter but that it
+does not matter *at this scale*. The scaling is the result worth carrying:
+
+| entities $K$ | 25 | 100 | 500 | 2000 |
+|---|---|---|---|---|
+| crossover $N^*$ | 3 | 13 | 64 | 253 |
+
+The build is quadratic in the entity count while the saving is only linear, so the deployment must
+be **bigger** before the index pays for itself as the corpus grows — the opposite of the intuition
+that an index matters more the more there is to index.
+
+## What this leaves you with
+
+Three free parameters, none of them a property of any architecture, and a decision that each of
+them moves. That is a worse situation than a ranking and a more accurate one, and it has a
+practical residue:
+
+- A cost column with one number per architecture is wrong for any adaptive architecture, and
+  wrong by a factor of ten for one of these.
+- A Pareto verdict is void the moment the traffic mixture changes, which it does continuously in
+  any deployed system.
+- Sweeping the weights does not fix it: a quarter of workloads here contain a Pareto-optimal
+  architecture that no weighting can return.
+- And whether the arm with an index beats the arm without one is a question about how many queries
+  you expect to serve.
+
+The useful output of an architecture comparison is therefore not a name. It is the partition —
+which regions of workload space each architecture owns, and how far your traffic sits from a
+boundary.
+
+<FinanceCaseStudy title="Choosing a stack for a filings assistant" modality={["text", "pdf", "news"]}>
+
+Suppose the assistant answers questions about filings, and you must pick one retrieval stack.
+
+If the traffic is mostly *what did this company say about X* — distinctive companies, one view
+sufficient — the cheap arm is already correct and everything above it is cost. If it is mostly
+descriptions that match several companies and identify one only in conjunction, fusion earns its
+threefold operation count. If a meaningful slice asks *who does this counterparty disclosure point
+to*, the iterative arm stops being an indulgence and becomes the only thing that works at all —
+and its aggregate numbers will have told you, right up to that moment, that it was the worst option
+available.
+
+The price ratio is where this becomes concrete rather than theoretical. A stack built around
+generated hypothetical documents spends four generator calls per query. Whether that is cheap
+depends on a vendor's per-token price against your own hardware, and on nothing else — and at one
+end of that range it is the arm to deploy while at the other it is priced out entirely. It is worth
+knowing which side of that boundary you are on, and worth knowing that no amount of retrieval
+evaluation will tell you.
+
+</FinanceCaseStudy>
+
+<RigorFlag>
+
+Two results here are theorems about a decision procedure and survive any corpus. Linear
+scalarization returns a vertex of the convex hull, so a Pareto-optimal option in the hull's
+interior is selected by no weights whatsoever — that is convex geometry, not a fact about
+retrieval. And domination is defined relative to a workload, so a change of mixture can create or
+destroy it; the witness here is measured but the possibility is structural.
+
+Everything else is a measurement inherited from the predecessor topic and is exactly as synthetic
+as that corpus, which was designed so that each mechanism has somewhere to succeed and somewhere
+to fail. The decimals — a 22.4% gap rate, a bridge crossover at 0.43, a five-way split of the
+simplex — describe this arm set on this corpus and would move on another. Every quality coordinate
+is a mean over twenty queries, so the cell boundaries in the winner map are soft, and the topic
+asserts that each boundary exists rather than where it lies.
+
+Three quantities are deliberately not measured, because they are not measurable here: $\rho$ is a
+fact about a vendor contract, $\lambda$ is a product decision, and $N$ is a business fact. The
+claim is about the shape of the dependence on all three, never about where any of them sits.
+
+Finally, the cost unit counts similarity evaluations, which means the community detection's graph
+combinatorics register as zero — real work this unit cannot see, stated rather than quietly counted
+as free. And the extrapolation of online cost to larger $K$ is an explicit model, calibrated to the
+measurement at this corpus's own size, not a measurement at those sizes.
+
+</RigorFlag>

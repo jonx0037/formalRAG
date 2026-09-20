@@ -1336,6 +1336,77 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `10.18653/v1/2023.emnlp-main.471`. Cross-site (all `ls`-verified at `~/Developer/Sites/`, NOT `../` from inside
   a worktree): `formalmlConnections` graph-laplacians + clustering + concentration-inequalities;
   `formalstatisticsConnections` hypothesis-testing + point-estimation; `formalcalculusConnections` convex-optimization.
+- **`rag-architecture-pareto`** (the DECISION-LAYER successor to `rag-architecture-mechanisms`, and the
+  cleanest PURE-REUSE topic in the repo: it imports that topic's six arms and two regimes, runs them ONCE
+  into a 6x6x3 table of quality + both costs, and **everything else is arithmetic**. No new corpus, no new
+  arms, no second opinion about any measurement. New node + ONE inbound edge from mechanisms; all
+  `curriculum.ts` tracks already `planned: []`. `domain: rag-information-theory`, `pipelineStage: select`
+  — contrast mechanisms' `retrieve`.)
+  **THE DISTINCTION FROM `adaptive-retrieval-routing` IS LOAD-BEARING** — that topic already owns the convex
+  hull, the lambda sweep and the Jensen gap, so a "cost frontier" topic duplicates it unless two things
+  differ: (a) TWO cost currencies, which makes cost a **partial order** rather than a number, and (b) a
+  FIXED-arm deployment choice rather than per-query routing. Prove the relationship rather than assert it:
+  `test_rho_zero_is_the_single_cost_model` shows rho=0 collapses this topic's cost model onto that one
+  exactly. Before building any successor, grep the sibling's THEOREM list for what it already proved.
+  **`hull_vertices` STAIRCASE BUG (the one that silently manufactures the headline):** going cost-ascending,
+  the Pareto staircase must keep a running max and append only on STRICT quality improvement. An earlier
+  version popped previously-kept points whenever the current one tied or exceeded them — which DELETES THE
+  CHEAPEST ARM, and the cheapest arm is a hull vertex by construction (it wins as lambda -> infinity). The
+  symptom was `graph`, the cheapest arm in the set, appearing in the "no price can select" gap. Anchor it:
+  `test_cheapest_and_best_are_always_selectable` asserts argmin(cost) and argmax(quality) are ALWAYS hull
+  vertices, which is the cheapest possible guard against a sign or staircase error in this routine.
+  **"NO PRICE CAN SELECT" IS A UNION OVER rho, NOT A HULL AT ONE rho** — and the viz got this wrong until a
+  browser check caught it. The panel drew the hull at the slider's rho and labeled the off-hull arms "no
+  price can select"; at a 70% bridge share it said `hybrid, corrective` while the module said `corrective`.
+  An arm off the hull at ONE exchange rate can be on it at another, so the theorem's claim is only the union.
+  Fix was to compute BOTH in TS (`selectableAtAnyPrice` unioning hull vertices over the rho grid) and label
+  them separately — "off it here" vs "NO price can select". **The TS rho grid must match the .py `RHO_GRID`
+  EXACTLY** (61 points, 1e-1..1e5); a coarser TS grid reports a gap the module does not. Good tell that the
+  price-free readout is right: it must be INVARIANT as the rho slider moves, and it is.
+  **A "spread across conditions" statistic must be taken WITHIN one regime** or it reports corpus size rather
+  than the property you mean: across both regimes `naive` showed a 4.0x ops spread purely because the local
+  corpus has 100 docs and the global one 25 entities. Restricted to the five local classes the claim becomes
+  crisp and provable — every fixed arm is **1.00x** and only `corrective` varies (**9.95x**), because the
+  only thing that varies is a gate that fires on some questions and not others.
+  **Pick the headline lambda by MEASURING the partition, not by taste:** `winner_cells` at 1e-4 concentrates
+  in two arms (hybrid .51, graph .40) while **3e-5** gives all five winners real territory (corrective .68,
+  graph .14, hybrid .09, agentic .06, hyde .03) AND sits in the band where rho still flips the verdict. A
+  headline operating point for a "it depends" topic should be the most CONTESTED one available.
+  **Unit consistency in an amortization model:** the cost unit is *similarity evaluations*, so the graph
+  arm's offline build is exactly `K(K-1)/2` and Leiden contributes **ZERO** — real work the unit cannot see,
+  which is stated in the rigorFlag rather than smuggled in as free. N* = 3.33 at K=25 is thin, so ship the
+  SCALING instead (build is O(K^2), saving O(K), so N* grows ~linearly: 3 / 13 / 64 / 253 at K = 25 / 100 /
+  500 / 2000) and mark the large-K online-cost extrapolation as an explicit MODEL calibrated to the
+  measurement at this K, not a measurement at those K.
+  **Prose-guard regexes must tolerate MDX line wrapping** — `crossover at N* = 3.33` wrapped after "at", so
+  `r"crossover at N..."` missed it; use `r"crossover at\s+N[^0-9]{0,8}([0-9.]+)"`. Compare at the precision
+  the prose actually uses (2dp) rather than the bake's 3dp, or the guard fails on a correctly-rounded number.
+  Both drift guards ported from the predecessor and both re-verified to FAIL on injected drift before trust.
+  **Prose that is STRONGER than the test is a bug even when the number is right.** The draft said five
+  arms are flat "at exactly 1.00x" while the bake said `agentic` is **1.111x** and the module's own test
+  had quietly used a `< 1.2` threshold to call it flat — the code had already declined to make the claim
+  the prose made. The fix was better than a correction: `agentic` stops hopping early when a filing opens
+  no new direction, so it IS query-gated, just two orders of magnitude less dramatically, and the honest
+  three-tier statement (four at exactly 1.00x, agentic nearly flat at 1.11x, corrective at 9.95x) says
+  **adaptivity is a spectrum, not a property** — a better point than the binary. When a test uses a
+  threshold where the prose uses "exactly", the threshold is telling you something; assert the TIERS.
+  **Guard every baked SCALAR, not just the JSON blocks.** `test_laboratory_constants_match_the_module`
+  parsed whole-line JSON consts and so missed nine scalars (`GAP_FRACTION`, `BRIDGE_CROSSOVER`,
+  `CROSSOVER_N`, `K0`, `LAM0`, …) declared several-to-a-line and quoted directly in the panel notes a
+  reader actually reads — match those by name with a `\b{name} = ([0-9.eE+-]+)` regex. Likewise the prose
+  guard covered four figures and missed the winner-map percentages and the agentic-vs-naive triple that
+  carries the whole domination argument. Rule: every number a READER sees needs a guard, and each new
+  guard must be falsified on injected drift before it is trusted — all four new ones here were.
+  Refs verified: Ehrgott *Multicriteria Optimization* `10.1007/3-540-27659-9` (the supported-vs-unsupported
+  efficient-solution result that IS the scalarization gap); Boyd-Vandenberghe ch. 4 (scalarization, and why
+  convexity of the achievable set decides whether a sweep is exhaustive); BEIR arXiv 2104.08663 (the
+  empirical shadow: retrieval rankings reorder across task mixtures). Cross-site (all `ls`-verified at
+  `~/Developer/Sites/`): `formalcalculusConnections` convex-optimization (the supporting-hyperplane argument
+  specialized to six points — the load-bearing up-link); `formalstatisticsConnections` point-estimation +
+  hypothesis-testing (a frontier computed from estimates is an estimate, and domination is a DISCONTINUOUS
+  function of its inputs); `formalmlConnections` concentration-inequalities (how many queries before a
+  Pareto verdict means anything). NO decision-theory/Pareto slug on any sibling -> name Pareto, scalarization
+  and unsupported efficient solutions in prose.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
