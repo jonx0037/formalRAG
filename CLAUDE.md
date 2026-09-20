@@ -1454,7 +1454,26 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   `main`** (you don't control the merge), branch the dependent off the **prereq branch** — but then the
   dependent PR's base IS that branch, so merging it lands in the prereq branch (bundling both topics),
   NOT `main`, and GitHub's merge dialog names the prereq branch (it reads like merging the prereq); the
-  prereq PR then carries both topics to `main` in one merge. Each removes its title
+  prereq PR then carries both topics to `main` in one merge.
+  **BUT MERGING THE PREREQ PR SEPARATELY BREAKS THE STACK, BECAUSE THIS REPO SQUASHES.** Every PR since
+  #64 is squash-merged, which replaces the prereq branch's commits with ONE NEW commit on `main` — so the
+  dependent branch's base commits are no longer ancestors of `main`. Retarget the dependent PR to `main`
+  and it flips to **CONFLICTING/DIRTY** showing EVERY file from BOTH topics, because the three-dot diff
+  re-derives the prereq's changes from a merge-base that predates them. Measured on #70/#71 (Sep 2026):
+  #71's diff went from a clean 6 files to a conflicting 10 the instant its base was retargeted.
+  The repair is mechanical, and both halves are VERIFIABLE rather than hopeful — a squash preserves the
+  TREE, so confirm it and then cherry-pick only the dependent's own commit onto the squash:
+  `git rev-parse <squash>^{tree}` == `git rev-parse <prereq-tip>^{tree}` → `git checkout -B topic/<dep>
+  <squash>` → `git cherry-pick <dep-commit>` → confirm `tree(HEAD)` == `tree(<dep-commit>)` →
+  `git push --force-with-lease`. Two `rev-parse`s turn a scary force-push into a provably lossless one.
+  Two traps around it: `gh pr merge --delete-branch` FAILS the local delete when the branch is checked
+  out in another worktree (the main checkout usually is), and gh then leaves the **remote** branch alive
+  too — so the dependent PR still points at a live base and would merge INTO it rather than `main`.
+  Retarget explicitly with `gh pr edit <n> --base main`; never assume GitHub auto-retargeted. And after
+  the force-push `mergeable` reads UNKNOWN then UNSTABLE while Vercel rebuilds — poll until no check is
+  PENDING instead of merging over a running build. **Simplest avoidance: merge the prereq PR and let it
+  carry both topics, exactly as this bullet says, rather than merging them separately.**
+  Each removes its title
   from a track's `planned[]` array, so the **2nd+ merge needs a trivial one-line `curriculum.ts`
   `planned[]` conflict resolution** (the `curriculum-graph.json` node-status flips auto-merge; but a
   DAG *edge* re-source is a real content edit — keep it on one branch). **AUTOMATED GITHUB REVIEW IS GONE — the pre-push gate is now an adversarial subagent.**
