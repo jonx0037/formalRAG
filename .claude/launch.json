@@ -4,8 +4,22 @@
     {
       "name": "formalrag-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev", "--port", "4399"],
+      "runtimeArgs": [
+        "dev",
+        "--port",
+        "4399"
+      ],
       "port": 4399
+    },
+    {
+      "name": "formalrag-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "preview",
+        "--port",
+        "4398"
+      ],
+      "port": 4398
     }
   ]
 }

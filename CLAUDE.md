@@ -1467,6 +1467,85 @@ uv run --with numpy --with scipy --with nbformat --with jupyter --with ipykernel
   Wald 1945 (the minimax criterion) `10.2307/1969022`; Blackwell-Girshick 1954 (regret as the object a
   hedge is built on, archive.org, pre-DOI); Shafer "Savage Revisited" `10.1214/ss/1177013426`; Ehrgott
   reused from the predecessor.
+- **`rag-architecture-switching-hysteresis`** (the successor to `rag-architecture-workload-uncertainty`,
+  and the topic that removes the arc's LAST standing assumption: three topics let the workload be unknown
+  but never let it MOVE. New node + ONE inbound edge from workload-uncertainty; `domain:
+  rag-information-theory`, `pipelineStage: select`. All `curriculum.ts` tracks were already `planned: []`,
+  so nothing to drop there — a brand-new node is an ADD, not a status flip; verify rather than assume when
+  a brief says "planned->published".)
+  **THE HEADLINE IS A REFRAMING THE SETUP ITSELF ARGUES AGAINST — which is why it had to be measured.**
+  You introduce a control band by way of a switching cost, and the classical result you cite is a result
+  about switching costs, so every instinct says the band is a device for amortizing an expensive change.
+  Sweep the price and it is FLAT: the optimal band is already 0.10 at a price of exactly ZERO and stays
+  there across four decades, moving only at c=0.1. The band's first job is **filtering an estimator**, and
+  the switching cost is a second, much smaller reason to keep it. The flatness is the evidence — a band
+  paying for switches would track the price continuously — so sweep the cost axis before writing the
+  motivation, not after.
+  **The static-workload CONTROL is the cleanest statement in the topic and costs nothing to build:** hold
+  the mixture at exactly zero drift and count switches anyway. Deep in a cell (share 0.20 / 0.70) the
+  myopic rule settles at 1.0; at the boundary (0.43) it switches **30.8** times with NOTHING moving. That
+  is the predecessor's distance-to-boundary result arriving on the time axis with no new mechanism. When a
+  topic's phenomenon is "noise, not signal", the control that removes the signal entirely is the figure.
+  **A PLANNED ANCHOR WAS FALSE AND HAD TO BE NARROWED:** "a static path produces exactly one switch at any
+  band > 0" holds only DEEP INSIDE A CELL, not near a boundary (at 0.43 even band 0.20 still switches 3.8
+  times). Ship the narrowed version (`test_a_static_workload_deep_in_a_cell_settles`, share 0.70 only) —
+  the plan's collapse anchors are hypotheses too.
+  **The lab's DEFAULT VIEW showed the one counterexample, and the fix was to say so, not to reseed.**
+  Panel A opens on deployment 1, which is the 1 seed of 10 where the headline band 0.10 is WORSE on regret
+  than switching freely (0.00284 vs 0.00271) — so a note claiming "watch regret fall" was false exactly
+  where a reader lands. Do NOT default to a flattering seed. State it in the panel (a single run is one
+  draw; the claim is an average) and pin the real per-seed facts:
+  `test_the_per_seed_claims_the_laboratory_makes` asserts switches non-increasing in the band on ALL 10,
+  the headline band switching less on ALL 10, SOME interior band beating myopic on regret on ALL 10, and
+  `beats_on_regret == N_SEEDS - 1` — the counterexample is *asserted*, so it cannot silently disappear.
+  **BAKE THE POLICY'S INPUT STREAMS, NOT ITS OUTPUT CURVES.** The policy is a pure function of two arrays
+  (`u_hat` per window per arm, `u_true` likewise), so baking THOSE lets the browser recompute every switch
+  count, regret and optimal band live — the lab ships 34 KB of data and ZERO baked conclusions, and
+  `runPolicy` in TS mirrors `run_policy` in the module line for line. **5 decimals is a MEASURED floor,
+  not a default:** at 4 dp a near-tie rounds the wrong way on 1 of 80 (seed, band) pairs and the browser
+  silently desyncs; `test_viz_constants_reproduce_the_policy` sweeps all 10 seeds x all 8 bands at the
+  ROUNDED precision. Measure the precision floor, do not guess it.
+  **Refactor `simulate` to DELEGATE to the streams+policy pair** rather than duplicating the band rule —
+  otherwise the module and its own reference implementation are two copies (the reviewer flags it, and the
+  twin test goes tautological). The genuine remaining subject of that test is then the rounding, which is
+  the honest framing to put in its docstring.
+  **`viz_constants` rounding must match the precision the PROSE quotes.** A blanket `r4` gave regret
+  0.0096 while the topic's table quoted 0.00961 (2 significant figures for a ~0.004 quantity); the prose
+  guard then fails on correct prose. Round per-field, and let the field the prose quotes drive it.
+  **A finer sweep in the lab than in the module lands BETWEEN grid points — explain it, do not hide it.**
+  The lab searches 61 band widths and reports an optimum of 0.133 where the module's 8-point grid says
+  0.10. That is not a disagreement but a concrete instance of the topic's own caveat that the LOCATION is
+  not the claim, so it goes in a panel note — and the hand-written grid size in that note (`BAND_GRID_N`)
+  gets its own guard clause, since a number a reader sees that nothing derives is the rot class.
+  **Detector gotcha: ONE reference-vs-current comparison, never a max over overlapping windows.** A max
+  over ~40 overlapping pairs is an extreme statistic that grows with the number of comparisons and
+  inflated PSI to **1.16 on a path with zero drift** before it was caught — the same shape as the
+  previous topic's worst-case-regret trap.
+  **The detection-vs-decision contrast must fail in BOTH directions or it is a reprise of
+  `significance-testing-calibration`.** static: detectors correctly silent (KS p=0.98) while the myopic
+  policy switches 35 times — right and useless. wobble: the best arm genuinely changes twice while KS sees
+  NOTHING (p=0.83), because the path returns near its start and a two-window comparison is blind to an
+  excursion that comes back. Build a path that RETURNS, or only the first half of the contrast exists.
+  **Runtime:** reuse the predecessor's `utility_kernel` from the first line — utility affine in w makes a
+  60-window x 10-seed x 8-band x 5-cost sweep run in **1.2 s**; the predecessor hit 119 s before its
+  equivalent rewrite. Budget the timing check early.
+  **Ref DOI gotcha (the CSL title check earned its keep AGAIN):** the guessed Harrison-Reiman
+  `10.1080/17442508708833446` RESOLVES cleanly and is even the right journal-ish era (Stochastics 1987) but
+  is a COMPLETELY different paper — Dawson & Gärtner on McKean-Vlasov diffusions. Crossref
+  `query.bibliographic` found the citation actually wanted: Constantinides & Richard, "Existence of Optimal
+  Simple Policies...", Operations Research 26(4):620-636, `10.1287/opre.26.4.620` (the continuous-time
+  band result). Verified: Sethi-Cheng (s,S) under Markovian demand `10.1287/opre.45.6.931` (OR 45(6):931-939);
+  Gama et al. concept-drift survey `10.1145/2523813` and Massey KS `10.1080/01621459.1951.10500769` (both
+  reused); Berger `10.1007/978-1-4757-4286-2` (reused). Cross-site (all `ls`-verified): `formalstatistics
+  Prereqs` point-estimation; `formalstatisticsConnections` hypothesis-testing + confidence-intervals-and-duality
+  + **order-statistics-and-quantiles** (the KS supremum is over the order statistics of a window);
+  `formalmlConnections` concentration-inequalities (how tightly a window concentrates IS how wide a band is
+  worth having — the headline restated); `formalcalculusConnections` mean-value-taylor (the interior optimum)
+  + convex-optimization. NO control-theory / optimal-stopping / inventory slug on any sibling -> name the
+  control band, (s,S) and impulse control in PROSE only.
+  **The `__main__`-last trap bit a third time in the arc** — `_run_tests` scans `globals()` at call time, so
+  a `def test_*` below the guard never runs and the printed count just comes out short. The assertion count
+  RISING is the only tell; watch it after every added test.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
