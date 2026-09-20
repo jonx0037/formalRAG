@@ -311,6 +311,12 @@
       "label": "RAG Architecture Mechanisms: What Each Named Pattern Buys, and Where It Fails",
       "status": "published",
       "domain": "rag-information-theory"
+    },
+    {
+      "id": "rag-architecture-pareto",
+      "label": "The Architecture Pareto Frontier: What \"Which One Should We Use?\" Actually Depends On",
+      "status": "published",
+      "domain": "rag-information-theory"
     }
   ],
   "edges": [
@@ -649,6 +655,10 @@
     {
       "source": "multi-hop-iterative-retrieval",
       "target": "rag-architecture-mechanisms"
+    },
+    {
+      "source": "rag-architecture-mechanisms",
+      "target": "rag-architecture-pareto"
     }
   ]
 }
