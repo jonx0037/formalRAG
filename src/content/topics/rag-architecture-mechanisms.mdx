@@ -1,0 +1,509 @@
+---
+title: "RAG Architecture Mechanisms: What Each Named Pattern Buys, and Where It Fails"
+subtitle: "Six named architectures run as arms over two regimes, with both halves of each measured — the class each one wins, the class it damages, and the property of the corpus that decides which it is"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "graphrag-community-detection"
+  - "multi-hop-iterative-retrieval"
+tags:
+  - "rag-architectures"
+  - "hybrid-retrieval"
+  - "corrective-rag"
+  - "graphrag"
+  - "agentic-rag"
+  - "hyde"
+  - "ablation"
+domain: "rag-information-theory"
+pipelineStage: "retrieve"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "This is a designed mechanism study on a synthetic von Mises–Fisher finance corpus, not a benchmark, and the decimals do not transfer. What is constructed rather than discovered: the five local query classes, the two company families, the mention angle, the concentrations, the grader's midpoint, and above all the global regime's defining property — that the sector geometrically nearest a theme is never the sector that discusses it most. Every one of those was chosen so that a named mechanism has somewhere to succeed and somewhere to fail; a corpus without them makes half the arms indistinguishable. Two claims are structural and survive the corpus: fusion can only contribute where its views disagree, and no re-scoring of retrieved passages can reach an answer that no passage is about. The rest are measurements. One prediction going in was that over-eager correction is a net loss; it is NOT, on this corpus, and that is reported rather than quietly fixed — what happens instead is that correction destroys the one class that needed none while the average rises. The grader is deliberately imperfect (AUC 0.829, not 1.0), because a perfect grader makes the corrective comparison vacuous. Twenty queries per class means a single query moves a cell by 0.05, so read the columns and not the third decimal. The arms are retrieval architectures scored on whether they identify the right company; nothing here speaks to generation quality, faithfulness or instruction-following."
+videoId: null
+notebookPath: "notebooks/rag-architecture-mechanisms/01_rag_architecture_mechanisms.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/rag-architecture-mechanisms.mdx"
+datePublished: 2026-09-19
+estimatedReadTime: 26
+abstract: "The cheat sheets list the named RAG architectures side by side, each with a line saying what it is best for and no line saying what it loses to. This topic supplies the missing column. Six architectures — naive, hybrid, HyDE, corrective, GraphRAG and agentic — run as arms over two regimes: one where the answer is carried by a passage, and one where it is carried by no passage at all but only by a count across a community. Every arm runs on both, and both halves of each are measured. No arm wins both regimes, and every win turns out to be attributable to a named property of the corpus rather than to the architecture being better. Fusion beats its own best leg by 0.65 where the views disagree and is strictly worse than not fusing where one view already answers. Correction recovers a whole class where the answer is present but demoted and recovers nothing where the answer is a company no passage is about — and the grader cannot even warn you, because there the retrieved filing is genuinely relevant. GraphRAG takes the global regime outright, but the honest form of that result is a cost: flat aggregation does reach the same answer, by scanning the entire entity set. An architecture is a bet about where the answer lives."
+connections:
+  - topic: "rank-fusion-rrf"
+    relationship: "Supplies the fusion rule the hybrid arm is, used verbatim rather than reimplemented, and the hybrid arm is the measured counterpart of that topic's claim that fusion beats either leg. What this adds is the other half: the reciprocal-rank sum is indifferent to WHICH leg was informed, so on a query one view answers outright the two uninformed legs outvote it and fusion scores strictly below not fusing. That topic proved when fusion helps; this one measures what it costs where it does not."
+  - topic: "query-transformation-hyde"
+    relationship: "The HyDE arm imports that topic's generation machinery — the hallucination targets, the generation center and the Rocchio interpolation — and the collapse anchor is its alpha = 0 case, which returns the bare query and is therefore byte-for-byte the naive arm. The difference is that the generator here is not allowed to read the gold: it conditions on the query, removing the corpus-mean axis that by construction says nothing about which company. That restriction is what makes the arm's failure legible — it restores a query tilted off the manifold and does nothing whatever for a query tilted toward the wrong company."
+  - topic: "dense-retrieval-dual-encoders"
+    relationship: "The naive arm is one pooled dual-encoder retrieval, and the finance geometry every regime is built on is that topic's. It is the load-bearing baseline rather than a straw man: on the class where a single view carries the answer it scores 1.000, which is the ceiling, and the entire question for every other arm is what it adds on the classes where that is not true and what it destroys on the class where it is."
+  - topic: "late-interaction-learned-sparse"
+    relationship: "Supplies the MaxSim scorer used in two distinct roles: as the expensive re-scoring the corrective arm pays for when its grader fires, and as the grader itself, which re-scores a single retrieved document over every token rather than the one pooled window the cheap leg looked at. The second role is the more interesting one — it is precisely because MaxSim measures relevance well that the grader is blind to the bridge class, where the retrieved filing is genuinely relevant and the answer is still wrong."
+  - topic: "set-metrics-precision-recall-map-mrr"
+    relationship: "Supplies the reading discipline the matrix needs. Each cell is a sample mean over twenty queries, so a single query moves it by 0.05, and the honest way to read the table is by column shape rather than third decimals. The one place that bites hardest is the noisy class, where the corrective and hybrid arms differ by 0.10 — two queries — and the topic declines to call that a ranking."
+  - topic: "adaptive-retrieval-routing"
+    relationship: "The direct sibling, and the reason this study is worth running. That topic showed a router can in principle capture the gap between the best fixed strategy and the per-query best, and that the gap is a Jensen gap that vanishes when the strategies never change places. This is the measurement that gap presupposes: six architectures whose orderings genuinely reverse across query classes, with the reversal attributed to a property of the corpus in each case. Routing has something to route only because this matrix has no dominant row."
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "The capstone's partial-view construction is what makes the hybrid arm's win possible at all, and the lesson transferred exactly: three legs reading disjoint token windows of the same passage fuse productively, while three legs reading the same content at different noise levels are a quality ladder in partial-view clothing and fusion scores below its best leg. That failure mode was reproduced here before the working construction was adopted, and it stays in the module as the control."
+  - topic: "cross-encoders-reranking"
+    relationship: "The corrective arm is a cascade in that topic's sense — cheap first stage, expensive re-scoring of a shortlist — and inherits its central caution. There the guaranteed-dip witness was a constructed confident-wrong promoter; here the same role is played by a noise parameter on the corrective scorer, because with an unnoised MaxSim the re-scoring dominates the cheap leg on every query and correction is a free upgrade, which is measured and stated rather than assumed away."
+references:
+  - type: "paper"
+    title: "Dense Passage Retrieval for Open-Domain Question Answering"
+    authors: "Vladimir Karpukhin, Barlas Oğuz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, Wen-tau Yih"
+    year: 2020
+    url: "https://doi.org/10.18653/v1/2020.emnlp-main.550"
+  - type: "paper"
+    title: "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods"
+    authors: "Gordon V. Cormack, Charles L. A. Clarke, Stefan Büttcher"
+    year: 2009
+    url: "https://doi.org/10.1145/1571941.1572114"
+  - type: "paper"
+    title: "Precise Zero-Shot Dense Retrieval without Relevance Labels"
+    authors: "Luyu Gao, Xueguang Ma, Jimmy Lin, Jamie Callan"
+    year: 2023
+    url: "https://doi.org/10.18653/v1/2023.acl-long.99"
+  - type: "paper"
+    title: "Corrective Retrieval Augmented Generation"
+    authors: "Shi-Qi Yan, Jia-Chen Gu, Yun Zhu, Zhen-Hua Ling"
+    year: 2024
+    url: "https://arxiv.org/abs/2401.15884"
+  - type: "paper"
+    title: "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection"
+    authors: "Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, Hannaneh Hajishirzi"
+    year: 2023
+    url: "https://arxiv.org/abs/2310.11511"
+  - type: "paper"
+    title: "From Local to Global: A Graph RAG Approach to Query-Focused Summarization"
+    authors: "Darren Edge, Ha Trinh, Newman Cheng, Joshua Bradley, Alex Chao, Apurva Mody, Steven Truitt, Jonathan Larson"
+    year: 2024
+    url: "https://arxiv.org/abs/2404.16130"
+  - type: "paper"
+    title: "Answering Questions by Meta-Reasoning over Multiple Chains of Thought"
+    authors: "Ori Yoran, Tomer Wolfson, Ben Bogin, Uri Katz, Daniel Deutch, Jonathan Berant"
+    year: 2023
+    url: "https://doi.org/10.18653/v1/2023.emnlp-main.471"
+  - type: "paper"
+    title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"
+    authors: "Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, Douwe Kiela"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.11401"
+formalmlConnections:
+  - topic: "graph-laplacians"
+    site: "formalml"
+    relationship: "The community structure the GraphRAG arm answers from is a spectral object: modularity is a quadratic form in a Laplacian-like matrix, and the partition the arm counts over is what its leading eigenvectors separate. That the arm wins its regime outright is a statement about the graph having recoverable communities at all, which is the spectral condition that topic develops."
+  - topic: "clustering"
+    site: "formalml"
+    relationship: "The two company families the local regime turns on are a designed clustering problem in disguise: distinctive companies are singletons in one view, conjunctive companies are only separable by the conjunction of three. Which arm wins which class is exactly a question about what structure a given similarity is able to resolve."
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "Every cell in the matrix is a mean over twenty Bernoulli trials, so the sampling error on a cell is around 0.11 and a 0.05 difference between two arms is one query. The honest reading of the table — columns and shapes rather than third decimals — is a concentration statement about how many queries a class would need before a small gap meant anything."
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "The matrix invites exactly the comparison a test is for: is the corrective arm's 0.40 on the noisy class really above the hybrid arm's 0.30, at twenty queries? The topic declines to claim it, and the reason is the one that topic formalizes — two queries of difference is not evidence of an ordering, however suggestive the table looks."
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "An accuracy cell is a point estimate of an arm's probability of being right on a class, and the whole matrix is a table of estimates rather than of quantities. Reading it as a set of measurements with error, rather than as a leaderboard, is what keeps a mechanism study from becoming a benchmark."
+formalcalculusConnections:
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "The two cost currencies here — similarity operations and generator calls — are deliberately not collapsed into one number, because the exchange rate between them is exactly what a cost model should not invent. What that leaves is a Pareto set rather than an optimum, which is the structure that topic's duality machinery describes and the successor topic on the cost frontier takes up."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import RagArchitectureMechanismsLaboratory from '../../components/viz/RagArchitectureMechanismsLaboratory.tsx';
+
+## The missing column
+
+Every survey of RAG architectures is a table. Down the left, the names: naive, hybrid, HyDE,
+corrective, GraphRAG, agentic. Across the top, one column — *best for*. Hybrid is best for queries
+mixing keywords and concepts. GraphRAG is best for global questions. Agentic is best for
+multi-step reasoning.
+
+There is never a second column, and the second column is the one that decides anything. *Best for*
+tells us where an architecture succeeds; it does not tell us what it costs where it does not, and
+an engineer choosing among six patterns needs both. A pattern that wins one class of query and is
+merely expensive elsewhere is a different proposition from one that wins that class and actively
+damages another.
+
+So we will supply the missing column. We take six architectures, implement each as an *arm* with a
+uniform interface, and run all six over the same queries — measuring not only the class each one
+wins but the class each one loses, and attributing both to a named property of the corpus. The
+thesis we will end up defending is stronger than "it depends":
+
+> No arm wins both regimes, and every win is attributable to a property of the corpus rather than
+> to the architecture being better. An architecture is a bet about where the answer lives.
+
+## Two places an answer can live
+
+An architecture can only be right about a corpus. To make that concrete we build two, and run
+every arm on both.
+
+In the **local regime** the answer is carried by a passage. Some filing says the thing; the job is
+to find it. This is factoid retrieval, and it is what nearly every retrieval benchmark measures.
+
+In the **global regime** the answer is carried by no passage at all. The question is *which sector
+discusses this theme most*, and the answer is a count across a community — a property of a set of
+documents that no single document contains. A corpus can be exhaustively indexed, perfectly
+embedded, and still not have the answer written down anywhere in it.
+
+The global regime is easy to build badly, and the bad build is worth naming because it is the
+default. If the sector that discusses a theme most were also the sector geometrically nearest that
+theme, then ranking entities by similarity would already answer the question and community
+summarization would be decoration. We therefore *decouple the count from the geometry*: each theme
+sits nearest one sector while a different sector holds the most mentioning companies. This is not
+a detail, it is the whole regime, so a test asserts it — on all sixteen themes the count-maximizing
+sector differs from the nearest one, and flat top-ten voting scores one out of sixteen, which is
+*worse than guessing* among five sectors.
+
+<TheoremBlock type="definition" number={1} title="The two regimes">
+
+Let $\mathcal{D}$ be a passage set over companies $a \in \mathcal{A}$, and let each passage be a
+bag of token embeddings on the unit sphere $S^{d-1}$.
+
+**Local.** A query $q$ has a gold company $y(q) \in \mathcal{A}$, and some passage
+$d \in \mathcal{D}$ is *about* $y(q)$. An arm answers with the company owning the passage it ranks
+first.
+
+**Global.** A query is a theme $\theta$. Each entity $e$ either discusses $\theta$ or does not,
+written $m_\theta(e) \in \{0,1\}$, and the gold answer is the community with the most discussants,
+
+$$
+y(\theta) = \arg\max_{s} \sum_{e \in \mathcal{C}_s} m_\theta(e),
+$$
+
+which is constructed to differ from the nearest community $\arg\max_s \langle \mu_s, \theta \rangle$
+for every $\theta$.
+
+</TheoremBlock>
+
+## The corpus, and why its query classes separate
+
+The local corpus needs five query classes, one per mechanism we want to exhibit, and the classes
+have to separate for reasons we can name. Our first attempt did not, and the reason is worth
+recording because it is a trap anyone building an ablation walks into.
+
+We describe each company by a *triple of latent themes*, one per leg window, and let a query name
+those themes with greater or lesser precision. The natural knob is the query's concentration: a
+sharply named query should be easy, a vaguely named one hard. Measured, that knob does almost
+nothing. What actually determines whether a single view can identify a company is *how many other
+companies share that view's theme* — leg accuracy runs from 1.00 when the theme is unique to about
+0.50 when six companies share it, and is essentially independent of how sharply the query names it.
+Two query classes differing only in concentration are therefore one mechanism sampled twice.
+
+So the sharing structure is constructed rather than drawn, and the query classes are defined by it.
+Two families of company, interleaved two per sector so that family does not correlate with sector:
+
+- **Distinctive** companies hold a dense-view theme that *no other company holds*. One view
+  identifies them outright. Their other two themes come from the shared pools, so they are generic
+  in every other view.
+- **Conjunctive** companies hold only shared themes. Every view alone returns a handful of rivals,
+  and only the company holding all three themes is the answer.
+
+That single change converts a tuning problem into a construction, and it is what makes the five
+classes — `on`, `partial`, `off`, `noisy`, `bridge` — mechanisms rather than difficulty levels.
+
+<TheoremBlock type="remark" title="A bug the construction was hiding">
+
+The three legs are supposed to read *disjoint* token windows, so that they are partial views of one
+document rather than three noisy copies of one score. In our first build the late-interaction
+window overlapped the other two — and because a passage is filled window by window, the late draw
+silently overwrote half the dense window. The dense leg was reading a mixture of two themes.
+
+The effect was not noise, it was a phantom result: a passage of the gold company matched its query
+on *both* mixed components while a rival sharing only the dense theme matched on one, so the dense
+leg scored a perfect 1.000 on the very class built to defeat it. The docstring claimed the windows
+were disjoint and nothing checked. They now partition the bag, and the partition is asserted at
+import.
+
+</TheoremBlock>
+
+## Movement 1 — fusion is set intersection
+
+The hybrid arm fuses three retrieval legs by reciprocal rank, using the rule unchanged from its
+own topic: a document scores $\sum_{\ell} 1/(c + r_\ell(d))$ over the ranks $r_\ell$ it receives
+from each leg $\ell$.
+
+What can that buy? Only disagreement. If all three legs return the same ordering, the sum is a
+monotone function of one rank and fusion returns that ordering unchanged. Fusion contributes
+exactly where the views differ, and the shape of the contribution is set intersection.
+
+<TheoremBlock type="proposition" number={2} title="Fusion contributes only where the views disagree">
+
+Let each leg $\ell$ rank documents by a score depending only on theme slot $\ell$, so that leg
+$\ell$ cannot distinguish two companies sharing $\theta_\ell$. Write
+$R_\ell(q) = \{a : \theta_\ell(a) = \theta_\ell(q)\}$ for the companies leg $\ell$ regards as
+candidates.
+
+Then no leg can resolve better than its own $R_\ell$, while reciprocal-rank fusion — which rewards
+a document ranked well by *several* legs — concentrates on $\bigcap_\ell R_\ell$. When the triples
+are unique that intersection is a single company, even though each $R_\ell$ has several members.
+
+Conversely, if some leg $\ell^\ast$ has $|R_{\ell^\ast}| = 1$ while the others do not, fusion adds
+two uninformative rankings to one informative one. The reciprocal-rank sum is symmetric in the
+legs and has no way to tell which was which, so the informed leg can be outvoted.
+
+</TheoremBlock>
+
+Both halves are measured, and both directions hold. On the conjunctive class the three legs score
+0.05, 0.35 and 0.05 on their own — every one of them returns rivals — while their fusion scores
+**1.000**, a margin of 0.65 over the best leg. On the class where one view identifies the company
+outright, the single view scores 1.000 and fusion scores **0.800**. Hybrid is not a free upgrade
+over naive; it is a trade, and the thing traded away is precisely the case naive was built for.
+
+<TheoremBlock type="remark" title="Fusion needs different content, not different noise">
+
+Getting the winning half to reproduce took three constructions, and the two failures are kept in
+the module as controls.
+
+Drawing all of a passage's tokens around one company prototype makes the three windows three
+*subsamples of one signal* — a quality ladder in partial-view clothing — and fusion scored 0.350
+against a best leg of 0.400. Blurring the prototype three independent ways gives the legs different
+*noise* on the same content; across twenty-three swept configurations fusion never robustly won,
+the single positive cell being one query's worth of margin.
+
+Only when each leg's window carries a different *theme* — so that a leg alone retrieves everything
+sharing that theme, and only the company sharing all of them is the answer — does fusion gain, and
+then it gains everywhere. The condition is that the views carry different content, not that they
+carry different errors.
+
+</TheoremBlock>
+
+## Movement 2 — rank against reach
+
+The corrective arm retrieves cheaply, grades what came back, and on a bad grade looks deeper and
+scores harder: it over-fetches a shortlist and re-scores it with MaxSim over every token rather
+than the single pooled window the cheap leg used.
+
+This is a cascade, and a cascade can only reorder what it fetched. That gives correction a sharp
+and checkable boundary.
+
+<TheoremBlock type="proposition" number={3} title="Correction moves rank; it cannot create reach">
+
+Let the cheap retriever produce a ranking and let the corrective stage re-score its top $k$. If the
+gold company's best passage has rank $r$, then correction can promote it only if $r < k$, whatever
+the re-scoring is. If no passage in $\mathcal{D}$ is about the gold company at all, no $k$
+suffices: the shortlist contains more of the same wrong thing, and a better scorer ranks it more
+confidently.
+
+</TheoremBlock>
+
+The two classes we need sit either side of that line, by construction. On the noisy class the gold
+sits at median rank 12 — demoted by decoys but present — and correction recovers it. On the bridge
+class the gold sits at median rank 23 and is not there in any useful sense at all, because the
+company is *named* by a filing rather than described by one. Corrective scores 0.400 on the first
+and **0.000** on the second, and so does everything else that scores passages, including full
+MaxSim over every token of every document in the corpus.
+
+The part worth dwelling on is that the grader cannot warn us. It is a relevance judge, and a good
+one — re-scoring the top retrieved document properly, at a measured AUC of 0.829 against *was the
+cheap answer right*. On the bridge class it grades **0.714**. On the class the cheap arm answers
+perfectly it grades **0.710**. The two are indistinguishable, and they should be: on the bridge
+class the retrieved filing *is* genuinely, highly relevant — it is the filing of the company the
+query describes. Relevance is not correctness when the answer is a company no passage is about, and
+no amount of calibrating a relevance grader will make it notice.
+
+<RagArchitectureMechanismsLaboratory client:visible />
+
+## Movement 3 — generation corrects position, not content
+
+The HyDE arm throws the query's position away. Rather than retrieving with the query, it generates
+a document that would answer the query and retrieves with that, which is why HyDE is indifferent to
+how far off the document manifold the query sat.
+
+The mechanism is worth stating carefully, because it is easy to implement an oracle by accident.
+Our generator never sees the gold. It conditions on the query, and its one move is to drop the
+component along the corpus-mean direction $g$ — the axis that separates queries from documents and
+that, by construction, says nothing about *which* company. The de-shifted query is
+
+$$
+\tilde q = \frac{q - \langle q, g \rangle\, g}{\lVert q - \langle q, g \rangle\, g \rVert},
+$$
+
+and the generator drafts a passage for the company nearest $\tilde q$, or — at a Bernoulli rate
+$p$ — for the rival it most easily confuses with that company. A rate rather than a continuous
+tilt: a tilt produces a step rather than a floor, because the score gap between the right company
+and a confusable one is independent of their similarity and flips at exactly $45^\circ$.
+
+That single move is both the whole of HyDE's correction and the whole of its limitation. A query
+tilted *off the manifold* is restored, because $g$ carries the tilt and nothing else: the arm
+scores **0.800** where naive scores 0.100. A query tilted *toward the wrong company* is not
+restored, because that tilt is not along $g$ and removing $g$ leaves it untouched: the arm scores
+**0.000** on the noisy class, exactly where naive does. HyDE fixes where a query is pointing in
+representation space. It has nothing to say about a query pointing confidently at the wrong thing.
+
+The collapse anchor is the interpolation weight: $\alpha = 0$ in the imported Rocchio update
+returns the bare query, so HyDE with no weight on its generated document is not merely as accurate
+as the naive arm, it produces the identical ranking.
+
+## Movement 4 — only a second hop reaches what is named
+
+A bridge passage is a filing of company $x$ that names company $y$. On the mention geometry its
+window is $\cos\alpha\,\theta_\ell(x) + \sin\alpha\,\theta_\ell(y)$, so the named company survives
+only in the component *orthogonal to the filing it sits in*. Ranking passages by similarity to a
+query about $x$ reads the $\cos\alpha$ part and discards the rest, which is why every passage-scoring
+arm scores zero on this class.
+
+The agentic arm reads it. It retrieves, selects a filing that opens a direction the query did not
+already have, applies the reformulation operator imported unchanged from multi-hop retrieval,
+
+$$
+q' = \frac{d - \langle d, q\rangle\, q}{\lVert d - \langle d, q\rangle\, q \rVert},
+$$
+
+and retrieves again with $q'$, which now points at $\theta_\ell(y)$. It scores **0.850** where
+every other arm scores 0.000.
+
+Two constants had to be measured rather than inherited, and the brief predicted as much. The
+mention angle is one: the mention must stay near enough to its own filing to be retrieved at all
+($\cos\alpha$) while leaving a residual large enough to reformulate off ($\sin\alpha$). At
+$45^\circ$ the bridge is read on only 40% of queries; $35^\circ$ is the measured optimum. The
+residual threshold is the other — the multi-hop topic set 0.47 at dimension 32, and here an
+ordinary filing measures $0.359 \pm 0.017$ against a bridge's $0.588 \pm 0.090$, so the gap sits
+lower and the threshold moved to 0.42.
+
+A third constraint only appeared when we ran it. The bridge source company must be *distinctive*.
+A mention sits at $\cos 35^\circ = 0.819$ from the filing it is recorded in, so it is outranked by
+anything nearer than that — and a company sharing $x$'s dense theme sits at cosine 1.0. Off a
+conjunctive source the bridge passage lands at median rank 24 and no second hop ever reads it.
+
+<TheoremBlock type="remark" title="What the hop costs on every other query">
+
+The agentic arm is the only one that reaches the bridge answer and the **worst** arm overall on the
+same regime, at 0.280 against naive's 0.290. That is not a tuning failure, it is the mechanism's
+price, and it has a precise cause.
+
+The stopping rule asks whether the filing just read opens a direction the query did not have. It
+cannot distinguish a filing that *names a new company* from one that is simply off-target — both
+look like a large residual. Worse, the corpus contains a genuine confound: other companies' filings
+that mention the gold rank just below the gold's own passages and have large residuals, so on the
+class naive answers perfectly the arm reads one of them, follows the link away, and answers with
+the mentioning company. It hops 2.7 times on average on that class.
+
+Nothing in the retrieval signal says a second hop is needed. On a bridge query the top-scoring
+passage is the gold source company's own filing, confidently retrieved; the query looks answered.
+That is why compositional retrieval needs a signal from the *question* rather than from the
+results, and it is the honest boundary of a purely retrieval-side controller.
+
+</TheoremBlock>
+
+## Movement 5 — aggregation is precomputed or paid for
+
+The GraphRAG arm is the only one holding a representation of a *set*. It detects communities once,
+offline, and each community summary records which of its members discuss a theme. Answering is then
+counting over that summary, which is not an operation any ranking of entities performs.
+
+It takes the global regime outright: **1.000**, against 0.062 or less for every flat arm — every
+one of which does *worse than guessing* among five sectors, because the corpus is built so that the
+nearest sector is never the discussing one.
+
+The honest form of that result is a cost, not an impossibility, and the topic would be dishonest
+without it. Flat retrieval *can* reach the same answer: scan far enough down the ranking, keep the
+entities that actually discuss the theme, and let those vote. That filter is the aggregation the
+community summary holds, performed by hand at query time. The curve is measured —
+
+| entities scanned | 3 | 5 | 8 | 10 | 14 | 20 | 25 |
+|---|---|---|---|---|---|---|---|
+| accuracy by hand | 0.000 | 0.000 | 0.188 | 0.188 | 0.312 | 0.688 | **1.000** |
+
+— and it reaches the answer at depth 25, which is *the entire entity set*. GraphRAG answers at depth
+zero because it paid for the same aggregation once, offline. The claim it earns is not that flat
+retrieval cannot get there. It is that flat retrieval can only get there by going deeper and paying
+more, which is exactly the trade an architecture is supposed to be.
+
+## The matrix
+
+<div style="overflow-x:auto">
+
+| arm | LOCAL | `on` | `partial` | `off` | `noisy` | `bridge` | GLOBAL | ops | calls |
+|---|---|---|---|---|---|---|---|---|---|
+| naive | 0.290 | **1.000** | 0.350 | 0.100 | 0.000 | 0.000 | 0.062 | 100 | 0 |
+| hybrid | 0.500 | 0.800 | **1.000** | 0.400 | 0.300 | 0.000 | 0.062 | 300 | 0 |
+| hyde | 0.380 | 0.900 | 0.200 | **0.800** | 0.000 | 0.000 | 0.000 | 100 | 4 |
+| corrective | 0.550 | **1.000** | **1.000** | 0.350 | **0.400** | 0.000 | 0.688 | 1040 | 1 |
+| graph | 0.290 | 0.800 | 0.450 | 0.200 | 0.000 | 0.000 | **1.000** | 10 | 0 |
+| agentic | 0.280 | 0.150 | 0.150 | 0.100 | 0.150 | **0.850** | 0.062 | 288 | 2.9 |
+
+</div>
+
+Read the columns, not the third decimals: twenty queries per class means one query is 0.05, so the
+0.10 separating corrective from hybrid on the noisy class is two queries and we decline to call it
+a ranking.
+
+What the table says is that there is no dominant row. The arm that takes the global regime is
+mid-table locally and tied with the baseline. The arm that owns the bridge class is the worst arm
+locally overall. The baseline is unimprovable on one class and last on three. Every arm is best at
+exactly one thing, and the thing it is best at is a property of the corpus we can name in a
+sentence — which is what turns six names on a cheat sheet into six bets with stated odds.
+
+Costs are reported in two currencies and never collapsed into one, because the exchange rate
+between a similarity operation and a generator call is precisely what a cost model should not
+invent. HyDE is the cheapest arm in operations and the only local arm that cannot run without a
+generator at all. Leaving that as two numbers rather than one is what leaves a Pareto set rather
+than a winner — and the frontier over that set is a topic of its own.
+
+## What the average hides
+
+We went in expecting to show that over-eager correction is a net loss. It is not, on this corpus,
+and reporting that is more useful than fixing it.
+
+Even with the grader firing on every query and a corrective scorer degraded by noise until it is
+barely better than chance at reordering, the corrective arm still scores 0.400 against the
+baseline's 0.290. The reason is unglamorous: the baseline is weak enough that a badly reordered
+shortlist of twenty is an improvement *on average*.
+
+The damage is real, and it is invisible in that average. As the corrective scorer degrades, the one
+class the baseline answered perfectly falls from 1.00 to **0.80**, monotonically, while the overall
+number stays comfortably above the baseline throughout. Correction strictly destroys the class that
+needed no correcting, and the mean conceals it.
+
+This is the aggregation trap in its purest form, and it is the same trap the *best for* column sets.
+An architecture evaluated on a mixture reports what the mixture rewards. Change the mixture — ship
+to users who ask more of the easy kind of question — and a change that measured as an improvement
+becomes a regression, with nothing in the evaluation having moved.
+
+<FinanceCaseStudy title="Which pattern for which question about a filing" modality={["text", "pdf", "news"]}>
+
+The five query classes are recognizable if you have built retrieval over filings.
+
+*What was this company's rate exposure* names a company with a distinctive business — one view
+finds it, and every mechanism above dense retrieval is cost. *A mid-cap energy firm with a pipeline
+segment and a trading desk* names no single distinguishing feature; each phrase returns a handful of
+candidates and only their conjunction identifies one, which is fusion's case exactly. *What did they
+say about supply chains* is written in question-voice rather than filing-voice, which is a
+representation mismatch and HyDE's case. *Rate exposure at the regional banks* drags each view
+toward a different peer, which is where a grader plus a deeper look pays.
+
+And *which company does this filing's counterparty disclosure point to* is the one that breaks the
+others. The answer is a company named in a document that is about somebody else. No re-ranking of
+what was retrieved reaches it, no over-fetch depth reaches it, and the retrieval looks perfectly
+healthy while it fails — the filing you got back is exactly the filing you asked for.
+
+</FinanceCaseStudy>
+
+<RigorFlag>
+
+This is a designed mechanism study on a synthetic von Mises–Fisher finance corpus, not a benchmark.
+The five query classes, the two company families, the mention angle of $35^\circ$, the
+concentrations, the grader's midpoint and the global regime's defining property were all chosen so
+that each named mechanism has somewhere to succeed and somewhere to fail. A corpus without them
+makes half the arms indistinguishable, which is itself the point — but it means the decimals here
+describe this corpus and not retrieval in general.
+
+Two claims are structural and survive the corpus. Fusion can only contribute where its views
+disagree, because the reciprocal-rank sum of identical rankings is that ranking. And no re-scoring
+of retrieved passages reaches an answer that no passage is about, whatever the depth or the scorer.
+Everything else in the matrix is a measurement, and a measurement over twenty queries per class:
+the sampling error on a cell is about 0.11, so a 0.05 gap is one query.
+
+Two things are reported against expectation rather than in support of it. Over-eager correction was
+predicted to be a net loss and is not; what it does instead is destroy a perfect class while the
+average rises. And the corrective grader is deliberately imperfect at AUC 0.829, because a grader at
+1.0 fires exactly when needed, never otherwise, and makes the entire comparison vacuous.
+
+Finally, scope: every arm here is a *retrieval* architecture scored on whether it identifies the
+right company. Nothing in this topic speaks to generation quality, faithfulness, or how an answer
+reads once a model has written it.
+
+</RigorFlag>
