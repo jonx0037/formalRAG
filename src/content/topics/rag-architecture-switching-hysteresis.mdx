@@ -1,0 +1,356 @@
+---
+title: "When to Switch: Architecture Choice for a Workload That Moves"
+subtitle: "Three topics chose an architecture for a workload that was allowed to be unknown but not to move — once it moves, the question stops being which architecture and becomes when to change, and the answer is a band rather than a boundary"
+status: "published"
+difficulty: "advanced"
+prerequisites:
+  - "rag-architecture-workload-uncertainty"
+tags:
+  - "rag-architectures"
+  - "hysteresis"
+  - "control-band"
+  - "drift-detection"
+  - "sequential-decisions"
+  - "switching-cost"
+domain: "rag-information-theory"
+pipelineStage: "select"
+financeCaseStudy: true
+modality:
+  - "text"
+  - "pdf"
+  - "news"
+rigorFlag: "The one claim here that is not a measurement is the reduction: utility is affine in the workload, so a whole deployment's trajectory is a sequence of arg-maxes over an affine map and carries no sampling beyond the traffic itself. Everything else is simulated on a synthetic corpus inherited unchanged from three predecessor topics, and the decimals describe this arm set at these prices and no other. Four things are modeling choices rather than findings. The drift path is designed, not observed: a linear ramp through a known boundary, which is why a non-monotone path is re-run alongside it and reaches the same verdict. The observation model is a clean multinomial with no autocorrelation, which makes the estimator's noise independent across windows and so is the most favorable possible case for a detector. The classical result that a switching cost makes the optimal policy a control band is cited as the frame and demonstrated on this instance, not derived in general. And the optimal band's location moves with the seed, so what the module asserts is that an interior optimum exists and that both ends of the range lose on every seed — never where the optimum sits. The drift detectors are the imported ones, at a twenty-window reference, and PSI over four bins on sixty windows is a small-sample statistic whose thresholds are conventions rather than results."
+videoId: null
+notebookPath: "notebooks/rag-architecture-switching-hysteresis/01_rag_architecture_switching_hysteresis.ipynb"
+githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/rag-architecture-switching-hysteresis.mdx"
+datePublished: 2026-09-20
+estimatedReadTime: 20
+abstract: "Three topics have now chosen a retrieval architecture. The first measured what six named patterns buy and where each fails; the second showed the choice depends on a workload mixture, a price ratio and an amortization horizon; the third unfixed the mixture and made it something you estimate. All three left one assumption standing: that the workload sits still. It does not, and once it moves, switching architecture costs something real, so the question becomes when. The answer is a control band — hold the incumbent until a rival beats it by a margin — and the measurement that gives the topic its point is what the band is actually for. Along a path whose genuinely best architecture changes exactly once, a rule that re-decides from each window's traffic changes its mind more than twelve times, and nearly all of that is the estimator rather than the workload. Widening the band suppresses those switches and, at the same time, lowers regret: the discarded switches were not merely expensive, they were wrong. The band that does this best is interior on every deployment simulated, and it is already wide when switching is free — so hysteresis is not principally about amortizing an expensive change, it is about filtering an estimator. The topic closes on the gap between detecting and deciding, where a drift detector and a switching policy are shown failing on the same streams in opposite directions."
+connections:
+  - topic: "rag-architecture-workload-uncertainty"
+    relationship: "The direct predecessor, and the source of everything measured here except the time axis. That topic established that the workload is estimated rather than known, and that a partition of the simplex punishes estimation error hardest at its boundaries. This topic runs that same estimation error forward in time and finds the boundary result reappearing as chatter: a deployment whose traffic sits near a cell boundary changes architecture repeatedly while its workload does not move at all."
+  - topic: "rag-architecture-pareto"
+    relationship: "Supplies the utility the whole trajectory is scored against, and the fact that makes a sixty-window simulation affordable at all: utility is affine in the workload, so each window is an arg-max over a matrix-vector product rather than a re-measurement. The prices this topic holds fixed are that topic's headline operating point, which is why the cell boundary that the drift crosses sits where it does."
+  - topic: "rag-architecture-mechanisms"
+    relationship: "The root of the arc, and through the import chain the origin of every quality and cost number here. Nothing is re-measured. What is worth carrying forward is that topic's own discipline about cost in two currencies, because the switching cost introduced here is a third kind of cost entirely — paid once per change rather than per query, and therefore the only cost in the arc that a policy can control by doing nothing."
+  - topic: "significance-testing-calibration"
+    relationship: "Owns the drift detectors this topic imports, and the contrast that keeps the two distinct. There, drift is detected in retrieval quality and the topic stops at detection. Here, drift in the workload is acted upon, and the measurement is when acting is wrong. The two instruments are shown failing in opposite directions on the same streams: on a flat path the detectors are correctly silent while a myopic policy switches dozens of times, and on a path that returns near its start the detectors see nothing while the policy genuinely had to move."
+  - topic: "adaptive-retrieval-routing"
+    relationship: "The sharpest contrast in the arc, and it sharpens further here. That topic resolves its uncertainty query by query, so nothing accumulates and there is nothing to switch. This one commits to one architecture for all traffic, which is what makes a change expensive and gives the word 'when' any content at all. Routing has no hysteresis problem because routing never pays to change its mind."
+  - topic: "capstone-multimodal-financial-rag"
+    relationship: "Its allocation was tuned to a measured traffic mixture, and this topic is the statement of what happens to such a tuning over a deployment's life. The transferable lesson is not a number but a policy shape: a budget split re-derived from each window's traffic inherits that window's noise, and re-deriving it continuously is the water-filling analogue of the myopic rule measured here."
+references:
+  - type: "paper"
+    title: "Optimality of (s, S) Policies in Inventory Models with Markovian Demand"
+    authors: "Suresh P. Sethi and Feng Cheng"
+    year: 1997
+    url: "https://doi.org/10.1287/opre.45.6.931"
+    note: "The classical result this topic borrows its frame from: when changing state costs a fixed amount, the optimal policy is a band with two thresholds rather than a single boundary, and it is optimal to do nothing inside the band."
+  - type: "paper"
+    title: "Existence of Optimal Simple Policies for Discounted-Cost Inventory and Cash Management in Continuous Time"
+    authors: "George M. Constantinides and Scott F. Richard"
+    year: 1978
+    url: "https://doi.org/10.1287/opre.26.4.620"
+    note: "The continuous-time counterpart: with a fixed cost of adjustment, a two-sided band policy is optimal, and the band emerges from the problem rather than being imposed on it."
+  - type: "paper"
+    title: "A Survey on Concept Drift Adaptation"
+    authors: "João Gama, Indrė Žliobaitė, Albert Bifet, Mykola Pechenizkiy, and Abdelhamid Bouchachia"
+    year: 2014
+    url: "https://doi.org/10.1145/2523813"
+    note: "Carried over from the calibration topic: the detection side of the contrast this topic's final movement draws, and the source of the standard reference-window framing used here."
+  - type: "paper"
+    title: "The Kolmogorov-Smirnov Test for Goodness of Fit"
+    authors: "Frank J. Massey Jr."
+    year: 1951
+    url: "https://doi.org/10.1080/01621459.1951.10500769"
+    note: "The two-sample test imported unchanged, and the binning-free detector in the final movement."
+  - type: "book"
+    title: "Statistical Decision Theory and Bayesian Analysis"
+    authors: "James O. Berger"
+    year: 1985
+    url: "https://doi.org/10.1007/978-1-4757-4286-2"
+    note: "Carried over from the predecessor, where the decision was made once. Here the same loss is summed over a deployment's life, which is the step from a decision problem to a policy."
+formalstatisticsPrereqs:
+  - topic: "point-estimation"
+    site: "formalstatistics"
+    relationship: "Each window supplies a fresh point estimate of the workload, and the entire phenomenon this topic measures is what happens when a discontinuous decision rule is applied to a sequence of such estimates rather than to one. The variance that a single estimate carries becomes, over time, a switching rate — which is a way of seeing estimator noise that a static analysis cannot produce."
+formalstatisticsConnections:
+  - topic: "hypothesis-testing"
+    site: "formalstatistics"
+    relationship: "The final movement is a direct statement about what a test can and cannot do for a decision. A two-sample test compares a reference window against a current one and answers whether the distribution moved; a policy has to answer whether to act, and the two questions come apart in both directions. The wobbling path is the clean case: it ends near where it began, so the test finds nothing at any significance level, while the best architecture genuinely changed twice in between."
+  - topic: "confidence-intervals-and-duality"
+    site: "formalstatistics"
+    relationship: "The band is an interval in utility space rather than in parameter space, and reading it as one is clarifying: a switch is warranted when the estimated advantage is large enough that it would survive the estimate's own error. That the best band is not zero is the sequential analogue of not acting on every point estimate that crosses a threshold."
+  - topic: "order-statistics-and-quantiles"
+    site: "formalstatistics"
+    relationship: "The Kolmogorov-Smirnov statistic in the final movement is a supremum over the difference of two empirical distribution functions, which is where the order statistics of the observed window enter. It is also why that detector is the binning-free one, and therefore the one whose failure on the wobbling path is a statement about the comparison rather than about the bins."
+formalmlConnections:
+  - topic: "concentration-inequalities"
+    site: "formalml"
+    relationship: "How tightly each window's mixture concentrates on the truth is what sets the width of band that is worth having: the band has to be wide enough to absorb the estimate's fluctuation and no wider. That is the sense in which the optimal band is a property of the estimator rather than of the switching cost, which is this topic's headline."
+formalcalculusConnections:
+  - topic: "mean-value-taylor"
+    site: "formalcalculus"
+    relationship: "The claim that the best band is interior is a claim about a one-dimensional objective having a minimum away from both ends, which is the first-order and second-order reasoning that topic develops. The honest caveat travels with it: the objective here is a simulated average rather than a smooth function, so the interior minimum is established by exhibiting it on every seed rather than by a derivative."
+  - topic: "convex-optimization"
+    site: "formalcalculus"
+    relationship: "Utility affine in the workload is what makes each window's decision an arg-max over a linear map, and so what makes an entire deployment cheap enough to simulate many times over. The objective in the band, by contrast, is neither convex nor smooth, which is exactly why the band is swept rather than solved."
+---
+
+import TheoremBlock from '../../components/ui/TheoremBlock.astro';
+import RigorFlag from '../../components/ui/RigorFlag.astro';
+import FinanceCaseStudy from '../../components/ui/FinanceCaseStudy.astro';
+import SwitchingHysteresisLaboratory from '../../components/viz/SwitchingHysteresisLaboratory.tsx';
+
+Three topics have now chosen a retrieval architecture, and each removed one assumption from the
+one before it. The first measured what six named patterns actually buy and where each one fails.
+The second showed that "which should we use?" resolves only after a workload mixture, a price
+ratio and an amortization horizon are fixed, and that no architecture wins everywhere. The third
+unfixed the mixture: you do not know your workload, you estimate it, and a partition of the
+simplex is precisely the structure that turns a small estimation error into a different
+recommendation.
+
+One assumption survived all three. Each treated the workload as **static** — unknown, perhaps,
+but not moving. It moves. Traffic to a financial retrieval system in October is not the traffic
+it saw in June; a new filing season, a new asset class, a change in who is asking, and the
+mixture that the architecture was chosen for has drifted out from under it.
+
+Once the workload moves, a second thing becomes true that was invisible before: changing
+architecture costs something. Reindexing a corpus under a different scheme, redeploying, and
+re-tuning the thresholds are real work, paid once per change rather than once per query. So the
+question stops being *which* architecture and becomes **when** to change to it.
+
+That is a sequential decision problem, and its answer has a shape: a **control band**. Hold what
+you have until a rival beats it by more than a margin. What this topic is for is the measurement
+of what that margin is actually doing, which turns out not to be what the setup suggests.
+
+<RigorFlag>
+Nothing here re-measures retrieval. The six architectures, their quality on every kind of
+question and both of their costs arrive unchanged through the import chain from the three
+predecessor topics. The only new object is the time axis, and every claim on it is a claim about
+policies rather than about retrieval.
+</RigorFlag>
+
+## The estimate is now a stream
+
+The predecessor's setup carries over intact. A deployment sees traffic made of six kinds of
+question, and its workload is the mixture $w$ over those kinds. Each architecture $a$ has a
+utility $U(a, w)$ that nets quality against both costs at fixed prices, and — the fact the whole
+arc leans on — that utility is *affine* in the workload:
+
+$$
+U(a, w) = (M w)_a + c_a .
+$$
+
+The predecessor observed traffic once and decided once. Here the deployment lives through $T = 60$
+windows. In each window $t$ it observes $40$ queries, forms the empirical mixture $\hat w_t$, and
+has to decide whether to move. Writing $\hat U_t(a) = U(a, \hat w_t)$ for what the operator can
+see and $U(a, w_t)$ for the truth they are scored against, the policy is:
+
+$$
+a_t = \begin{cases}
+  \arg\max_a \hat U_t(a) & \text{if } \max_a \hat U_t(a) - \hat U_t(a_{t-1}) > \delta \\
+  a_{t-1} & \text{otherwise}
+\end{cases}
+$$
+
+with $a_1 = \arg\max_a \hat U_1(a)$. The band $\delta$ is the whole policy. Setting $\delta = 0$
+recovers the predecessor's plug-in rule applied afresh at every window — switch whenever the
+estimated best architecture changes — and the module checks that identity as a sequence of arms,
+not merely as a count.
+
+Regret is scored against the true workload at each window, never against the estimate, so a
+policy is charged for its mistakes rather than for its beliefs:
+
+$$
+R(\delta) = \frac{1}{T} \sum_{t=1}^{T} \Big[ \max_a U(a, w_t) - U(a_t^\delta, w_t) \Big] .
+$$
+
+The workload we send through this is a **designed** input, and worth naming as such: the bridge
+share — the fraction of questions whose answer requires following a mention from one filing to
+another — drifts linearly from $0.20$ to $0.70$, crossing one boundary of the predecessor's
+partition. A designed path makes the phenomenon legible, and it also makes it fair to ask whether
+the conclusions are artifacts of a straight line, which is why a path that crosses, retreats and
+crosses back is run alongside it throughout.
+
+## A rule that re-decides every window changes its mind twelve times
+
+Along that drifting path, the architecture that is genuinely best changes **once**. A rule that
+re-decides from each window's traffic switches **12.3** times, averaged over ten deployments.
+
+That gap is the topic. Eleven of those twelve changes are not responses to the workload, because
+the workload only did something once. They are responses to $40$ queries being a small sample.
+
+<FinanceCaseStudy>
+What this looks like in a deployment is a team that reindexes the corpus under a new scheme in
+March, reverts in April, and reindexes again in May, each time with a defensible reading of that
+month's traffic in hand. No one in that story is being careless. Each decision is the best
+response to the evidence available at the time, and the evidence is genuinely noisy. This is the
+failure mode that is hardest to see from inside, because every individual step survives review.
+</FinanceCaseStudy>
+
+The cleanest way to see that this is the estimator and not the workload is to remove the
+workload entirely. Hold the mixture perfectly constant — zero drift, for all sixty windows — and
+count switches anyway:
+
+| bridge share | real changes | myopic switches |
+|---|---|---|
+| 0.20 | 0 | 1.8 |
+| 0.35 | 0 | 19.3 |
+| **0.43** | **0** | **30.8** |
+| 0.45 | 0 | 29.5 |
+| 0.55 | 0 | 10.3 |
+| 0.70 | 0 | 1.0 |
+
+Deep inside a cell, at $0.20$ or $0.70$, the deployment makes its first choice and stops. Near
+$0.43$ it changes architecture on roughly half the windows of its life, in response to a workload
+that never changed at all. This is the predecessor's result arriving on the time axis: distance
+to a cell boundary decided how much an estimation error cost there, and it decides how much a
+deployment chatters here. Nothing new is needed to explain it, which is the point.
+
+## The band, and why it is not a trade
+
+The fix is to make the incumbent harder to displace. The classical result behind this is
+familiar from inventory control: when changing state costs a fixed amount, the optimal policy is
+not a threshold but a **band**, and it is optimal to do nothing inside it. We take that as the
+frame and demonstrate the band on this instance rather than deriving its optimality in general.
+
+Sweeping $\delta$ gives:
+
+| band $\delta$ | switches | regret |
+|---|---|---|
+| 0 | 12.3 | 0.00961 |
+| 0.02 | 10.6 | 0.00901 |
+| 0.05 | 7.8 | 0.00680 |
+| **0.10** | **4.4** | **0.00420** |
+| 0.20 | 2.0 | 0.00552 |
+| 0.40 | 1.9 | 0.06720 |
+
+The first column behaves as anyone would expect: a wider band switches less. The second column is
+the one worth pausing on. Regret does not pay for that stability — it **improves**, from $0.00961$
+at $\delta = 0$ to $0.00420$ near $\delta = 0.10$, a reduction of more than half.
+
+<TheoremBlock type="remark" title="The suppressed switches were wrong, not merely expensive">
+If hysteresis were a trade — stability bought with decision quality — then regret would rise
+monotonically as the band widened, and the band's value would have to be argued from the
+switching cost alone. It does not rise. Over the range where the band is suppressing switches
+that the noise proposed, it is removing decisions that were *incorrect*, and so it improves both
+columns at once. The trade only begins past the optimum, where the band is wide enough to hold an
+architecture in place after it has genuinely been beaten; by $\delta = 0.40$ the policy is nearly
+inert and regret is an order of magnitude worse than doing nothing at all.
+</TheoremBlock>
+
+Both ends of that range lose. That is asserted seed by seed rather than on the average, because
+an interior optimum that exists only in the mean is a weaker object than one that exists in every
+run — and because this arc has been burned by a fragile interior optimum before. Across all ten
+deployments, the best band is interior every time and beats both the myopic rule and the widest
+band every time. Where it sits varies: the argmin lands on $0.02$, $0.05$, $0.10$ and $0.20$
+depending on the seed. So the claim the module makes is that an interior optimum **exists**, and
+never where it is.
+
+<SwitchingHysteresisLaboratory client:visible />
+
+## Hysteresis is about noise, not about cost
+
+Here is the part that inverts the setup. We introduced the band by way of a switching cost, and
+the classical result that motivates it is a result about switching costs. So the natural
+expectation is that the band is a device for amortizing an expensive change, and that making
+changes free should collapse it.
+
+It does not. Sweeping the price $c$ of a single switch, and choosing the band that minimizes
+total cost $R(\delta) + c \cdot \#\{\text{switches}\} / T$:
+
+| price of a switch | optimal band | switches | regret |
+|---|---|---|---|
+| **0** | **0.10** | 4.4 | 0.00420 |
+| 0.001 | 0.10 | 4.4 | 0.00420 |
+| 0.005 | 0.10 | 4.4 | 0.00420 |
+| 0.02 | 0.10 | 4.4 | 0.00420 |
+| 0.1 | 0.20 | 2.0 | 0.00552 |
+
+At a price of exactly zero — switching is free, there is nothing to amortize — the optimal band
+is already $0.10$, the same band that is optimal across four decades of price. The price only
+moves it at $c = 0.1$, where it widens to $0.20$.
+
+That flatness is the evidence. A band whose job was paying for switches would track the price of
+switches continuously. This one does not notice the price until the price is large, because its
+first job is something else: it is **filtering an estimator**. The band has to be wide enough to
+absorb the fluctuation in $\hat U_t$ and no wider, and how wide that is depends on how many
+queries each window observes — not on what a reindex costs. The switching cost is a second, and
+here a much smaller, reason to keep the band.
+
+This is why the static table above is the topic's control rather than a curiosity. A deployment
+whose workload never moves at all still needs a band, and needs the *same* band, because the
+thing the band is protecting against was never the workload.
+
+## Detecting is not deciding
+
+There is an obvious objection to all of this: why infer drift from the decision at all? Monitor
+the workload directly, alarm when it moves, and switch then.
+
+The drift detectors for exactly this arrive unchanged from the calibration topic — a two-sample
+Kolmogorov-Smirnov test and the population stability index, run on a twenty-window reference
+against the last twenty windows. Pointing them at the same streams the policy sees:
+
+| path | real changes | myopic | banded | KS $p$ | PSI | the detectors say |
+|---|---|---|---|---|---|---|
+| static | 0 | 35 | 17 | 0.9831 | 0.039 | nothing happened |
+| ramp | 1 | 6 | 2 | 0.0000 | 2.569 | drift |
+| wobble | 2 | 15 | 5 | 0.8320 | 0.303 | drift (PSI only) |
+
+The two instruments fail on the same data in opposite directions.
+
+On the **static** path the detectors are entirely correct — nothing happened, and they say so at
+$p = 0.98$ — and a myopic policy changes architecture $35$ times regardless. Detection is right
+and useless, because the problem was never that the workload moved.
+
+On the **wobbling** path the situation reverses. The genuinely best architecture changes twice,
+and the policy has to move with it. The Kolmogorov-Smirnov test sees nothing at all, $p = 0.83$,
+and it is not wrong either. The excursion happens in the **middle**. The reference window spans
+$[0.43, 0.62]$ and the current window $[0.32, 0.67]$, while between them the share falls to
+$0.29$ — so the two windows the test compares really are similar, and everything that happened
+happened where the test does not look. PSI, comparing the same two windows with less power to say so,
+alarms weakly.
+
+<TheoremBlock type="remark" title="A detector compares two moments; a policy lives through all of them">
+This is the structural difference, and it is why one does not substitute for the other. A
+reference-against-current test is a statement about two points in time, and it is blind by
+construction to everything between them — including a full excursion that returns. A policy has
+to be correct at every window it passes through. The two questions are genuinely different:
+*did the workload move?* and *should I move?* Drift detection is a monitoring instrument, and a
+good one; it is not a switching rule, and the failure modes above are what goes wrong when it is
+used as one.
+</TheoremBlock>
+
+That contrast is also what keeps this topic distinct from the calibration one it borrows from.
+There, drift is detected in retrieval *quality*, and the topic stops at detection — which is the
+right place to stop when the response is a human investigation. Here the response is automatic
+and expensive, so the question is not whether the signal is real but whether acting on it pays,
+and those have different answers often enough to be worth separating.
+
+## What this establishes, and what it does not
+
+The measurements are specific and the framing is general, so it is worth being explicit about
+which is which.
+
+What the simulation establishes on this instance: a myopic rule chatters at an order of magnitude
+above the true rate of change; a control band suppresses that chatter while *improving* decision
+quality rather than trading against it; the best band is interior on every deployment tested; and
+it is already wide when switching is free, which locates its purpose in the estimator rather than
+in the switching cost. The non-monotone path reaches the same verdict on every one of those
+points, so none of them is an artifact of a straight-line drift.
+
+What it does not establish: that $0.10$ is a band anyone else should use. The optimal band depends
+on how many queries a window observes, on how far the traffic sits from a cell boundary, and on
+the prices at which the utility was computed — all of which are held fixed here at one arc's
+values. The transferable content is the shape of the answer and the diagnostic that goes with it.
+If a deployment is changing architecture far more often than its workload is changing, the band
+is too narrow, and the right response is to widen it rather than to improve the estimate.
+
+The classical control-band result is cited as the frame, not re-derived: what is shown here is
+that a band is better than a threshold on this problem, not that the optimal policy for this
+problem is a band. The observation model is also the most favorable one available to a detector —
+a clean multinomial per window, independent across windows — and real traffic is autocorrelated,
+which makes every detector in the final movement look better here than it would in production.
+The gap that movement measures is therefore a lower bound on the gap between detecting and
+deciding, which is the direction that keeps its conclusion safe.
