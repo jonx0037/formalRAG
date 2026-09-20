@@ -1218,6 +1218,124 @@ uv run --with numpy --with scipy --with rank-bm25 python notebooks/<topic>/<topi
   concentration-inequalities (1/√K); `formalcalculusConnections` convex-optimization + stability-dynamics
   (bubble-sort iteration→fixed-point). formalML has NO LLM/transformer/sorting slug → name RankGPT/sliding-window/
   Kemeny/bubble-sort in prose.
+- **`rag-architecture-mechanisms`** (the ABLATION topic behind `/architectures`: six named patterns run as arms
+  over TWO regimes, measuring where each wins AND where it loses. NEW node — it had no `curriculum-graph.json`
+  entry, so its inbound edges were CHOSEN, not pre-existing: `prerequisites` = the two hard arms
+  `[graphrag-community-detection, multi-hop-iterative-retrieval]` (a reader cannot follow the global regime or
+  the bridge class without them); rank-fusion/hyde/dense/late-interaction/set-metrics/adaptive-retrieval-routing/
+  capstone/cross-encoders are `connections[]` imports. `domain: rag-information-theory`, `pipelineStage: retrieve`.
+  All `curriculum.ts` tracks are `planned: []` already, so NOTHING to drop there — verify rather than assume when
+  the brief says "planned→published"; a brand-new node needs the node ADDED, not flipped. Successor planned:
+  `rag-architecture-pareto` (the shared head-to-head + cost-ratio frontier), split off because one topic was >1200 lines.)
+  **THE TUNING-IS-ACTUALLY-CONSTRUCTION LESSON (the one that generalizes):** five query classes refused to
+  separate, and the knob everyone reaches for — query CONCENTRATION (sharp vs vague κ) — turned out to be nearly
+  irrelevant. A probe showed leg accuracy is a near-monotone function of **how many companies share that slot's
+  theme** (unique → 1.00, six-way → 0.50) and INDEPENDENT of κ, so two classes differing only in κ are one
+  mechanism sampled twice. Fix: CONSTRUCT the collision structure instead of drawing it — `theme_assignment()`
+  gives **distinctive** companies a dense-slot theme NO other company holds (one view identifies them; naive's
+  home, 1.000) and **conjunctive** companies only shared themes (every leg returns rivals; fusion's home). Then
+  define each query class by FAMILY, not by κ. Before probing for a constant to tune, probe for what the accuracy
+  is actually a function of.
+  **WINDOW-PARTITION BUG (cost the most, found only by disbelieving a perfect score):** `WIN_LI=(1,3,4,6)`
+  OVERLAPPED `WIN_LEX=(0,1,2,3)`/`WIN_DENSE=(4,5,6,7)`, and since `_bag` fills window by window the LATE draw
+  silently OVERWROTE tokens 1,3,4,6 — half the dense window held the late theme. A gold passage then matched its
+  query on BOTH mixed components while a rival sharing only the dense theme matched on one, so the dense leg
+  scored a PHANTOM 1.000 on the class built to defeat it. The docstring claimed "disjoint" and nothing checked.
+  Now `TOKENS=9` with `(0,1,2)/(3,4,5)/(6,7,8)` and a module-level `raise` asserts the partition. **When a leg
+  scores exactly 1.000 on a class designed to defeat it, that is a BUG report, not a result.**
+  **`sample_vmf` SEED/CENTER INDEPENDENCE (a geometry-wide trap):** the tangent direction is
+  `rng.standard_normal((n,d))` seeded by `seed` ALONE, then projected orthogonal to `mu` — so the SAME seed
+  around a DIFFERENT center gives residuals at cosine **+0.99**. Never reuse a seed across centers anywhere in
+  this repo's vMF corpora.
+  **Arm-design findings, all build-and-run:** (a) a HyDE arm whose generator reads `gold` is an ORACLE and wins
+  three other arms' home classes — condition on the QUERY instead, and make the mechanism "remove the component
+  along the corpus-mean axis `g`" (which by construction says nothing about WHICH company): that restores an
+  off-manifold query (0.100→0.800) and does NOTHING for a query tilted toward a rival (0.000 on noisy), the
+  honest shape. `g` must live in THEME space (what the passages are drawn around), not company-prototype space.
+  (b) The corrective GRADER must be the full-MaxSim re-score of the top hit (AUC **0.829**); the obvious
+  top-1-vs-top-2 margin is INVERTED (a company owning several filings answers a query it fits with a cluster of
+  near-identical scores, so the passage-level margin is SMALLEST when retrieval is most certainly right) — take
+  the margin to the best RIVAL owner, or better, re-score properly. (c) The grader is STRUCTURALLY blind to the
+  bridge class: it grades 0.714 there against 0.710 on the class answered perfectly, because the retrieved filing
+  IS genuinely relevant — relevance ≠ correctness when the answer is a company no passage is about. (d) A BRIDGE
+  SOURCE must be a DISTINCTIVE company: a mention sits at `cos α` from its own filing, so anything nearer
+  outranks it, and a company sharing x's dense theme sits at cosine **1.0** — off a conjunctive source the bridge
+  lands at median rank 24 and no hop ever reads it. α swept 30/35/40/45 → **35°** (45° drops the read rate to
+  0.40); `REFORM_EPS` re-measured at d=64 → **0.42** (multi-hop's 0.47 was a d=32 constant; here ordinary 0.359
+  ± 0.017 vs bridge 0.588 ± 0.090). (e) The agentic stopping rule CANNOT distinguish "names a new entity" from
+  "off-target retrieval" — both are a large residual — and the corpus contains other companies' bridges that
+  mention the gold, so the arm hops 2.7× even on the class naive answers perfectly and is the WORST arm locally
+  while being the ONLY one reaching bridge. State that as the mechanism's price, not a tuning failure.
+  **GLOBAL regime anti-theatre:** decouple the COUNT from the GEOMETRY (the theme sits nearest one sector while a
+  DIFFERENT sector holds the most mentioning companies) or community summarization is decoration on a problem
+  top-k already solves. All 16 themes disagree; flat voting scores 1/16, BELOW the 1/5 chance rate. The graph arm
+  must read the corpus's **mention set** (index-time data), never re-derive it from a cosine threshold — doing
+  the latter scored 0.125 and looked like GraphRAG failing. And ship the HONEST nuance as a measured CURVE: flat
+  aggregation by hand reaches 0.000/0.188/0.688/**1.000** at depth 3/8/20/**25** = the ENTIRE entity set, so the
+  claim is "GraphRAG precomputes an aggregation flat retrieval can only reach by going deeper", not "GraphRAG wins".
+  **PREDICTION OVERTURNED — ship the measurement, not the brief:** "correction always helps is FALSE" did NOT
+  reproduce. Even with the grader firing on 100% of queries and a σ=3 corrective scorer, corrective (0.400) beats
+  naive (0.290), because a weak baseline makes a badly reordered shortlist of 20 an average gain. What IS true is
+  sharper and invisible in the mean: correction **destroys the one class that needed none** (on: 1.00→0.80,
+  monotone in σ) while the aggregate rises. Required BOTH an eager grader AND an unreliable scorer — sweep the
+  2-D `(grader_mid, rerank_noise)` surface, not one axis at a time. With an unnoised MaxSim the re-scoring
+  DOMINATES the cheap leg on every query and correction is a free upgrade, so a `rerank_noise` parameter is what
+  makes the harm demonstrable (the cross-encoders constructed-dip precedent).
+  **Fusion needs different CONTENT, not different NOISE** (three constructions; the two failures stay in the
+  module as CONTROLS): all tokens around one prototype → three subsamples of ONE signal, RRF 0.350 vs best leg
+  0.400; the prototype blurred three ways → different noise, same content, 23 configs swept, never robustly won;
+  each leg's window on its OWN latent theme → fusion is set intersection, +0.65 over the best leg. And the other
+  half is the finding the cheat sheets omit: on the class ONE view answers outright, fusion scores **0.800**
+  against naive's 1.000 — the reciprocal-rank sum is symmetric in the legs and cannot tell which was informed.
+  **Cost in TWO currencies, never collapsed** (`ops` = token-pair similarity evaluations, `calls` = generator/
+  grader invocations): the exchange rate is exactly what a cost model should not invent, and leaving it as two
+  numbers is what leaves a Pareto set for the successor topic instead of a fake winner.
+  **Viz:** EMIT the `.tsx` baked-constants block FROM `viz_constants()` with a generator rather than transcribing
+  it — the viz↔python invariant then holds BY CONSTRUCTION. Panel D recomputes the flat-aggregation curve live in
+  TS from baked `global_order`/`global_mention`/`global_sector`/`global_gold`, and `test_viz_constants_reproduce_the_curve`
+  asserts THAT recomputation lands on the module's curve (verified in-browser: depth 10→0.188, depth 25→1.000).
+  Panel B's RRF `c` slider is the best live recompute: at `c=60` fusion picks the gold, at **`c=0`** it picks each
+  leg's own top-1 and MISSES — co-endorsement made interactive. Dropped `FLAT_CURVE` (the recurring ts6133 "baked
+  const the live recompute never reads") and caught an unused `CLASS_BLURB` with a shell loop over every
+  `^const` — `tsc` will NOT catch either. Also caught a `del L` that made a dead binding look used to pyflakes.
+  **Worktree gotcha:** a fresh `.claude/worktrees/...` has NO `node_modules`, so `pnpm exec tsc`/`astro`/`validate`
+  FAIL SILENTLY under a `| grep` and read as clean — run `pnpm install` in the worktree FIRST and confirm a
+  command actually ran before trusting an empty grep.
+  **Browser verification:** the lab's `.katex` count going 0→1 is the ONLY hydration tell (readout values are
+  SSR'd, so real-looking numbers are NOT evidence of hydration) — a `.click()` before that bump silently no-ops,
+  which cost a full round-trip here. Confirm a suspected environment problem against a SHIPPED lab before
+  debugging your own: `adaptive-retrieval-routing` showed the identical pre-hydration `labKatex: 0`.
+  **A `def test_*` placed AFTER the `if __name__ == "__main__":` block SILENTLY NEVER RUNS** — the
+  `globals()` scan in `_run_tests()` happens before that `def` has executed, so the printed count just
+  undercounts and the assertion is skipped. It still runs from the `.ipynb` (which imports the module
+  fully first), so the two entry points exercise DIFFERENT test sets and the notebook passes while the
+  documented `python <module>.py` check does not cover it. Keep the `__main__` guard at the very END of
+  the file, and if the assertion count does not RISE after adding a test, that is the bug. Bit me twice
+  in one session, both times from appending to the file.
+  **Any number quoted in prose must be COMPUTED in `viz_constants()`, never hand-typed** — `grader_auc`
+  was a correct literal (0.829, later confirmed to 4 dp) with nothing deriving it, so a retune of
+  `GRADER_KAPPA`/`GRADER_MID`/the corpus would have moved the truth and left the quote. Compute it
+  (Mann-Whitney via `scipy.stats.rankdata`, the calibration-topic pattern) and assert the BAND
+  (`0.75 < auc < 0.95`), not the decimal.
+  **The baked-number ripple is FOUR ways here, not three:** `.py` CONSTANT COMMENTS and `.py` DOCSTRINGS
+  count alongside the `.tsx` and the MDX prose. A residual retune left 0.637 ± 0.106 in a `REFORM_EPS`
+  comment, a `residual_norm` docstring, the MDX and CLAUDE.md while the bake said 0.588 ± 0.090 — grep
+  the OLD value across `.py`/`.tsx`/`.mdx`/`CLAUDE.md` before pushing. Two guards now make this
+  mechanical: `test_topic_prose_matches_the_module` parses the MDX table + prose figures back out and
+  compares them, and `test_laboratory_constants_match_the_module` parses the shipped `.tsx` baked block
+  as JSON and compares it to a fresh bake. Both were verified to FAIL on injected drift before being
+  trusted — a guard that cannot fail is worse than none.
+  **Prune `sys.path` entries and `--with` deps that nothing imports** (`bm25`, `set-metrics`,
+  `scikit-learn`, `rank-bm25` were all dead here) — confirm by RUNNING with the reduced set, not by
+  grepping alone. And a `mid`/`seed`-style parameter that binds in one branch and is ignored in another
+  (`grade()` honored `mid` locally and hardcoded the global midpoint) is the accepted-but-ignored-param
+  nit; default it to `None` and resolve per branch.
+  Refs verified: CRAG (Yan et al.) arXiv 2401.15884; Self-RAG arXiv 2310.11511; GraphRAG (Edge et al.) arXiv
+  2404.16130; HyDE `10.18653/v1/2023.acl-long.99`; RRF `10.1145/1571941.1572114`; DPR
+  `10.18653/v1/2020.emnlp-main.550`; Lewis RAG arXiv 2005.11401; Yoran et al. (meta-reasoning over chains)
+  `10.18653/v1/2023.emnlp-main.471`. Cross-site (all `ls`-verified at `~/Developer/Sites/`, NOT `../` from inside
+  a worktree): `formalmlConnections` graph-laplacians + clustering + concentration-inequalities;
+  `formalstatisticsConnections` hypothesis-testing + point-estimation; `formalcalculusConnections` convex-optimization.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

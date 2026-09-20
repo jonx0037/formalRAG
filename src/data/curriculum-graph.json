@@ -305,6 +305,12 @@
       "label": "Capstone: Architecture and Mathematics of a Production Multimodal Financial RAG System",
       "status": "published",
       "domain": "rag-information-theory"
+    },
+    {
+      "id": "rag-architecture-mechanisms",
+      "label": "RAG Architecture Mechanisms: What Each Named Pattern Buys, and Where It Fails",
+      "status": "published",
+      "domain": "rag-information-theory"
     }
   ],
   "edges": [
@@ -635,6 +641,14 @@
     {
       "source": "selective-generation-abstention",
       "target": "adaptive-retrieval-routing"
+    },
+    {
+      "source": "graphrag-community-detection",
+      "target": "rag-architecture-mechanisms"
+    },
+    {
+      "source": "multi-hop-iterative-retrieval",
+      "target": "rag-architecture-mechanisms"
     }
   ]
 }

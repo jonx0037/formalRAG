@@ -1,7 +1,7 @@
 """RAG Architecture Mechanisms: what each named pattern actually buys, and where it fails.
 
 Run:
-    uv run --with numpy --with scipy --with scikit-learn --with rank-bm25 \
+    uv run --with numpy --with scipy \
         python notebooks/rag-architecture-mechanisms/rag_architecture_mechanisms.py
 
 The cheat sheets present the named RAG architectures as a list of alternatives, each with a
@@ -28,18 +28,17 @@ import sys
 
 import numpy as np
 from scipy.special import expit
+from scipy.stats import rankdata
 
 _NB = pathlib.Path(__file__).resolve().parents[1]
 for _dir in (
     "hypersphere-vmf-geometry",
     "dense-retrieval-dual-encoders",
-    "bm25",
     "rank-fusion-rrf",
     "late-interaction-learned-sparse",
     "multi-hop-iterative-retrieval",
     "graphrag-community-detection",
     "query-transformation-hyde",
-    "set-metrics-precision-recall-map-mrr",
 ):
     _p = _NB / _dir
     if str(_p) not in sys.path:
@@ -116,9 +115,9 @@ OVER_FETCH = 20                 # corrective's deeper second look
 REFORM_EPS = 0.42               # a read filing opens a NEW direction if its mean per-window
                                 # residual clears this. Swept, NOT inherited: the multi-hop topic
                                 # set 0.47 at d=32 and the separation here is own 0.359 +- 0.017
-                                # against bridge 0.637 +- 0.106, so the gap sits lower.
+                                # against bridge 0.588 +- 0.090, so the gap sits lower.
 MAX_HOPS = 3
-GRADER_MID = 0.80               # grader midpoint on the normalised full-MaxSim of the top hit.
+GRADER_MID = 0.80               # grader midpoint on the normalized full-MaxSim of the top hit.
                                 # Swept jointly with the fire rate and the false-positive rate,
                                 # never one at a time: 0.85 fires on 86% of queries (including
                                 # 79% of the ones already correct) and 0.88 fires on everything,
@@ -140,7 +139,7 @@ C_MAXSIM = TOKENS * TOKENS      # one full MaxSim against one document
 # --- GLOBAL regime ----------------------------------------------------------------------------
 # The anti-theatre condition. If the sector with the most theme-mentions were also the sector
 # geometrically nearest the theme, top-k by cosine would already answer it and community
-# summarisation would be decoration. These two are made to DISAGREE by construction, and a test
+# summarization would be decoration. These two are made to DISAGREE by construction, and a test
 # asserts they still disagree.
 GLOBAL_N_QUERIES = 16
 MENTIONS_COUNT_MAX = 4          # mentioning companies in the count-max sector
@@ -314,7 +313,7 @@ def global_corpus(seed: int = SEED) -> dict:
     Each query is a theme. The gold answer is the SECTOR with the most companies mentioning it.
     The theme is tilted toward one sector geometrically while a DIFFERENT sector holds the most
     mentions, so similarity and counting disagree — which is the whole point. A corpus where they
-    agree makes community summarisation decoration, and the diagnostics assert they disagree.
+    agree makes community summarization decoration, and the diagnostics assert they disagree.
     """
     protos, sector_of, _ = _protos(seed)
     K = len(protos)
@@ -495,7 +494,7 @@ def _rebuild_bag(per_window) -> np.ndarray:
 def residual_norm(c: dict, q: np.ndarray, d: int) -> float:
     """How much of document d points somewhere the query does not: the mean over windows of
     ||d_w - <d_w, q_w> q_w||. An ordinary filing of the company asked about measures 0.359 +-
-    0.017 here; one that NAMES another company measures 0.637 +- 0.106."""
+    0.017 here; one that NAMES another company measures 0.588 +- 0.090."""
     tot = 0.0
     for w in WINDOWS:
         qp, dp = _pool(q, w), _pool(c["docs"][d], w)
@@ -624,7 +623,7 @@ def arch_hyde(c: dict, i: int, alpha: float = 1.0, k_hyp: int = N_HYPOTHETICAL,
 
 
 def grade(c: dict, i: int, order, kappa: float = GRADER_KAPPA,
-          mid: float = GRADER_MID) -> float:
+          mid: float | None = None) -> float:
     """The corrective grader's confidence that the cheap retrieval can be answered from.
 
     It re-scores the single top retrieved document PROPERLY -- full MaxSim over every token,
@@ -640,10 +639,35 @@ def grade(c: dict, i: int, order, kappa: float = GRADER_KAPPA,
     is a company that no retrieved passage is about.
     """
     top = int(np.asarray(order)[0])
+    # The two regimes offer a grader different evidence on different scales, so each carries its
+    # own midpoint. `mid` overrides whichever one applies rather than only the local one -- a
+    # parameter that silently binds in one branch and not the other is a misleading signature.
     if c["regime"] == "global":
-        return float(expit(kappa * (float(c["protos"][top] @ c["Q"][i]) - GRADER_MID_GLOBAL)))
+        cut = GRADER_MID_GLOBAL if mid is None else mid
+        return float(expit(kappa * (float(c["protos"][top] @ c["Q"][i]) - cut)))
+    cut = GRADER_MID if mid is None else mid
     ms = float(maxsim_matrix(c["Q"][i][None, ...], c["docs"][[top]])[0][0]) / TOKENS
-    return float(expit(kappa * (ms - mid)))
+    return float(expit(kappa * (ms - cut)))
+
+
+def grader_auc(c: dict | None = None) -> float:
+    """How well the grade orders 'the cheap answer was right' above 'it was wrong' -- the
+    Mann-Whitney statistic, which is what AUC is. Computed rather than quoted: it is the number
+    that certifies the grader is INFORMATIVE without being an oracle, and a later retune of the
+    corpus or of GRADER_KAPPA would move it silently otherwise. GUARD: undefined unless both
+    classes occur."""
+    c = c or local()
+    g, y = [], []
+    for i in range(c["n_queries"]):
+        base = arch_naive(c, i)
+        g.append(grade(c, i, base["ranking"]))
+        y.append(int(base["answer"] == c["gold"][i]))
+    g, y = np.asarray(g, dtype=float), np.asarray(y, dtype=int)
+    n1, n0 = int(y.sum()), int(len(y) - y.sum())
+    if n1 == 0 or n0 == 0:
+        raise ValueError("AUC is undefined unless the baseline is both right and wrong somewhere")
+    r = rankdata(g)
+    return float((r[y == 1].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
 
 
 def arch_corrective(c: dict, i: int, threshold: float = 0.5, over: int = OVER_FETCH,
@@ -697,7 +721,7 @@ def arch_graph(c: dict, i: int, **_) -> dict:
 
     This is the only arm that holds a representation of a set rather than of a document, which
     is why it is the only one that can answer a question about a count -- and why, asked which
-    single filing says something, it answers with a neighbourhood.
+    single filing says something, it answers with a neighborhood.
     """
     q = c["Q"][i]
     if c["regime"] == "global":
@@ -739,7 +763,7 @@ def arch_agentic(c: dict, i: int, max_hops: int = MAX_HOPS, eps: float = REFORM_
         ops, hops = c["K"] * C_POOLED, 1
         seen = list(order[:GLOBAL_TOPK])      # the pool naive votes over: one hop must BE naive
         for _h in range(max_hops - 1):
-            # Expand along the entity graph: the neighbours of what has been read. This reaches
+            # Expand along the entity graph: the neighbors of what has been read. This reaches
             # more of the community than one retrieval does, one hop at a time, and pays a full
             # retrieval for each step.
             nxt = [int(j) for d in seen[:k] for j in np.argsort(-c["A"][d])[:k] if c["A"][d][j] > 0]
@@ -994,7 +1018,7 @@ def test_agentic_pays_for_its_bet_on_every_query() -> None:
 def test_global_counting_disagrees_with_geometry() -> None:
     """The anti-theatre condition, and the reason the global regime is worth running at all. If
     the sector that discusses a theme most were also the sector nearest it, community
-    summarisation would be decoration on a problem top-k already solves."""
+    summarization would be decoration on a problem top-k already solves."""
     c = glob()
     assert int((c["gold"] != c["geo_answer"]).sum()) == c["n_queries"]
     labels = communities(c)
@@ -1117,18 +1141,37 @@ def viz_constants() -> dict:
         "n_sectors": N_SECTORS, "n_global": G["n_queries"], "classes": list(CLASSES),
         "arms": list(ARMS), "matrix": matrix,
         "gold_ranks": gold_ranks, "over_fetch": OVER_FETCH,
-        "grades": grades, "grader_mid": GRADER_MID, "grader_auc": 0.829,
+        "grades": grades, "grader_mid": GRADER_MID,
+        "grader_auc": round(float(grader_auc()), 3),
         "damage_grid": dmg, "mean_hops": hops,
         "legs_partial": legs_partial,
         "flat_curve": [[int(d), round(float(a), 3)] for d, a in flat_aggregation_curve()],
+        # Panel D recomputes the flat-aggregation curve EXACTLY from these rather than reading a
+        # baked curve: per theme, the entities in cosine order and which of them discuss it.
+        "global_order": [[int(e) for e in np.argsort(-(G["protos"] @ G["Q"][i]))]
+                         for i in range(G["n_queries"])],
+        "global_mention": [[int(v) for v in G["mentions"][i]] for i in range(G["n_queries"])],
+        "global_sector": [int(v) for v in G["sector_of"]],
+        "global_gold": [int(v) for v in G["gold"]],
+        "global_geo": [int(v) for v in G["geo_answer"]],
         "worked": _worked_partial_query(),
         "residual_own": round(float(np.mean([residual_norm(L, L["Q"][i], int(d))
-                                             for i in _class_idx(L, "bridge")
-                                             for d in np.argsort(-leg_dense(L, L["Q"][i]))[:3]])), 3),
+                                             for n, i in enumerate(_class_idx(L, "bridge"))
+                                             for d in np.where((L["owner"] == L["dist_ids"][(n * 9 + 5) % len(L["dist_ids"])])
+                                                               & (L["is_bridge"] == 0))[0]])), 3),
         "residual_bridge": round(float(np.mean(
             [residual_norm(L, L["Q"][i], L["bridge_doc"][L["dist_ids"][(n * 9 + 5) % len(L["dist_ids"])]])
              for n, i in enumerate(_class_idx(L, "bridge"))])), 3),
-        "reform_eps": REFORM_EPS,
+        "reform_eps": REFORM_EPS, "alpha_bridge_deg": ALPHA_BRIDGE_DEG,
+        # quoted in the topic prose as well as the lab, so viz_constants owns them
+        "residual_own_sd": round(float(np.std([residual_norm(L, L["Q"][i], int(d))
+                                               for n, i in enumerate(_class_idx(L, "bridge"))
+                                               for d in np.where((L["owner"] == L["dist_ids"][(n * 9 + 5) % len(L["dist_ids"])])
+                                                                 & (L["is_bridge"] == 0))[0]])), 3),
+        "residual_bridge_sd": round(float(np.std(
+            [residual_norm(L, L["Q"][i], L["bridge_doc"][L["dist_ids"][(n * 9 + 5) % len(L["dist_ids"])]])
+             for n, i in enumerate(_class_idx(L, "bridge"))])), 3),
+        "median_gold_rank": {k: float(np.median(gr)) for k, gr in gold_ranks.items()},
     }
 
 
@@ -1143,6 +1186,117 @@ def _run_tests() -> None:
         globals()[n]()
         print(f"  ok  {n}")
     print(f"{len(names)} assertions passed")
+
+
+def test_viz_constants_reproduce_the_curve() -> None:
+    """Panel D recomputes the flat-aggregation curve in the browser from the baked ranking and
+    mention flags. That recomputation must land on the curve this module measured, or the
+    laboratory and the notebook have quietly diverged."""
+    v = viz_constants()
+    for depth, acc in v["flat_curve"]:
+        hits = 0
+        for order, ment, gold in zip(v["global_order"], v["global_mention"], v["global_gold"]):
+            keep = [e for e in order[:depth] if ment[e] == 1] or list(order[:1])
+            votes = [0] * N_SECTORS
+            for e in keep:
+                votes[v["global_sector"][e]] += 1
+            hits += int(votes.index(max(votes)) == gold)
+        assert round(hits / len(v["global_gold"]), 3) == acc, (depth, hits, acc)
+
+
+def test_topic_prose_matches_the_module() -> None:
+    """The topic text quotes numbers in words, and a retune moves them silently. A baked-number
+    change ripples three ways -- the module, the laboratory and the PROSE -- and the prose is the
+    one nothing else checks, so it is checked here: the matrix table, the aggregation row and
+    every figure quoted in a sentence are parsed back out of the MDX and compared."""
+    import re
+    mdx = pathlib.Path(__file__).resolve().parents[2] / "src/content/topics/rag-architecture-mechanisms.mdx"
+    if not mdx.exists():                       # the notebook must run outside the site checkout too
+        return
+    text = mdx.read_text()
+    v, M = viz_constants(), mechanism_matrix()
+
+    table = re.search(r"\| arm \| LOCAL.*?\n\n", text, re.S)
+    assert table, "the matrix table is missing from the topic"
+    seen = 0
+    for line in table.group(0).strip().split("\n")[2:]:
+        cell = [c.strip().replace("**", "") for c in line.strip("|").split("|")]
+        if cell[0] not in ARMS:
+            continue
+        seen += 1
+        a = cell[0]
+        assert float(cell[1]) == round(M[a]["local"]["acc"], 3), (a, "LOCAL", cell[1])
+        for i, k in enumerate(CLASSES):
+            assert float(cell[2 + i]) == round(M[a]["local"]["per_class"][k], 3), (a, k, cell[2 + i])
+        assert float(cell[7]) == round(M[a]["global"]["acc"], 3), (a, "GLOBAL", cell[7])
+        assert int(cell[8]) == int(round(M[a]["local"]["ops"])), (a, "ops", cell[8])
+    assert seen == len(ARMS), seen
+
+    row = re.search(r"\| accuracy by hand \|(.+?)\|\n", text)
+    assert row, "the flat-aggregation row is missing"
+    quoted = [float(x.strip().replace("**", "")) for x in row.group(1).split("|")]
+    assert quoted == [round(a, 3) for _d, a in flat_aggregation_curve()], quoted
+
+    for phrase, value in (
+        (r"median rank (\d+) — demoted by decoys", v["median_gold_rank"]["noisy"]),
+        (r"median rank (\d+) and is not there", v["median_gold_rank"]["bridge"]),
+        (r"grades \*\*(0\.\d+)\*\*\.\s*On the class", v["grades"]["bridge"]),
+        (r"It is a relevance judge, and a good\n?one[^.]*?AUC of (0\.\d+)", v["grader_auc"]),
+        (r"\$([\d.]+) \\pm ([\d.]+)\$ against a bridge's", (v["residual_own"], v["residual_own_sd"])),
+        (r"against a bridge's \$([\d.]+) \\pm ([\d.]+)\$", (v["residual_bridge"], v["residual_bridge_sd"])),
+    ):
+        m = re.search(phrase, text)
+        assert m, f"the topic no longer states: {phrase}"
+        got = tuple(float(g) for g in m.groups()) if len(m.groups()) > 1 else float(m.group(1))
+        assert got == value, (phrase, got, value)
+
+
+def test_grader_is_informative_but_not_an_oracle() -> None:
+    """The corrective comparison is only meaningful if the grader is genuinely imperfect. A grader
+    at AUC 1.0 fires exactly when needed and never otherwise, which makes the arm adaptive by
+    construction rather than by measurement -- so the band is asserted, not the decimal."""
+    auc = grader_auc()
+    assert 0.75 < auc < 0.95, auc
+    assert viz_constants()["grader_auc"] == round(auc, 3)
+    # ...and 'informative' must mean informative about CORRECTNESS, not merely about the class:
+    # it grades the bridge class as highly as the one it answers perfectly, and stays blind there.
+    c = local()
+    g = {k: float(np.mean([grade(c, i, arch_naive(c, i)["ranking"]) for i in _class_idx(c, k)]))
+         for k in ("on", "bridge")}
+    assert abs(g["on"] - g["bridge"]) < 0.05, g
+
+
+def test_laboratory_constants_match_the_module() -> None:
+    """The laboratory's baked block is EMITTED from viz_constants() rather than transcribed, so
+    the two cannot drift by a typo -- but they can drift by a retune that regenerates one and not
+    the other. This parses the shipped .tsx back and compares it to a fresh bake."""
+    import json
+    import re
+    tsx = pathlib.Path(__file__).resolve().parents[2] / "src/components/viz/RagArchitectureMechanismsLaboratory.tsx"
+    if not tsx.exists():                       # the notebook must run outside the site checkout
+        return
+    text, v = tsx.read_text(), viz_constants()
+    baked = {}
+    for name, expr in re.findall(r"^const ([A-Z_]+)(?:: [^=]+)? = (.+?);\s*$", text, re.M):
+        try:
+            baked[name] = json.loads(expr.replace(" as const", ""))
+        except json.JSONDecodeError:
+            continue
+    for name, key in (("MATRIX", "matrix"), ("GOLD_RANKS", "gold_ranks"), ("GRADES", "grades"),
+                      ("LEGS_PARTIAL", "legs_partial"), ("WORKED", "worked"),
+                      ("DAMAGE", "damage_grid"), ("MEAN_HOPS", "mean_hops"),
+                      ("G_ORDER", "global_order"), ("G_MENTION", "global_mention"),
+                      ("G_SECTOR", "global_sector"), ("G_GOLD", "global_gold"),
+                      ("ARMS", "arms"), ("CLASSES", "classes")):
+        assert name in baked, f"{name} is no longer baked into the laboratory"
+        assert baked[name] == v[key], (name, "laboratory and module disagree")
+    for name, key in (("OVER_FETCH", "over_fetch"), ("GRADER_AUC", "grader_auc"),
+                      ("RESID_OWN", "residual_own"), ("RESID_BRIDGE", "residual_bridge"),
+                      ("REFORM_EPS", "reform_eps")):
+        m = re.search(rf"\b{name} = ([\d.]+)", text)
+        assert m, f"{name} is no longer baked into the laboratory"
+        assert float(m.group(1)) == v[key], (name, float(m.group(1)), v[key])
+
 
 
 if __name__ == "__main__":
