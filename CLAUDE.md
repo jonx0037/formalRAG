@@ -1412,6 +1412,61 @@ uv run --with numpy --with scipy --with nbformat --with jupyter --with ipykernel
   function of its inputs); `formalmlConnections` concentration-inequalities (how many queries before a
   Pareto verdict means anything). NO decision-theory/Pareto slug on any sibling -> name Pareto, scalarization
   and unsupported efficient solutions in prose.
+- **`rag-architecture-workload-uncertainty`** (the successor to `rag-architecture-pareto`, and the FIRST
+  topic in the arc where the INPUTS to a decision are random rather than the outputs. New node + ONE
+  inbound edge from pareto; `domain: rag-information-theory`, `pipelineStage: select`.)
+  **THE CURRICULUM WAS COMPLETE — there was no successor to start.** All 53 nodes `published`, every
+  `curriculum.ts` track `planned: []`, `architectures.ts` with zero `gap` entries (6 shipped, 4 composed),
+  and the pareto MDX naming no forward topic. Every earlier topic had its successor waiting as a DAG edge
+  or a `planned[]` title; this one had nothing. **Check all four of those places before assuming a
+  successor exists, and when none does, ASK rather than invent** — the direction is an authoring decision,
+  not a lookup. (The three options offered: minimax under an estimated mixture, the eps-constraint /
+  Chebyshev remedy for the scalarization gap, or a keystone topic for one of the four `composed`
+  architectures. The first was chosen.)
+  **THE TOPIC'S OWN THEOREM WAS ALSO ITS PERFORMANCE FIX — the best result of the build.** Utility is
+  AFFINE in the workload `w`, so `E_pi[U(a,w)] = U(a, E_pi[w])` EXACTLY for any posterior. Two consequences
+  that look unrelated and are the same fact: (a) the **Bayes rule is demoted from a third rule to the
+  plug-in rule at the posterior MEAN** — for a Dirichlet that mean is closed form `(n*what + alpha)/(n +
+  C*alpha)`, so the whole plug-in/Bayes gap is a shrinkage vanishing like 1/n; and (b) 2000 posterior draws
+  collapse from 2000 Python calls into ONE matrix product, `U = post @ M.T + const` with `M = Q - lam(O +
+  rho C)`. That took the module from **119s to 1.2s (100x)** and brought it back inside the <60s contract.
+  Anchor it — `test_kernel_matches_the_imported_utility` asserts the kernel reproduces the IMPORTED
+  `utility` draw by draw `<1e-12`, at the default AND at a non-default price so the params are provably
+  threaded. **When a module is too slow, look for the linearity the topic is already about.**
+  **A MAX OVER MONTE-CARLO DRAWS CANNOT BE BAKED** — it is an extreme statistic whose value GROWS with the
+  draw count, so two runs at different `draws` disagree and the viz<->python invariant is unholdable. Use
+  a high QUANTILE (0.95 here) and pin it with `test_quantile_is_stable_across_seeds` (spread across 6 seeds
+  + the selected ARM must not flip). The first probe used a max and the boundary case read "never
+  converges"; with the quantile it converges at n=5120, a far better and quantitative story.
+  **A PIECEWISE-CONSTANT consumer makes estimation error BIMODAL, not merely noisy** — the map w -> arm is
+  a partition, so error is FREE in a cell interior (the recommendation does not move at all, however wrong
+  you were) and flips the answer outright at a boundary. Measured: the rules agree from **n=10** inside a
+  cell and **n=5120** on a boundary, ~500x. That is the whole topic, and it is why a Pareto verdict cannot
+  simply be annotated with an error bar.
+  **HEDGING IS NOT FREE, and my first assertion had the sign backwards.** I wrote `max(gain) > max(loss)`
+  assuming the hedge wins bigger; build-and-run said the opposite (best gain 0.0127 vs worst loss 0.0140).
+  The honest structure: shrinking toward the prior is a **bet that the traffic is more central than the
+  data says**, so the hedge helps on the central side of a boundary and hurts on the far side, where the
+  truth sits in a narrow cell and the plug-in rule was correctly confident. Assert the SIGN STRUCTURE
+  (helps below, hurts above) and that the magnitudes are comparable (ratio in `(0.5, 2)`), never that
+  hedging wins on net. Same lesson as the pareto `1.00x` overclaim: when the measurement contradicts the
+  plan, the measurement is usually the better topic.
+  **Cross-site correction worth keeping: formalStatistics DOES have Bayesian slugs** —
+  `bayesian-foundations-and-prior-selection`, `hierarchical-bayes-and-partial-pooling`, `empirical-bayes`,
+  `bayesian-computation-and-mcmc`, `bayesian-model-comparison-and-bma`. Earlier entries recorded "no
+  decision-theory / bayes-risk slug in ANY sibling" and that is still true of *decision theory*, but the
+  Bayesian machinery is there: the prior-selection slug is the load-bearing up-link for a Dirichlet prior
+  (the prior DEFINES where "the middle of the simplex" is, which is what the hedge shrinks toward), and
+  partial-pooling is the exact shrinkage mechanism. `ls` the sibling's topics dir before concluding a
+  concept is absent.
+  **Browser-probe gotcha (cost a confused reading):** `textContent` concatenates adjacent nodes with NO
+  separator, so a regex like `/observed \(n\) = (\d+)/` captured `"100"` where the slider read `10` and
+  the next readout began `0.1432`. Anchor such probes on a non-digit that must follow, or read the
+  `input[type=range]` `.value` directly rather than the rendered label.
+  Refs verified: Berger *Statistical Decision Theory and Bayesian Analysis* `10.1007/978-1-4757-4286-2`;
+  Wald 1945 (the minimax criterion) `10.2307/1969022`; Blackwell-Girshick 1954 (regret as the object a
+  hedge is built on, archive.org, pre-DOI); Shafer "Savage Revisited" `10.1214/ss/1177013426`; Ehrgott
+  reused from the predecessor.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return
