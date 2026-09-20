@@ -1546,6 +1546,94 @@ uv run --with numpy --with scipy --with nbformat --with jupyter --with ipykernel
   **The `__main__`-last trap bit a third time in the arc** — `_run_tests` scans `globals()` at call time, so
   a `def test_*` below the guard never runs and the printed count just comes out short. The assertion count
   RISING is the only tell; watch it after every added test.
+- **`rag-architecture-bandit-exploration`** (the successor to `rag-architecture-switching-hysteresis`,
+  and the topic that removes the assumption the whole arc rested on without naming: **the quality/cost
+  table is available to READ**. A deployment runs one arm per query and observes that row only, so the
+  table must be LEARNED. New node + ONE inbound edge; `domain: rag-information-theory`,
+  `pipelineStage: select`. All `curriculum.ts` tracks were already `planned: []` — a brand-new node is
+  an ADD, not a status flip. The direction was CHOSEN, not looked up: all four places a successor could
+  wait were empty again, so the documented ASK rule fired a second time.)
+  **THE INITIALIZATION-ORDER ARTIFACT — the bug that manufactured a headline, and the one most likely
+  to recur in any multi-arm simulation.** `run_bandit` warmed up by pulling arms in INDEX order, so the
+  policy was holding arm 5 when the warm-up ended — and arm 5 is `agentic`, which on this corpus IS the
+  best fixed arm. A wide margin then scored beautifully for the sole reason that it never left an arm it
+  had been handed for free. The symptom was a clean MONOTONE trend toward the positive grid edge
+  (regret 175.9 -> 104.9 -> 108.5), exactly the shape a real effect would have. `rng.permutation(n_arms)`
+  killed it: the trend VANISHED and the sweep went flat (10 of 12 settings tie within one se). **A
+  monotone trend that peaks at a grid edge is a bug report until proven otherwise**, and any warm-up
+  that touches every arm must randomize the order or it silently privileges whichever arm it ends on.
+  **THE REGRET BENCHMARK IS A DESIGN DECISION, NOT A DETAIL.** My first probe scored regret against the
+  PER-QUERY oracle — which is `adaptive-retrieval-routing`'s object, not this arc's — and it compressed
+  every policy difference into noise (1006 vs 1116 across the whole margin range). Against the best
+  FIXED arm in hindsight, which is what the arc actually optimizes, the same runs separate by 200+. Pick
+  the benchmark that matches the topic's framing BEFORE reading anything into a flat curve.
+  **BOTH PLANNED HEADLINES WERE FALSE; the replacements are stronger.** (1) The planned "margin inverts
+  sign when the table is unknown" does not reproduce and cannot: 10 of 12 settings tie within one
+  standard error, so there is no optimum to invert. The true claim is sharper — the instrument does not
+  shift, it **stops resolving**, because a CONSTANT margin cannot express how well each arm is currently
+  known; it also carries **4.53x** the deployment spread of UCB. My first *mechanism* guess for this
+  ("a margin rule leaves arms at one pull") was ALSO false on probing (min pulls 3.2 and 92.5) — probe
+  the explanation, not just the effect. (2) The T^(2/3) switching-cost exponent is not demonstrable here.
+  **THE STANDOUT RESULT — negative regret against the best fixed arm, on 24/24 deployments** (UCB -93.2
+  vs greedy 123.1 / margin 123.5 / Thompson 42.4). Not a beaten oracle: under drift the best-arm-in-
+  hindsight is a WEAK benchmark, since `hybrid` is right early and `agentic` late and no single arm is
+  right throughout (the per-moment choice is worth 929.6 more). That runs BACKWARDS through the arc —
+  every previous topic optimized a fixed-arm deployment, and the benchmark they all optimized is one a
+  policy with no table at all can beat provided it keeps looking.
+  **A POWER LAW FITTED TO A LOGARITHM RETURNS A PLAUSIBLE EXPONENT AND MEANS NOTHING.** On a FIXED
+  instance the gap is fixed and UCB's regret is Theta(log T) (Lai-Robbins) — here regret vs log T is
+  linear at **R^2 = 0.995**. Fit a power law to the same five points anyway and it gives slope **0.464**,
+  close enough to 1/2 to read as a confirmation of sqrt(T). sqrt(T) and T^(2/3) are **MINIMAX** rates
+  over instances whose gaps shrink with the horizon; one corpus has one gap and cannot exhibit them. The
+  diagnostic that settles it is the log-linear R^2, not the log-log slope. Ship as the honest closing
+  movement (the instance-dependent vs minimax distinction is real and widely confused).
+  **ASSERT THE NON-RESULT so a retune cannot quietly promote it.** A sliding window is the standard
+  remedy for a moving target and is directionally better here (-7.9) but does NOT clear the noise
+  (p=0.188). `test_forgetting_does_not_measurably_help_here` asserts `p > 0.05` AND that the CI straddles
+  zero. Paired vs unpaired mattered: the unpaired standard errors overlap heavily while the paired
+  separations are p=3e-7 / 1e-8 / 2e-12 (import `paired_t_test`, never rewrite it).
+  **PROBES ARE NOT AUTHORITATIVE — the module is.** My scratch probe reported "8 of 12 tie"; the module
+  with consistent seed pairing said 2/12 before the init fix and 10/12 after. Same question, three
+  answers. Re-derive every headline number inside the shipped module before it reaches prose.
+  **The `__main__`-last trap, FOURTH time in this arc and the first time it hid a real gap:** the two
+  drift guards were appended AFTER the guard block, so `python module.py` printed **13 assertions** while
+  the notebook (which imports the module fully) ran **15**. The two entry points silently exercised
+  different test sets. The count FAILING TO RISE after adding a test is the only tell — watch it.
+  **Runtime:** memoize both `query_stream` (per seed) and `over_deployments` (per full argument set) —
+  the price sweep re-reads every margin at every price, and a policy's outcome depends on none of what
+  those sweeps vary. 23.4s -> **5.0s**, bake hash unchanged.
+  **Probe-chaining hygiene:** `exec(open(p).read().split(marker))` and `head -46 probe.py` both broke a
+  follow-up probe by truncating before a needed definition (`grid`, `over`). Split on a MARKER and assert
+  the needed name is present, or just write the probe self-contained.
+  **THE ADVERSARIAL REVIEW'S BEST CATCH — a SUBSAMPLED CURVE THAT DISAGREES WITH ITS OWN READOUT.**
+  `regret_trajectory` returned `mean[::24]` over a 2400-query horizon, so the last plotted point was
+  query 2376, not 2399 — the curve ended ~7 units BELOW the exact regret printed in the readout beside
+  it, under an axis labelled with the full horizon. Nothing was numerically wrong and no guard could
+  see it (the readout reads `POLICIES`, not the trajectory). **Any subsampled series plotted against a
+  full-range axis must include the final point**, and the cheapest check is a test asserting the
+  curve's last value equals the exact scalar the panel reports (`test_the_plotted_trajectory_ends_
+  where_the_regret_does`). Also caught: `regret_trajectory` re-simulated 96 deployments that
+  `over_deployments` had already run (cache the per-run `chosen` arrays and read them) and `rate_study`
+  re-ran up to 4x per test pass (memoize it) — the same loop-invariant class as the predecessor, one
+  level out. When caching a dict that a sweep SPREADS into the bake, exclude the bulky per-run keys
+  explicitly (`drop = ("per_deployment", "runs")`) or they ship. A latent contract gap worth refusing
+  rather than leaving dormant: windowed Thompson took its MEAN from the window and its VARIANCE from
+  the total pull count, understating uncertainty for exactly the arms a window exists to make
+  uncertain — nothing called it, so `run_bandit` now raises on the combination.
+  **Ref DOI gotcha, THIRD in this arc:** Besbes-Gur-Zeevi `10.1287/opre.2015.1424` resolves cleanly to a
+  *portfolio-optimization* paper (Doan/Li/Natarajan). Crossref `query.bibliographic` gave the real one:
+  **`10.1287/stsy.2019.0033`** (Stochastic Systems 9(4):319-337, 2019). Verified: Lai-Robbins
+  `10.1016/0196-8858(85)90002-8`; Auer-Cesa-Bianchi-Fischer UCB1 `10.1023/A:1013689704352`; Thompson 1933
+  `10.2307/2332286`; Garivier-Moulines `10.1007/978-3-642-24412-4_16`; Dekel-Ding-Koren-Peres STOC 2014
+  `10.1145/2591796.2591868`. Cross-site (all `ls`-verified): `formalmlPrereqs` **concentration-inequalities**
+  (Hoeffding IS the exploration bonus); `formalmlConnections` **always-valid-inference** (adaptively
+  collected data — the strongest up-link here) + random-walks + generalization-bounds;
+  `formalstatisticsPrereqs` point-estimation (the sample size per arm is an OUTCOME of the decisions, not
+  a design parameter); `formalstatisticsConnections` bayesian-foundations-and-prior-selection +
+  empirical-bayes (Thompson) + hypothesis-testing; `formalcalculusConnections` convex-optimization +
+  stability-dynamics (select-and-estimate is a feedback loop; the bonus breaks the fixed point). NO
+  bandit / online-learning / reinforcement-learning slug exists on ANY sibling -> name UCB, Thompson,
+  EXP3 and the regret floor in PROSE only.
 - **Rotation/Procrustes transpose checkpoint:** the VQ/PQ track applies rotations as `(X - mu) @ R.T`
   with R's **rows** = basis vectors (`pca_align`/`balanced_rotation` in `product_quantization.py`). A
   learned-rotation step (OPQ's non-parametric Orthogonal Procrustes update) must therefore return

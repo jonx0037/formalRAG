@@ -329,6 +329,12 @@
       "label": "When to Switch: Architecture Choice for a Workload That Moves",
       "status": "published",
       "domain": "rag-information-theory"
+    },
+    {
+      "id": "rag-architecture-bandit-exploration",
+      "label": "The Arm You Did Not Run: Learning an Architecture Under a Switching Cost",
+      "status": "published",
+      "domain": "rag-information-theory"
     }
   ],
   "edges": [
@@ -679,6 +685,10 @@
     {
       "source": "rag-architecture-workload-uncertainty",
       "target": "rag-architecture-switching-hysteresis"
+    },
+    {
+      "source": "rag-architecture-switching-hysteresis",
+      "target": "rag-architecture-bandit-exploration"
     }
   ]
 }
