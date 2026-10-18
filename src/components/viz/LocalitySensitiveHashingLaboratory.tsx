@@ -314,8 +314,8 @@ export default memo(function LocalitySensitiveHashingLaboratory() {
             <Readout label="angle θ" value={`${(thetaFrac * 180).toFixed(0)}°`} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
-            One bit per random hyperplane. A plane separates <strong>x</strong> and <strong>y</strong> exactly when its normal
-            lands in the wedge between them — angular measure θ/π — so the two collide with probability 1 − θ/π. The measured
+            One bit per random hyperplane. A plane separates <strong>x</strong> and <strong>y</strong> exactly when it passes
+            between them — its normal lands in the x–y wedge turned a quarter turn, or its antipode, total angular measure θ/π — so the two collide with probability 1 − θ/π. The measured
             points sit on the line because the law is exact, not fitted.
           </p>
         </div>
