@@ -10,7 +10,7 @@ import katex from 'katex';
  *      climbs as a STAIRCASE (piecewise-constant, jumps at swaps) while the smooth surrogate loss falls
  *      continuously — the theorem that forces a surrogate, made visible.
  *   C. RankNet mechanics. The worked query's top-k with each document's per-document lambda force (the
- *      single grade-3 doc is under-ranked and feels the strongest upward pull); a margin slider sharpens
+ *      single grade-3 doc is under-ranked and feels the strongest upward pull in the top ten); a margin slider sharpens
  *      the pairwise probability P(i > j) = sigma(s_i - s_j).
  *   D. Learned fusion vs RRF. Recall@10 / NDCG@10 bars for the three legs, RRF, pointwise, and the
  *      learned RankNet; the learned weights; and a training-set-size slider showing the learned ranker
@@ -239,7 +239,7 @@ function SweepPanel({ idx, setIdx }: { idx: number; setIdx: (v: number) => void 
         Nudge the slider: across most steps the <span style={{ color: ACCENT }}>NDCG</span> does not move at all
         — it is <strong>piecewise-constant</strong>, flat between swaps and jumping at them, so its gradient is
         zero almost everywhere and you cannot descend it. The <span style={{ color: MUTED }}>surrogate loss</span>
-        we actually optimize falls <strong>smoothly</strong> the whole way. The metric is what we want; the
+        (the one we train on, evaluated here on the held-out queries) falls <strong>smoothly</strong> the whole way. The metric is what we want; the
         surrogate is what we can train.
       </p>
     </div>
@@ -292,7 +292,7 @@ function MechanicsPanel({ margin, setMargin }: { margin: number; setMargin: (v: 
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Each document feels a <strong>lambda force</strong> λ<sub>i</sub> = Σ<sub>j</sub> λ<sub>ij</sub> — the net pull from
         its preference pairs. On query {WORKED_Q} the single <span style={{ color: GRADE_COLOR[3] }}><strong>grade-3</strong></span>
-        document is ranked sixth and feels by far the strongest <span style={{ color: UP_COLOR }}>upward</span> pull
+        document is ranked sixth and feels by far the strongest <span style={{ color: UP_COLOR }}>upward</span> pull in the top ten
         ({fmt(WORKED_LAMBDA[gradeIdx], 1)}), because the model is confidently wrong about the pairs it should win.
         The margin slider sharpens P(i ≻ j) = σ(s<sub>i</sub> − s<sub>j</sub>): a wider score gap means a more confident — and
         more heavily penalized — mistake. LambdaRank scales each force by the ΔNDCG the swap would cause.

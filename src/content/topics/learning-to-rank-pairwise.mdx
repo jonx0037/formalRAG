@@ -234,8 +234,11 @@ training pairs exert on each document.
 </TheoremBlock>
 
 Panel C draws these forces on the worked query. The single grade-3 document is under-ranked by the
-learned scorer — it sits at rank 6 — and it feels by far the strongest upward $\lambda$, because it
-loses many preference comparisons it should win. This per-document view is the bridge to
+learned scorer — it sits at rank 6 — and it feels by far the strongest upward $\lambda$ in the top ten
+($-9.61$, against the next-strongest $-5.03$), because it loses many preference comparisons it should win.
+Below the top ten the pulls grow stronger still: grade-2 documents buried at ranks $11$, $27$, and $43$
+feel $-9.79$, $-18.36$, and $-38.69$, because a buried relevant document loses to every grade-0 document
+ranked above it. This per-document view is the bridge to
 **LambdaRank**: that method keeps the same force structure but multiplies each pairwise $\lambda_{ij}$
 by the $|\Delta\text{NDCG}_{ij}|$ that swapping the pair would cause, so swaps near the top of the list —
 where the rank discount is steep — pull harder than swaps in the tail. LambdaRank and its tree-boosted
@@ -266,8 +269,8 @@ This is the reason the field exists. A metric whose gradient is zero almost ever
 descent direction; you cannot follow it downhill. So learning to rank optimizes a **surrogate** — a
 smooth loss whose minimization *tends to* improve the metric — and RankNet's pairwise logistic is the
 canonical choice. Panel B makes the contrast visible. As the weights morph from the weakest single leg
-toward the learned combiner, NDCG climbs as a *staircase* — flat stretches punctuated by jumps, from $0.514$ up to $0.767$ — while the pairwise loss we actually
-optimize falls *smoothly* the whole way. The metric is the thing we want; the surrogate is the thing we
+toward the learned combiner, NDCG climbs as a *staircase* — flat stretches punctuated by jumps, from $0.514$ up to $0.767$, and not every jump is upward (a fine sweep finds $41$ downward steps and a peak of $0.771$ shortly before the end) — while the pairwise loss, the same surrogate we train on but evaluated here on the held-out queries,
+falls *smoothly* the whole way. The metric is the thing we want; the surrogate is the thing we
 can descend.
 
 <RigorFlag>
@@ -357,7 +360,7 @@ ranks 1–2, where the rank discount is steep and the user is looking, costs the
 loss as a swap at ranks 99–100, where no one will ever look. RankNet treats them identically.
 
 <TheoremBlock type="remark" number={2} title="What the pairwise reduction misses">
-Two families of methods address the position blindness. The *listwise* approach defines a loss on the
+Three families of methods address the position blindness. The *listwise* approach defines a loss on the
 whole ranked list rather than on isolated pairs: **ListNet** maps the scores to a probability
 distribution over permutations (via the Plackett–Luce model) and minimizes the cross-entropy against
 the ideal list's distribution. The $\Delta\text{NDCG}$-weighted approach keeps the pairwise structure
