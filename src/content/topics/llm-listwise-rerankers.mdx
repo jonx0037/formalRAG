@@ -253,7 +253,8 @@ advances $s = 10$ positions per window (apart from the first hops, where the las
 end of the list: $59 \to 45 \to 40$, then $30, 20, 10, 0$). With a *noisy* comparator the guarantee weakens to a
 trend: the seed-averaged top-k recall is monotone in the number of passes, climbing from $0.167$ (the
 scrambled pool) through $0.525,\ 0.758,\ 0.846$ to $0.868$ at four passes, then plateauing. And the slide
-direction matters: one back-to-front pass reaches recall $0.508$ where front-to-back reaches only $0.247$,
+direction matters: one back-to-front pass reaches recall $0.508$ where front-to-back reaches only $0.247$ (a
+separate run with its own oracle seeds, which is why it does not repeat the curve's one-pass $0.525$),
 because front-to-back advances a buried document by just one window per pass.
 </TheoremBlock>
 
