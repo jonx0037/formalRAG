@@ -42,9 +42,14 @@ pedagogical claim an `assert`:
     one-hot relevance label lacks. We mine the hardest negative per query from the labeled DPR pool
     (`mine_nearest`, the negative-sampling prereq: nearest other-company query -> its gold document is
     a hard negative doc), and show the teacher's margin on those mined hard pairs is GRADED (a real
-    spread), while the binary margin is the constant 1. Distilling the soft teacher (best_rank_d(T C))
-    then recovers higher recall@1 at restricted rank than distilling hard binary labels
-    (best_rank_d(Y C)). (`binary_relevance`, `mined_hard_negative`, `teacher_hard_margins`,
+    spread), while the binary margin is the constant 1. The textbook headline — distilling the soft
+    teacher (best_rank_d(T C)) beats distilling hard binary labels (best_rank_d(Y C)) at restricted
+    rank — does NOT hold on this in-sample toy, and the hard side needs care to even state: Y C has a
+    perfectly FLAT spectrum (every nonzero singular value is 2), so its rank-d truncation is not unique
+    and a single SVD call's recall depends on an arbitrary basis. We report the basis-independent
+    quantity — recall averaged uniformly over ALL Frobenius-optimal rank-d binary students, with its
+    min/max — which on average matches or beats the soft teacher. (`binary_relevance`,
+    `mined_hard_negative`, `teacher_hard_margins`, `optimal_rank_d_students`, `hard_student_recall`,
     `soft_vs_hard_curve`.)
 
 Honest caveats (rigorFlag territory): the translation-invariance reduction and the centered-SVD
@@ -115,6 +120,8 @@ OFFSET_MAG = 3.0                # per-query miscalibration magnitude (tuned: the
 OFFSET_SEED = 5                 # the offset's rng stream
 D_GRID = (1, 2, 3, 4, 5, 6, 7, 8)   # the rank sweep for the fidelity curve
 K_MINE = 6                      # mining depth for the hardest-negative search (negative-sampling)
+HARD_DRAWS = 2000               # uniform draws over the binary target's tied optimal rank-d students
+HARD_SEED = 0                   # their rng stream (one stream, Monte-Carlo rule)
 
 # The cost model — a headline corpus so the inference speedup is legible (reused from cross-encoders).
 C_RETRIEVE = 1.0                # student: one precomputed-embedding MIPS dot product per document
@@ -204,8 +211,10 @@ def realize_student(T: np.ndarray, d: int, margin: bool = True) -> tuple[np.ndar
 def rank_recall_curve(T: np.ndarray, truth: np.ndarray, d_grid) -> list:
     """For each rank d, the recall@1 of the pointwise student, the margin student, and (the
     dark-knowledge contrast) the hard-binary student, plus the teacher's ceiling. The recall is an
-    argmax per row, so per-query centering of the margin student does not change it."""
-    Y = binary_relevance(truth, np.atleast_2d(T).shape[1])
+    argmax per row, so per-query centering of the margin student does not change it. The hard-binary
+    entry is the basis-independent MEAN over all optimal rank-d binary students (`hard_student_recall`),
+    since Y C's flat spectrum makes any single truncation arbitrary."""
+    n_d = np.atleast_2d(T).shape[1]
     teacher_r1 = topk_recall(T, truth, 1)
     rows = []
     for d in d_grid:
@@ -213,7 +222,7 @@ def rank_recall_curve(T: np.ndarray, truth: np.ndarray, d_grid) -> list:
             "d": int(d),
             "pointwise_r1": round(float(topk_recall(distill_pointwise(T, d), truth, 1)), 4),
             "margin_r1": round(float(topk_recall(distill_margin(T, d), truth, 1)), 4),
-            "hard_r1": round(float(topk_recall(distill_margin(Y, d), truth, 1)), 4),
+            "hard_r1": hard_student_recall(truth, n_d, d)["mean"],
             "teacher_r1": round(float(teacher_r1), 4),
         })
     return rows
@@ -296,16 +305,69 @@ def teacher_hard_margins(T: np.ndarray, pool: dict, k: int) -> np.ndarray:
     return np.array(margins)
 
 
+def optimal_rank_d_students(M: np.ndarray, d: int, n_draws: int, seed: int, tol: float = 1e-9):
+    """EVERY Frobenius-optimal rank-d approximation of M, sampled uniformly. Eckart-Young's optimum is
+    unique only when sigma_d > sigma_{d+1}; when they tie, any d-dimensional right subspace that keeps the
+    singular directions above the tied block and mixes the tied block arbitrarily is EQUALLY optimal
+    (identical error sum_{l>d} sigma_l^2), and a single SVD call returns one of them by an arbitrary,
+    platform-dependent tie-break. Returns [best_rank_d(M, d)] when the optimum is unique; otherwise
+    n_draws students M V' V'^T, V' = (kept directions) + (Haar-random d-a directions of the tied block).
+    GUARDS: d <= 0 or empty -> [zeros]; d >= rank -> [M]."""
+    M = np.atleast_2d(np.asarray(M, dtype=float))
+    if M.size == 0 or d <= 0:
+        return [np.zeros_like(M)]
+    _, s, Vt = np.linalg.svd(M)
+    if d >= int(np.sum(s > tol)):
+        return [M.copy()]
+    if s[d - 1] - s[d] > tol:                              # unique optimum
+        return [best_rank_d(M, d)]
+    tied = np.flatnonzero(np.abs(s - s[d - 1]) <= tol)     # the tied block containing index d-1
+    a, b = int(tied[0]), int(tied[-1]) + 1
+    V = Vt.T
+    rng = np.random.default_rng(seed)
+    out = []
+    for _ in range(int(n_draws)):
+        A = rng.standard_normal((b - a, b - a))
+        R, Rr = np.linalg.qr(A)
+        R = R * np.sign(np.diag(Rr))                       # Haar-uniform rotation of the tied block
+        Vd = np.hstack([V[:, :a], V[:, a:b] @ R[:, :d - a]])
+        out.append(M @ Vd @ Vd.T)
+    return out
+
+
+def hard_student_recall(truth: np.ndarray, n_d: int, d: int,
+                        n_draws: int = HARD_DRAWS, seed: int = HARD_SEED) -> dict:
+    """Recall@1 of the hard-binary margin student at rank d, reported basis-independently: the mean (and
+    min/max) over all Frobenius-optimal rank-d truncations of Y C. Y C's nonzero singular values are all
+    equal (four queries per company, one-hot rows), so for every d below its rank the truncation is NOT
+    unique and a single SVD's recall is an artifact of the basis it happens to return."""
+    YC = center_rows(binary_relevance(truth, n_d))
+    r = np.array([topk_recall(S, truth, 1) for S in optimal_rank_d_students(YC, d, n_draws, seed)])
+    return {"mean": round(float(r.mean()), 4), "min": round(float(r.min()), 4),
+            "max": round(float(r.max()), 4)}
+
+
+def retained_energy(M: np.ndarray, d: int) -> float:
+    """The fraction of M's squared Frobenius norm a rank-d truncation keeps, sum_{l<=d} sigma_l^2 / sum
+    sigma_l^2 — basis-independent even when the truncation itself is not unique. GUARD: zero -> 0.0."""
+    s2 = np.linalg.svd(np.atleast_2d(np.asarray(M, dtype=float)), compute_uv=False) ** 2
+    tot = float(s2.sum())
+    return 0.0 if tot == 0.0 else float(s2[:max(int(d), 0)].sum() / tot)
+
+
 def soft_vs_hard_curve(T: np.ndarray, truth: np.ndarray, d_grid) -> list:
-    """Recall@1 of the soft-margin student best_rank_d(T C) vs the hard-margin student
-    best_rank_d(Y C) across rank — the dark-knowledge contrast at every budget."""
-    Y = binary_relevance(truth, np.atleast_2d(T).shape[1])
+    """Recall@1 of the soft-margin student best_rank_d(T C) vs the hard-margin student best_rank_d(Y C)
+    across rank — the dark-knowledge contrast at every budget. The soft student is unique (T C's
+    spectrum has no ties here); the hard student is the basis-independent mean over all optimal
+    truncations, with its min/max range."""
+    n_d = np.atleast_2d(T).shape[1]
     rows = []
     for d in d_grid:
+        h = hard_student_recall(truth, n_d, d)
         rows.append({
             "d": int(d),
             "soft_r1": round(float(topk_recall(distill_margin(T, d), truth, 1)), 4),
-            "hard_r1": round(float(topk_recall(distill_margin(Y, d), truth, 1)), 4),
+            "hard_r1": h["mean"], "hard_min": h["min"], "hard_max": h["max"],
         })
     return rows
 
@@ -355,12 +417,13 @@ def _diagnostics() -> None:
     sv_tc = np.linalg.svd(center_rows(T_teacher), compute_uv=False)
     print(f"  [diag] singular values  T  = {np.round(sv_t, 3)}")
     print(f"  [diag] singular values  TC = {np.round(sv_tc, 3)}  (last ~0: centering drops a dim)")
-    print("  [diag] rank-d recall@1  (pointwise / margin / hard / teacher):")
+    sv_yc = np.linalg.svd(center_rows(binary_relevance(truth, nd)), compute_uv=False)
+    print(f"  [diag] singular values  YC = {np.round(sv_yc, 3)}  (flat: rank-d truncation not unique)")
+    print("  [diag] rank-d recall@1  (pointwise / margin / hard [mean over optimal] / teacher):")
     for d in D_GRID:
         pw = topk_recall(distill_pointwise(T_teacher, d), truth, 1)
         mg = topk_recall(distill_margin(T_teacher, d), truth, 1)
-        Y = binary_relevance(truth, nd)
-        hd = topk_recall(distill_margin(Y, d), truth, 1)
+        hd = hard_student_recall(truth, nd, d)["mean"]
         flag = "  <-- D_STAGE" if d == D_STAGE else ""
         print(f"           d={d}: {pw:.3f} / {mg:.3f} / {hd:.3f} / "
               f"{topk_recall(T_teacher, truth, 1):.3f}{flag}")
@@ -478,24 +541,41 @@ def test_rank_ceiling_binds() -> None:
     print("  [ok] Movement 2/3: the rank ceiling binds (student recall <= teacher at every d)")
 
 
-def test_dark_knowledge_is_graded_yet_binary_compresses() -> None:
+def test_dark_knowledge_is_graded_binary_is_flat() -> None:
     """Movement 4, the honest finding (build-and-run). Dark knowledge is REAL: the teacher's margins on
     the mined hard-negative pairs are GRADED (gold always beats the hard negative, but by a varying
     amount — some negatives are genuinely more confusable), where a one-hot label's margin is the
-    constant 1. YET on this clean, block-structured, IN-SAMPLE toy the binary ground-truth target
-    compresses to low rank at least as well as the soft teacher — the classic soft > hard advantage is
-    a GENERALIZATION phenomenon (scarce held-out labels), which a closed-form in-sample fit cannot
-    show. We assert what is robustly true here, not the textbook headline."""
+    constant 1. The hard side is subtler than "binary compresses cleanly" — it is the OPPOSITE: Y C's
+    spectrum is perfectly flat (all nonzero singular values equal), the least compressible shape there
+    is, so its rank-d truncation is not unique and keeps only d / rank(Y C) of its energy, less than the
+    soft teacher keeps. Its recall@1 at D_STAGE depends on which optimal truncation you take — the range
+    straddles the soft student's — but AVERAGED over all of them it matches or beats the soft teacher:
+    recall@1 needs only each row's argmax, and the one-hot target puts its energy exactly there. So the
+    classic soft > hard advantage still does not show in-sample — it is a GENERALIZATION phenomenon
+    (scarce held-out labels), which a closed-form in-sample fit cannot show."""
     s = _setup()
     T, truth = s["T_teacher"], s["truth"]
+    nd = T.shape[1]
+    YC = center_rows(binary_relevance(truth, nd))
+    sv_yc = np.linalg.svd(YC, compute_uv=False)
+    nz = sv_yc[sv_yc > 1e-9]
+    assert nz.max() - nz.min() < 1e-9, f"Y C's nonzero spectrum should be flat: {sv_yc}"
+    sv_tc = np.linalg.svd(center_rows(T), compute_uv=False)
+    assert sv_tc[D_STAGE - 1] - sv_tc[D_STAGE] > 1e-6, "the soft student should be unique at D_STAGE"
+    assert retained_energy(YC, D_STAGE) < retained_energy(center_rows(T), D_STAGE), \
+        "the flat binary target should keep LESS energy at D_STAGE than the soft teacher"
     soft = topk_recall(distill_margin(T, D_STAGE), truth, 1)
-    hard = topk_recall(distill_margin(binary_relevance(truth, T.shape[1]), D_STAGE), truth, 1)
+    hard = hard_student_recall(truth, nd, D_STAGE)
+    assert hard["min"] < soft < hard["max"], f"basis-dependence should straddle soft: {hard} vs {soft}"
+    assert hard["mean"] >= soft - 1e-9, f"on average binary should match/beat soft: {hard} vs {soft:.3f}"
     hm = teacher_hard_margins(s["T_clean"], s["pool"], K_MINE)
     assert len(hm) > 0 and hm.mean() > 0 and hm.std() > 0.05, \
         "teacher margins on mined hard pairs should be graded and positive (dark knowledge)"
-    assert hard >= soft - 1e-9, f"in-sample, binary should compress >= soft here ({hard:.3f} vs {soft:.3f})"
-    print(f"  [ok] Movement 4: dark knowledge graded (mean {hm.mean():.3f}, std {hm.std():.3f}); "
-          f"in-sample binary {hard:.3f} >= soft {soft:.3f}")
+    print(f"  [ok] Movement 4: dark knowledge graded (mean {hm.mean():.3f}, std {hm.std():.3f}); Y C flat "
+          f"(sigma = {nz[0]:.3f} x {len(nz)}), energy kept at d={D_STAGE}: binary "
+          f"{retained_energy(YC, D_STAGE):.3f} < soft {retained_energy(center_rows(T), D_STAGE):.3f}; "
+          f"binary recall@1 over optimal students mean {hard['mean']:.3f} (range {hard['min']:.3f}-"
+          f"{hard['max']:.3f}) >= soft {soft:.3f}")
 
 
 def test_teacher_is_imported() -> None:
@@ -539,7 +619,7 @@ def _run_all() -> None:
     test_full_rank_recovers_teacher()
     test_margin_beats_pointwise_at_restricted_rank()
     test_rank_ceiling_binds()
-    test_dark_knowledge_is_graded_yet_binary_compresses()
+    test_dark_knowledge_is_graded_binary_is_flat()
     test_teacher_is_imported()
     test_cost_payoff()
     test_empty_and_degenerate_guards()
@@ -622,7 +702,11 @@ def viz_constants() -> None:
 
     # Panel C: dark knowledge + the cost payoff.
     print("  // ----- Panel C: dark knowledge + cost payoff -----")
-    print(f"  const SOFT_VS_HARD = {soft_vs_hard_curve(T_teacher, truth, D_GRID)};")
+    print(f"  const SOFT_VS_HARD = {soft_vs_hard_curve(T_teacher, truth, D_GRID)};   "
+          f"// hard = mean (min-max) over all optimal rank-d binary students")
+    YC = center_rows(binary_relevance(truth, nd))
+    print(f"  const ENERGY_KEPT = {{ soft: {_r(retained_energy(center_rows(T_teacher), D_STAGE), 3)}, "
+          f"hard: {_r(retained_energy(YC, D_STAGE), 3)} }};   // at D_STAGE, basis-independent")
     hm = teacher_hard_margins(T_clean, s["pool"], K_MINE)
     print(f"  const HARD_PAIR_MARGINS = {[_r(v, 3) for v in hm]};   // graded (binary margin = 1)")
     print(f"  const C_RETRIEVE = {_r(C_RETRIEVE, 2)};")

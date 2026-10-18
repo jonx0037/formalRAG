@@ -326,7 +326,7 @@ export default memo(function CrossEncoderRerankingLaboratory() {
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             A rank-{D_STAGE1} dual encoder retrieves a top-K pool ({fmt(STAGE1_R1, 3)} recall@1 — it confuses
-            same-sector companies); the cross-encoder reranks only those K. An <strong>oracle</strong> reranker lifts
+            some companies, most of them same-sector neighbors); the cross-encoder reranks only those K. An <strong>oracle</strong> reranker lifts
             recall@1 to exactly the pool's recall@K — the <em>recall pinch</em> — and can never exceed it, since it cannot
             recover a gold the first stage dropped. So you over-fetch until recall@K saturates (here K = {CASCADE.find((r) => r.oracle >= 1)?.K}),
             then rerank: the cost is c_ret + K·c_ce, not the brute |C|·c_ce of scoring the whole corpus. A real reranker
@@ -345,8 +345,8 @@ export default memo(function CrossEncoderRerankingLaboratory() {
             <Readout label="net recall@1 lift" value={`${sRow.net_lift >= 0 ? '+' : ''}${sRow.net_lift.toFixed(3)}`} accent={sRow.net_lift >= 0} danger={sRow.net_lift < 0} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
-            At σ = 0 the reranker is the oracle: it fixes all {BUCKETS_BY_SIGMA[0].fixed} same-sector hard negatives the
-            first stage missed (net lift {BUCKETS_BY_SIGMA[0].net_lift >= 0 ? '+' : ''}{BUCKETS_BY_SIGMA[0].net_lift.toFixed(3)}),
+            At σ = 0 the reranker is the oracle: it fixes all {BUCKETS_BY_SIGMA[0].fixed} queries the first stage
+            missed — same-sector and cross-sector confusions alike (net lift {BUCKETS_BY_SIGMA[0].net_lift >= 0 ? '+' : ''}{BUCKETS_BY_SIGMA[0].net_lift.toFixed(3)}),
             and its recall is monotone in K. Corrupt it and it starts being <strong>confidently wrong</strong> — promoting a
             same-sector distractor above the true document — so it <em>breaks</em> queries the first stage got right and the
             net lift turns negative. A worst-case confident-wrong reranker breaks every recoverable query
