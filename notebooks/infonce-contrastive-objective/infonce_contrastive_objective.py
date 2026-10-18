@@ -342,8 +342,10 @@ def grad_logits(s: np.ndarray, pos: int, tau: float) -> np.ndarray:
 
 
 def negative_weights(s_neg: np.ndarray, tau: float) -> np.ndarray:
-    """The gradient weights over the negatives alone: p_i = softmax(s_neg/tau). As tau -> 0
-    the mass concentrates on the hardest (highest-similarity) negative."""
+    """Each negative's SHARE OF THE NEGATIVE PUSH: the softmax over the negatives alone,
+    softmax(s_neg/tau)_i. In Theorem 3's notation (softmax over positive AND negatives) this is
+    p_i / (1 - p_pos) — a normalized share, not Theorem 3's p_i itself. As tau -> 0 the mass
+    concentrates on the hardest (highest-similarity) negative."""
     return softmax_temperature(s_neg, tau)
 
 
@@ -356,7 +358,8 @@ def negative_weight_entropy(s_neg: np.ndarray, tau: float) -> float:
 
 
 def top1_negative_mass(s_neg: np.ndarray, tau: float) -> float:
-    """The largest single gradient weight among the negatives, max_i p_i. -> 1 as tau -> 0."""
+    """The hardest negative's share of the negative push, max_i of `negative_weights` (the
+    softmax over negatives only, p_i / (1 - p_pos) in Theorem 3's notation). -> 1 as tau -> 0."""
     return float(np.max(negative_weights(s_neg, tau)))
 
 
@@ -442,9 +445,9 @@ def finance_dataset(seed: int = 7):
 
 
 def finance_hard_negative_share(data, tau: float) -> dict[str, float]:
-    """The share of the InfoNCE gradient that lands on the same-sector (hard) negatives at
-    temperature tau, and the single largest hard-negative weight. The gradient weight on
-    each negative is its softmax share over the negatives."""
+    """The share of the InfoNCE NEGATIVE push that lands on the same-sector (hard) negatives at
+    temperature tau, and the single largest hard-negative share. Each negative's share is its
+    softmax weight over the negatives alone (p_i / (1 - p_pos) in Theorem 3's notation)."""
     s_neg = data["neg_docs"] @ data["z_q"]
     w = negative_weights(s_neg, tau)
     same = data["same_sector"]
@@ -577,7 +580,7 @@ def test_alignment_uniformity_decomposition() -> None:
     Z0, pair0 = _make_pairs(m, d, seed=5)
     init = config_stats(Z0, pair0, UNIF_T)
     Za, pa = optimize_align_unif(m=m, d=d, t=UNIF_T, lam=1.0, steps=500, lr=0.5, seed=5)
-    Zi, pi = optimize_infonce(m=m, d=d, tau=0.2, steps=500, lr=0.5, seed=6)
+    Zi, pi = optimize_infonce(m=m, d=d, tau=0.2, steps=500, lr=0.5, seed=5)   # SAME init as align+unif
     sa, si = config_stats(Za, pa, UNIF_T), config_stats(Zi, pi, UNIF_T)
     # Both optimizers pull the positive pairs together (alignment far below the random init).
     assert sa["alignment"] < 0.5 * init["alignment"], f"align+unif did not align: {sa} vs {init}"
@@ -707,7 +710,7 @@ def viz_constants() -> None:
     # spread to uniformity, landing together in the (uniformity, alignment) plane.
     Z0, p0 = _make_pairs(24, 3, seed=5)
     Za, pa = optimize_align_unif(m=24, d=3, t=UNIF_T, lam=1.0, steps=500, lr=0.5, seed=5)
-    Zi, pi = optimize_infonce(m=24, d=3, tau=0.2, steps=500, lr=0.5, seed=6)
+    Zi, pi = optimize_infonce(m=24, d=3, tau=0.2, steps=500, lr=0.5, seed=5)   # SAME init as align+unif
     conv = [{"label": "init", **config_stats(Z0, p0, UNIF_T)},
             {"label": "align+unif", **config_stats(Za, pa, UNIF_T)},
             {"label": "infonce", **config_stats(Zi, pi, UNIF_T)}]

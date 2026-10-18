@@ -367,7 +367,8 @@ export default memo(function DenseDualEncoderLaboratory() {
             (Eckart–Young). Drag d below the pattern's intrinsic rank ({INTRINSIC_RANK}) and the blocks blur together — recall@1
             collapses toward {RANK_RECALL[0].r1.toFixed(2)}; at d ≥ {D_RECOVER} the companies separate and recall saturates at 1.
             The four largest singular values are the sectors; the next four, smaller, are the within-sector company splits — which
-            is why you need most of the rank to tell companies apart. (Rank ≤ d is what the architecture <em>can</em> express; the
+            is why recall reaches 1 only at d = {D_RECOVER}. (At the lowest d even the sectors blur: a rank-1 matrix can put only two
+            documents on top, so {RANK_RECALL[0].r1.toFixed(2)} is a structural cap and most of its misses land in the wrong sector.) (Rank ≤ d is what the architecture <em>can</em> express; the
             tight dimension relevance <em>needs</em> — its sign-rank — is a separate question.)
           </p>
         </div>

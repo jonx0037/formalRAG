@@ -230,8 +230,9 @@ def negative_pair_count(B: int) -> tuple[int, int]:
 # document per company so the document matrix P is exactly (#sectors x #companies) directions,
 # forcing the score matrix's intrinsic rank to the company count. Queries are tight draws around
 # their own company; the relevant document is that company's. The within-sector concentration
-# kappa_sector keeps same-sector companies genuinely near (cosine ~ 0.4 at d = 32 — the
-# CLAUDE.md vMF-sizing rule), so separating companies WITHIN a sector needs nearly all of the
+# kappa_sector keeps same-sector companies genuinely near (at d = 32 a query scores its sector
+# sibling's document at cosine ~0.64 on average, 0.50-0.81; documents of sibling companies sit at
+# 0.57-0.77 — the CLAUDE.md vMF-sizing rule), so separating companies WITHIN a sector needs nearly all of the
 # rank and the rank ceiling becomes visible.
 DPR_DIM = 32
 DPR_N_SECTORS = 4
