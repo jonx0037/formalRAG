@@ -336,7 +336,7 @@ export default function FilteredIncrementalANNLaboratory() {
         ? '\\mathbb{E}[N_k] = \\frac{k}{r}, \\quad r = 1-\\delta \\ (\\text{tombstone}) = s \\ (\\text{predicate})'
         : panel === 'percolation'
           ? 'p_c = \\frac{1}{M-1}, \\qquad \\kappa = \\langle k^2\\rangle/\\langle k\\rangle'
-          : '\\mathbb{E}[N_k] = \\frac{k}{s}, \\qquad \\text{recall} < 1 \\iff s < k/F';
+          : '\\mathbb{E}[N_k] = \\frac{k}{s}, \\qquad \\mathbb{E}[\\text{recall}] \\le \\min(1,\\ Fs/k)';
     katex.render(tex, formulaRef.current, { throwOnError: false, displayMode: true });
   }, [panel]);
 
@@ -450,7 +450,7 @@ export default function FilteredIncrementalANNLaboratory() {
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
                 No universal winner — selectivity picks the strategy. <strong style={{ color: PRE_COLOR }}>Pre-filter</strong>
                 {' '}is exact and cheapest at <em>low</em> s (a tiny subset to scan). <strong style={{ color: POST_COLOR }}>Post-filter</strong>
-                {' '}has constant cost but falls off the recall cliff once s &lt; k/F. <strong style={{ color: 'var(--color-accent)' }}>In-filter</strong>
+                {' '}has constant cost but falls off the recall cliff as s drops past k/F (mean passing count Fs &lt; k). <strong style={{ color: 'var(--color-accent)' }}>In-filter</strong>
                 {' '}stays exact, but at very low s it must traverse almost the whole graph to collect k passing results — so it
                 degenerates toward a full scan. This is exactly why production systems pre-filter below a selectivity threshold or
                 build denser, predicate-aware graphs.

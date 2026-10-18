@@ -316,13 +316,13 @@ export default memo(function MultiVectorANNLaboratory() {
           <TokenCloud g={gA} />
           <div style={{ display: 'flex', gap: '1.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
             <Readout label="centroids K (the shared vocabulary)" value={`${gA.K}`} accent />
-            <Readout label="mean residual energy ⟨‖r‖²⟩" value={bA.residual_energy.toFixed(3)} />
+            <Readout label="doc-token mean residual energy ⟨‖r‖²⟩" value={bA.residual_energy.toFixed(3)} />
             <Readout label="corpus tokens / centroids" value={`${POOL_2D.length} / ${gA.K}`} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             Every token in the corpus is filed under its nearest of <strong>K shared centroids</strong> (the IVF coarse quantizer,
             trained over all tokens) and stored as that centroid's id plus the <em>residual</em> — the line from each token to its
-            centroid. Tokens are unit vectors, so this k-means is cosine clustering. Raising K shrinks the residuals (mean energy
+            centroid. Tokens are unit vectors, so this k-means is cosine clustering. Raising K shrinks the residuals (mean energy over the toy document's {DOC_2D.length} tokens
             {' '}{BUDGET_TRADE[0].residual_energy.toFixed(2)} → {BUDGET_TRADE[BUDGET_TRADE.length - 1].residual_energy.toFixed(2)}),
             which is exactly the quantity the next panel's bound depends on.
           </p>
