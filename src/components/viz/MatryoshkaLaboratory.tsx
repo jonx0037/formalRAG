@@ -178,7 +178,7 @@ export default function MatryoshkaLaboratory() {
           {recallPlot}
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.3rem 0 0.75rem' }}>
             Recall@10 using only the first m coordinates: the nested (Matryoshka / PCA-ordered) embedding (accent) degrades gracefully, while a random
-            rotation of the <em>same</em> embedding (faint) — identical full-width distances — retrieves near chance until almost every dimension is kept. Nesting is trained, not free.
+            rotation of the <em>same</em> embedding (faint) — identical full-width distances — keeps only a small fraction of the nested recall until almost every dimension is kept. Nesting is trained, not free.
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
             <Readout label={`nested recall@10 at m = ${m}`} value={`${(NESTED_RECALL[mIdx] * 100).toFixed(1)}%`} accent />

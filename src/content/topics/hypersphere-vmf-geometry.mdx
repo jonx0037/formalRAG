@@ -275,7 +275,7 @@ By symmetry $\mathbb{E}[x]$ can only point along $\mu$, so $\mathbb{E}[x] = (\ma
 
 </TheoremBlock>
 
-The mean resultant length is the bridge between the parameter $\kappa$, which we cannot observe, and the data, which we can: $\rho$ is just the length of the average of the unit vectors in a cluster. A loose cluster has vectors pointing every which way, their average is short, and $\rho$ is near $0$; a tight cluster has nearly-aligned vectors whose average is almost a unit vector, and $\rho$ is near $1$. The vMF panel of the laboratory marks $\rho$ as the location the density's peak sweeps toward as you raise $\kappa$.
+The mean resultant length is the bridge between the parameter $\kappa$, which we cannot observe, and the data, which we can: $\rho$ is just the length of the average of the unit vectors in a cluster. A loose cluster has vectors pointing every which way, their average is short, and $\rho$ is near $0$; a tight cluster has nearly-aligned vectors whose average is almost a unit vector, and $\rho$ is near $1$. The vMF panel of the laboratory marks $\rho$ as the mean of $\mu^{\top}x$ — where the density's mass centers as you raise $\kappa$.
 
 ---
 
@@ -360,7 +360,7 @@ The production financial-RAG system behind the [BM25](/topics/bm25-binary-indepe
 We answer it with a self-contained experiment. Take two topical clusters of $1536$-dimensional embeddings, each modeled as von Mises–Fisher around its own mean direction: a **tight** cluster (concentration $\kappa = 900$, a stand-in for a sharply defined theme like "interest-rate risk") and a **loose** cluster ($\kappa = 300$, a diffuse theme like "supply-chain disruption"). The companion code measures, at this ambient dimension:
 
 - **tight cluster:** mean resultant length $\bar{r} = \mathbf{0.461}$, recovered concentration $\hat{\kappa} = \mathbf{900}$, mean intra-cluster cosine similarity $\mathbf{0.212}$;
-- **loose cluster:** $\bar{r} = \mathbf{0.191}$, recovered $\hat{\kappa} = \mathbf{304}$, mean intra-cluster cosine similarity $\mathbf{0.035}$;
+- **loose cluster:** $\bar{r} = \mathbf{0.190}$, recovered $\hat{\kappa} = \mathbf{304}$, mean intra-cluster cosine similarity $\mathbf{0.035}$;
 - **between the clusters:** mean cosine similarity $\mathbf{-0.003}$.
 
 Two things stand out. First, the estimator works: feeding the sample mean resultant through the maximum-likelihood equation of Theorem 4 recovers the planted concentration of each cluster, so "how tight is this theme?" has a numerical answer. Second, the clusters separate cleanly — the tight cluster's members are far more similar to each other ($0.212$) than to the other cluster ($-0.003$), and the two mean directions are themselves nearly orthogonal, which is no accident: in $1536$ dimensions two independent directions are nearly perpendicular by the near-orthogonality of the [previous topic](/topics/high-dimensional-geometry). Cosine similarity at $1536$ dimensions is not noise; it is reading a genuine spherical geometry in which a well-defined subtopic is a concentrated vMF cluster, exactly as our low-dimensional intuition would hope.

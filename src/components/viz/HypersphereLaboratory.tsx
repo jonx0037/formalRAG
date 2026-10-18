@@ -7,7 +7,7 @@ import katex from 'katex';
  *   - Equator: the uniform coordinate marginal (1 - t^2)^((d-3)/2) collapses to a
  *     spike at t = 0 as d grows, with Var(t) tracking 1/d — the equatorial band.
  *   - von Mises-Fisher: the cluster density e^{kappa t} (1 - t^2)^((d-3)/2) tilts the
- *     equatorial law toward the mean direction; its peak sweeps to rho = A_d(kappa).
+ *     equatorial law toward the mean direction; its mean (where the mass centers) is rho = A_d(kappa).
  *   - Cosine vs distance: the monotone line ||x-y||^2 = 2 - 2 cos(theta), so ranking
  *     by cosine similarity and by Euclidean distance is the same ranking.
  *   - Clusters: two synthetic vMF clusters at the production dimension d = 1536, one
@@ -269,7 +269,7 @@ export default function HypersphereLaboratory() {
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.3rem 0 0.75rem' }}>
             The von Mises–Fisher density of t = μ·x at d = {VMF_DIM} (faint curve: κ = 0, the uniform
             equatorial law). Raising κ tilts the mass toward the mean direction; the dashed marker is the
-            mean resultant ρ = A<sub>d</sub>(κ), where the peak settles.
+            mean resultant ρ = A<sub>d</sub>(κ), the mean of t — where the mass centers.
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
             <Readout label={`mean resultant ρ = A_d(κ)`} value={vm.rho.toFixed(4)} accent={vm.rho > 0.5} />
