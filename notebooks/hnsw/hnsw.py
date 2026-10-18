@@ -247,8 +247,9 @@ def search_hnsw(layers, X: np.ndarray, q: np.ndarray, entry: int, top_level: int
                 topk: int = 10):
     """Hierarchical search (Malkov-Yashunin Algorithm 5): greedy beam-1 descent through layers
     top_level..1 refines the entry, then a width-ef beam at layer 0 returns the nearest. Returns
-    (top-k node ids, TOTAL distance computations across all layers). GUARDS: topk capped at the
-    layer-0 occupancy; ef >= 1."""
+    (top-k node ids, TOTAL distance computations across all layers). The layer-0 beam holds
+    ef_eff = max(ef, k) entries (Malkov-Yashunin; hnswlib's searchKnn), so ef < topk never caps
+    recall@k at ef/k. GUARDS: topk capped at the layer-0 occupancy; ef >= 1."""
     if not layers:
         return [], 0
     ep = int(entry)
@@ -258,7 +259,7 @@ def search_hnsw(layers, X: np.ndarray, q: np.ndarray, entry: int, top_level: int
         ndist += nd
         ep = ids[0]
     k = min(topk, len(layers[0]))
-    ids, nd = search_layer(X, layers[0], q, {ep}, ef=ef)
+    ids, nd = search_layer(X, layers[0], q, {ep}, ef=max(ef, k))
     ndist += nd
     return ids[:k], ndist
 
@@ -328,11 +329,12 @@ def scaling_study(n_grid, M: int = 8, trials: int = 40, seed: int = 0):
 # --------------------------------------------------------------------------- #
 
 def head_to_head(X, queries, topk: int = 10, seed: int = 0,
-                 ef_grid=(1, 2, 4, 8, 16, 32, 64, 128),
+                 ef_grid=(10, 12, 16, 24, 32, 64, 128),
                  nprobe_grid=(1, 2, 4, 8, 16, 22), nlist=None,
                  M: int = 8, ef_construction: int = 16):
     """Build HNSW, flat NSW, AND IVF on the SAME (X, queries); re-derive ONE shared ground truth; sweep
-    efSearch (HNSW/NSW) and nprobe (IVF) to trace recall-vs-cost frontiers. Cost = mean exact distance
+    efSearch (HNSW/NSW; from topk up, since ef_eff = max(ef, topk)) and nprobe (IVF) to trace
+    recall-vs-cost frontiers. Cost = mean exact distance
     computations per query (HNSW/NSW: returned ndist; IVF: candidate_fraction*n + nlist coarse comps).
     Returns {'hnsw','nsw','ivf': [rows], 'n','topk','nlist'}. GUARDS: topk<=n; nlist in [1, n]."""
     n = X.shape[0]
@@ -384,7 +386,7 @@ def _recall_at_cost(rows, budget: float) -> float:
 # Verification harness — each assert is a pedagogical claim the topic makes.
 # --------------------------------------------------------------------------- #
 
-HNSW_M, HNSW_EFC, EF_GRID = 8, 16, (1, 2, 4, 8, 16, 32, 64, 128)
+HNSW_M, HNSW_EFC, EF_GRID = 8, 16, (10, 12, 16, 24, 32, 64, 128)   # ef starts at topk (ef_eff rule)
 
 
 def test_level_tail_law() -> None:
@@ -462,7 +464,7 @@ def test_search_layer_matches_flat_on_single_layer() -> None:
     for qi in range(len(queries)):
         for ef in (1, 4, 16):
             a_ids, a_nd = greedy_search(X, adj, queries[qi], entry, ef, topk=10)
-            b_ids, b_nd = search_layer(X, flat, queries[qi], {entry}, ef)
+            b_ids, b_nd = search_layer(X, flat, queries[qi], {entry}, max(ef, 10))  # same ef_eff rule
             assert a_ids == b_ids[:10], f"q{qi} ef={ef}: ids differ\n {a_ids}\n {b_ids[:10]}"
             assert a_nd == b_nd, f"q{qi} ef={ef}: ndist {a_nd} != {b_nd}"
     print("  [ok] search_layer == greedy_search on a single flat layer (ids & ndist identical)")

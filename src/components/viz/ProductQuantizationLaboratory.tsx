@@ -233,7 +233,7 @@ export default function ProductQuantizationLaboratory() {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
             <Readout label="flat VQ ceiling (8 bits)" value={`${(FLAT_CEILING * 100).toFixed(1)}%`} />
-            <Readout label="PQ recall @ 64 bits" value={`${(FRONTIER[3].recall * 100).toFixed(1)}%`} accent />
+            <Readout label="PQ recall @ 64 bits" value={`${(FRONTIER[3].recall * 100).toFixed(2)}%`} accent />
             <Readout label="stored centroids @ 64 bits" value={`${FRONTIER[3].stored} (vs ${EFFECTIVE_64BIT} effective)`} />
             <Readout label="code size" value="64 bits = 8 bytes (128× smaller)" accent />
           </div>

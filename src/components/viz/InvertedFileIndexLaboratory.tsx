@@ -246,8 +246,8 @@ export default function InvertedFileIndexLaboratory() {
             <div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginBottom: '0.35rem' }}>recall@10 at {IVFADC.bits}-bit codes</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontFamily: 'var(--font-sans)', fontSize: '0.8rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ minWidth: '5.5rem' }}>flat PQ</span>{bar(IVFADC.flatRecall, 1, 'var(--color-text-secondary)')}<span style={{ minWidth: '2.6rem', textAlign: 'right' }}>{(IVFADC.flatRecall * 100).toFixed(1)}%</span></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ minWidth: '5.5rem' }}>IVFADC</span>{bar(IVFADC.ivfadcRecall, 1, 'var(--color-accent)')}<span style={{ minWidth: '2.6rem', textAlign: 'right' }}>{(IVFADC.ivfadcRecall * 100).toFixed(1)}%</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ minWidth: '5.5rem' }}>flat PQ</span>{bar(IVFADC.flatRecall, 1, 'var(--color-text-secondary)')}<span style={{ minWidth: '2.6rem', textAlign: 'right' }}>{(IVFADC.flatRecall * 100).toFixed(2)}%</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ minWidth: '5.5rem' }}>IVFADC</span>{bar(IVFADC.ivfadcRecall, 1, 'var(--color-accent)')}<span style={{ minWidth: '2.6rem', textAlign: 'right' }}>{(IVFADC.ivfadcRecall * 100).toFixed(2)}%</span></div>
               </div>
             </div>
           </div>

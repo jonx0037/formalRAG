@@ -11,10 +11,11 @@ import katex from 'katex';
  *      gets STUCK at a local minimum that is not the true nearest neighbor; switching to a beam
  *      (ef = 16) finds it. The honest catch of graph search made visible.
  *   C. The recall / work frontier. recall@10 vs the fraction of the database touched, swept over the
- *      beam width ef: recall climbs to 1 while the work stays a small fraction of n.
+ *      beam width ef from 10 up (a 10-NN search keeps ef_eff = max(ef, 10) results, so smaller ef
+ *      cannot be measured on its own): recall is near 1 from the start while the work grows with ef.
  *
  * VIZ <-> PYTHON INVARIANT (CLAUDE.md): KLEINBERG, TOY_POINTS, EDGES, ENTRY, QUERY, TRUE_NN,
- * GREEDY_WALK, BEAM_FOUND and FRONTIER are mirrored TO THE DECIMAL from
+ * GREEDY_WALK, BEAM_FOUND, GREEDY_NN_HIT and FRONTIER are mirrored TO THE DECIMAL from
  * notebooks/navigable-small-world-graphs/navigable_small_world_graphs.py (kleinberg_curve /
  * toy_nsw_graph / greedy_walk / greedy_search / recall_vs_ef, printed by viz_constants()). The lab
  * recomputes only the graph layout in TS; every hop count, recall, and the walk are baked.
@@ -65,12 +66,12 @@ const TRUE_NN = 14;
 const GREEDY_WALK = [28, 5, 38]; // ef=1 hill-climb, terminates at 38 (a local minimum, not the NN)
 const BEAM_FOUND = 14; // ef=16 beam search finds the true NN
 
-// Panel C: recall_vs_ef on the finance-like cloud (n=500, M=8).
+// Panel C: recall_vs_ef on the finance-like cloud (n=500, M=8), ef_eff = max(ef, 10).
 const NSW_N = 500;
+const GREEDY_NN_HIT = 0.875; // greedy_nn_hit_rate: the ef=1 walk ends at the true NN for 35/40 queries
 const FRONTIER = [
-  { ef: 1, recall: 0.1, work: 71.5 }, { ef: 2, recall: 0.2, work: 77.1 }, { ef: 4, recall: 0.4, work: 86.4 },
-  { ef: 8, recall: 0.8, work: 103.3 }, { ef: 16, recall: 0.9975, work: 134.3 }, { ef: 32, recall: 1.0, work: 183.9 },
-  { ef: 64, recall: 1.0, work: 260.0 },
+  { ef: 10, recall: 0.9975, work: 111.5 }, { ef: 12, recall: 0.9975, work: 120.2 }, { ef: 16, recall: 0.9975, work: 134.3 },
+  { ef: 24, recall: 0.9975, work: 160.8 }, { ef: 32, recall: 1.0, work: 183.9 }, { ef: 64, recall: 1.0, work: 260.0 },
 ];
 
 const PW = 360, PH = 320, PAD = 24;
@@ -174,10 +175,10 @@ const FrontierPlot = memo(function FrontierPlot() {
       <text x={pw / 2} y={ph - 6} textAnchor="middle" fontSize={10} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">fraction of database touched</text>
       <text x={14} y={ph / 2} textAnchor="middle" fontSize={10} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)" transform={`rotate(-90 14 ${ph / 2})`}>recall@10</text>
       <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth={2.6} strokeLinejoin="round" />
-      {FRONTIER.map((d) => (
+      {FRONTIER.map((d, i) => (
         <g key={d.ef}>
           <circle cx={fx(d.work / NSW_N)} cy={ry(d.recall)} r={3.4} fill="var(--color-accent)" />
-          <text x={fx(d.work / NSW_N) + 6} y={ry(d.recall) + 12} fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">ef {d.ef}</text>
+          <text x={fx(d.work / NSW_N) + 2} y={ry(d.recall) + (i % 2 ? -8 : 14)} fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">ef {d.ef}</text>
         </g>
       ))}
     </svg>
@@ -230,13 +231,14 @@ export default function NavigableSmallWorldLaboratory() {
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
             <Readout label={`mean greedy hops at α=${sel.alpha}`} value={sel.hops.toFixed(0)} accent={sel.alpha === RING_DIM} />
-            <Readout label="best (α = dimension = 1)" value={`${KLEINBERG[4].hops.toFixed(0)} hops`} />
+            <Readout label="at α = dimension = 1" value={`${KLEINBERG[4].hops.toFixed(0)} hops`} />
+            <Readout label="grid minimum (α = 0.75)" value={`${KLEINBERG[3].hops.toFixed(0)} hops`} />
             <Readout label="too local (α = 2)" value={`${KLEINBERG[7].hops.toFixed(0)} hops (≈28×)`} />
           </div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
             Greedy routing is fast only when the long-range links are distributed ∝ r⁻ᵈ — scale-free, matched to the dimension.
-            At finite n the empirical trough sits very near α = 1 (the dimension); away from it, routing degrades to a polynomial
-            number of hops.
+            At finite n the empirical trough sits near α = 1 (the dimension): the grid's lowest point, about 53 hops, is at
+            α = 0.75, with α = 1 close behind at about 55. Away from the trough, routing degrades to a polynomial number of hops.
           </div>
         </>
       )}
@@ -268,13 +270,16 @@ export default function NavigableSmallWorldLaboratory() {
         <>
           <FrontierPlot />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '0.5rem' }}>
-            <Readout label="recall at ef = 1 (greedy)" value={`${(FRONTIER[0].recall * 100).toFixed(0)}% (touch ${(100 * FRONTIER[0].work / NSW_N).toFixed(0)}%)`} />
-            <Readout label="recall at ef = 16" value={`${(FRONTIER[4].recall * 100).toFixed(1)}% (touch ${(100 * FRONTIER[4].work / NSW_N).toFixed(0)}%)`} accent />
+            <Readout label="greedy walk (ef = 1) ends at the true NN" value={`${(GREEDY_NN_HIT * 100).toFixed(1)}% of queries`} />
+            <Readout label="recall@10 at ef = 10" value={`${(FRONTIER[0].recall * 100).toFixed(2)}% (touch ${(100 * FRONTIER[0].work / NSW_N).toFixed(0)}%)`} accent />
+            <Readout label="recall@10 at ef = 16" value={`${(FRONTIER[2].recall * 100).toFixed(2)}% (touch ${(100 * FRONTIER[2].work / NSW_N).toFixed(0)}%)`} />
             <Readout label="exhaustive scan" value="100% (touch 100%)" />
           </div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
-            On the synthetic cloud (n = {NSW_N}, M = 8): a beam of width 16 reaches ~99.8% recall@10 while touching about
-            a quarter of the database. Recall is monotone in ef — a wider search never loses a neighbor — but every gain costs more
+            On the synthetic cloud (n = {NSW_N}, M = 8): a 10-nearest-neighbor search keeps at least 10 results
+            (ef_eff = max(ef, 10)), so the sweep starts at ef = 10 — which already reaches 99.75% recall@10 while touching about a
+            fifth of the database. Pure greedy (ef = 1) is a different, 1-NN question: its walk ends at the true nearest neighbor
+            for 87.5% of queries. Recall is monotone in ef — a wider search never loses a neighbor — but every gain costs more
             distance computations. The graph index is the next index family the topic after this layers into a hierarchy.
           </div>
         </>

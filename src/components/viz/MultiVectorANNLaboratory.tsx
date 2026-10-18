@@ -381,7 +381,7 @@ export default memo(function MultiVectorANNLaboratory() {
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             At ColBERT scale (d = 128, 32 tokens/document), late interaction's raw index is <strong>{STORAGE.raw_mult}×</strong> a
-            single-vector index — the bill the previous topic flagged. PLAID stores each token as a centroid id
+            single-vector index — the bill the late-interaction topic flagged. PLAID stores each token as a centroid id
             (⌈log₂ K⌉ bits) plus a product-quantized residual (m·log₂ k* bits), collapsing the index to
             {' '}<strong>{STORAGE.plaid_mult}×</strong> a single-vector index — a {STORAGE.plaid_vs_raw}× compression of the raw
             multi-vector store. Mitigation, not erasure: still many vectors per document, and the residual codes are lossy by

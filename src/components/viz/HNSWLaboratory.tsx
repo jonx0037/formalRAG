@@ -12,7 +12,8 @@ import katex from 'katex';
  *      strict-nearest (which cluster on one side) and the diversity-pruned heuristic set (Algorithm 4),
  *      which keeps long-range links.
  *   C. Recall vs cost. The recall@10-versus-distance-computations frontiers of HNSW, flat NSW, and the
- *      inverted file (IVF) on the SAME cloud, plus the entry-descent depth tracking log_M(n).
+ *      inverted file (IVF) on the SAME cloud, plus the entry-descent depth tracking log_M(n). The graph
+ *      sweeps start at ef = 10: a 10-NN search keeps ef_eff = max(ef, 10) results.
  *
  * VIZ <-> PYTHON INVARIANT (CLAUDE.md): TOY_POINTS, TOY_LEVELS, EDGES_BY_LAYER, ENTRY, TOP_LEVEL,
  * QUERY, DESCENT_PATH, FOUND, DEMO_* , FRONTIER_* and SCALING are mirrored TO THE DECIMAL from
@@ -65,17 +66,17 @@ const NAIVE_KEPT = [30, 34, 29, 31];
 const HEURISTIC_KEPT = [30, 28, 16];
 
 // Panel C: head_to_head on the SAME cloud (n = 500, M = 8, nlist = 22). Cost = mean distance
-// computations per query; recall@10. Three frontiers + the log_M(n) scaling of the descent depth.
+// computations per query; recall@10 with ef_eff = max(ef, 10). Three frontiers + the log_M(n) scaling.
 const HH_N = 500;
 const FRONTIER_HNSW = [
-  { ef: 1, recall: 0.1, cost: 34.8 }, { ef: 2, recall: 0.2, cost: 39.9 }, { ef: 4, recall: 0.4, cost: 48.6 },
-  { ef: 8, recall: 0.795, cost: 64.4 }, { ef: 16, recall: 1.0, cost: 92.0 }, { ef: 32, recall: 1.0, cost: 135.5 },
-  { ef: 64, recall: 1.0, cost: 206.6 }, { ef: 128, recall: 1.0, cost: 307.1 },
+  { ef: 10, recall: 0.9825, cost: 72.0 }, { ef: 12, recall: 0.995, cost: 79.5 }, { ef: 16, recall: 1.0, cost: 92.0 },
+  { ef: 24, recall: 1.0, cost: 113.9 }, { ef: 32, recall: 1.0, cost: 135.5 }, { ef: 64, recall: 1.0, cost: 206.6 },
+  { ef: 128, recall: 1.0, cost: 307.1 },
 ];
 const FRONTIER_NSW = [
-  { ef: 1, recall: 0.1, cost: 71.5 }, { ef: 2, recall: 0.2, cost: 77.1 }, { ef: 4, recall: 0.4, cost: 86.4 },
-  { ef: 8, recall: 0.8, cost: 103.3 }, { ef: 16, recall: 0.9975, cost: 134.3 }, { ef: 32, recall: 1.0, cost: 183.9 },
-  { ef: 64, recall: 1.0, cost: 260.0 }, { ef: 128, recall: 1.0, cost: 365.0 },
+  { ef: 10, recall: 0.9975, cost: 111.5 }, { ef: 12, recall: 0.9975, cost: 120.2 }, { ef: 16, recall: 0.9975, cost: 134.3 },
+  { ef: 24, recall: 0.9975, cost: 160.8 }, { ef: 32, recall: 1.0, cost: 183.9 }, { ef: 64, recall: 1.0, cost: 260.0 },
+  { ef: 128, recall: 1.0, cost: 365.0 },
 ];
 const FRONTIER_IVF = [
   { nprobe: 1, recall: 0.5125, cost: 47.0 }, { nprobe: 2, recall: 0.7675, cost: 71.3 }, { nprobe: 4, recall: 0.9325, cost: 120.7 },
@@ -323,15 +324,17 @@ export default function HNSWLaboratory() {
           {cView === 'frontier' ? (
             <>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '0.5rem' }}>
-                <Readout label="HNSW: recall 0.9 at" value="92 comps" accent />
-                <Readout label="flat NSW: recall 0.9 at" value="134 comps" />
-                <Readout label="IVF at 92 comps" value="≈77% recall" />
+                <Readout label="HNSW: recall 0.9 at" value="72 comps" accent />
+                <Readout label="flat NSW: recall 0.9 at" value="112 comps" />
+                <Readout label="IVF at 72 comps" value="≈77% recall" />
               </div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.5rem 0 0' }}>
                 All three indexes on the SAME cloud (n = {HH_N}, M = 8) with one shared ground truth. The robust, intra-graph
                 headline: HNSW reaches a given recall at no more distance computations than the flat NSW it layers — the upper
-                layers buy a cheaper entry. Against the inverted file the comparison is a property of <em>this</em> synthetic
-                low-rank cloud, not a universal ranking.
+                layers buy a cheaper entry. Both graph sweeps start at ef = 10, because a 10-nearest-neighbor search keeps at
+                least 10 results; on this cloud even that minimal beam is past recall 0.9 (HNSW 98.25%, flat NSW 99.75%), so the
+                recall-0.9 cost is the minimal beam's cost. Against the inverted file the comparison is a property of{' '}
+                <em>this</em> synthetic low-rank cloud, not a universal ranking.
               </div>
             </>
           ) : (

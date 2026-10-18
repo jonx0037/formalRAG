@@ -161,7 +161,7 @@ Then the $(c, r)$-approximate near-neighbor problem (with $c = r_2/r_1$) is solv
 
 </TheoremBlock>
 
-The exponent rewards a wider gap. Fixing the near angle at $\theta_1 = 0.15\pi$ (so $p_1 = 0.85$) and widening the far angle by an approximation factor $c$, the verified $\rho$ falls from $0.7827$ at $c = 1.25$ to $0.4556$ at $c = 2$ to $0.1774$ at $c = 4$: a search willing to accept a four-times-looser "near" is an easy problem, $\rho$ near a fifth, query time close to $n^{1/5}$. An easier approximation is a cheaper search, made quantitative.
+The exponent rewards a wider gap. Fixing the near angle at $\theta_1 = 0.15\pi$ (so $p_1 = 0.85$) and widening the far angle by an approximation factor $c$, the verified $\rho$ falls from $0.7827$ at $c = 1.25$ to $0.4556$ at $c = 2$ to $0.1774$ at $c = 4$: a search willing to accept a four-times-looser "near" is an easy problem, $\rho$ just under a fifth, query time below $n^{1/5}$. An easier approximation is a cheaper search, made quantitative.
 
 What the exponent does **not** say is that LSH wins in practice, and the honest way to see this is to run it against the indexes that learn the data.
 
@@ -169,7 +169,7 @@ What the exponent does **not** say is that LSH wins in practice, and the honest 
 
 Build LSH, IVF, flat-NSW, and HNSW on the *same* cloud and score them against the *same* ground truth, by distance computations per query. To compare angular SimHash against the Euclidean indexes fairly, L2-normalize the cloud: for unit vectors $\lVert \mathbf{x} - \mathbf{y}\rVert^2 = 2 - 2\cos\theta$, so the Euclidean top-$k$ ranking *is* the angular ranking and the ground truth is shared by construction. Count LSH's cost honestly — the $L\cdot k$ hyperplane projections that hash the query (the analogue of IVF's coarse centroid comparisons) plus one exact distance per candidate.
 
-On this low-rank cloud the data-aware indexes dominate. To reach recall $0.9$, HNSW spends $82$ distance computations per query, IVF spends $113$, and LSH spends $486$ — and past a few dozen tables LSH does *more* work than a brute-force scan of all $500$ vectors. This is a verdict on this cloud, not a universal ranking.
+On this low-rank cloud the data-aware indexes dominate. To reach recall $0.9$, HNSW spends about $64$ distance computations per query, the flat navigable small-world graph about $103$, IVF $113$, and LSH $486$ — and past a few dozen tables LSH does *more* work than a brute-force scan of all $500$ vectors. This is a verdict on this cloud, not a universal ranking.
 
 </TheoremBlock>
 

@@ -70,7 +70,7 @@ const POSTFILTER_LAW = [
 const PERC_P = [0, 0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48];
 const PERCOLATION_REGULAR = [0, 0.0011, 0.0026, 0.0062, 0.0437, 0.1288, 0.1947, 0.2477, 0.2975, 0.346, 0.3907, 0.4394, 0.4729];
 const PERCOLATION_HNSW = [0, 0.0057, 0.0097, 0.0183, 0.0432, 0.065, 0.124, 0.2142, 0.2682, 0.3212, 0.3724, 0.4099, 0.4463];
-const REG_PC = 0.143, REG_DEG = 8, HNSW_PC = 0.1285, HNSW_KAPPA = 8.784, HNSW_MEAN_DEG = 7.36;
+const REG_PC = 0.143, REG_DEG = 8, HNSW_PC = 0.128, HNSW_KAPPA = 8.784, HNSW_MEAN_DEG = 7.36;
 const CONNECTIVITY_VS_M = [
   { M: 4, mean_deg: 4.7, giant_frac: 0.0158 }, { M: 8, mean_deg: 7.36, giant_frac: 0.0344 },
   { M: 16, mean_deg: 9.35, giant_frac: 0.0736 }, { M: 32, mean_deg: 10.02, giant_frac: 0.0822 },
