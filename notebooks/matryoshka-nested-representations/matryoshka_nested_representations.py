@@ -234,7 +234,7 @@ def finance_demo() -> dict:
           f"   vs rotated (same geometry, no nesting) {rec_rot*100:.1f}%")
     print(f"  funnel: shortlist on the {FINANCE_SHORT}-dim prefix, rerank at full {FINANCE_DIM} -> "
           f"recall@10 {funnel_rec*100:.1f}% at {funnel_cost*100:.1f}% of exhaustive scoring cost")
-    print("  -> nesting is what makes a prefix usable; without it the same vectors retrieve no better than chance early on.")
+    print("  -> nesting is what makes a prefix usable; without it the same vectors keep only a small fraction of the nested recall early on.")
     return out
 
 
