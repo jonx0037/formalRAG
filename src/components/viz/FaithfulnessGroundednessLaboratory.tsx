@@ -9,8 +9,9 @@ import katex from 'katex';
  *      with the noisy judge's confidence; a confidence cut τ slider drops low-confidence claims and the
  *      live faithfulness = precision and coverage = recall readouts recompute.
  *   B. The faithfulness–coverage frontier. The PR plane: raising τ trades coverage for faithfulness along the
- *      back-off frontier; the terse and verbose answers sit at the extremes; the conformal-risk-control
- *      guarantee certifies faithfulness ≥ 1 − α. An inset shows F1 peaking at an interior answer length.
+ *      back-off frontier of one answer panel; the conformal-risk-control guarantee certifies faithfulness
+ *      ≥ 1 − α. The terse and verbose answers are SEPARATE answers (a caption, not frontier points). An
+ *      inset shows the fixed-rate verbosity sweep: F1 (the true harmonic mean) rises with coverage and plateaus.
  *   C. Judge calibration. The reliability diagram (raw / Platt / isotonic) and ECE — the raw judge is
  *      over-confident; recalibration lowers ECE; Rogan–Gladen debiases the naive faithfulness number.
  *   D. Bits of grounding. Per-claim pointwise mutual information with the context: supported claims carry
@@ -19,7 +20,7 @@ import katex from 'katex';
  * VIZ <-> PYTHON INVARIANT (CLAUDE.md): every baked constant below is mirrored TO THE DECIMAL from
  * notebooks/faithfulness-groundedness/faithfulness_groundedness.py (viz_constants()). Matching asserts:
  * test_perfect_judge_collapse / test_faithfulness_is_precision_coverage_is_recall /
- * test_faithfulness_coverage_diverge / test_interior_f1_optimum / test_judge_overlaps_not_vacuous /
+ * test_faithfulness_coverage_diverge / test_f1_plateaus_at_fixed_rate / test_judge_overlaps_not_vacuous /
  * test_naive_faithfulness_biased_rogan_gladen_corrects / test_raw_judge_overconfident_recalibration_lowers_ece /
  * test_crc_monotone_and_controls / test_bits_sign_split. The lab recomputes ONLY closed forms in TS (Panel
  * A's precision/coverage at the live τ from the baked claim labels; Panel C's ECE from the baked reliability
@@ -45,13 +46,14 @@ const WORKED_CONF = [0.86, 0.859, 0.857, 0.86, 0.858, 0.187, 0.377, 0.467, 0.857
 const WORKED_BITS = [0.728, 0.63, 0.307, 0.728, 0.63, -0.262, -0.262, -0.262, 0.307];
 const WORKED_ATTR = [0, 1, 2, 0, 1, -1, -1, -1, 2];
 
-// Panel B — the verbosity sweep (answer length -> precision, recall, F1) and the τ back-off frontier.
+// Panel B — the fixed-rate verbosity sweep (answer length -> precision, recall, F1 = 2PR/(P+R)) and the
+// τ back-off frontier.
 const VERBOSITY = [
   { n: 1, p: 0.594, r: 0.198, f1: 0.297 }, { n: 2, p: 0.562, r: 0.375, f1: 0.45 },
-  { n: 3, p: 0.562, r: 0.562, f1: 0.562 }, { n: 4, p: 0.586, r: 0.75, f1: 0.643 },
-  { n: 5, p: 0.588, r: 0.875, f1: 0.656 }, { n: 6, p: 0.594, r: 0.958, f1: 0.639 },
-  { n: 8, p: 0.613, r: 0.99, f1: 0.54 }, { n: 10, p: 0.638, r: 1.0, f1: 0.462 },
-  { n: 12, p: 0.63, r: 1.0, f1: 0.4 },
+  { n: 3, p: 0.562, r: 0.562, f1: 0.562 }, { n: 4, p: 0.586, r: 0.75, f1: 0.656 },
+  { n: 5, p: 0.588, r: 0.875, f1: 0.7 }, { n: 6, p: 0.594, r: 0.958, f1: 0.726 },
+  { n: 8, p: 0.613, r: 0.99, f1: 0.749 }, { n: 10, p: 0.638, r: 1.0, f1: 0.77 },
+  { n: 12, p: 0.63, r: 1.0, f1: 0.767 },
 ];
 type FrontierRow = { tau: number; p: number; r: number; ret: number };
 const FRONTIER: FrontierRow[] = [
@@ -67,10 +69,13 @@ const FRONTIER: FrontierRow[] = [
   { tau: 0.72, p: 0.9, r: 0.742, ret: 0.523 }, { tau: 0.76, p: 0.911, r: 0.71, ret: 0.488 },
   { tau: 0.8, p: 0.913, r: 0.701, ret: 0.441 }, { tau: 0.84, p: 0.928, r: 0.704, ret: 0.352 },
 ];
-const CRC = { lambda: 0.84, alpha: 0.1, realized: 0.031, retention: 0.305 };
+// CRC: λ̂ fit on the calibration half; realized / retention / p_test / r_test are TEST-half values (the
+// whole-panel FRONTIER row at τ = λ̂ is 0.928 / 0.704 / 0.352 — a different set of answers).
+const CRC = { lambda: 0.84, alpha: 0.1, realized: 0.031, retention: 0.305, p_test: 0.914, r_test: 0.758, abstain: 5, n_test: 16 };
+// Two SEPARATE answers (terse: 1 claim at r = 1; verbose: 12 claims at r = 0.5) — not frontier points.
 const DIVERGENCE = {
-  terse: { p: 1.0, r: 0.333 },
-  verbose: { p: 0.534, r: 1.0 },
+  terse: { p: 1.0, r: 0.333, f1: 0.5 },
+  verbose: { p: 0.534, r: 1.0, f1: 0.685 },
 };
 
 // Panel C — judge calibration: reliability bins [conf, acc, count], ECE, AUC, Rogan–Gladen.
@@ -89,6 +94,9 @@ const REL_ISO: Bin[] = [
 ];
 const ECE = { raw: 0.125, platt: 0.12, iso: 0.0 };
 const AUC = { raw: 0.832, platt: 0.832 };
+// The bins / ECE above are IN-SAMPLE (fit and scored on the same 256 claims). Held out — fit on the
+// calibration half, scored on the test half — neither recalibrator beats raw:
+const ECE_HELDOUT = { raw: 0.167, platt: 0.187, iso: 0.182 };
 const RG = { naive: 0.699, corrected: 0.621, oracle: 0.621, sens: 0.818, spec: 0.495 };
 
 // Panel D — bits-of-grounding (per-claim PMI), supported vs hallucinated.
@@ -204,6 +212,7 @@ function FrontierPanel({ ti, setTi }: { ti: number; setTi: (v: number) => void }
   const row = FRONTIER[ti];
   const guar = 1 - CRC.alpha;
   const path = FRONTIER.map((d, i) => `${i ? 'L' : 'M'}${x(d.r)},${y(d.p)}`).join(' ');
+  const crcRow = FRONTIER.reduce((a, b) => (Math.abs(b.tau - CRC.lambda) < Math.abs(a.tau - CRC.lambda) ? b : a));
   return (
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="the faithfulness-coverage frontier with the conformal guarantee" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
@@ -222,35 +231,30 @@ function FrontierPanel({ ti, setTi }: { ti: number; setTi: (v: number) => void }
         ))}
         {/* the back-off frontier */}
         <path d={path} fill="none" stroke={ACCENT} strokeWidth={2} />
-        {/* the terse / verbose divergence extremes */}
-        <circle cx={x(DIVERGENCE.terse.r)} cy={y(DIVERGENCE.terse.p)} r={4} fill={MUTED} />
-        <text x={x(DIVERGENCE.terse.r) + 6} y={y(DIVERGENCE.terse.p) + 3} fontSize={8} fill={MUTED} fontFamily="var(--font-sans)">terse</text>
-        <circle cx={x(DIVERGENCE.verbose.r)} cy={y(DIVERGENCE.verbose.p)} r={4} fill={MUTED} />
-        <text x={x(DIVERGENCE.verbose.r) - 6} y={y(DIVERGENCE.verbose.p) + 12} textAnchor="end" fontSize={8} fill={MUTED} fontFamily="var(--font-sans)">verbose</text>
-        {/* the CRC operating point */}
-        <circle cx={x(0.704)} cy={y(0.928)} r={5} fill={GUAR_COLOR} />
-        <text x={x(0.704)} y={y(0.928) - 8} textAnchor="middle" fontSize={8} fill={GUAR_COLOR} fontFamily="var(--font-sans)">CRC λ̂</text>
+        {/* the CRC cut τ = λ̂ on this (whole-panel) frontier; its test-half operating point is in the readouts */}
+        <circle cx={x(crcRow.r)} cy={y(crcRow.p)} r={5} fill={GUAR_COLOR} />
+        <text x={x(crcRow.r)} y={y(crcRow.p) - 8} textAnchor="middle" fontSize={8} fill={GUAR_COLOR} fontFamily="var(--font-sans)">τ = λ̂ = {fmt(CRC.lambda, 2)}</text>
         {/* the current operating point */}
         <circle cx={x(row.r)} cy={y(row.p)} r={5.5} fill={ACCENT} stroke="var(--color-bg)" strokeWidth={1} />
         <text x={(padL + W) / 2} y={H - 4} textAnchor="middle" fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">coverage = recall →</text>
         <text x={12} y={(padT + H - padB) / 2} fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)" transform={`rotate(-90 12 ${(padT + H - padB) / 2})`}>faithfulness = precision →</text>
       </svg>
-      {/* verbosity inset: F1 versus answer length peaks at an interior length */}
+      {/* verbosity inset: at a fixed hallucination rate, F1 rises with coverage and plateaus */}
       {(() => {
         const w = 560, h = 64, pl = 30, pr = 12, pt = 8, pb = 18;
         const nMax = VERBOSITY[VERBOSITY.length - 1].n;
         const vx = (n: number) => pl + (n / nMax) * (w - pl - pr);
         const vy = (f: number) => h - pb - f * (h - pt - pb);
-        const best = VERBOSITY.reduce((a, b) => (b.f1 > a.f1 ? b : a));
+        const last = VERBOSITY[VERBOSITY.length - 1];
         const line = VERBOSITY.map((d, i) => `${i ? 'L' : 'M'}${vx(d.n)},${vy(d.f1)}`).join(' ');
         return (
-          <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label="F1 versus answer length, peaking at an interior length" style={{ width: '100%', maxWidth: w, height: 'auto', display: 'block' }}>
+          <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label="F1 versus answer length at a fixed hallucination rate, rising with coverage and plateauing" style={{ width: '100%', maxWidth: w, height: 'auto', display: 'block' }}>
             <path d={line} fill="none" stroke={GUAR_COLOR} strokeWidth={1.6} />
             {VERBOSITY.map((d) => (
-              <circle key={d.n} cx={vx(d.n)} cy={vy(d.f1)} r={d === best ? 4 : 2} fill={d === best ? ACCENT : GUAR_COLOR} />
+              <circle key={d.n} cx={vx(d.n)} cy={vy(d.f1)} r={2} fill={GUAR_COLOR} />
             ))}
-            <text x={vx(best.n)} y={vy(best.f1) - 6} textAnchor="middle" fontSize={8} fill={ACCENT} fontFamily="var(--font-sans)">F1-optimal at {best.n} claims</text>
-            <text x={pl} y={h - 5} fontSize={7.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">F1 vs answer length (claims) — interior optimum, neither terse nor exhaustive</text>
+            <text x={vx(last.n)} y={vy(last.f1) - 6} textAnchor="end" fontSize={8} fill={ACCENT} fontFamily="var(--font-sans)">plateau ≈ {fmt(last.f1, 2)} once coverage saturates</text>
+            <text x={pl} y={h - 5} fontSize={7.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">F1 vs answer length (claims), fixed hallucination rate — faithfulness stays flat, so length is nearly free</text>
           </svg>
         );
       })()}
@@ -260,8 +264,17 @@ function FrontierPanel({ ti, setTi }: { ti: number; setTi: (v: number) => void }
         <Readout label="faithfulness" value={fmt(row.p, 2)} accent />
         <Readout label="coverage" value={fmt(row.r, 2)} />
         <Readout label="retention" value={pct(row.ret)} />
-        <Readout label="CRC false-claim rate" value={`${fmt(CRC.realized, 3)} ≤ ${CRC.alpha}`} accent />
+        <Readout label="CRC false-claim rate (test half)" value={`${fmt(CRC.realized, 3)} ≤ ${CRC.alpha}`} accent />
       </Row>
+      <p style={{ fontSize: '0.74rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, marginTop: '0.4rem' }}>
+        At λ̂ = {fmt(CRC.lambda, 2)} (fit on the calibration half), the held-out test half keeps faithfulness{' '}
+        {fmt(CRC.p_test, 3)} and coverage {fmt(CRC.r_test, 3)} over its non-abstaining answers, retaining{' '}
+        {pct(CRC.retention)} of claims; {CRC.abstain} of {CRC.n_test} answers abstain. Separately, a terse answer
+        (one supported claim) scores {fmt(DIVERGENCE.terse.p, 2)} / {fmt(DIVERGENCE.terse.r, 2)} and a verbose one
+        (twelve claims, half invented) {fmt(DIVERGENCE.verbose.p, 2)} / {fmt(DIVERGENCE.verbose.r, 2)} — two
+        different answers, not points on this curve; F1 ranks the verbose one higher ({fmt(DIVERGENCE.verbose.f1, 2)}{' '}
+        vs {fmt(DIVERGENCE.terse.f1, 2)}) despite its inventions.
+      </p>
     </div>
   );
 }
@@ -308,8 +321,10 @@ function CalibrationPanel({ cond, setCond }: { cond: 'raw' | 'platt' | 'iso'; se
             <Readout label="AUC (rank)" value={fmt(cond === 'raw' ? AUC.raw : AUC.platt, 3)} />
           </Row>
           <p style={{ fontSize: '0.74rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, marginTop: '0.4rem' }}>
-            The raw judge is over-confident (ECE {fmt(ECE.raw, 3)}); Platt lowers it to {fmt(ECE.platt, 3)} and
-            isotonic to {fmt(ECE.iso, 3)} — while Platt preserves the ranking exactly (AUC {fmt(AUC.raw, 3)}).
+            The raw judge is over-confident (ECE {fmt(ECE.raw, 3)}); fit and scored on the same claims, Platt lowers
+            it to {fmt(ECE.platt, 3)} and isotonic to {fmt(ECE.iso, 3)} — while Platt preserves the ranking exactly
+            (AUC {fmt(AUC.raw, 3)}). Held out (fit on half, scored on the other half) neither beats raw: raw{' '}
+            {fmt(ECE_HELDOUT.raw, 3)}, Platt {fmt(ECE_HELDOUT.platt, 3)}, isotonic {fmt(ECE_HELDOUT.iso, 3)}.
           </p>
           {/* Rogan–Gladen debiasing bar */}
           <div style={{ marginTop: '0.6rem' }}>

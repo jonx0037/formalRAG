@@ -48,7 +48,8 @@ const RC_ACHIEVABLE: RCPoint[] = [{ c: 0.0, risk: 0.0 }, { c: 0.031, risk: 0.0 }
 const RC_ORACLE: RCPoint[] = [{ c: 0.0, risk: 0.0 }, { c: 0.031, risk: 0.0 }, { c: 0.062, risk: 0.0 }, { c: 0.094, risk: 0.0 }, { c: 0.125, risk: 0.0 }, { c: 0.156, risk: 0.0 }, { c: 0.188, risk: 0.0 }, { c: 0.219, risk: 0.0 }, { c: 0.25, risk: 0.0 }, { c: 0.281, risk: 0.0 }, { c: 0.312, risk: 0.0 }, { c: 0.344, risk: 0.0 }, { c: 0.375, risk: 0.0 }, { c: 0.406, risk: 0.0 }, { c: 0.438, risk: 0.0 }, { c: 0.469, risk: 0.0 }, { c: 0.5, risk: 0.0 }, { c: 0.531, risk: 0.0 }, { c: 0.562, risk: 0.0 }, { c: 0.594, risk: 0.0 }, { c: 0.625, risk: 0.05 }, { c: 0.656, risk: 0.095 }, { c: 0.688, risk: 0.136 }, { c: 0.719, risk: 0.174 }, { c: 0.75, risk: 0.208 }, { c: 0.781, risk: 0.24 }, { c: 0.812, risk: 0.269 }, { c: 0.844, risk: 0.296 }, { c: 0.875, risk: 0.321 }, { c: 0.906, risk: 0.345 }, { c: 0.938, risk: 0.367 }, { c: 0.969, risk: 0.387 }, { c: 1.0, risk: 0.406 }];
 const AURC = { achievable: 0.185, oracle: 0.097, gap: 0.088, auc: 0.773 };
 
-const COST = { at_chow: 0.656, always_emit: 2.031, always_abstain: 1.0 };
+// at_chow = the cost AT t⋆ = 0.80; min = the cost curve's grid minimum (at t_min, just below t⋆ — the drift).
+const COST = { at_chow: 0.688, min: 0.656, t_min: 0.77, always_emit: 2.031, always_abstain: 1.0 };
 
 // Panel C — the two-stage worked decision (score, correct, retained-claim count). emit is recomputed live.
 type StageRow = { score: number; correct: number; retained: number };
@@ -369,7 +370,8 @@ export default memo(function SelectiveGenerationAbstentionLaboratory() {
         {N_QUERIES} synthetic finance answers (one per query, base error {fmt(BASE_ERROR_RATE, 3)}); the
         lenient judge's answer score has AUC {fmt(AURC.auc, 2)} — informative but imperfect, so the
         achievable risk–coverage curve sits above the oracle (excess AURC {fmt(AURC.gap, 3)}). At the
-        default cost ratio selective generation costs {fmt(COST.at_chow, 2)}, beating always-emit
+        default cost ratio selective generation costs {fmt(COST.at_chow, 2)} at the Chow cutoff (the curve's
+        minimum, {fmt(COST.min, 2)}, sits just below it near t = {fmt(COST.t_min, 2)}), beating always-emit
         ({fmt(COST.always_emit, 2)}) and always-abstain ({fmt(COST.always_abstain, 2)}). Numbers mirror
         <code> selective_generation_abstention.py</code>; the lab recomputes the cost curve, the two gates,
         and the conformal threshold live from the baked (score, correct) cloud. The Chow rule assumes a

@@ -132,8 +132,9 @@ $$
 
 plus a small von Mises–Fisher spread. At $\theta = 0$ the query sits on the manifold (it *is* the
 answer direction) and recall@1 is $1.0$. As $\theta$ grows every query is pulled toward the *same*
-generic axis $g$, so the queries lose their company specificity and the document nearest $g$ starts to
-win regardless of which company was asked about. Recall@1 falls. The gap is not noise — it is a
+generic axis $g$, so the queries lose their company specificity and the documents nearest $g$ start to
+win regardless of which company was asked about (on the finance geometry two near-tied documents, at
+cosine $0.689$ and $0.687$ to $g$, absorb $53$ of the $64$ queries at $\theta = 75^\circ$). Recall@1 falls. The gap is not noise — it is a
 systematic rotation of the query distribution away from the document distribution.
 
 </TheoremBlock>
@@ -160,7 +161,8 @@ Model the generator as drawing a hypothetical document $h$ from a von Mises–Fi
 centered at the answer direction $u_c$. Because $h$ lives on the document manifold near $u_c$,
 retrieving with $h$ recovers the gold document — *independently of the bare query's distribution-shift
 angle $\theta$*. HyDE ignores where the query landed and synthesizes an on-manifold proxy in its place.
-On the finance geometry a faithful generator recovers recall@1 $= 1.000$ at every $\theta$, against the
+On the finance geometry a faithful generator, with enough hypotheticals averaged ($k = 60$ here; a single
+hypothetical gets $0.602$, as the next section shows), recovers recall@1 $= 1.000$ at every $\theta$, against the
 bare query's $0.375$ at $\theta = 75^\circ$ — the flat green line above the collapsing red one in Panel A.
 
 The **collapse anchor** pins the construction: a *perfect* hypothetical — infinitely concentrated,
@@ -189,7 +191,10 @@ For a faithful generator, $\hat h_k$ is a consistent estimator of the answer dir
 maximum-likelihood mean-direction estimate of the von Mises–Fisher samples. Its angular deficit
 $1 - \langle \hat h_k, u_c\rangle$ falls monotonically in $k$ and approaches the Monte-Carlo $1/k$ rate
 asymptotically: each doubling of $k$ drives the deficit-halving ratio toward $\tfrac12$. On the
-finance geometry the deficit falls $0.658 \to 0.153$ across $k = 1 \to 20$, and as the estimate
+finance geometry the deficit falls $0.658 \to 0.153$ across $k = 1 \to 20$ — about fourfold, not the
+twentyfold a pure $1/k$ law would give: for the worked company the doubling ratio runs $0.85, 0.75, 0.69,
+0.62, 0.57, 0.55$ from $k = 1$ to $64$, so at this generator concentration the small-$k$ regime is still
+pre-asymptotic — and as the estimate
 sharpens, recall@1 *rises* with $k$ from $0.602$ toward $1.0$ (Panel B, the green curve). Averaging
 denoises the hypothetical.
 
@@ -203,9 +208,14 @@ Suppose the generator **hallucinates** on a fraction $p$ of queries — for thos
 about the *wrong* company, so its generation center is not $u_c$ but a wrong direction. Then $\hat h_k$
 is consistent for the *wrong* center: $\langle\hat h_k, \text{center}\rangle \to 1$ while
 $\langle\hat h_k, u_c\rangle$ stays bounded away from $1$, and the query retrieves the wrong document
-no matter how large $k$ is. Recall therefore plateaus at a **ceiling near $1 - p$**: on the finance
-geometry the large-$k$ recall is $1.000$, $0.775$, $0.515$ at hallucination rates $p = 0,\ 0.25,\ 0.5$
-(Panel B, the dashed reference lines). Averaging reduces variance; it cannot reduce bias.
+no matter how large $k$ is. Recall therefore cannot climb to one: at large $k$ it settles **near $1 - p$**
+(one minus the realized hallucinated fraction, $0.231$ and $0.502$ over the notebook's trials). On the
+finance geometry the large-$k$ ($k = 60$) recall is $1.000$, $0.775$, $0.515$ at hallucination rates
+$p = 0,\ 0.25,\ 0.5$; Panel B's dashed reference lines mark $1 - p$ itself. The approach is not a
+plateau: at intermediate $k$ the $p > 0$ curves rise and then sag — $p = 0.25$ peaks at $0.829$ near
+$k = 12$, $p = 0.5$ at $0.627$ near $k = 5$ — because averaging also strips the lucky hits that noisy
+hallucinated hypotheticals score by chance. So $1 - p$ is a large-$k$ limit, not a bound at every $k$.
+Averaging reduces variance; it cannot reduce bias.
 
 </TheoremBlock>
 

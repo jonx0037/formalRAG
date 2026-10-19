@@ -251,13 +251,14 @@ def positional_weight(pos: int, n_ctx: int, dip: float = POS_DIP) -> float:
     DESIGN CHOICE (yours): the shape and depth of the U. This is an EMPIRICAL stand-in for the observed
     behavior of trained transformers (Liu et al. 2023), not a derived quantity -- it is baked in so the
     topic can trace its CONSEQUENCE (a buried relevant passage is a soft erasure). A clean closed form a
-    TS mirror can reproduce, e.g. a normalized cosine bump  1 - dip * sin(pi * (pos + 0.5) / n_ctx)  (1.0
-    at the two ends, 1 - dip at the center). Must return a positive multiplier in (0, 1]; `dip` in [0, 1).
+    TS mirror can reproduce, e.g. a normalized cosine bump  1 - dip * sin(pi * (pos + 0.5) / n_ctx)  (about
+    0.946 at the two ends -- the + 0.5 offset keeps the end slots off the zeros of the sine -- and about
+    1 - dip at the center). Must return a positive multiplier in (0, 1]; `dip` in [0, 1).
     Keep it expressible in TypeScript verbatim (the .tsx recomputes it from the baked formula).
     """
     if n_ctx <= 1:
         return 1.0
-    # A normalized sine bump: 1.0 at the two ends, 1 - dip at the center (Liu et al. 2023, baked).
+    # A normalized sine bump: ~0.946 at the two ends, ~1 - dip at the center (Liu et al. 2023, baked).
     return float(1.0 - dip * math.sin(math.pi * (pos + 0.5) / n_ctx))
 
 
@@ -478,9 +479,12 @@ def test_saturation_imported_matches() -> None:
 
 
 def test_more_context_hurts() -> None:
-    """HEADLINE GATE (robust, seed-independent): even with the answer reliably retrieved (recall@1 ~ 1),
-    answer quality Q(k) is maximized at the SMALLEST context and declines monotonically -- more context is
-    pure downside. The answer ENTROPY H(k) rises in lockstep (the distortion axis, in bits)."""
+    """HEADLINE GATE: even with the answer reliably retrieved (recall@1 ~ 1), answer quality Q(k) is
+    maximized at the SMALLEST context and declines monotonically -- more context is pure downside. The
+    answer ENTROPY H(k) rises in lockstep (the distortion axis, in bits). What is robust across seeds is the
+    flat-then-decline SHAPE and the stuffing loss (Q(1) - Q(16) = 0.16-0.21 over seeds 1, 2, 3, 5, 7, 11,
+    13, 17, 19, 23); the STRICT monotone peak at k = 1 asserted here is the canonical seed's -- seeds 2, 5
+    and 17 edge it by under 0.01 at k = 2, 2 and 4."""
     rows = quality_recall_precision_cost(_corpus())
     qs = [r["Q"] for r in rows]
     hs = [r["H"] for r in rows]

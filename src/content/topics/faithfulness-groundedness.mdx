@@ -181,15 +181,15 @@ The collapse anchor pins the definition to the imported machinery. A *perfect* j
 
 ## Terse versus verbose: why the two diverge
 
-Because faithfulness counts over claims and coverage over facts, the two pull apart as the answer's length changes.
+Because faithfulness counts over claims and coverage over facts, the two can fail independently — and two answers can fail in opposite ways.
 
-<TheoremBlock type="proposition" number={2} title="Precision and recall diverge with verbosity (demonstrated)">
+<TheoremBlock type="proposition" number={2} title="Terse and verbose answers fail in opposite directions (demonstrated)">
 
-On the worked corpus, a **terse** answer of a single supported claim has faithfulness $1.00$ and coverage $0.33$; a **verbose** answer of a dozen claims, half of them invented, has faithfulness $0.53$ and coverage $1.00$. The two move in opposite directions, and their harmonic mean — the F1 of generation — peaks at an **interior** answer length (five claims here), neither a single claim nor an exhaustive one.
+On the worked corpus, a **terse** answer of a single supported claim has faithfulness $1.00$ and coverage $0.33$; a **verbose** answer of a dozen claims, generated at a hallucination rate of one half, has faithfulness $0.53$ and coverage $1.00$. The two fail in opposite directions, and a single score hides which failure it is scoring: their harmonic mean — the F1 of generation — rates the verbose answer *higher* ($0.69$ against $0.50$), even though half of its claims are invented.
 
 </TheoremBlock>
 
-The intuition is the one any careful writer knows. A terse answer states only what it is sure of: it is faithful but thin. A verbose answer reaches for completeness, and somewhere past the facts it actually has, it begins to invent — coverage saturates while precision erodes. Reporting one number forces a choice the data does not support. The honest summary is the pair, and the geometry that produces it is on the frontier panel above: the terse and verbose answers are the two extremes of one precision–recall curve.
+The intuition is the one any careful writer knows. A terse answer states only what it is sure of: it is faithful but thin. A verbose answer reaches for completeness, and a generator that invents pays for it in precision. But notice what lowers the verbose answer's precision: its hallucination rate, not its length. Hold the rate fixed (the verbosity sweep in the frontier panel, each claim faithful with probability $0.65$) and lengthen the answer: coverage climbs from $0.20$ at one claim to $0.96$ at six and $1.00$ at ten, while faithfulness stays between $0.56$ and $0.64$ — so the F1 rises with coverage and plateaus near $0.77$ rather than peaking early. At a fixed rate, length is nearly free; it is the rate that costs. Reporting one number forces a choice the data does not support. The honest summary is the pair. And the terse and verbose answers are two separate answers, not two ends of the confidence-cut frontier the panel draws — that frontier is a third measurement, the back-off of one panel of answers, which the next sections build.
 
 ## Measuring with a noisy judge
 
@@ -201,7 +201,7 @@ The naive faithfulness — the mean of the judge's per-claim verdicts — estima
 
 </TheoremBlock>
 
-The fix is the prevalence correction from epidemiology, where the same problem — estimating how many people have a disease from an imperfect test — is a century old.
+The fix is the prevalence correction from epidemiology, where the same problem — estimating how many people have a disease from an imperfect test — is a long-standing one; the correction we use is Rogan and Gladen's, from 1978.
 
 <TheoremBlock type="theorem" number={4} title="Rogan–Gladen debiasing">
 
@@ -211,11 +211,11 @@ $$
 \hat\pi \;=\; \frac{p_{\text{obs}} + \mathrm{sp} - 1}{\mathrm{se} + \mathrm{sp} - 1},
 $$
 
-whose variance scales as $1/J^2$ in the Youden index $J = \mathrm{se} + \mathrm{sp} - 1$ and diverges as the judge degrades toward a coin flip. With the audited rates, the correction recovers the oracle faithfulness exactly; the notebook pins $\hat\pi$ to $0.62$.
+whose variance scales as $1/J^2$ in the Youden index $J = \mathrm{se} + \mathrm{sp} - 1$ and diverges as the judge degrades toward a coin flip. With the audited rates, the correction recovers the oracle faithfulness exactly — by construction, since the rates are audited on the very verdicts being corrected; the notebook pins $\hat\pi$ to $0.62$. The judge here is weak ($J = 0.31$, its specificity $0.49$ below a coin flip), so the correction's variance is inflated about tenfold.
 
 </TheoremBlock>
 
-The correction is only as good as the audit, and the judge's confidence carries a second problem: it is not a probability. A judge that says "$0.9$ supported" should be right nine times in ten, and an over-confident one is not. We measure that gap with the expected calibration error and close it with the recalibrators the evaluation layer built — Platt scaling and isotonic regression — fit on held-out claims. The raw judge here has ECE $0.125$; Platt lowers it to $0.120$ and isotonic to near zero, and Platt does so while preserving the ranking exactly, so a recalibrated confidence is a probability we can threshold without disturbing which claims the judge prefers. The calibration panel above shows the reliability diagram move toward the diagonal.
+The correction is only as good as the audit, and the judge's confidence carries a second problem: it is not a probability. A judge that says "$0.9$ supported" should be right nine times in ten, and an over-confident one is not. We measure that gap with the expected calibration error and close it with the recalibrators the evaluation layer built — Platt scaling and isotonic regression. Fit and scored on the same pooled claims, the raw judge has ECE $0.125$; Platt lowers it to $0.120$ and isotonic to near zero — but that is in-sample, and isotonic's near-zero is a fit identity rather than a result. Fit on the calibration half and scored on the held-out test half, neither recalibrator beats the raw judge on this small panel (raw $0.167$, Platt $0.187$, isotonic $0.182$). What Platt does guarantee is that it preserves the ranking exactly, so a recalibrated confidence is a monotone rescaling we can threshold without disturbing which claims the judge prefers. The calibration panel above shows the reliability diagram move toward the diagonal.
 
 ## The frontier and the back-off guarantee
 

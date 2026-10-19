@@ -6,9 +6,10 @@ is *question-shaped* and a document is *answer-shaped*: the two distributions do
 on the sphere. A bare query sits OFF the document manifold, so its nearest documents are
 mediocre. HyDE (Gao, Ma, Lin & Callan, ACL 2023) fixes this without any relevance labels:
 it asks an LLM to write a HYPOTHETICAL answer document, embeds THAT, and retrieves real
-documents near it — landing back inside the document manifold, closer to the relevant doc
-than the query ever was. This module owns every number the topic depends on; the harness
-asserts each pedagogical claim.
+documents near it — landing back inside the document manifold, where the relevant doc wins
+the argmax (the worked HyDE centroid is not nearer the gold than the bare query's center —
+cos 0.656 vs 0.678 — but it is nearer the gold than any rival). This module owns every number
+the topic depends on; the harness asserts each pedagogical claim.
 
   MOVEMENT 1 — THE QUERY-DOCUMENT GAP. Reusing the dense-retrieval finance geometry's DOCUMENT
     manifold (one vMF company prototype per passage), we build TOPIC-SPECIFIC off-manifold
@@ -26,7 +27,9 @@ asserts each pedagogical claim.
     as k grows — and HyDE recovers the answer regardless of theta (it ignores the off-manifold
     query position and synthesizes an on-manifold proxy). But when the generator HALLUCINATES on
     a fraction p of queries (its center tilts to a wrong company), hhat_k is consistent for the
-    WRONG center: recall plateaus at ceiling 1 - p no matter how many samples you average. HyDE
+    WRONG center: recall cannot reach 1 no matter how many samples you average — it rises, peaks at
+    intermediate k, then sags toward ~ 1 - (realized p) as averaging removes the lucky hits of noisy
+    hallucinated hypotheticals (a large-k limit, exceeded at intermediate k, not a bound). HyDE
     trades query-document mismatch for GENERATION BIAS — the load-bearing rigorFlag.
 
   MOVEMENT 3 — HyDE IS THE NEURAL GENERALIZATION OF PSEUDO-RELEVANCE FEEDBACK. Rocchio/RM3
@@ -390,9 +393,11 @@ def test_consistency_faithful() -> None:
 
 
 def test_hallucination_bias_floor() -> None:
-    """The honest limit: when the generator hallucinates on a fraction p of queries, HyDE recall
-    plateaus at a CEILING below 1 — ordered 1.0 (p=0) > p=0.25 > p=0.5, with each ceiling near
-    1 - p. Averaging cannot lift recall past the bias."""
+    """The honest limit: when the generator hallucinates on a fraction p of queries, HyDE recall at
+    large k (K_INF = 60) settles BELOW 1 — ordered 1.0 (p=0) > p=0.25 > p=0.5, each near 1 - p (one
+    minus the realized hallucinated fraction, 0.231 / 0.502 over these trials). Not a bound at every
+    k: the p > 0 curves overshoot 1 - p at intermediate k before sagging. Averaging cannot lift recall
+    past the bias."""
     P, _ = document_manifold()
     targets = hallucination_targets(P)
     ceil = [hyde_recall(P, targets, k=K_INF, p=p) for p in HALLU_GRID]
