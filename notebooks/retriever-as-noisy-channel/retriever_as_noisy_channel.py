@@ -7,16 +7,20 @@ reads that same machinery as a COMMUNICATION CHANNEL: a query enters, the retrie
 generator decodes an answer. The subtitle's two words are the channel's two failure modes, and they are
 CO-EQUAL headlines:
 
-  RECALL  ==  ERASURE.  Drop the relevant filing (probability 1 - recall) and the context is erased to a
-    non-informative belief — the RAG premise that without the document the generator knows nothing. The bits
-    delivered fall EXACTLY as  I_eps = recall * I_0  (the capacity of a Binary Erasure Channel is its
-    surviving fraction, here recall). What is lost reappears as residual entropy H(A|Q,D), which rises toward
-    log2(K); and FANO'S INEQUALITY turns that residual into a floor on the generator's Bayes (MAP) error:
+  RECALL  ==  ERASURE.  Drop the relevant filing (probability 1 - recall) and the context is erased: the
+    generator sees an erasure mark and, reading it as a Bayesian, falls back to its QUERY-ONLY belief p(a|q)
+    (the RAG marginal — the Bayes posterior given "?" is exactly the prior, since the erasure is independent of
+    the answer given the query). The bits delivered fall EXACTLY as  I_eps = recall * I_0  (the capacity of a
+    Binary Erasure Channel is its surviving fraction, here recall). What is lost reappears as residual entropy
+    H(A|Q,D), which rises toward H(A|Q); and FANO'S INEQUALITY turns that residual into a floor on the
+    generator's Bayes (MAP) error:
 
         P_e  >=  ( H(A|Q,D) - 1 ) / log2(K)        (loose)
         H(A|Q,D)  <=  H_b(P_e) + P_e * log2(K-1)    (tight, inverted numerically)
 
-    No generator, however good, beats this floor. Recall sets the floor.
+    No generator, however good, beats this floor. Recall sets the floor. (The TIGHT floor is already positive
+    on the clean channel — residual 0.876 bits allows no perfect decoder; only the LOOSE form is vacuous below
+    one bit.)
 
   PRECISION  ==  SUBSTITUTION.  Return a plausible same-sector distractor (probability eps) and the generator
     reads it and answers CONFIDENTLY WRONG: H(A|Q,D) stays LOW (the model is sure), so Fano's entropy floor
@@ -38,8 +42,12 @@ Movements, every pedagogical claim an assert:
     machinery.
 
   MOVEMENT 1 — recall = erasure = BEC. `bec_capacity(recall) = recall`; the delivered bits I_eps = recall*I_0
-    are exact (a Q-measurable fallback carries zero conditional information). Residual entropy rises; the Fano
-    floor activates once H(A|Q,D) crosses 1 bit and bounds the Bayes error (asserted as a THEOREM).
+    are exact for the Bayesian reader (its erased-branch posterior is the prior, so that branch carries zero
+    conditional information) — checked DIRECTLY by `erasure_channel_mi`, which builds the erasure channel's
+    joint and sums KL(posterior || prior) over its outputs. Residual entropy rises toward H(A|Q); the loose
+    Fano floor activates once H(A|Q,D) crosses 1 bit and bounds the Bayes error (asserted as a THEOREM).
+    (A reader that fell back to a UNIFORM guess instead would discard the query's own bits: its residual would
+    rise to log2 K and the identity I = H(A|Q) - H(A|Q,D) would no longer equal recall*I_0.)
 
   MOVEMENT 2 — precision = substitution. `bsc_capacity(p) = 1 - H_b(p)`. The same-sector distractor drives
     realized error 0 -> 1 while H(A|Q,D) stays flat-low; the confident-wrong gap = realized - Bayes widens.
@@ -188,56 +196,83 @@ def _clean_channel_terms(corpus: dict, tau: float = TAU, tau_doc: float = TAU_DO
     """Average over queries the clean (recall = 1) single-document channel quantities:
       H_cond0 = E_q E_{d|q}[ H(post_d) ]   — the residual entropy that goes in Fano,
       bayes0  = E_q E_{d|q}[ 1 - max post_d ] — the clean MAP error,
+    and the ERASED (query-only) quantities the Bayesian reader falls back to:
+      erase_bayes = E_q[ 1 - max p(a|q) ]   — the MAP error of the query-only prior,
     and read I_0 (the delivered bits) and H(A|Q) straight from the IMPORTED three-way MI breakdown. H_cond0
     must equal the breakdown's H_A_given_QD bit-for-bit (the collapse anchor)."""
     n = corpus["n_docs"]
-    hc, bz = [], []
+    hc, bz, eb = [], [], []
     for qi in range(corpus["n_queries"]):
         qd = query_distributions(corpus, qi, tau, tau_doc)
         pdq, post = qd["pdq"], qd["post"]
         hc.append(sum(pdq[d] * entropy(post[d]) for d in range(n)))
         bz.append(sum(pdq[d] * float(1.0 - post[d].max()) for d in range(n)))
+        eb.append(bayes_error(qd["prior"]))
     br = cond_mi_breakdown(corpus, tau, tau_doc)
     return {
         "H_cond0": float(np.mean(hc)),
         "bayes0": float(np.mean(bz)),
+        "erase_bayes": float(np.mean(eb)),
         "I0": float(br["entropy_reduction"]),
         "H_A_given_Q": float(br["H_A_given_Q"]),
         "H_A_given_QD": float(br["H_A_given_QD"]),
     }
 
 
+def erasure_channel_mi(corpus: dict, recall: float, tau: float = TAU, tau_doc: float = TAU_DOC) -> dict:
+    """Build the erasure channel EXPLICITLY and measure it — no blend formula. Per query, the channel output
+    D' ranges over the n documents (each with probability recall * p(d|q)) plus an erasure mark "?" (with
+    probability 1 - recall). The reader's posterior after "?" is the Bayes posterior — the mixture
+    sum_d p(d|q) post_d, computed here, not assumed — and the delivered information is
+        I(A;D'|Q=q) = sum_{d'} p(d'|q) KL( post_{d'} || prior_q ),
+    with the residual H(A|Q,D') = sum_{d'} p(d'|q) H(post_{d'}). Returns the query averages and the largest
+    gap between the erased-branch posterior and the prior (zero: the Bayesian reader falls back to p(a|q))."""
+    n = corpus["n_docs"]
+    r = float(recall)
+    mi, hc, gap = [], [], 0.0
+    for qi in range(corpus["n_queries"]):
+        qd = query_distributions(corpus, qi, tau, tau_doc)
+        pdq, post, prior = qd["pdq"], qd["post"], qd["prior"]
+        erased = (pdq[:, None] * post).sum(axis=0)
+        erased = erased / erased.sum()
+        gap = max(gap, float(np.abs(erased - prior).max()))
+        mi.append(sum(r * pdq[d] * kl(post[d], prior) for d in range(n)) + (1.0 - r) * kl(erased, prior))
+        hc.append(sum(r * pdq[d] * entropy(post[d]) for d in range(n)) + (1.0 - r) * entropy(erased))
+    return {"I": float(np.mean(mi)), "H_cond": float(np.mean(hc)), "erased_vs_prior": gap}
+
+
 def recall_sweep(corpus: dict, recalls=tuple(RECALL_GRID),
                  tau: float = TAU, tau_doc: float = TAU_DOC) -> dict:
     """The recall = erasure sweep. With probability `recall` the generator reads the retrieved context; with
-    probability 1 - recall the context is erased to the uniform belief (no document, no knowledge). Because the
-    erased symbol is independent of the answer given the query, the channel is a Binary Erasure Channel and
-    every quantity is a CONVEX BLEND of the clean value and the erased value:
+    probability 1 - recall the context is erased and the generator — a Bayesian reader — falls back to its
+    query-only belief p(a|q). Because the erasure is independent of the answer given the query, the channel is
+    a Binary Erasure Channel and every quantity is a CONVEX BLEND of the clean value and the erased value:
 
-        I_eps    = recall * I_0                                        (BEC capacity * the clean bits)
-        H(A|Q,D) = recall * H_cond0 + (1 - recall) * log2(K)          (rises toward log2 K)
-        bayes    = recall * bayes0  + (1 - recall) * (1 - 1/K)        (rises toward the uniform-guess error)
+        H(A|Q,D) = recall * H_cond0 + (1 - recall) * H(A|Q)          (rises toward H(A|Q) = 2.06)
+        bayes    = recall * bayes0  + (1 - recall) * erase_bayes      (rises toward the prior's MAP error)
+        I_eps    = H(A|Q) - H(A|Q,D) = recall * I_0                   (BEC capacity * the clean bits)
 
-    The Fano floor on H(A|Q,D) bounds the Bayes error at every recall (the theorem)."""
+    `I` is computed from the identity (left-hand side), and `test_bec_capacity_linear` checks it against both
+    recall * I_0 and the explicitly built channel (`erasure_channel_mi`). The Fano floor on H(A|Q,D) bounds
+    the Bayes error at every recall (the theorem)."""
     t = _clean_channel_terms(corpus, tau, tau_doc)
     K = corpus["K"]
-    unif_H = math.log2(K)
-    unif_bayes = 1.0 - 1.0 / K
     rows = []
     for r in recalls:
         r = float(r)
-        h_cond = r * t["H_cond0"] + (1.0 - r) * unif_H
-        bz = r * t["bayes0"] + (1.0 - r) * unif_bayes
-        i_eps = r * t["I0"]
+        h_cond = r * t["H_cond0"] + (1.0 - r) * t["H_A_given_Q"]
+        bz = r * t["bayes0"] + (1.0 - r) * t["erase_bayes"]
         rows.append({
             "recall": r,
-            "I": i_eps,
+            "I": t["H_A_given_Q"] - h_cond,
             "H_cond": h_cond,
             "bayes": bz,
             "fano_loose": fano_floor_loose(h_cond, K),
             "fano_tight": fano_floor_tight(h_cond, K),
         })
-    return {"rows": rows, **t, "unif_H": unif_H, "unif_bayes": unif_bayes, "K": int(K)}
+    # the recall at which the residual crosses 1 bit (the loose floor's activation), closed form
+    activate = (t["H_A_given_Q"] - 1.0) / (t["H_A_given_Q"] - t["H_cond0"])
+    return {"rows": rows, **t, "activate_recall": float(activate), "K": int(K)}
 
 
 # =========================================================================== #
@@ -332,7 +367,7 @@ def precision_entropy_frontier(corpus: dict, ks=tuple(K_GRID),
 # viz_constants — every number RetrieverAsNoisyChannelLaboratory.tsx mirrors to the decimal.
 # =========================================================================== #
 
-WORKED_Q = 5            # a representative query whose clean answer belief Panel A erodes toward uniform
+WORKED_Q = 5            # a representative query: Panel A erodes its gold-filing belief toward its query-only prior
 
 
 def viz_constants() -> None:
@@ -340,17 +375,21 @@ def viz_constants() -> None:
     rsw = recall_sweep(corpus)
     ssw = substitution_sweep(corpus)
     fr = precision_entropy_frontier(corpus)
-    worked = query_distributions(corpus, WORKED_Q)["prior"]   # the RAG marginal answer belief, clean channel
+    wqd = query_distributions(corpus, WORKED_Q)
+    worked = wqd["prior"]                                     # the query-only belief p(a|q) the erased reader keeps
+    worked_gold = wqd["post"][int(corpus["truth"][WORKED_Q])] # the belief after reading the gold filing (recall 1)
 
     print("\n=== shared constants (TS recomputes capacities / Fano floors closed-form) ===")
     print(f"K = {corpus['K']}  N_DOCS = {corpus['n_docs']}  N_QUERIES = {corpus['n_queries']}  "
           f"TAU = {TAU}  TAU_DOC = {TAU_DOC}")
     print(f"I0 = {round(rsw['I0'], 4)} bits   H_A_given_Q = {round(rsw['H_A_given_Q'], 4)}   "
           f"H_cond0 = {round(rsw['H_cond0'], 4)}   bayes0 = {round(rsw['bayes0'], 4)}")
-    print(f"LOG2K = {round(math.log2(corpus['K']), 4)}   UNIF_BAYES = {round(rsw['unif_bayes'], 4)}")
-    print(f"WORKED_Q = {WORKED_Q}   WORKED_BELIEF = {[round(float(v), 4) for v in worked]}")
+    print(f"LOG2K = {round(math.log2(corpus['K']), 4)}   ERASE_BAYES = {round(rsw['erase_bayes'], 4)}   "
+          f"ACTIVATE_RECALL = {round(rsw['activate_recall'], 4)}")
+    print(f"WORKED_Q = {WORKED_Q}   WORKED_PRIOR = {[round(float(v), 4) for v in worked]}")
+    print(f"           WORKED_GOLD_POST = {[round(float(v), 4) for v in worked_gold]}")
 
-    print("\n=== Panel A/B — recall = erasure sweep (BEC). Continuous TS: H=r*H_cond0+(1-r)*LOG2K, etc. ===")
+    print("\n=== Panel A/B — recall = erasure sweep (BEC). Continuous TS: H=r*H_cond0+(1-r)*H_A_given_Q, etc. ===")
     print("  RECALL_GRID = " + str([r["recall"] for r in rsw["rows"]]))
     print("  I_BITS      = " + str([round(r["I"], 4) for r in rsw["rows"]]))
     print("  H_COND      = " + str([round(r["H_cond"], 4) for r in rsw["rows"]]))
@@ -358,7 +397,7 @@ def viz_constants() -> None:
     print("  FANO_LOOSE  = " + str([round(r["fano_loose"], 4) for r in rsw["rows"]]))
     print("  FANO_TIGHT  = " + str([round(r["fano_tight"], 4) for r in rsw["rows"]]))
     cross = next((r["recall"] for r in rsw["rows"] if r["fano_loose"] > 0), None)
-    print(f"  FANO_ACTIVATES_AT_RECALL = {cross}  (first recall where H_cond crosses 1 bit)")
+    print(f"  FANO_ACTIVATES_AT_RECALL = {cross}  (first GRID recall past the 1-bit crossing; exact crossover = ACTIVATE_RECALL)")
 
     print("\n=== Panel C — precision = substitution sweep. Continuous TS blends gold/distractor means ===")
     print(f"  G_ERR = {round(ssw['g_err'], 4)}  D_ERR = {round(ssw['d_err'], 4)}  "
@@ -420,13 +459,24 @@ def test_entropy_identity() -> None:
 
 
 def test_bec_capacity_linear() -> None:
-    """ALWAYS-TRUE anchor: the delivered bits are EXACTLY recall * I_0 (the BEC reading of recall)."""
+    """ALWAYS-TRUE anchor (Theorem 1), checked three independent ways at every recall: (i) the identity
+    I = H(A|Q) - H(A|Q,D) computed from the swept residual, (ii) the erasure channel built explicitly and
+    measured as sum p(d') KL(post || prior), and (iii) recall * I_0. All three agree because the erased
+    reader's Bayes posterior IS the query-only prior — asserted, not assumed. A uniform-fallback reader breaks
+    the identity (its residual rises to log2 K), which is why the theorem names the Bayesian reader."""
     corpus = _corpus(RNC_SEED)
     rsw = recall_sweep(corpus)
-    I0 = rsw["I0"]
+    I0, HAQ = rsw["I0"], rsw["H_A_given_Q"]
     for r in rsw["rows"]:
-        assert abs(r["I"] - bec_capacity(r["recall"]) * I0) < 1e-12, r
+        direct = erasure_channel_mi(corpus, r["recall"])
+        assert direct["erased_vs_prior"] < 1e-12, direct
+        assert abs(direct["I"] - r["I"]) < 1e-9, (r, direct)
+        assert abs(direct["H_cond"] - r["H_cond"]) < 1e-9, (r, direct)
+        assert abs(r["I"] - bec_capacity(r["recall"]) * I0) < 1e-9, r
     assert bec_capacity(1.0) == 1.0 and bec_capacity(0.0) == 0.0
+    # contrast: a uniform-guess fallback discards the query's own bits, so the identity no longer gives r * I0
+    h_unif = 0.75 * rsw["H_cond0"] + 0.25 * math.log2(corpus["K"])
+    assert abs((HAQ - h_unif) - 0.75 * I0) > 0.2
 
 
 def test_capacity_and_fano_definitions() -> None:
