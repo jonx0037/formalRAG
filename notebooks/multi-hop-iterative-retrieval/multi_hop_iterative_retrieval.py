@@ -10,7 +10,8 @@ Four movements, the fourth the conceptual climax:
 
   1. THE COMPOSITIONAL GAP. A 2-hop question -- "the revenue of the company that acquired Company A's primary
      supplier" -- hides its answer in a document UNREACHABLE in one retrieval. On the embedding sphere the
-     answer filing is near-orthogonal to the query (cosine ~ 0) yet a short reformulation away through a
+     answer filing sits below the edge threshold from the query (cosine near 0; -0.19..0.19 across the
+     compositional chains) yet a short reformulation away through a
      BRIDGE filing that names the supplier. We model the bridge as a "mention": A's filing sits mostly along
      A's direction but carries a sin(alpha) component toward the company B it names,
      f_A = cos(alpha) u_A + sin(alpha) u_B. The reformulation operator q' = normalize(d - <d,q> q) extracts
@@ -22,14 +23,15 @@ Four movements, the fourth the conceptual climax:
      greedy hop maximizes expected marginal information; the optimal policy is a Bellman fixed point we name
      but do not solve (intractable over the belief simplex).
   3. COMPOUNDING RECALL. End-to-end success is the PRODUCT of per-hop recalls (geometric decay), so to hold a
-     target rho each hop must over-retrieve to rho^(1/k); positive dependence between hops makes the
+     target rho each hop must reach rho^(1/k) (the composite over-fetch is then 1/rho); positive dependence between hops makes the
      independent product a CONSERVATIVE LOWER bound (FKG/Harris). We REUSE the capstone's cascade machinery
      (cascade_recall, over_fetch_factor, dependence_sweep) so the law is the same one, applied over hops.
   4. WHY GREEDY CANNOT SHORTCUT: THE SUPERMODULAR SYNERGY (the climax). Information gain is NOT submodular,
      and the compositional question is its SUPERMODULAR case -- the bridge alone says nothing about the
      answer, the answer document alone cannot be recognized as relevant, yet together they resolve it: the
-     exact XOR witness context-selection used. We REUSE info_gain_xor_witness for the clean general proof,
-     and DEMONSTRATE the operational consequence the corpus genuinely exhibits: single-shot selection on the
+     exact XOR witness context-selection used. We REUSE info_gain_xor_witness as the clean CONSTRUCTED
+     counterexample (its 0 and 1 bits are exact for the XOR joint, not measured on this corpus), MEASURE the
+     same increasing-marginal direction on the corpus (corpus_synergy_marginals), and DEMONSTRATE the operational consequence the corpus genuinely exhibits: single-shot selection on the
      query-reachable pool cannot reach the answer (it is below the edge threshold), so only reformulating
      from the bridge harvests the synergy.
 
@@ -178,11 +180,14 @@ def multihop_retrieve(corpus: dict, chain_idx: int, max_hops: int = MAX_HOPS,
     KL(b_t || b_{t-1}) and entropy, then computes the reformulation residual ||d - <d,q>q||. That residual is
     the NEW direction the filing opens -- the expected information of the next hop. The stopping rule (an SPRT
     / optimal-stopping analogue, named in prose) continues while the residual clears `reform_eps` and stops
-    when it collapses (a terminal answer filing names no one new).
+    when it drops below it (a terminal answer filing names no one new; terminal residuals here are 0.05-0.43,
+    not ~0).
 
-    A myopic belief-movement rule would stop at the low-movement BRIDGE hop -- exactly the supermodular trap
-    the climax is about; the reported `kl_moves` show that non-monotonicity, while stopping tracks new-entity
-    discovery. Returns {read_ids, beliefs (incl. the query-only prior), kl_moves, entropies, mass_on_truth,
+    A myopic belief-movement rule would stop at the low-movement FIRST bridge hop -- exactly the supermodular
+    trap the climax is about; the reported `kl_moves` show that non-monotonicity (on a 3-hop chain the SECOND
+    bridge moves the belief a lot, but onto the intermediate company, not the truth), while stopping tracks
+    new-entity discovery. Note the belief ENTROPY reduction has the opposite profile to the KL movement: it is
+    largest at the first bridge (sharpening onto the query's own company) and small at the answer hop. Returns {read_ids, beliefs (incl. the query-only prior), kl_moves, entropies, mass_on_truth,
     resid_norms, hops_taken, reached_answer, queries, truth, answer_ids}."""
     passages = corpus["passages"]
     protos = corpus["protos"]
@@ -442,7 +447,10 @@ def greedy_hop_select(corpus: dict, q: np.ndarray, k: int = K_RETRIEVE,
                       tau_hop: float = TAU_HOP, tau: float = TAU_ANS) -> dict:
     """★ The per-hop retrieve-AND-select operator -- this is the prereq's step, made the transition of a
     search. From the tau_hop-REACHABLE pool, select k passages by greedily maximizing the IMPORTED
-    info_gain_fn with the IMPORTED greedy_select (the same submodular maximizer context-selection certified).
+    info_gain_fn with the IMPORTED greedy_select -- the greedy routine context-selection certified for its
+    monotone submodular COVERAGE objective. info_gain_fn is a per-query plug-in entropy-drop proxy that is
+    neither monotone (corpus_synergy_marginals: f({answer}) < 0 = f(empty)) nor submodular, so no (1 - 1/e)
+    guarantee carries over to this step.
     Returns {"selected": global passage ids, "pool_ids": the reachable pool, "local": pool-local indices}."""
     pool_ids = reachable_pool(corpus, q, tau_hop)
     if not pool_ids:
@@ -454,15 +462,36 @@ def greedy_hop_select(corpus: dict, q: np.ndarray, k: int = K_RETRIEVE,
     return {"selected": [pool_ids[i] for i in sel], "pool_ids": pool_ids, "local": sel}
 
 
+def corpus_synergy_marginals(corpus: dict, tau: float = TAU_ANS) -> dict:
+    """The XOR witness's 0 -> 1 bits are CONSTRUCTED (exact for the XOR joint), not measured here. This MEASURES
+    the same marginal on the corpus: on the worked 2-hop chain, the IMPORTED info_gain_fn's marginal value of the
+    answer passage the loop reads, alone vs. given the bridge passage it read first. Both are negative (read
+    against a query about A, the answer filing alone only blurs the belief -- so the proxy is NOT monotone),
+    but the marginal still INCREASES
+    with conditioning -- the same non-submodular direction, not the clean 0 -> 1."""
+    ci = worked_chain(corpus, 2)
+    traj = multihop_retrieve(corpus, ci)
+    bridge_id, answer_id = traj["read_ids"][0], traj["read_ids"][-1]
+    pool = {"vecs": corpus["passages"][[bridge_id, answer_id]]}
+    f = info_gain_fn({"protos": corpus["protos"]}, pool, corpus["q"][ci], tau)
+    d_empty = f([1])
+    d_given_bridge = f([0, 1]) - f([0])
+    return {"delta_empty": float(d_empty), "delta_given_bridge": float(d_given_bridge),
+            "increase": float(d_given_bridge - d_empty)}
+
+
 def worked_chain(corpus: dict, n_hops: int) -> int:
     """The first chain of the requested depth -- the representative trajectory the viz bakes."""
     return next(i for i, ch in enumerate(corpus["chains"]) if ch["n_hops"] == n_hops)
 
 
 def geodesic_cosines(corpus: dict) -> dict:
-    """The three load-bearing cosines on a worked 2-hop chain's filing directions: query.bridge (= cos alpha,
-    retrievable), query.answer (~ 0, the gap), bridge.answer (= sin alpha, the mention), and
-    reformulate(query, bridge).answer (~ 1, reached). All on the FILING DIRECTIONS (exact), not noisy draws."""
+    """The three load-bearing cosines on a worked 2-hop chain's filing directions: query.bridge (~ cos alpha,
+    retrievable), query.answer (below tau, the gap), bridge.answer (~ sin alpha, the mention), and
+    reformulate(query, bridge).answer (~ 1, reached). All on the FILING DIRECTIONS (exact), not noisy draws.
+    The two "~" are not equalities: the companies are not exactly orthogonal (query.answer = 0.193 on this
+    chain, the largest of the 10 compositional chains), which lifts query.bridge to 0.816 (cos 40 = 0.766) and
+    bridge.answer to 0.725 (sin 40 = 0.643) after the bridge direction is renormalized."""
     ci = worked_chain(corpus, 2)
     ch = corpus["chains"][ci]
     protos = corpus["protos"]
@@ -572,24 +601,31 @@ def test_fkg_lower_bound() -> None:
 
 
 def test_supermodular_synergy() -> None:
-    """THE CLIMAX. (a) The IMPORTED XOR witness proves information gain is supermodular in general: the
-    marginal of D2 INCREASES with conditioning (0 alone, 1 given D1). (b) The OPERATIONAL consequence the
-    corpus exhibits: the answer is NEVER in the single-hop reachable pool, so single-shot selection cannot
-    pick it; only reformulating from the bridge reaches it. (c) The trajectory signature: on a worked
-    compositional chain the bridge hop barely moves the belief while the decisive answer hop moves it
-    enormously -- the decisive evidence comes LAST (anti-diminishing), so a myopic belief-movement stop
-    would halt at the worthless-looking bridge."""
+    """THE CLIMAX. (a) The IMPORTED XOR witness -- a CONSTRUCTED counterexample, its bits exact for the XOR
+    joint -- shows information gain is NOT submodular in general: on that witness the marginal of D2
+    INCREASES with conditioning (0 alone, 1 given D1). One witness shows only not-submodular, not
+    supermodular-in-general. (a') MEASURED on the corpus: the answer passage's info-gain marginal also rises
+    once the bridge is read (corpus_synergy_marginals). (b) The OPERATIONAL consequence the corpus exhibits:
+    the answer is NEVER in the single-hop reachable pool, so single-shot selection cannot pick it; only
+    reformulating from the bridge reaches it. (c) The trajectory signature: on a worked compositional chain
+    the FIRST bridge hop barely moves the belief while the answer hop moves it enormously, and the mass on the
+    truth stays ~0 until the answer hop -- so a myopic belief-movement stop would halt at the
+    worthless-looking first bridge. (On a 3-hop chain the SECOND bridge also moves the belief a lot, but onto
+    the intermediate company, which is why (c) checks mass on the truth, not KL monotonicity.)"""
     xor = info_gain_xor_witness()
-    assert xor["violation"] > 0.5, "XOR: info gain is supermodular (marginal increases with conditioning)"
+    assert xor["violation"] > 0.5, "XOR witness: the marginal increases with conditioning (not submodular)"
+    cs = corpus_synergy_marginals(_corpus())
+    assert cs["delta_given_bridge"] > cs["delta_empty"] + 0.1, \
+        "measured: the answer passage's marginal rises once the bridge is read"
     sc = singleshot_cannot_reach(_corpus())
     assert sc["answer_in_single_pool"] == 0.0, "single-shot cannot reach the compositional answer"
     assert sc["answer_in_reformulated_pool_2hop"] > 0.95, "one reformulation reaches the 2-hop answer"
     for n in (2, 3):
         traj = multihop_retrieve(_corpus(), worked_chain(_corpus(), n))
         km = traj["kl_moves"]
-        assert km[-1] > 5.0 * km[0], "the decisive belief shift is the LAST hop, not the bridge (supermodular)"
-        assert traj["mass_on_truth"][0] < 0.05 and traj["mass_on_truth"][-1] > 0.8, \
-            "belief starts off the answer and ends on it"
+        assert km[-1] > 5.0 * km[0], "the answer hop moves the belief far more than the FIRST bridge hop"
+        assert max(traj["mass_on_truth"][:-1]) < 0.05 and traj["mass_on_truth"][-1] > 0.8, \
+            "mass on the truth stays ~0 through every bridge hop and lands on it only at the answer hop"
 
 
 def test_info_gain_not_submodular_on_pool() -> None:
@@ -625,6 +661,13 @@ def test_entropy_telescopes() -> None:
     H = traj["entropies"]
     drops = [H[t] - H[t + 1] for t in range(len(H) - 1)]
     assert abs(sum(drops) - (H[0] - H[-1])) < 1e-9, "entropy reductions must telescope"
+    # Entropy reduction (Delta I) and belief movement (KL) are DIFFERENT signals with OPPOSITE profiles: on the
+    # worked 2-hop chain the bridge removes the most entropy (sharpening onto the query's own company, the wrong
+    # one) while the answer hop removes little (one sharp belief swapped for another) yet moves the belief most.
+    t2 = multihop_retrieve(c, worked_chain(c, 2))
+    H2 = t2["entropies"]
+    assert (H2[0] - H2[1]) > (H2[1] - H2[2]) and t2["kl_moves"][1] > t2["kl_moves"][0], \
+        "Delta I is largest at the bridge; KL movement is largest at the answer hop"
 
 
 def test_guards() -> None:
@@ -680,9 +723,9 @@ def viz_constants() -> None:
     print(f"const K_RETRIEVE = {K_RETRIEVE};")
     print(f"const REFORM_EPS = {r3(REFORM_EPS)};")
     # Panel A: the compositional gap (cosines + recall)
-    print(f"const Q_DOT_BRIDGE = {r3(g['q_dot_bridge'])};        // = cos(alpha): the bridge is retrievable")
-    print(f"const Q_DOT_ANSWER = {r3(g['q_dot_answer'])};        // ~ 0: the answer is near-orthogonal")
-    print(f"const BRIDGE_DOT_ANSWER = {r3(g['bridge_dot_answer'])};   // = sin(alpha): the mention")
+    print(f"const Q_DOT_BRIDGE = {r3(g['q_dot_bridge'])};        // ~ cos(alpha), lifted by q.answer != 0: retrievable")
+    print(f"const Q_DOT_ANSWER = {r3(g['q_dot_answer'])};        // below tau (largest of the 10 compositional chains)")
+    print(f"const BRIDGE_DOT_ANSWER = {r3(g['bridge_dot_answer'])};   // ~ sin(alpha), lifted likewise: the mention")
     print(f"const REFORMULATED_DOT_ANSWER = {r3(g['reformulated_dot_answer'])};  // ~ 1: reformulation reaches it")
     print(f"const RECALL_SINGLE_HOP = {r3(rs['comp_single'])};   // single-hop answer recall (compositional)")
     print(f"const RECALL_MULTI_HOP = {r3(rs['comp_multi'])};     // multi-hop answer recall")
@@ -696,18 +739,23 @@ def viz_constants() -> None:
     print(f"const GEOMETRIC_DECAY = {[r3(0.7 ** h) for h in range(1, 5)]};   // r=0.7: r, r^2, r^3, r^4")
     print(f"const PER_HOP_RECALL_MEASURED = {[r3(x) for x in per_hop_recall(c)]};   // ~1: the clean-corpus caveat")
     print(f"const FKG_SWEEP = {[{'rho': r3(r['rho']), 'Rtrue': r3(r['R_true']), 'Rindep': r3(r['R_indep']), 'gap': r3(r['gap'])} for r in sweep]};")
-    # Panel C: the worked 3-hop trajectory + adaptive stopping
-    print(f"const TRAJ3_KL_MOVES = {[r3(x) for x in t3['kl_moves']]};        // bridge hops small, answer hop large")
-    print(f"const TRAJ3_RESID = {[r3(x) for x in t3['resid_norms']]};        // > REFORM_EPS until the terminal hop")
-    print(f"const TRAJ3_ENTROPY = {[r3(x) for x in t3['entropies']]};")
-    print(f"const TRAJ3_MASS_ON_TRUTH = {[r3(x) for x in t3['mass_on_truth']]};  // ~0 until the answer hop")
-    print(f"const TRAJ2_KL_MOVES = {[r3(x) for x in t2['kl_moves']]};")
+    # Panel C: the worked 2-hop trajectory (bars AND readouts from this one chain) + adaptive stopping
+    print(f"const TRAJ2_RESID = {[r3(x) for x in t2['resid_norms']]};        // bridge > REFORM_EPS, answer below")
+    print(f"const TRAJ2_KL_MOVES = {[r3(x) for x in t2['kl_moves']]};        // bridge small, answer hop large")
+    print(f"const TRAJ2_ENTROPY = {[r3(x) for x in t2['entropies']]};        // Delta I largest at the BRIDGE")
     print(f"const TRAJ2_MASS_ON_TRUTH = {[r3(x) for x in t2['mass_on_truth']]};")
+    # (reference only, not mirrored) the worked 3-hop chain: the SECOND bridge moves the belief a lot, onto the
+    # intermediate company -- only the FIRST bridge is quiet; mass on the truth stays ~0 until the answer hop
+    print(f"// TRAJ3_KL_MOVES = {[r3(x) for x in t3['kl_moves']]};  TRAJ3_RESID = {[r3(x) for x in t3['resid_norms']]}")
+    print(f"// TRAJ3_ENTROPY = {[r3(x) for x in t3['entropies']]};  TRAJ3_MASS_ON_TRUTH = {[r3(x) for x in t3['mass_on_truth']]}")
     print("const HOPS_BY_CLASS = {one: 1, two: 2, three: 3};   // adaptive hop count = chain depth")
     # Panel D: the supermodular synergy
-    print(f"const XOR_DELTA_EMPTY = {r3(xor['delta_empty'])};       // bits the answer adds alone: 0")
-    print(f"const XOR_DELTA_GIVEN_BRIDGE = {r3(xor['delta_given_d1'])};   // bits given the bridge: 1")
-    print(f"const XOR_VIOLATION = {r3(xor['violation'])};         // > 0: supermodular, NOT submodular")
+    cs = corpus_synergy_marginals(c)
+    print(f"const XOR_DELTA_EMPTY = {r3(xor['delta_empty'])};       // CONSTRUCTED XOR witness: bits alone, 0")
+    print(f"const XOR_DELTA_GIVEN_BRIDGE = {r3(xor['delta_given_d1'])};   // CONSTRUCTED XOR witness: bits given D1, 1")
+    print(f"const XOR_VIOLATION = {r3(xor['violation'])};         // > 0 on the witness: NOT submodular")
+    print(f"const CORPUS_DELTA_EMPTY = {r3(cs['delta_empty'])};   // MEASURED: answer passage's info-gain marginal alone")
+    print(f"const CORPUS_DELTA_GIVEN_BRIDGE = {r3(cs['delta_given_bridge'])};   // MEASURED: ... given the bridge (rises)")
     print(f"const ANSWER_IN_SINGLE_POOL = {r3(sc['answer_in_single_pool'])};   // 0: single-shot cannot reach")
     print(f"const ANSWER_IN_REFORM_POOL = {r3(sc['answer_in_reformulated_pool_2hop'])};   // 1: one reformulation reaches it")
     print(f"const BRIDGE_KL = {r3(t2['kl_moves'][0])};   // the bridge hop's belief movement (tiny)")

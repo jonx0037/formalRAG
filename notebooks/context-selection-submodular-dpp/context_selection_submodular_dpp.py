@@ -175,8 +175,9 @@ def greedy_select(value_fn, n: int, k: int, *, lazy: bool = False) -> dict:
         n          ground-set size; candidates are range(n).
         k          budget.
         lazy       Minoux lazy-greedy (a max-heap of stale upper-bound gains); on a submodular f it returns
-                   the IDENTICAL `selected` to the standard loop with far fewer oracle calls (the speedup
-                   anchor). Ties break to the smaller index in BOTH paths.
+                   the IDENTICAL `selected` to the standard loop with fewer oracle calls (on these 9-passage
+                   pools the saving is modest -- 21 vs 24 calls at k = 3 on the worked pool; Minoux's large-pool
+                   speedups are cited, not demonstrated). Ties break to the smaller index in BOTH paths.
     Returns {"selected": list[int] (pick order), "gains": list[float], "values": list[float] (running f)}.
     GUARDS: k = min(max(k, 0), n); k <= 0 or n == 0 -> empty trace.
     """
@@ -344,7 +345,8 @@ def selection_corpus(seed: int = CSEL_SEED, n_sectors: int = N_SECTORS, qpc: int
 
     Pool composition per query (gold company A, confusable peer B in the same sector s):
       - `n_generic` near-duplicates around the SECTOR MEAN -- ambiguous (they support A and B about equally)
-        but the HIGHEST query relevance, so top-k spends its whole budget here.
+        but the HIGHEST query relevance, so top-k spends its whole budget here (on 15 of the 16 pools; on
+        pool 0 the disambiguator ranks 3rd and top-k reaches it).
       - one A-SPECIFIC passage near proto[A] -- the disambiguator: LOWER query relevance (so top-k skips it),
         but it is the only passage that resolves the answer to A.
       - `n_distract` other-sector passages -- clearly low relevance, near-neutral on the A-vs-B answer.
@@ -562,7 +564,8 @@ def nwf_worst_case() -> dict:
     happens to reach OPT). Three candidate sets over 12 facets:
         A = {0..5},  B = {0,1,2,6,7,8},  C = {3,4,5,9,10,11}.
     Greedy grabs the biggest set A (covers 6), then B or C for 9; OPT = B u C = 12. At k = 2 greedy/OPT =
-    9/12 = 0.75 -- below OPT, comfortably above the 0.632 floor. Returns greedy/opt/floor/ratio over k = 1..3."""
+    9/12 = 0.75 -- below OPT, above the 0.632 floor, and EXACTLY on Theorem 2's k-dependent bound
+    1 - (1 - 1/2)^2 = 0.75 (the instance is tight at k = 2). Returns greedy/opt/floor/ratio over k = 1..3."""
     u = 12
     sets = {0: {0, 1, 2, 3, 4, 5}, 1: {0, 1, 2, 6, 7, 8}, 2: {3, 4, 5, 9, 10, 11}}
     n = len(sets)
@@ -612,9 +615,13 @@ def submodularity_witness(value_fn, n: int, trials: int = 400, seed: int = 0) ->
 
 
 def info_gain_fn(corpus: dict, pool: dict, q: np.ndarray, tau: float = PAYOFF_TAU):
-    """An answer-side value oracle: f_IG(S) = H(answer | q) - H(answer | q, S), the bits the selected set
-    removes from the answer, built on the IMPORTED answer_posterior_topk. Used to SHOW info-gain
-    submodularity holds empirically here -- though it is not guaranteed in general (see the XOR witness)."""
+    """A per-query PLUG-IN PROXY for answer-information gain: f(S) = H(prior_q) - H(post_q(S)), the drop in
+    THIS query's answer-posterior entropy when the IMPORTED answer_posterior_topk reads S under EQUAL
+    attention weights 1/|S|. It is NOT the mutual information I(A; D_S | Q) (no expectation over answers),
+    and it is NOT monotone: a low-relevance distractor lowers it (distractor singletons here are about -0.58
+    to -0.72), and on the worked pool f({5}) ~ 1.20 falls to f({5,7}) ~ 0.60. It also violates submodularity
+    (witness ~ -0.70 / -0.71 on pools 0 / 4), but via equal-attention DILUTION -- the same distractor costs
+    less when diluted among more passages -- not via XOR-style synergy (see info_gain_xor_witness for that)."""
     protos = corpus["protos"]
     # prior = the query-only answer distribution (empty context): softmax(<q, protos>/tau)
     prior = _softmax((q @ protos.T) / tau)
@@ -776,16 +783,20 @@ def test_marginal_gains_diminish() -> None:
 
 
 def test_info_gain_not_submodular() -> None:
-    """The honesty hinge: info gain I(A; D_S | Q) is the objective we WANT, but it is NOT submodular -- not
-    even on this finance corpus (the witness goes clearly negative, while facility location's is ~0), and
-    provably not in general (the constructed XOR makes the marginal gain INCREASE with conditioning). This is
+    """The honesty hinge: info gain I(A; D_S | Q) is the objective we WANT, but it is NOT submodular in general
+    (the constructed XOR makes the marginal gain INCREASE with conditioning). On this finance corpus the
+    per-query plug-in proxy `info_gain_fn` fails too (witness clearly negative, facility location's ~0) -- but
+    that proxy is not monotone and its violation comes from equal-attention dilution, not synergy. This is
     exactly why facility-location coverage, not info gain, is the submodular backbone that earns NWF."""
     c = _corpus()
     pool = c["pools"][0]
     f_ig = info_gain_fn(c, pool, c["q"][0])
     n = len(pool["vecs"])
     assert submodularity_witness(_facility_fn(pool), n) >= -1e-9, "facility location IS submodular"
-    assert submodularity_witness(f_ig, n) < -0.05, "info gain must VIOLATE submodularity on this corpus"
+    assert submodularity_witness(f_ig, n) < -0.05, "the info-gain proxy must VIOLATE submodularity here"
+    # ... and the proxy is not even monotone (equal-attention dilution): adding a distractor lowers it.
+    a_idx = pool["a_specific"]
+    assert f_ig([a_idx, N_GENERIC + 2]) < f_ig([a_idx]) - 0.1, "the info-gain proxy is NOT monotone"
     xor = info_gain_xor_witness()
     assert xor["violation"] > 0.5, "XOR: info gain is supermodular (not submodular in general)"
 
@@ -814,7 +825,7 @@ def test_dpp_det_is_squared_volume() -> None:
     pool = _corpus()["pools"][0]
     F = pool["vecs"]
     S = sim_matrix(F)
-    sel = [0, N_GENERIC, N_GENERIC + 1]                  # a generic + the two specifics: a spread set
+    sel = [0, N_GENERIC, N_GENERIC + 1]                  # a generic, the disambiguator, a distractor: a spread set
     det_gram = np.linalg.det(S[np.ix_(sel, sel)])
     sv = np.linalg.svd(F[sel], compute_uv=False)
     vol_sq = float(np.prod(sv ** 2))
@@ -888,13 +899,21 @@ def test_payoff_winner_pinned() -> None:
     DPP selections put substantially more mass on the true company than top-k, and beat the relevance-leaning
     MMR heuristic. Top-k spends the budget on redundant generics; coverage/diversity reach the disambiguator.
 
-    Observed at PAYOFF_TAU=0.15: Q[topk]~0.38 < Q[mmr]~0.43 < Q[facility]~0.54 ~ Q[dpp]~0.55. (Entropy is NOT
-    the secondary axis here: diversity raises mass on truth while SPREADING it across more companies, so the
-    answer entropy actually rises -- the honest nuance reported in the prose, not asserted as a win.)"""
-    pay = selection_payoff(_corpus())
+    Observed at PAYOFF_TAU=0.15: Q[topk]~0.38 < Q[mmr]~0.44 < Q[facility]~0.54 ~ Q[dpp]~0.55 (facility/DPP
+    minus top-k = 0.160 / 0.167). MMR's middle place holds at lam = 0.5; at lam = 0.25 it falls BELOW top-k
+    (~0.34 vs 0.38). Entropy is NOT a robust secondary axis: at k = 3 facility/DPP happen to LOWER it
+    (~1.69 vs 1.77 bits for top-k) while MMR RAISES it (~1.80); at larger k the DPP's (from k = 4) and
+    facility's (from k = 6) rise above top-k's, as diversity spreads leftover mass across more companies."""
+    c = _corpus()
+    pay = selection_payoff(c)
     assert pay["dpp"]["Q"] > pay["topk"]["Q"] + 0.08, "DPP must clearly beat top-k on answer mass"
     assert pay["facility"]["Q"] > pay["topk"]["Q"] + 0.08, "facility-location must clearly beat top-k"
     assert pay["dpp"]["Q"] > pay["mmr"]["Q"] + 0.05, "the submodular/DPP methods beat the MMR heuristic"
+    assert pay["topk"]["Q"] < pay["mmr"]["Q"], "MMR sits above top-k at the default lam = 0.5"
+    assert selection_payoff(c, lam=0.25)["mmr"]["Q"] < pay["topk"]["Q"], "...but not at lam = 0.25"
+    # the k = 3 entropy pattern the prose reports (facility/DPP lower, MMR higher than top-k)
+    assert pay["facility"]["H"] < pay["topk"]["H"] and pay["dpp"]["H"] < pay["topk"]["H"]
+    assert pay["mmr"]["H"] > pay["topk"]["H"]
 
 
 def test_guards() -> None:
@@ -1004,7 +1023,7 @@ def viz_constants() -> None:
     fac_w = submodularity_witness(_facility_fn(pool), len(pool["vecs"]))
     ig_w = submodularity_witness(info_gain_fn(c, pool, q), len(pool["vecs"]))
     print(f"const FACILITY_WITNESS = {r4(fac_w)};   // >= 0: submodular")
-    print(f"const INFOGAIN_WITNESS = {r4(ig_w)};   // < 0: NOT submodular on this corpus")
+    print(f"const INFOGAIN_WITNESS = {r4(ig_w)};   // < 0: the per-query info-gain proxy is NOT submodular (dilution)")
     print(f"const XOR_DELTA_EMPTY = {r4(xor['delta_empty'])};")
     print(f"const XOR_DELTA_GIVEN_D1 = {r4(xor['delta_given_d1'])};")
 

@@ -5,7 +5,8 @@ import katex from 'katex';
  * Context-Selection Laboratory — four panels for the `context-selection-submodular-dpp` topic:
  *   A. Diminishing returns. Greedy facility-location coverage f(S_k) rises and FLATTENS; each pick's marginal
  *      gain shrinks — the discrete signature of submodularity, the saturation PMI measured in bits. An inset
- *      contrasts the submodular backbone (facility witness ≈ 0) with info gain (witness < 0: NOT submodular).
+ *      contrasts the submodular backbone (facility witness ≈ 0) with a per-query info-gain proxy (witness < 0:
+ *      NOT submodular — via equal-attention dilution; the XOR pair is the synergy counterexample).
  *   B. The greedy guarantee. On a constructed instance greedy is STRICTLY below OPT (a visible gap) yet never
  *      below the (1−1/e)·OPT floor — Nemhauser–Wolsey–Fisher. (On the smooth finance pool greedy reaches OPT.)
  *   C. Coverage vs diversity vs relevance (the geometry). The candidate pool in 2D, colored by facet; toggle
@@ -35,7 +36,7 @@ const ONE_MINUS_INV_E = 0.6321;      // the NWF floor
 // Panel A — greedy facility-location coverage on the worked pool (rising, concave). Δ recomputed in TS.
 const COVERAGE = [4.0343, 4.2642, 4.3644, 4.4541, 4.543, 4.6289, 4.6991, 4.7557, 4.7557];
 const FACILITY_WITNESS = -0.0;       // ≥ 0: facility location IS submodular
-const INFOGAIN_WITNESS = -0.7105;    // < 0: info gain is NOT submodular on this corpus
+const INFOGAIN_WITNESS = -0.7105;    // < 0: the per-query info-gain proxy is NOT submodular (dilution)
 const XOR_DELTA_EMPTY = 0.0;         // synergistic pair: gain of D2 alone
 const XOR_DELTA_GIVEN_D1 = 1.0;      // ... gain of D2 after D1 — INCREASES (supermodular)
 
@@ -184,9 +185,10 @@ function CoveragePanel({ k, setK }: { k: number; setK: (v: number) => void }) {
         Greedy coverage <span style={{ color: ACCENT }}>f(Sₖ)</span> rises and <strong>flattens</strong>: each pick's{' '}
         <span style={{ color: FACL }}>marginal gain Δₖ</span> is no larger than the one before — the diminishing returns that
         define a <strong>submodular</strong> set function, the same saturation PMI measured in bits. Facility-location coverage
-        is submodular (witness ≈ {fmt(FACILITY_WITNESS, 2)}); the answer-information gain we'd <em>like</em> to optimize is{' '}
-        <strong>not</strong> (witness {fmt(INFOGAIN_WITNESS, 2)} &lt; 0) — synergistic evidence breaks it — so coverage is the
-        clean backbone that earns a theorem. (The cleanest counterexample: a synergistic pair where each
+        is submodular (witness ≈ {fmt(FACILITY_WITNESS, 2)}); a per-query proxy for the answer-information gain we'd{' '}
+        <em>like</em> to optimize is <strong>not</strong> (witness {fmt(INFOGAIN_WITNESS, 2)} &lt; 0 — though that proxy isn't
+        even monotone, and equal-attention dilution, not synergy, drives it) — so coverage is the clean backbone that earns a
+        theorem. (Info gain fails in general too. The cleanest counterexample: a synergistic pair where each
         observation alone is worth {fmt(XOR_DELTA_EMPTY, 0)} bits yet together they are worth{' '}
         {fmt(XOR_DELTA_GIVEN_D1, 0)} bit — the marginal gain <em>increases</em> with conditioning, the opposite of
         diminishing returns.)
@@ -244,7 +246,8 @@ function GuaranteePanel({ k, setK }: { k: number; setK: (v: number) => void }) {
         Greedy maximization of a monotone submodular objective is guaranteed to return at least{' '}
         <span style={{ color: DPPC }}>(1−1/e) ≈ 0.632</span> of the optimum (Nemhauser–Wolsey–Fisher). At{' '}
         <strong>k = 2</strong> here greedy grabs the biggest set first and falls to <span style={{ color: ACCENT }}>9</span> of
-        the optimal <span style={{ color: FACL }}>12</span> — a real gap, but comfortably above the floor. The bound is a{' '}
+        the optimal <span style={{ color: FACL }}>12</span> — a real gap, above the 0.632 floor and exactly on the sharper k = 2
+        bound 1 − (1 − ½)² = 0.75, so the instance is tight. The bound is a{' '}
         worst-case promise; on the smooth finance pool greedy actually <em>reaches</em> OPT.
       </p>
     </div>
@@ -377,7 +380,7 @@ function PayoffPanel({ k, setK }: { k: number; setK: (v: number) => void }) {
         (k = {K_SELECT}: {fmt(PAYOFF.dpp.Q, 2)} vs {fmt(PAYOFF.topk.Q, 2)}), the realistic budget regime. Top-k burns the
         budget on redundant generics; coverage and diversity buy the disambiguating evidence. <span style={{ color: MMRC }}>MMR</span>{' '}
         helps a little, but it is a heuristic with no guarantee. The gap closes only once k is large enough to read nearly
-        everything — by which point you have paid the long-context cost the previous topic warned about.
+        everything — by which point you have paid the long-context cost the retrieval-vs-long-context topic warned about.
       </p>
     </div>
   );

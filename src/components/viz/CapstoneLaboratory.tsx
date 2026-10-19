@@ -12,7 +12,7 @@ import katex from 'katex';
  *   C. Budget water-filling. The three legs' concave retention-vs-cost curves; a budget slider pours a
  *      fixed compute budget across them, equalizing the marginal log-recall (the water level) and
  *      beating uniform and all-in-one allocation.
- *   D. Storage + collapse. Single-vector vs raw multi-vector (32×) vs PLAID (~1×), and the one exact
+ *   D. Storage + collapse. Single-vector vs raw multi-vector (32×) vs PLAID (~1.1×), and the one exact
  *      statement: a full-budget pipeline recovers brute-force retrieval (recall 1.0).
  *
  * VIZ <-> PYTHON INVARIANT (CLAUDE.md): STAGE_RET, CASCADE_PRODUCT, DEP, OVERFETCH, PER_LEG, FUSED,
@@ -44,7 +44,7 @@ const FUSED = 0.58, FUSION_GAIN = 0.0325;
 // de-correlation sweep: [frac, mean Kendall-tau, global fusion gain]
 const DECORR = [[0.0, 0.0, 0.0], [0.25, 905.5, 0.01], [0.5, 1777.7, 0.03], [0.75, 2374.9, 0.03], [1.0, 2586.6, 0.03]];
 // the dominated-leg flip: a false positive co-endorsed by both legs (recompute RRF in TS).
-const FLIP_STRONG = ['r1', 'r2', 'r3', 'x1', 'x2'];   // strong leg: relevant first, then co-endorses x1
+const FLIP_STRONG = ['r1', 'r2', 'r3', 'x1', 'x2'];   // strong leg: relevant first, then co-endorses x1 (and x2)
 const FLIP_NOISY = ['x1', 'x2', 'r1', 'r2', 'r3'];    // noisy leg: junk on top, r3 buried
 const FLIP_RELEVANT = ['r1', 'r2', 'r3'];
 const RRF_C = 60;
@@ -261,18 +261,19 @@ function FusionPanel({ fracIdx, setFracIdx, showFlip, setShowFlip }: {
               <line x1={130 + barMax * bestLeg} y1={4} x2={130 + barMax * bestLeg} y2={130} stroke={MUTED} strokeWidth={1} strokeDasharray="3 3" />
             </g>
           </svg>
-          <Slider label="leg de-correlation" value={fracIdx} min={0} max={DECORR.length - 1} step={1} onChange={setFracIdx} display={`Kendall-τ ≈ ${tau.toFixed(0)}`} />
+          <Slider label="leg de-correlation" value={fracIdx} min={0} max={DECORR.length - 1} step={1} onChange={setFracIdx} display={`Kendall-τ distance ≈ ${tau.toFixed(0)} discordant pairs`} />
           <div style={{ display: 'flex', gap: '1.4rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-            <Readout label="best single leg" value={fmt(bestLeg)} />
+            <Readout label="best single leg" value={fmt(bestLeg, 4)} />
             <Readout label="RRF fused recall" value={fmt(FUSED)} accent />
-            <Readout label="fusion gain (3 legs)" value={`+${FUSION_GAIN.toFixed(3)}`} accent />
-            <Readout label={`gain at this de-correlation`} value={`+${gain.toFixed(3)}`} />
+            <Readout label="fusion gain (3 legs)" value={`+${FUSION_GAIN.toFixed(4)}`} accent />
+            <Readout label={`2-leg sweep gain here`} value={`+${gain.toFixed(3)}`} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             Each leg sees a different partial view of the document, so each recalls true neighbors the others miss. Reciprocal-rank
-            fusion recombines them and beats the best single leg ({bestLeg.toFixed(3)} → {FUSED.toFixed(3)}, gain +{FUSION_GAIN.toFixed(3)}). Slide the
-            de-correlation up and the gain grows from 0 (a cloned, redundant leg) to +{DECORR[DECORR.length - 1][2].toFixed(2)} (disjoint coverage): fusion pays
-            exactly when the legs disagree. It is a <em>condition</em>, not a guarantee — see the flip.
+            fusion recombines them and beats the best single leg ({bestLeg.toFixed(4)} → {FUSED.toFixed(3)}, gain +{FUSION_GAIN.toFixed(4)}). The slider is a
+            separate two-leg sweep — the lexical leg fused with a dense leg morphed from its clone toward its own ranking — and the gain goes from 0
+            (a cloned, redundant leg) to +{DECORR[DECORR.length - 1][2].toFixed(2)} (disjoint coverage): fusion pays when the legs disagree. On a finer grid the
+            rise is not monotone (−0.0225 at a one-eighth blend; flat at +0.03 from three-eighths on). It is a <em>condition</em>, not a guarantee — see the flip.
           </p>
         </div>
       ) : (
@@ -285,9 +286,10 @@ function FusionPanel({ fracIdx, setFracIdx, showFlip, setShowFlip }: {
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             "Fused ≥ best leg" is <strong>false</strong> in general. Under RRF's c = {RRF_C} a single top vote (1/{RRF_C + 1} ≈ {(1 / (RRF_C + 1)).toFixed(4)}) is weaker than
-            two mid votes (≈ {(2 / (RRF_C + 3)).toFixed(4)}), so a false positive flips the ranking only when <strong>co-endorsed by both legs</strong>. Here x1 is endorsed by both,
-            so it overtakes the buried true neighbor r3: fused recall drops to {rhoFused.toFixed(3)} below the strong leg's {rhoStrong.toFixed(1)}. Drop x1 from the strong leg
-            (no co-endorsement) and r3 survives — recall returns to {rhoClean.toFixed(1)}. Co-endorsement is the mechanism, not junk-on-top alone.
+            two mid votes (1/{RRF_C + 3} + 1/{RRF_C + 5} ≈ {(1 / (RRF_C + 3) + 1 / (RRF_C + 5)).toFixed(4)}), so a false positive flips the ranking only when <strong>co-endorsed by both legs</strong>. Here x1 is endorsed by both,
+            so it overtakes the buried true neighbor r3: fused recall drops to {rhoFused.toFixed(3)} below the strong leg's {rhoStrong.toFixed(1)}. Drop the junk — x1 and x2 — from the strong leg
+            (nothing co-endorsed) and r3 survives — recall returns to {rhoClean.toFixed(1)}. Dropping x1 alone is not enough: x2 moves up to strong-leg rank 4, is now
+            co-endorsed, ties r2, and still pushes r3 out (recall 2/3). Co-endorsement is the mechanism, not junk-on-top alone.
           </p>
         </div>
       )}
@@ -353,7 +355,7 @@ function BudgetPanel({ budget, setBudget }: { budget: number; setBudget: (v: num
           {LEG_NAMES.map((s, i) => (<g key={s}><rect x={padL + 8 + i * 120} y={padT} width={10} height={3} fill={LEG_COLOR[s]} /><text x={padL + 21 + i * 120} y={padT + 4} fill="var(--color-text-secondary)">{LEG_LABEL[s]}</text></g>))}
         </g>
       </svg>
-      <Slider label="compute budget B (comps/query)" value={B} min={1000} max={Math.round(MAX_COST * 0.6)} step={100} onChange={setBudget} display={`${B.toFixed(0)}`} />
+      <Slider label="compute budget B (comps/query)" value={B} min={1200} max={Math.round(MAX_COST * 0.6)} step={100} onChange={setBudget} display={`${B.toFixed(0)}`} />
       <div style={{ display: 'flex', gap: '1.4rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
         <Readout label="water-filling R = ∏gᵢ" value={fmt(Rwf)} accent />
         <Readout label="uniform allocation R" value={fmt(Run)} />
@@ -404,7 +406,7 @@ function StoragePanel() {
         At ColBERT scale (d = 128, 32 tokens/document), the served late-interaction leg's raw index is <strong>{STORAGE.raw_mult}×</strong> a single-vector
         index; PLAID's centroid-id-plus-residual collapses it back to <strong>{STORAGE.plaid_mult}×</strong>. And the one exact statement of the whole
         capstone: probe every cell, prune nothing, rerank by exact MaxSim, and the pipeline recovers brute-force retrieval —
-        recall <strong>{COLLAPSE_RECALL.toFixed(1)}</strong>, the anchor that pins every relaxation above it as a strict superset.
+        recall <strong>{COLLAPSE_RECALL.toFixed(1)}</strong>, the anchor every faster configuration — scanning a subset of what the full pipeline scans — sits beneath.
       </p>
     </div>
   );

@@ -37,11 +37,15 @@ KL(p(.|q,d) || p(.|q)) >= 0, and averaging over documents and queries is the con
 
   MOVEMENT 4 — diminishing returns. A second copy of a document barely moves belief (small KL); a
     different document moves it a lot. The chain rule of mutual information made visible (forward edge to
-    context selection / submodular coverage, named in prose).
+    context selection / submodular coverage, named in prose). The "different" second document here is the
+    same-sector DISTRACTOR, so its movement is AWAY from the true answer (p(a*) falls in every query):
+    novelty guarantees movement, not value — the sign at a* (Movement 3) decides whether it helps.
 
-  MOVEMENT 5 — the encoder was trained to maximize a lower bound on these bits. InfoNCE is a lower bound
-    on I(Q;D) ceilinged at log(N+1): we IMPORT `info_nce_loss_batch` and show the bound saturates at the
-    ceiling, the same I(Q;D) whose answer-side payoff Movement 2 measures. And bits-added is a DIFFERENT
+  MOVEMENT 5 — the encoder was trained to maximize a lower bound on the query side of these bits. InfoNCE
+    is a lower bound on I(Q;D+), the information between a query and its POSITIVE filing, ceilinged at
+    log(N+1): we IMPORT `info_nce_loss_batch` and show the bound saturates at the ceiling. I(Q;D+) is NOT
+    the answer-side I(A;D|Q) of Movement 2 — the two are two readings of one inner product (the score the
+    encoder ranks by, and the bits a document adds to the answer), not one number. And bits-added is a DIFFERENT
     axis from recall@k/AP (imported from set-metrics): a top-ranked document can add little, a low-ranked
     one the decisive bit.
 
@@ -348,7 +352,8 @@ def saturation_table(corpus: dict, tau: float = TAU, tau_doc: float = TAU_DOC) -
     """Belief-movement (KL, bits) of documents added in sequence, averaged over queries:
       standalone   = KL(post(d_gold) || prior)              — the gold filing's first-document value
       redundant    = KL(post(d_gold, d_gold) || post(d_gold)) — a second IDENTICAL filing
-      novel        = KL(post(d_gold, d_other) || post(d_gold)) — a DIFFERENT filing
+      novel        = KL(post(d_gold, d_other) || post(d_gold)) — a DIFFERENT filing (the same-sector
+                     distractor: it moves belief AWAY from a*, see `_novel_p_astar`)
     The diminishing-returns headline: redundant << standalone and redundant << novel."""
     P, protos = corpus["P"], corpus["protos"]
     standalone, redundant, novel = [], [], []
@@ -373,14 +378,33 @@ def saturation_table(corpus: dict, tau: float = TAU, tau_doc: float = TAU_DOC) -
     }
 
 
+def _novel_p_astar(corpus: dict, tau: float = TAU, tau_doc: float = TAU_DOC) -> tuple:
+    """Per query, p(a*) after the gold filing alone vs after gold + the "novel" second filing of
+    `saturation_table` (the same-sector distractor). Diagnostic only; `saturation_table` is unchanged."""
+    P, protos = corpus["P"], corpus["protos"]
+    pa1, parn = [], []
+    for qi in range(corpus["n_queries"]):
+        q = corpus["Q"][qi]
+        a_star = int(corpus["truth"][qi])
+        d_other = _distractor_id(corpus, qi)
+        pa1.append(answer_posterior(q, P[a_star], protos, tau)[a_star])
+        parn.append(answer_posterior_two(q, P[a_star], P[d_other], protos, tau)[a_star])
+    return np.array(pa1), np.array(parn)
+
+
 # =========================================================================== #
-# Movement 5 — the encoder maximized a lower bound on these bits; bits != recall.
+# Movement 5 — the encoder maximized a lower bound on the query side of these bits; bits != recall.
 # =========================================================================== #
 
 def retrieval_qd_mi(corpus: dict, tau_doc: float = TAU_DOC) -> float:
     """The retrieval channel's mutual information I(Q;D) in bits, for uniform queries and the softmax
-    retrieval distribution: I(Q;D) = E_q KL(p(d|q) || p_bar(d)), p_bar(d) = mean_q p(d|q). This is the
-    true MI the InfoNCE objective lower-bounds."""
+    retrieval distribution: I(Q;D) = E_q KL(p(d|q) || p_bar(d)), p_bar(d) = mean_q p(d|q) (~0.82 bits).
+
+    This is the MI of the SOFT retrieval channel — NOT the quantity InfoNCE lower-bounds. InfoNCE bounds
+    I(Q;D+) under the positive-pair joint (a query and its gold filing); D+ is a deterministic function of
+    the query, so I(Q;D+) = H(D+) (log2(8) = 3 bits for the one-per-company batch, ~2.95 bits over the
+    32-query pool). The m >= 3 InfoNCE bounds (0.92-1.84 bits) EXCEED this channel MI, which is consistent:
+    they bound I(Q;D+), and `test_infonce_bound_saturates` pins both facts."""
     Q, P = corpus["Q"], corpus["P"]
     pdq = np.array([retrieval_dist(q, P, tau_doc) for q in Q])
     p_bar = pdq.mean(axis=0)
@@ -392,7 +416,9 @@ def infonce_bound_curve(corpus: dict, tau: float = TAU,
     """The InfoNCE lower bound on I(Q;D) as the number of in-batch candidates grows. For a sub-batch of m
     (query, gold-filing) pairs we IMPORT `info_nce_loss_batch` and form bound_m = log2(m) - L_m/ln2, which
     is ceilinged at log2(m) (the load-bearing saturation: more negatives raise the ceiling). The encoder
-    minimizing L maximizes this bound on the same I(Q;D) the retrieval channel realizes."""
+    minimizing L maximizes this bound on I(Q;D+), the query-positive information of the batch's pair joint
+    (uniform over m companies, D+ a function of Q, so I(Q;D+) = log2(m) here) — not on the soft retrieval
+    channel's I(Q;D) returned as "I_QD_bits", which the bound exceeds for m >= 3."""
     P, Q, truth, K = corpus["P"], corpus["Q"], corpus["truth"], corpus["K"]
     # One query per company (the first query whose gold answer is that company) — a clean B = K batch.
     # Raise rather than let np.argmax silently return 0 if some company is never a query's gold answer.
@@ -507,12 +533,17 @@ def viz_constants() -> None:
     print("\n=== Panel C — diminishing returns (belief movement in bits) ===")
     print(f"  STANDALONE = {round(sat['standalone'], 4)}  REDUNDANT = {round(sat['redundant'], 4)}  "
           f"NOVEL = {round(sat['novel'], 4)}")
+    pa1, parn = _novel_p_astar(corpus)
+    print(f"  NOVEL 2nd doc = the same-sector distractor: p(a*) {round(float(pa1.mean()), 3)} -> "
+          f"{round(float(parn.mean()), 3)} (mean), lowered in {int((parn < pa1).sum())}/{len(pa1)} queries")
 
     print("\n=== Panel D — InfoNCE bound saturation (left) + bits-vs-recall scatter (right) ===")
     print(f"  INFONCE_ROWS (m, L_nats, ceiling_bits=log2(m), bound_bits=log2(m)-L/ln2):")
     for r in inf["rows"]:
         print(f"    m={r['m']:2d}  L={round(r['L'], 4)}  ceiling={round(r['ceiling_bits'], 4)}  "
               f"bound={round(r['bound_bits'], 4)}")
+    print(f"  I_QD (soft retrieval channel, NOT the InfoNCE target) = {round(inf['I_QD_bits'], 4)} bits;  "
+          f"InfoNCE target I(Q;D+) = log2(8) = 3 bits for the batch")
     print(f"  RECALL@3 in [{round(bvr['recall_min'], 3)}, {round(bvr['recall_max'], 3)}]  "
           f"MAP = {round(bvr['map'], 4)}  (recall SATURATED)")
     print(f"  BITS_ADDED in [{round(bvr['bits_min'], 4)}, {round(bvr['bits_max'], 4)}]  "
@@ -586,12 +617,16 @@ def test_corpus_reuses_dpr_geometry() -> None:
 
 
 def test_saturation_diminishing_returns() -> None:
-    # A second identical filing barely moves belief; a different filing moves it a lot.
+    # A second identical filing barely moves belief; a different filing moves it a lot. That "different"
+    # filing is the same-sector distractor, so its movement is AWAY from the truth: it lowers p(a*) in every
+    # query. Novelty guarantees movement, not value.
     c = _corpus()
     s = saturation_table(c)
     assert s["redundant"] < s["standalone"], s
     assert s["redundant"] < s["novel"], s
     assert s["redundant"] >= 0.0 and s["standalone"] > 0.0, s
+    pa1, parn = _novel_p_astar(c)
+    assert np.all(parn < pa1), (pa1, parn)
 
 
 def test_infonce_bound_saturates() -> None:
@@ -606,6 +641,12 @@ def test_infonce_bound_saturates() -> None:
     ceilings = [r["ceiling_bits"] for r in inf["rows"]]
     assert all(ceilings[i] <= ceilings[i + 1] + 1e-12 for i in range(len(ceilings) - 1)), ceilings
     assert inf["I_QD_bits"] >= 0.0, inf["I_QD_bits"]
+    # The bound is on I(Q;D+) (query-positive), NOT on the soft retrieval channel's I(Q;D): it exceeds the
+    # latter for m >= 3, and stays under the former, H(D+) over the query pool.
+    assert max(r["bound_bits"] for r in inf["rows"]) > inf["I_QD_bits"], inf
+    _, cnt = np.unique(c["truth"], return_counts=True)
+    h_dplus = float(-(cnt / cnt.sum() * np.log2(cnt / cnt.sum())).sum())
+    assert all(r["bound_bits"] <= h_dplus for r in inf["rows"]), (h_dplus, inf)
 
 
 def test_bits_vs_recall_differ() -> None:

@@ -7,14 +7,17 @@ import katex from 'katex';
  *      threshold (retrievable) while the answer sits below it (invisible in one hop) — until reformulation
  *      moves the answer to ~1. Single-hop answer recall ≈ 0, multi-hop ≈ 1.
  *   B. Compounding recall. End-to-end success is the PRODUCT of per-hop recalls (geometric decay); to hold a
- *      target ρ each hop must over-retrieve to ρ^(1/k). Positive dependence (FKG) makes the product a
- *      conservative LOWER bound — the realized recall sits above it.
- *   C. The stopping rule. A worked 3-hop trajectory: the residual (the new direction each filing opens) clears
- *      the threshold through every bridge hop and collapses at the terminal answer filing, so the adaptive hop
- *      count equals the chain depth. The belief-movement (KL) is tiny at the bridge and huge at the answer.
- *   D. The supermodular synergy. The answer document alone is worth 0 bits; given the bridge it is worth 1 —
- *      the marginal INCREASES with conditioning (the XOR witness). So single-shot selection cannot reach the
- *      answer (it is never in the one-hop pool); only reformulating from the bridge harvests the synergy.
+ *      target ρ each hop must reach ρ^(1/k) (composite over-fetch 1/ρ). At a fixed per-hop r = 0.7 the
+ *      over-fetch 1/∏r climbs geometrically. Positive dependence (FKG) makes the product a conservative LOWER
+ *      bound — the realized recall sits above it.
+ *   C. The stopping rule. The worked 2-hop trajectory (bars AND readouts from this one chain): the residual
+ *      (the new direction each filing opens) clears the threshold at the bridge and drops below it at the
+ *      terminal answer filing, so the loop stops at the chain depth. The belief-movement (KL) is tiny at the
+ *      (first) bridge and huge at the answer.
+ *   D. The supermodular synergy. In the CONSTRUCTED XOR witness the answer document alone is worth 0 bits;
+ *      given the bridge it is worth 1 — the marginal INCREASES with conditioning. So single-shot selection
+ *      cannot reach the answer (it is never in the one-hop pool); only reformulating from the bridge harvests
+ *      the synergy.
  *
  * VIZ <-> PYTHON INVARIANT (CLAUDE.md): every cosine / recall / residual / KL / FKG number below is mirrored TO
  * THE DECIMAL from notebooks/multi-hop-iterative-retrieval/multi_hop_iterative_retrieval.py (viz_constants()).
@@ -31,9 +34,9 @@ const K_RETRIEVE = 3;
 const REFORM_EPS = 0.47;              // stop when the read filing opens no new direction
 
 // Panel A — the compositional gap (cosines to the query + recall)
-const Q_DOT_BRIDGE = 0.816;          // = cos α adjusted for non-orthogonal companies: the bridge is retrievable
-const Q_DOT_ANSWER = 0.193;          // below τ: the answer is invisible in one hop
-const BRIDGE_DOT_ANSWER = 0.725;     // the mention the bridge carries
+const Q_DOT_BRIDGE = 0.816;          // ≈ cos α (0.766), lifted because q·answer ≠ 0: the bridge is retrievable
+const Q_DOT_ANSWER = 0.193;          // below τ: invisible in one hop (largest of the 10 compositional chains)
+const BRIDGE_DOT_ANSWER = 0.725;     // ≈ sin α (0.643), lifted likewise: the mention the bridge carries
 const REFORMULATED_DOT_ANSWER = 0.981; // after reformulation the answer is reachable
 const RECALL_SINGLE_HOP = 0.0;
 const RECALL_MULTI_HOP = 1.0;
@@ -52,18 +55,20 @@ const FKG_SWEEP = [
   { rho: 0.6, Rtrue: 0.4, Rindep: 0.3, gap: 0.1 },
 ];
 
-// Panel C — the worked 3-hop trajectory (bridge, bridge, answer) + adaptive stopping
-const TRAJ3_RESID = [0.543, 0.589, 0.397];          // > REFORM_EPS until the terminal hop
-const TRAJ3_KL_MOVES = [0.13, 8.015, 7.709];        // bridge hops small, answer hop large
+// Panel C — the worked 2-hop trajectory (bridge, answer) + adaptive stopping; bars and readouts share one chain
+const TRAJ2_RESID = [0.543, 0.214];                 // bridge > REFORM_EPS, answer below it
+const TRAJ2_KL_MOVES = [0.081, 9.168];              // bridge small, answer hop large
 const HOPS_BY_CLASS: Record<string, number> = { '1-hop': 1, '2-hop': 2, '3-hop': 3 };
 
 // Panel D — the supermodular synergy
-const XOR_DELTA_EMPTY = 0.0;         // bits the answer document adds alone
-const XOR_DELTA_GIVEN_BRIDGE = 1.0;  // ... given the bridge — INCREASES (supermodular)
+const XOR_DELTA_EMPTY = 0.0;         // CONSTRUCTED XOR witness: bits the answer document adds alone
+const XOR_DELTA_GIVEN_BRIDGE = 1.0;  // ... given the bridge — INCREASES (not submodular)
+const CORPUS_DELTA_EMPTY = -0.817;   // MEASURED on the worked 2-hop chain: answer passage's info-gain marginal alone
+const CORPUS_DELTA_GIVEN_BRIDGE = -0.344; // ... given the bridge — also rises with conditioning
 const ANSWER_IN_SINGLE_POOL = 0.0;   // single-shot cannot reach the answer
 const ANSWER_IN_REFORM_POOL = 1.0;   // one reformulation reaches it
-const BRIDGE_KL = 0.081;             // the bridge hop's belief movement (myopically worthless)
-const ANSWER_KL = 9.168;             // the answer hop's belief movement (decisive — and LAST)
+const BRIDGE_KL = TRAJ2_KL_MOVES[0]; // 0.081: the bridge hop's belief movement (myopically worthless)
+const ANSWER_KL = TRAJ2_KL_MOVES[1]; // 9.168: the answer hop's belief movement (decisive — and LAST)
 
 // --- palette --------------------------------------------------------------------------
 const ACCENT = 'var(--color-accent)';
@@ -210,7 +215,7 @@ function CompoundingPanel({ rho, setRho }: { rho: number; setRho: (v: number) =>
         ))}
         <text x={(padL + W - padR) / 2} y={H - 3} textAnchor="middle" fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">number of hops k</text>
         <text x={padL + 2} y={padT + 2} fontSize={8} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">
-          <tspan fill={MISS}>▬ chain recall ∏rᵢ (r=0.7)</tspan> · <tspan fill={ANSWERC}>┄ required ρ^(1/k)</tspan> · <tspan fill={REACH}>▬ over-fetch 1/∏r</tspan>
+          <tspan fill={MISS}>▬ chain recall ∏rᵢ (r=0.7)</tspan> · <tspan fill={ANSWERC}>┄ required ρ^(1/k)</tspan> · <tspan fill={REACH}>▬ over-fetch 1/∏r (r=0.7)</tspan>
         </text>
       </svg>
       <div style={{ display: 'flex', gap: '1.2rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
@@ -218,15 +223,18 @@ function CompoundingPanel({ rho, setRho }: { rho: number; setRho: (v: number) =>
         <Readout label="required per-hop for ρ at k=3" value={fmt(Math.pow(rho, 1 / 3), 3)} color={ANSWERC} />
         <Readout label="demo R₁·R₂ = 0.6·0.5" value={fmt(CHAIN_SUCCESS, 2)} accent />
         <Readout label="over-fetch 1/(R₁·R₂)" value={`${fmt(OVER_FETCH, 2)}×`} color={REACH} />
+        <Readout label="over-fetch at target, 1/ρ" value={`${fmt(1 / rho, 2)}×`} color={REACH} />
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Each hop succeeds only if it retrieves its target, so end-to-end success is the <strong>product</strong> of the
         per-hop recalls — <span style={{ color: MISS }}>∏rᵢ</span> decays geometrically. To hold an end-to-end target{' '}
         <strong>ρ = {fmt(rho, 2)}</strong>, each of k hops must reach <span style={{ color: ANSWERC }}>ρ^(1/k)</span> (→ 1 as
-        k grows), so the front end must <span style={{ color: REACH }}>over-fetch</span> ever harder — exactly the
-        capstone's cascade law, now over hops. Hops are not independent, though: a query hard at one hop is hard at the
-        next, and by FKG that positive dependence makes the realized chain recall sit <em>above</em> the product (next
-        panel's sweep). The independent product is the conservative, safe-to-provision lower bound.
+        k grows). The <span style={{ color: REACH }}>over-fetch</span> is the reciprocal of the composite retention:
+        at a fixed per-hop r = 0.7 it climbs geometrically ({fmt(overfetch[0], 2)}× at one hop, {fmt(ofMax, 2)}× at
+        five), while a chain provisioned to ρ^(1/k) per hop holds it at 1/ρ = {fmt(1 / rho, 2)}× — the capstone's
+        cascade law, now over hops. Hops are not independent, though: a query hard at one hop is hard at the
+        next, and by FKG that positive dependence makes the realized chain recall sit <em>above</em> the product (the
+        sweep below, over the copula's hop-dependence correlation). The independent product is the conservative, safe-to-provision lower bound.
       </p>
       <FkgStrip />
     </div>
@@ -250,9 +258,9 @@ function FkgStrip() {
         </g>
       ))}
       <text x={padL + 2} y={padT + 4} fontSize={8} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">FKG gap = realized − independent chain recall</text>
-      <text x={W - padR} y={py(0.1) + 3} textAnchor="end" fontSize={7.5} fill={ANSWERC} fontFamily="var(--font-sans)">+ (ρ&gt;0: realized higher)</text>
-      <text x={W - padR} y={py(-0.085) + 3} textAnchor="end" fontSize={7.5} fill={MISS} fontFamily="var(--font-sans)">− (ρ&lt;0)</text>
-      <text x={(padL + W - padR) / 2} y={H - 1} textAnchor="middle" fontSize={7.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">hop dependence ρ</text>
+      <text x={W - padR} y={py(0.1) + 3} textAnchor="end" fontSize={7.5} fill={ANSWERC} fontFamily="var(--font-sans)">+ (corr &gt; 0: realized higher)</text>
+      <text x={W - padR} y={py(-0.085) + 3} textAnchor="end" fontSize={7.5} fill={MISS} fontFamily="var(--font-sans)">− (corr &lt; 0)</text>
+      <text x={(padL + W - padR) / 2} y={H - 1} textAnchor="middle" fontSize={7.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">hop dependence (copula correlation)</text>
     </svg>
   );
 }
@@ -260,13 +268,13 @@ function FkgStrip() {
 // ===== Panel C — the stopping rule ==================================================================
 function StoppingPanel() {
   const W = 520, H = 250, padL = 42, padR = 16, padT = 24, padB = 40;
-  const n = TRAJ3_RESID.length;
+  const n = TRAJ2_RESID.length;
   const slot = (W - padL - padR) / n;
   const bx = (j: number) => padL + slot * (j + 0.5);
   const py = (v: number) => H - padB - (H - padT - padB) * Math.min(v / 1.0, 1);
-  const stopHop = TRAJ3_RESID.findIndex((r) => r < REFORM_EPS);     // closed-form crossing in TS
+  const stopHop = TRAJ2_RESID.findIndex((r) => r < REFORM_EPS);     // closed-form crossing in TS
   const hopsTaken = stopHop === -1 ? n : stopHop + 1;
-  const labels = ['hop 1: bridge', 'hop 2: bridge', 'hop 3: answer'];
+  const labels = ['hop 1: bridge', 'hop 2: answer'];
   return (
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="per-hop reformulation residual against the stopping threshold" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
@@ -278,7 +286,7 @@ function StoppingPanel() {
         {/* stopping threshold */}
         <line x1={padL} y1={py(REFORM_EPS)} x2={W - padR} y2={py(REFORM_EPS)} stroke={MISS} strokeWidth={1.4} strokeDasharray="4 3" />
         <text x={W - padR - 2} y={py(REFORM_EPS) - 4} textAnchor="end" fontSize={8} fill={MISS} fontFamily="var(--font-sans)">stop threshold ε = {REFORM_EPS}</text>
-        {TRAJ3_RESID.map((rv, j) => {
+        {TRAJ2_RESID.map((rv, j) => {
           const cont = rv >= REFORM_EPS;
           return (
             <g key={j}>
@@ -286,7 +294,7 @@ function StoppingPanel() {
                 fill={cont ? ANSWERC : MISS} fillOpacity={0.8} />
               <text x={bx(j)} y={py(rv) - 5} textAnchor="middle" fontSize={9} fill={cont ? ANSWERC : MISS} fontFamily="var(--font-sans)" fontWeight={700}>{fmt(rv, 2)}</text>
               <text x={bx(j)} y={H - padB + 13} textAnchor="middle" fontSize={8} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">{labels[j]}</text>
-              <text x={bx(j)} y={H - padB + 24} textAnchor="middle" fontSize={7.5} fill={MUTED} fontFamily="var(--font-sans)">KL move {fmt(TRAJ3_KL_MOVES[j], 2)}</text>
+              <text x={bx(j)} y={H - padB + 24} textAnchor="middle" fontSize={7.5} fill={MUTED} fontFamily="var(--font-sans)">KL move {fmt(TRAJ2_KL_MOVES[j], 2)}</text>
             </g>
           );
         })}
@@ -295,21 +303,22 @@ function StoppingPanel() {
         </text>
       </svg>
       <div style={{ display: 'flex', gap: '1.3rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-        <Readout label="adaptive hops taken (3-hop chain)" value={`${hopsTaken}`} accent />
+        <Readout label="adaptive hops taken (2-hop chain)" value={`${hopsTaken}`} accent />
         <Readout label="bridge belief-movement (KL)" value={fmt(BRIDGE_KL, 2)} color={MUTED} />
         <Readout label="answer belief-movement (KL)" value={fmt(ANSWER_KL, 2)} color={ANSWERC} />
         <Readout label="adaptive count = depth" value={`${HOPS_BY_CLASS['1-hop']} / ${HOPS_BY_CLASS['2-hop']} / ${HOPS_BY_CLASS['3-hop']}`} accent />
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Each filing's <strong>residual</strong> — the part orthogonal to the current query — is the new direction it
-        opens, the expected information of the next hop. It clears the threshold through every{' '}
-        <span style={{ color: ANSWERC }}>bridge</span> hop (a new entity to chase) and{' '}
-        <span style={{ color: MISS }}>collapses</span> at the terminal answer filing, which names no one new — so the
-        loop stops, and the adaptive hop count equals the chain depth (1 / 2 / 3). Note the trap: belief-<em>movement</em>{' '}
-        is <strong>tiny at the bridge</strong> ({fmt(BRIDGE_KL, 2)}) and <strong>huge at the answer</strong>{' '}
-        ({fmt(ANSWER_KL, 2)}) — the decisive evidence comes <em>last</em>. A myopic "stop when the belief stops moving"
-        rule would halt at the worthless-looking bridge and never reach the answer. That is the supermodular trap, made
-        operational.
+        opens, the expected information of the next hop. On this 2-hop chain it clears the threshold at the{' '}
+        <span style={{ color: ANSWERC }}>bridge</span> ({fmt(TRAJ2_RESID[0], 2)}, a new entity to chase) and{' '}
+        <span style={{ color: MISS }}>drops below it</span> at the terminal answer filing ({fmt(TRAJ2_RESID[1], 2)}),
+        which names no one new — so the loop stops; across the corpus the adaptive hop count equals the chain depth
+        (1 / 2 / 3). Note the trap: belief-<em>movement</em> (KL, bits) is <strong>tiny at the bridge</strong>{' '}
+        ({fmt(BRIDGE_KL, 2)}) and <strong>huge at the answer</strong> ({fmt(ANSWER_KL, 2)}) — the decisive evidence
+        comes <em>last</em>. A myopic "stop when the belief stops moving" rule would halt at the worthless-looking
+        bridge and never reach the answer. (On a 3-hop chain only the <em>first</em> bridge is quiet: the second moves
+        the belief a lot, but onto the intermediate company — the mass on the truth stays ≈ 0 until the answer hop.)
       </p>
     </div>
   );
@@ -332,7 +341,7 @@ function SynergyPanel({ multi, setMulti }: { multi: boolean; setMulti: (v: boole
         <button type="button" style={miniPill(!multi, MISS)} onClick={() => setMulti(false)}>single-shot selection</button>
         <button type="button" style={miniPill(multi, ANSWERC)} onClick={() => setMulti(true)}>multi-hop (reformulate)</button>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="information gain of the answer document alone versus given the bridge" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="XOR witness: information gain of the answer document alone versus given the bridge" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
         <line x1={padL} y1={H - padB} x2={W - padR} y2={H - padB} stroke="var(--color-border)" strokeWidth={1} />
         <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--color-border)" strokeWidth={1} />
         {[0, 0.5, 1].map((f) => (
@@ -362,10 +371,12 @@ function SynergyPanel({ multi, setMulti }: { multi: boolean; setMulti: (v: boole
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Information gain is <strong>not submodular</strong>, and the compositional question is its{' '}
-        <strong>supermodular</strong> case: the answer document <span style={{ color: MISS }}>alone</span> is worth{' '}
-        {fmt(XOR_DELTA_EMPTY, 0)} bits about the question, but <span style={{ color: ANSWERC }}>given the bridge</span> it is
-        worth {fmt(XOR_DELTA_GIVEN_BRIDGE, 0)} — the marginal <em>increases</em> with conditioning, the exact opposite of
-        diminishing returns (the XOR witness from context selection). So a single-shot selector, optimizing a one-pass
+        <strong>supermodular</strong> case. In the constructed XOR witness from context selection, the answer document{' '}
+        <span style={{ color: MISS }}>alone</span> is worth {fmt(XOR_DELTA_EMPTY, 0)} bits about the question, but{' '}
+        <span style={{ color: ANSWERC }}>given the bridge</span> it is worth {fmt(XOR_DELTA_GIVEN_BRIDGE, 0)} — the marginal{' '}
+        <em>increases</em> with conditioning, the exact opposite of diminishing returns. (Those bars are the witness's exact
+        bits, not corpus measurements; measured on the worked chain, the answer passage's marginal rises from{' '}
+        {fmt(CORPUS_DELTA_EMPTY, 2)} to {fmt(CORPUS_DELTA_GIVEN_BRIDGE, 2)} bits once the bridge is read — the same direction.) So a single-shot selector, optimizing a one-pass
         objective, cannot reach the answer: it is <span style={{ color: MISS }}>never in the one-hop pool</span>{' '}
         ({fmt(ANSWER_IN_SINGLE_POOL, 2)}). Only <span style={{ color: ANSWERC }}>reformulating from the bridge</span>{' '}
         converts its named entity into a query that reaches the answer ({fmt(ANSWER_IN_REFORM_POOL, 2)}). Multi-hop is the

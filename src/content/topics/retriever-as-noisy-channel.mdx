@@ -38,9 +38,9 @@ connections:
   - topic: "llm-as-judge-ragas"
     relationship: "the LLM-as-judge topic estimated faithfulness as a biased mean of noisy verdicts; this topic supplies the upstream limit — the retriever's residual entropy H(A|Q,D) is a floor on how faithful any generator can be, and the confident-wrong substitution failure is the mechanism a faithfulness judge is built to catch"
   - topic: "infonce-contrastive-objective"
-    relationship: "InfoNCE trained the encoder by maximizing a lower bound on the query–document information I(Q;D) ceilinged at log(N+1); that mutual information is the channel capacity this topic reads the retriever through, so contrastive training was, all along, buying the bits the erasure channel then delivers a recall fraction of"
+    relationship: "InfoNCE trained the encoder by maximizing a lower bound on the query–document information I(Q;D) ceilinged at log(N+1); that query–document information is the retriever's own channel, while the bits this topic's erasure channel delivers a recall fraction of are the answer–document information I(A;D|Q) — two readings of one inner product, not the same quantity: contrastive training sharpens the scores both are computed from"
   - topic: "capstone-multimodal-financial-rag"
-    relationship: "the capstone wired a full filings-and-transcripts pipeline and tuned its recall and precision empirically; this topic gives the information limit those knobs trade against — every retrieval miss erases bits the generator cannot recover, and every false positive risks a confident wrong answer the recall metric never sees"
+    relationship: "the capstone, later in the series, wires a full filings-and-transcripts pipeline and tunes its recall and precision empirically; this topic gives the information limit those knobs trade against — every retrieval miss erases bits the generator cannot recover, and every false positive risks a confident wrong answer the recall metric never sees"
 references:
   - type: "paper"
     title: "A Mathematical Theory of Communication"
@@ -82,7 +82,7 @@ references:
     authors: "van den Oord, Li & Vinyals"
     year: 2018
     url: "https://arxiv.org/abs/1807.03748"
-    note: "InfoNCE / CPC: minimizing the loss maximizes a lower bound on I(q;d⁺) ceilinged at log(N+1) — the query–document channel capacity the retriever was trained to buy, and the bits the erasure channel then passes a recall fraction of"
+    note: "InfoNCE / CPC: minimizing the loss maximizes a lower bound on I(q;d⁺) ceilinged at log(N+1) — the query–document information the retriever was trained to buy; the erasure channel here passes a recall fraction of a different quantity, the answer–document information I(A;D|Q)"
 formalmlPrereqs:
   - topic: "shannon-entropy"
     site: "formalml"

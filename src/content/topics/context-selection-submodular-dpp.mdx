@@ -1,6 +1,6 @@
 ---
 title: "Context Selection: Submodular Coverage, MMR, and Determinantal Point Processes"
-subtitle: "Once retrieval returns more candidate passages than the window can hold, which subset do you keep? Ranking by relevance packs the context with near-duplicates that each add almost nothing — the diminishing returns PMI measured in bits — so the right objective is monotone submodular coverage, for which greedy is provably within 1−1/e of the optimum (Nemhauser–Wolsey–Fisher), while MMR trades relevance against redundancy as a popular heuristic with no such guarantee, and a determinantal point process makes diversity a probability P(S) ∝ det(L_S), the squared volume of the selected feature vectors, so two near-duplicates span a flat parallelepiped and are almost never drawn together — and at a fixed budget every one of these diversity-aware rules beats plain top-k on the answer it ultimately produces."
+subtitle: "Once retrieval returns more candidate passages than the window can hold, which subset do you keep? Ranking by relevance packs the context with near-duplicates that each add almost nothing — the diminishing returns PMI measured in bits — so the right objective is monotone submodular coverage, for which greedy is provably within 1−1/e of the optimum (Nemhauser–Wolsey–Fisher), while MMR trades relevance against redundancy as a popular heuristic with no such guarantee, and a determinantal point process makes diversity a probability P(S) ∝ det(L_S), the squared volume of the selected feature vectors, so two near-duplicates span a flat parallelepiped and are almost never drawn together — and at a fixed budget each of these diversity-aware rules (MMR at its default λ = 0.5) beats plain top-k on the answer it ultimately produces."
 status: "published"
 difficulty: "advanced"
 prerequisites:
@@ -27,7 +27,7 @@ notebookPath: "notebooks/context-selection-submodular-dpp/01_context_selection_s
 githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/context-selection-submodular-dpp.mdx"
 datePublished: 2026-06-23
 estimatedReadTime: 33
-abstract: "Retrieval returns a ranked list; the generator's window holds a budget of k passages. Filling that budget with the top-k by relevance is the obvious move and the wrong one: the highest-scoring passages of a confusable company are near-duplicates, and the previous topics showed each duplicate adds almost no information — PMI measured it in bits, the long-context topic watched answer quality go flat over the redundant set. This topic gives the mathematics of choosing the subset that maximizes coverage of the query rather than per-item relevance. The natural objective is monotone submodular: facility-location coverage f(S) = Σ_i w_i max_{j∈S} sim(i,j) rewards a selection for standing in for every candidate the query cares about, and submodularity — the marginal value of adding a passage to a larger set is no greater than adding it to a smaller one — is exactly the diminishing-returns property the saturation curve exhibits. Maximizing a monotone submodular function under a cardinality constraint is NP-hard, but the greedy algorithm that adds the highest-marginal-gain passage at each step returns a set worth at least (1−1/e) ≈ 0.632 of the optimum, the Nemhauser–Wolsey–Fisher bound, proved here in full; Minoux's lazy-greedy speeds it up by exploiting submodularity itself. Maximal Marginal Relevance, λ·rel(d,q) − (1−λ)·max_{d'∈S} sim(d,d'), is the field's workhorse diversity heuristic, but — the rigor flag — it carries no submodular guarantee: its penalty is taken against the evolving chosen set, and the closest fixed objective is submodular but non-monotone, exactly the hypothesis the theorem needs. The determinantal point process gives a probabilistic answer: P(S) ∝ det(L_S), where the determinant is the squared volume of the parallelepiped the selected feature vectors span, so near-duplicates span a near-flat solid of near-zero volume and are almost never sampled together; the quality–diversity factorization L = diag(q) S diag(q) separates per-item relevance from a similarity kernel, exact MAP is NP-hard, and the certified object is greedy on the monotone surrogate log det(I + L_S), which inherits the same 1−1/e. We close on the payoff and the honest hinge. The objective we actually want is the answer-information gain I(A;D_S|Q), but mutual information of a set with a target is not submodular in general — not even on this corpus, and provably not for a synergistic pair whose marginal gain increases with conditioning — so coverage, not info gain, is the backbone that earns the theorem. On a finance pool where the most query-relevant passages are sector-generic near-duplicates that support the gold company and its peer equally, while the disambiguating passage is less query-similar, top-k spends its budget on the redundant cluster and leaves the answer split; coverage- and diversity-aware selection reach the disambiguator and sharpen the answer. We read every method through the imported answer_posterior_topk, so the numbers chain with the rest of the arc, and the headline — diversity beats top-k at a fixed budget — is a comparison across methods, pinned to the observed run. A tested notebook owns every number; the lab recomputes only the closed forms."
+abstract: "Retrieval returns a ranked list; the generator's window holds a budget of k passages. Filling that budget with the top-k by relevance is the obvious move and the wrong one: the highest-scoring passages of a confusable company are near-duplicates, and the previous topics showed each duplicate adds almost no information — PMI measured it in bits, the long-context topic watched answer quality go flat over the redundant set. This topic gives the mathematics of choosing the subset that maximizes coverage of the query rather than per-item relevance. The natural objective is monotone submodular: facility-location coverage f(S) = Σ_i w_i max_{j∈S} sim(i,j) rewards a selection for standing in for every candidate the query cares about, and submodularity — the marginal value of adding a passage to a larger set is no greater than adding it to a smaller one — is exactly the diminishing-returns property the saturation curve exhibits. Maximizing a monotone submodular function under a cardinality constraint is NP-hard, but the greedy algorithm that adds the highest-marginal-gain passage at each step returns a set worth at least (1−1/e) ≈ 0.632 of the optimum, the Nemhauser–Wolsey–Fisher bound, proved here in full; Minoux's lazy-greedy speeds it up by exploiting submodularity itself. Maximal Marginal Relevance, λ·rel(d,q) − (1−λ)·max_{d'∈S} sim(d,d'), is the field's workhorse diversity heuristic, but — the rigor flag — it carries no submodular guarantee: its penalty is taken against the evolving chosen set, and the closest fixed objective is submodular but non-monotone, exactly the hypothesis the theorem needs. The determinantal point process gives a probabilistic answer: P(S) ∝ det(L_S), where the determinant is the squared volume of the parallelepiped the selected feature vectors span, so near-duplicates span a near-flat solid of near-zero volume and are almost never sampled together; the quality–diversity factorization L = diag(q) S diag(q) separates per-item relevance from a similarity kernel, exact MAP is NP-hard, and the certified object is greedy on the monotone surrogate log det(I + L_S), which inherits the same 1−1/e. We close on the payoff and the honest hinge. The objective we actually want is the answer-information gain I(A;D_S|Q), but mutual information of a set with a target is not submodular in general — provably not for a synergistic pair whose marginal gain increases with conditioning, and its per-query plug-in proxy fails on this corpus too (through dilution, not synergy) — so coverage, not info gain, is the backbone that earns the theorem. On a finance pool where the most query-relevant passages are sector-generic near-duplicates that support the gold company and its peer equally, while the disambiguating passage is less query-similar, top-k spends its budget on the redundant cluster and leaves the answer split; coverage- and diversity-aware selection reach the disambiguator and sharpen the answer. We read every method through the imported answer_posterior_topk, so the numbers chain with the rest of the arc, and the headline — diversity beats top-k at a fixed budget — is a comparison across methods, pinned to the observed run. A tested notebook owns every number; the lab recomputes only the closed forms."
 connections:
   - topic: "pmi-retrieval-value"
     relationship: "PMI proved a redundant second filing adds almost no bits — the chain rule of mutual information, not a heuristic; this topic makes that the defining property of the selection objective: submodularity IS diminishing returns, the marginal coverage of a near-duplicate passage is near-zero, and the saturation it measured in bits is the same asymmetry the greedy marginal-gain curve plots, so the bits PMI counted are the coverage greedy declines to re-buy"
@@ -102,7 +102,7 @@ references:
     year: 2006
     url: "https://doi.org/10.1002/047174882X"
     note: "The chain rule of mutual information behind diminishing returns, and the entropy framing of coverage carried over from the PMI and long-context topics; 2nd edition, Wiley"
-rigorFlag: "MMR (Carbonell–Goldstein) is a heuristic with no (1−1/e) approximation guarantee in general — only facility-location-style monotone submodular objectives inherit the Nemhauser–Wolsey–Fisher bound. Information gain I(A;D_S|Q) is the objective we actually want, but mutual information of a SET with a target is not submodular in general — and on this corpus the submodularity witness goes clearly negative (≈ −0.71) while facility location's is ≈ 0; it is submodular only under conditional independence of the evidence (Krause–Guestrin), so coverage, not info gain, is the backbone that earns the theorem. DPP MAP inference (the most probable set) is NP-hard; the (1−1/e) guarantee applies to greedy on the monotone submodular surrogate log det(I + L_S) (Chen et al.), not to the exact determinant maximizer. The payoff Q(k) is computed for a synthetic von Mises–Fisher softmax answer model (importing answer_posterior_topk) — exact for the model, illustrative of a real generator — and the headline is a comparison ACROSS selection methods at a fixed budget, robust across seeds; the separate claim that some interior k* is optimal is seed-fragile and is not asserted."
+rigorFlag: "MMR (Carbonell–Goldstein) is a heuristic with no (1−1/e) approximation guarantee in general — only facility-location-style monotone submodular objectives inherit the Nemhauser–Wolsey–Fisher bound. Information gain I(A;D_S|Q) is the objective we actually want, but mutual information of a SET with a target is not submodular in general — and on this corpus a per-query plug-in proxy for it (the entropy drop of one query's answer posterior under equal attention) has a clearly negative submodularity witness (≈ −0.71) while facility location's is ≈ 0 — though that proxy is not even monotone, and its violation comes from equal-attention dilution, not synergy; it is submodular only under conditional independence of the evidence (Krause–Guestrin), so coverage, not info gain, is the backbone that earns the theorem. DPP MAP inference (the most probable set) is NP-hard; the (1−1/e) guarantee applies to greedy on the monotone submodular surrogate log det(I + L_S) (Chen et al.), not to the exact determinant maximizer. The payoff Q(k) is computed for a synthetic von Mises–Fisher softmax answer model (importing answer_posterior_topk) — exact for the model, illustrative of a real generator — and the headline is a comparison ACROSS selection methods at a fixed budget, robust across seeds; the separate claim that some interior k* is optimal is seed-fragile and is not asserted."
 formalmlPrereqs:
   - topic: "shannon-entropy"
     site: "formalml"
@@ -137,7 +137,7 @@ import ContextSelectionLaboratory from '../../components/viz/ContextSelectionLab
 
 ## From "how much to read" to "what to choose"
 
-The previous topic ended with a verdict and an unfinished sentence. The verdict: a bigger context window
+The retrieval-versus-long-context topic ended with a verdict and an unfinished sentence. The verdict: a bigger context window
 does not relax the retrieval problem, it sharpens it — answer quality peaks at the smallest context that
 carries the answer and declines as you stuff the window, because the extra passages are redundant at best
 and same-sector distractors at worst. The unfinished sentence: the right response is not a larger window
@@ -262,8 +262,9 @@ e_{t+1} \in \arg\max_{e \in V \setminus S_t} \Delta_f(e \mid S_t),
 $$
 
 and return $S_{\text{greedy}} = S_k$. (Minoux's lazy-greedy keeps a priority queue of stale marginal gains;
-since submodularity guarantees gains only shrink, most are never recomputed — the same output, far faster.
-The notebook checks the lazy and standard selections are identical.)
+since submodularity guarantees gains only shrink, many are never recomputed — the same output with fewer
+oracle calls. The notebook checks the lazy and standard selections are identical; on its nine-passage pools
+the saving is modest, and the large-pool speedups are Minoux's, cited.)
 
 </TheoremBlock>
 
@@ -321,8 +322,9 @@ proved the same in the value-oracle model. So $0.632$ is the best a tractable me
 <ContextSelectionLaboratory client:visible />
 
 Panel B shows the guarantee with teeth. On a small constructed instance, greedy grabs the biggest set
-first and reaches $9$ of the optimal $12$ — a real gap, the realized ratio $0.75$ — yet it sits comfortably
-above the $0.632\,\mathrm{OPT}$ floor. (On the smooth finance pool greedy happens to *reach* the optimum;
+first and reaches $9$ of the optimal $12$ — a real gap, the realized ratio $0.75$ — above the
+$0.632\,\mathrm{OPT}$ floor and *exactly* on Theorem 2's sharper $k = 2$ bound $1 - (1 - \tfrac12)^2 = 0.75$,
+so the instance is tight. (On the smooth finance pool greedy happens to *reach* the optimum;
 the bound is a worst-case promise, and the worst case is where it earns its keep.)
 
 ## MMR: the heuristic that does not earn the theorem
@@ -366,7 +368,8 @@ Non-monotone submodular maximization has its own theory — double-greedy achiev
 </TheoremBlock>
 
 None of this makes MMR bad. It is cheap, effective, and the historical origin of diversity-aware
-selection; in the lab it lands between top-$k$ and the submodular methods. The point is only that its
+selection; at the lab's $\lambda = 0.5$ it lands between top-$k$ and the submodular methods (at a
+diversity-heavy $\lambda = 0.25$ it falls below top-$k$, $\approx 0.34$ vs $0.38$). The point is only that its
 "$1-1/e$" is folklore, not theorem. The clean monotone-submodular backbone for a *provable* guarantee is
 facility-location coverage — and, as we will now see, the log-determinant.
 
@@ -486,9 +489,12 @@ $$
 \Delta(D_2 \mid \varnothing) = 0 \;<\; \Delta(D_2 \mid \{D_1\}) = 1,
 $$
 
-the opposite of diminishing returns. This is not only an abstract example: on our finance corpus the
-numerical submodularity witness for $f_{\text{IG}}$ is clearly negative ($\approx -0.71$), while
-facility-location coverage's is $\approx 0$. Submodularity of information gain holds only under structural
+the opposite of diminishing returns. On our finance corpus the notebook can only measure a per-query
+plug-in proxy — the entropy drop of one query's answer posterior when the chosen passages are read with
+equal attention — and its numerical submodularity witness is clearly negative ($\approx -0.71$), while
+facility-location coverage's is $\approx 0$. But that proxy is not $I(A; D_S \mid Q)$ and is not even
+monotone: under equal attention a low-relevance distractor lowers it, and lowers it less when diluted among
+more passages, so its violation is dilution, not the XOR's synergy. Submodularity of information gain holds only under structural
 assumptions, the cleanest being conditional independence of the observations given the target
 (Krause–Guestrin, 2005). So we optimize coverage — which *is* submodular and earns Theorem 2 — and treat
 information gain as the motivating-but-caveated quantity it is.
@@ -523,8 +529,9 @@ Q_{\text{facility}} \approx 0.54 \;\approx\; Q_{\text{DPP}} \approx 0.55,
 $$
 
 where $Q = \mathbb{E}_q\big[p(a^\star \mid q, S)\big]$ is the posterior mass on the true company.
-Top-$k$ spends all three slots inside the redundant cluster, where the generics support gold and peer
-equally, and leaves the answer split; coverage and DPP reach the disambiguator and resolve it. The notebook
+On $15$ of the $16$ pools top-$k$ spends all three slots inside the redundant cluster, where the generics
+support gold and peer equally, and leaves the answer split; coverage and DPP (each on $15$ of $16$) reach the
+disambiguator and resolve it. The notebook
 asserts the observed ordering and the seed-independent coverage contrast.
 
 </TheoremBlock>
@@ -533,17 +540,18 @@ This is a *demonstrated* proposition, pinned to the run, not a universal law. Th
 one: diversity helps not for its own sake but because the disambiguating evidence is *less* query-similar
 than the redundant cluster, so only a coverage- or quality-aware selector reaches it. On a pool with no
 redundancy, coverage and relevance coincide and the gap vanishes — the correct boundary condition. One
-caveat the lab makes visible: diversity raises the mass on the truth while *spreading* the remaining mass
-across more companies, so the answer entropy actually rises; quality here is mass-on-truth, not low entropy,
-and we do not claim the latter.
+caveat on entropy: at $k = 3$ coverage and DPP happen to lower it too ($\approx 1.69$ vs $1.77$ bits for
+top-$k$), but MMR raises it ($\approx 1.80$), and at larger budgets the DPP's (from $k = 4$) and coverage's
+(from $k = 6$) rise above top-$k$'s, as diversity *spreads* the leftover mass across more companies; quality
+here is mass-on-truth, not low entropy, and we do not claim the latter.
 
 <RigorFlag>
 
 Four honesty notes. First, MMR has no $(1-1/e)$ guarantee — its penalty is taken against the evolving
 chosen set, and the closest fixed objective is submodular but non-monotone, exactly the hypothesis the
-theorem needs. Second, information gain is the objective we actually want, but it is not submodular: the
-witness goes clearly negative on this corpus, and a synergistic XOR pair makes the marginal gain increase
-with conditioning; it is submodular only under conditional independence (Krause–Guestrin), so coverage is
+theorem needs. Second, information gain is the objective we actually want, but it is not submodular: a
+synergistic XOR pair makes the marginal gain increase with conditioning, and a per-query plug-in proxy's
+witness goes clearly negative on this corpus (through equal-attention dilution, not synergy); it is submodular only under conditional independence (Krause–Guestrin), so coverage is
 the backbone that earns the theorem. Third, exact $k$-DPP MAP is NP-hard; the certified object is greedy on
 the monotone surrogate $\log\det(I + L_S)$, not the raw determinant, and the $+I$ also tames the
 near-duplicate singularity. Fourth, the payoff $Q(k)$ is exact for a synthetic von Mises–Fisher softmax
@@ -558,7 +566,7 @@ interior $k^\star$ is optimal, which is seed-fragile and not asserted.
 At a fixed budget, choose for coverage and diversity, not relevance alone: the greedy choice is provably
 within $1 - 1/e$ of optimal for the right (monotone submodular) objective, MMR is the cheap heuristic that
 does not earn that bound, a DPP makes diversity the squared volume of the selected vectors, and on a
-redundant pool every diversity-aware rule beats top-$k$ on the answer it produces — because top-$k$ re-reads
+redundant pool every diversity-aware rule we ran beats top-$k$ on the answer it produces — because top-$k$ re-reads
 the same fact while a covering set buys the disambiguating evidence.
 
 <FinanceCaseStudy title="Which 10-K passages should enter the window?" modality={["text", "pdf"]}>

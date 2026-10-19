@@ -28,9 +28,10 @@ MOVEMENT 2 — hybrid fusion gain.
   EXACT (set algebra): rho_fused <= |union A_L| / |R| (the coverage ceiling), VACUOUS (= 1) whenever
   one leg already covers R, so it bounds gain from above but does NOT explain the domination flip.
   NOT-A-THEOREM: "rho_fused >= max_leg rho_L" is FALSE — the flip needs the false positive to be
-  CO-ENDORSED by both legs (under RRF c=60 a lone top vote ~1/61 loses to two mid votes ~2/63), built
+  CO-ENDORSED by both legs (under RRF c=60 a lone top vote ~1/61 loses to two mid votes ~1/63 + 1/65), built
   and RUN as `dominated_leg_demo`. DEMONSTRATED: on the complementary multimodal instance the fused
-  recall beats every leg, and the gain grows as the legs de-correlate (lower Kendall-tau) — pinned to
+  recall beats every leg, and in a separate two-leg sweep the gain grows as the legs de-correlate (larger
+  Kendall-tau distance) — endpoints only, not monotone (it dips at a one-eighth blend) — pinned to
   the run, balance/depth-sensitive, not a theorem. Metric is set-coverage recall, not NDCG.
 
 MOVEMENT 3 — end-to-end budget allocation (the capstone theorem).
@@ -42,8 +43,9 @@ MOVEMENT 3 — end-to-end budget allocation (the capstone theorem).
   product, since d R / d c_i = g_i' * (R / g_i) shares the common scalar R that cancels; the log's job
   is separability + concavity => the KKT point is the GLOBAL max, not the existence of equal-marginal.)
   EXACT only under: common cost unit, separable budget, log-concave g_i on the operating grid, interior
-  optimum. DEMONSTRATED (one cloud): water-filling beats uniform and all-in-one. Anchor: full budget
-  everywhere -> every g_i -> 1 -> R -> 1.0, the brute exact pipeline.
+  optimum. DEMONSTRATED (one cloud): water-filling beats uniform and all-in-one. Anchor: as the budget
+  grows every g_i climbs toward 1 (the measured grid tops out at R = 0.905 at 22,080 comps/query);
+  the endpoint R = 1.0 is the brute exact pipeline, computed separately by `collapse_anchor`.
 
 rigorFlag: synthetic vMF token clouds, not a trained multimodal encoder — every number illustrates a
 mechanism, not a benchmark. Multimodality is SYSTEMS-LEVEL (heterogeneous per-modality legs feeding
@@ -361,7 +363,7 @@ def fusion_gain(corpus: dict, leg_names=tuple(LEGS), k: int = TOPK) -> dict:
 
 def dominated_leg_demo(k: int = 3) -> dict:
     """The headline FLIP, built and RUN: 'fused recall >= best leg' is FALSE. Under RRF c=60 a lone top
-    vote (~1/61) is weaker than two mid votes (~2/63), so a false positive flips the ranking only when
+    vote (~1/61) is weaker than two mid votes (~1/63 + 1/65), so a false positive flips the ranking only when
     it is CO-ENDORSED by both legs. Relevant set {r1, r2, r3}; the strong leg ranks them 1,2,3 (recall
     1.0) but also ranks the false positive x1 at 4; the noisy leg ranks x1, x2 at the top and buries
     r3. The fused top-3 then drops r3 in favor of x1, so fused recall = 2/3 < 1.0."""
@@ -371,15 +373,19 @@ def dominated_leg_demo(k: int = 3) -> dict:
     fused = rrf_fuse([strong, noisy])
     rho_strong = recall_at_k(strong, R, k)
     rho_fused = recall_at_k(fused, R, k)
-    # control: hold the SAME noisy leg, but drop the junk from the strong leg so it is NO LONGER
-    # co-endorsed. The relevant docs stay co-endorsed (two votes) while x1 is single-voted, so r3
-    # survives and recall is 1.0 — co-endorsement is the flip's mechanism, not junk-on-top alone.
+    # control: hold the SAME noisy leg, but drop the junk (BOTH x1 and x2) from the strong leg so
+    # neither is co-endorsed. The relevant docs stay co-endorsed (two votes) while x1, x2 are
+    # single-voted, so r3 survives and recall is 1.0 — co-endorsement is the flip's mechanism, not
+    # junk-on-top alone. Dropping x1 ALONE is not enough: x2 moves up to strong rank 4, is now
+    # co-endorsed (1/64 + 1/62 = 0.03175, tying r2), and still beats r3 (1/63 + 1/65 = 0.03126), so
+    # recall stays 2/3 — `test_dominated_leg_flip` asserts that too.
     strong_clean = ["r1", "r2", "r3"]
     fused_clean = rrf_fuse([strong_clean, noisy])
     return {
         "fused_top3": fused[:k], "rho_strong": rho_strong, "rho_fused": rho_fused,
         "flips": rho_fused < rho_strong,
         "rho_fused_no_coendorse": recall_at_k(fused_clean, R, k),
+        "rho_fused_drop_x1_only": recall_at_k(rrf_fuse([["r1", "r2", "r3", "x2"], noisy]), R, k),
     }
 
 
@@ -500,7 +506,8 @@ def demo_budget(curves: dict) -> float:
 
 def uniform_alloc(curves: dict, B: float) -> dict:
     """Naive baseline: split the budget evenly, then take the richest grid step each stage can afford
-    with its B/S share."""
+    with its B/S share. Every stage still pays its grid floor (the late-interaction leg's 512), so below
+    B = 1,152 the even split overspends its budget; the lab's budget slider starts at 1,200."""
     share = B / len(curves)
     alloc = {}
     for s, grid in curves.items():
@@ -559,7 +566,7 @@ def storage_accounting() -> dict:
     """Representative ColBERT/PLAID-scale storage (the late-interaction lab's d=128, 32 tokens,
     K=2^16): a single-vector index is d*32 bits; raw multi-vector is 32x that; PLAID stores per token a
     centroid id (log2 K bits) plus a PQ residual code (imported `pq_bits`), collapsing ~32x back to
-    ~1x a single-vector index. Bakes Panel D's storage bars."""
+    about 1.1x (4,608 / 4,096 = 1.125) a single-vector index. Bakes Panel D's storage bars."""
     single = COLBERT_DIM * 32
     raw_multi = COLBERT_TOKENS * COLBERT_DIM * 32
     per_token = math.ceil(math.log2(REP_NLIST)) + pq_bits(REP_PQ_M, REP_PQ_KSTAR)
@@ -694,6 +701,7 @@ def test_dominated_leg_flip() -> None:
     assert flip["flips"] and abs(flip["rho_fused"] - 2.0 / 3.0) < 1e-9, flip
     assert flip["rho_strong"] == 1.0
     assert abs(flip["rho_fused_no_coendorse"] - 1.0) < 1e-9   # no co-endorsement => no flip
+    assert abs(flip["rho_fused_drop_x1_only"] - 2.0 / 3.0) < 1e-9   # x2 still co-endorsed => still flips
 
 
 def test_decorrelation_endpoints() -> None:
@@ -771,7 +779,7 @@ def test_legs_share_one_corpus_and_truth() -> None:
 def test_storage_collapse() -> None:
     s = storage_accounting()
     assert s["raw_mult"] == 32.0                             # raw multi-vector is 32x a single vector
-    assert s["plaid_mult"] < 2.0                             # PLAID collapses it back to ~1x
+    assert s["plaid_mult"] < 2.0                             # PLAID collapses it back to ~1.1x
 
 
 def _run_all() -> None:
