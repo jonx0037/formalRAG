@@ -24,9 +24,12 @@ an `assert`:
 
   MOVEMENT 3 — THE RESOLUTION LIMIT (THEOREM, Fortunato-Barthelemy 2007 — the rigorFlag).
     The gamma-generalization Q_gamma. Modularity cannot resolve communities smaller than a
-    scale set by the WHOLE graph, ~sqrt(2m): on a ring of cliques the optimal partition MERGES
-    adjacent cliques once the ring is large. gamma only MOVES the scale; no single gamma
-    resolves multi-scale structure. (`ring_of_cliques`, `modularity`.)
+    scale set by the WHOLE graph, of order sqrt(2m): on a ring of cliques the optimal partition
+    MERGES adjacent cliques once the ring is large. sqrt(2m) is the ORDER of the scale, not a
+    literal cutoff: on the ring (l internal edges per clique) pairs beat singles exactly when
+    sqrt(2m) > 2(l+1), i.e. n_cliques > 2l+2 (= 22 for 5-cliques; an exact tie at 22).
+    gamma only MOVES the scale; no single gamma resolves multi-scale structure.
+    (`ring_of_cliques`, `ring_merge_onset`, `modularity`.)
 
   MOVEMENT 4 — THE SBM AND THE DETECTABILITY TRANSITION (THEOREM — the deep payload). The
     stochastic block model is the generative model; for the symmetric 2-block sparse SBM with
@@ -126,7 +129,12 @@ SBM_GRID_SEED = 101
 
 # Ring of cliques (the resolution-limit witness).
 RING_LARGE_NC, RING_CLIQUE = 30, 5    # 30 cliques of size 5: the optimum MERGES adjacent cliques
-RING_SMALL_NC = 3                     # 3 cliques: the optimum KEEPS them separate (the contrast)
+RING_SMALL_NC = 6                     # 6 cliques: the optimum KEEPS them separate (the contrast;
+                                      #   even, so the pairs-merged partition is defined)
+
+# Q(random): ONE shared estimate (demo, test, and viz all use it) -- the mean modularity of
+# GR_Q_RANDOM_DRAWS random relabelings of the planted sectors, from a GR_SEED rng.
+GR_Q_RANDOM_DRAWS = 50
 
 LOG2 = math.log(2.0)
 
@@ -364,7 +372,7 @@ def leiden_refine(A: np.ndarray, labels):
     """The connectivity-guaranteeing CORE of Leiden's refinement: split every community into its
     internally-connected components, so no refined community is disconnected. (The full Leiden also
     re-merges well-connected pieces with randomized moves; we implement the minimal version that
-    delivers the guarantee — honest in the rigorFlag.) Returns relabeled-consecutive labels."""
+    delivers the guarantee -- stated as such in the MDX prose.) Returns relabeled-consecutive labels."""
     A = np.asarray(A, float)
     labels = np.asarray(labels)
     out = np.full(len(labels), -1, int)
@@ -391,8 +399,9 @@ def leiden_refine(A: np.ndarray, labels):
 
 
 def leiden(A: np.ndarray, gamma: float = 1.0):
-    """Louvain followed by Leiden's refinement: guarantees every returned community is internally
-    connected. Returns the refined labels."""
+    """Louvain followed by the minimal Leiden refinement (`leiden_refine`: connected-component
+    split only): guarantees every returned community is internally connected. Returns the refined
+    labels."""
     node_comm, _ = louvain(A, gamma=gamma)
     return leiden_refine(A, node_comm)
 
@@ -447,6 +456,24 @@ def paired_clique_labels(n_cliques: int, clique_size: int):
         for a in range(clique_size):
             labels[t * clique_size + a] = t // 2
     return labels
+
+
+def ring_merge_onset(clique_size: int) -> int:
+    """The exact resolution-limit onset on the ring of cliques: with l = s(s-1)/2 internal edges per
+    clique and m = n_c (l+1) total edges, Q(pairs) - Q(singles) = (n_c - 2l - 2) / (2 n_c (l+1)),
+    so pairs beat singles iff n_c > 2l + 2, equivalently sqrt(2m) > 2(l+1). Returns 2l + 2 (= 22
+    for 5-cliques: a TIE at exactly this many cliques, a merge above it)."""
+    ell = clique_size * (clique_size - 1) // 2
+    return 2 * ell + 2
+
+
+def random_partition_modularity(A: np.ndarray, labels, draws: int = GR_Q_RANDOM_DRAWS,
+                                seed: int = GR_SEED) -> float:
+    """The Q(random) baseline: mean modularity of `draws` random relabelings (permutations of the
+    planted labels, so community sizes are kept) from a seeded rng. The single shared estimate the
+    demo, the harness test, and the viz all report. (Individual draws scatter widely around ~0.)"""
+    rng = np.random.default_rng(seed)
+    return float(np.mean([modularity(A, rng.permutation(labels)) for _ in range(draws)]))
 
 
 def louvain_disconnected_witness():
@@ -534,7 +561,13 @@ def spectral_sbm_recovery(A) -> np.ndarray:
     v0 = np.random.default_rng(0).standard_normal(A.shape[0])
     vals, vecs = eigsh(op, k=2, which="BE", v0=v0)   # one from each end of the spectrum
     s = vecs[:, int(np.argmax(np.abs(vals)))]
-    return (s > 0).astype(int)
+    # Rounding must not depend on solver noise. (1) Fix the eigenvector's arbitrary global sign:
+    # largest-|entry| positive. (2) An ISOLATED (degree-0) node has an EXACT-zero entry (B's row is
+    # zero), so its computed sign is +/-1e-17 round-off that differs across BLAS/ARPACK builds --
+    # this, not v0, is what moved the baked overlaps between machines. Such zero-information
+    # entries go to block 0 deterministically. Verified identical for eigsh (any v0) and dense eigh.
+    s = s * np.sign(s[int(np.argmax(np.abs(s)))])
+    return (s > 1e-9 * float(np.abs(s).max())).astype(int)
 
 
 def overlap(true_labels, est_labels, q: int = 2) -> float:
@@ -579,8 +612,7 @@ def graphrag_demo() -> dict:
     g = graphrag_corpus()
     A, sector = g["A"], g["sector"]
     Q_planted = modularity(A, sector)
-    rng = np.random.default_rng(GR_SEED)
-    Q_random = float(np.mean([modularity(A, rng.permutation(sector)) for _ in range(20)]))
+    Q_random = random_partition_modularity(A, sector)
     lab_leiden = leiden(A)
     ov = overlap_multi(sector, lab_leiden)
     print(f"  MOVEMENT 1-5: finance entity graph -- {A.shape[0]} companies, "
@@ -597,7 +629,8 @@ def graphrag_demo() -> dict:
         Q_pairs = modularity(Ar, paired_clique_labels(nc, RING_CLIQUE)) if nc % 2 == 0 else float("nan")
         m2 = total_weight(Ar)
         verdict = "MERGES" if (nc % 2 == 0 and Q_pairs > Q_singles) else "keeps separate"
-        print(f"    {nc:>2} cliques (sqrt(2m)={math.sqrt(m2):.1f}): "
+        print(f"    {nc:>2} cliques (sqrt(2m)={math.sqrt(m2):.1f} vs merge test 2(l+1)="
+              f"{ring_merge_onset(RING_CLIQUE)}): "
               f"Q(singles)={Q_singles:.3f}, Q(pairs)={Q_pairs:.3f} -> optimum {verdict}")
 
     print("  MOVEMENT 4: SBM detectability (Kesten-Stigum (c_in-c_out)^2 > 2(c_in+c_out)):")
@@ -735,14 +768,37 @@ def test_resolution_limit_merges_cliques() -> None:
     assert n_found < RING_LARGE_NC, \
         f"Louvain should merge cliques on the large ring: found {n_found} >= {RING_LARGE_NC}"
     # small ring: singles win -> structure resolved
-    A_sm, true_sm = ring_of_cliques(4, RING_CLIQUE)   # 4 cliques (even, so pairs is defined)
+    A_sm, true_sm = ring_of_cliques(RING_SMALL_NC, RING_CLIQUE)   # even, so pairs is defined
     Q_singles_sm = modularity(A_sm, true_sm)
-    Q_pairs_sm = modularity(A_sm, paired_clique_labels(4, RING_CLIQUE))
+    Q_pairs_sm = modularity(A_sm, paired_clique_labels(RING_SMALL_NC, RING_CLIQUE))
     assert Q_singles_sm > Q_pairs_sm, \
         f"small ring: singles {Q_singles_sm} should beat pairs {Q_pairs_sm}"
     print(f"  [ok] Movement 3: resolution limit -- large ring merges "
           f"(pairs {Q_pairs_big:.3f} > singles {Q_singles_big:.3f}, Louvain found {n_found} of "
-          f"{RING_LARGE_NC}); small ring keeps separate")
+          f"{RING_LARGE_NC}); small ring keeps separate ({Q_singles_sm:.3f} > {Q_pairs_sm:.3f})")
+
+
+def test_ring_merge_onset_exact() -> None:
+    """Movement 3: sqrt(2m) is the ORDER of the resolution scale, not the merge test. On the ring the
+    exact test is sqrt(2m) > 2(l+1) (n_c > 2l+2 = 22 for 5-cliques): a tie at 22, singles win below,
+    pairs win above. The small ring has sqrt(2m) ~ 11.5 > l = 10 internal edges yet stays resolved."""
+    onset = ring_merge_onset(RING_CLIQUE)
+    assert onset == 22
+    for nc in (onset - 2, onset, onset + 2):
+        A, true = ring_of_cliques(nc, RING_CLIQUE)
+        d = modularity(A, paired_clique_labels(nc, RING_CLIQUE)) - modularity(A, true)
+        sq = math.sqrt(total_weight(A))
+        if nc < onset:
+            assert d < 0 and sq < onset, f"n_c={nc}: singles should win (d={d}, sqrt2m={sq})"
+        elif nc == onset:
+            assert abs(d) < 1e-12 and abs(sq - onset) < 1e-12, f"n_c={nc}: exact tie (d={d})"
+        else:
+            assert d > 0 and sq > onset, f"n_c={nc}: pairs should win (d={d}, sqrt2m={sq})"
+    A6, _ = ring_of_cliques(RING_SMALL_NC, RING_CLIQUE)
+    ell = RING_CLIQUE * (RING_CLIQUE - 1) // 2
+    assert math.sqrt(total_weight(A6)) > ell, "small ring: sqrt(2m) exceeds l, yet it resolves"
+    print(f"  [ok] Movement 3: exact ring merge test sqrt(2m) > 2(l+1) = {onset} "
+          f"(tie at {onset} cliques; not sqrt(2m) vs the clique)")
 
 
 def test_gamma_moves_resolution() -> None:
@@ -853,8 +909,7 @@ def test_planted_modularity_beats_random() -> None:
     g = graphrag_corpus()
     A, sector = g["A"], g["sector"]
     Q_planted = modularity(A, sector)
-    rng = np.random.default_rng(1)
-    Q_random = float(np.mean([modularity(A, rng.permutation(sector)) for _ in range(50)]))
+    Q_random = random_partition_modularity(A, sector)
     assert Q_planted > 0.3, f"planted modularity should be high, got {Q_planted}"
     assert Q_planted > Q_random + 0.2, \
         f"planted {Q_planted} should beat random {Q_random} by a clear margin"
@@ -897,6 +952,7 @@ def _run_all() -> None:
     test_indivisible_when_lambda1_nonpositive()
     test_aggregate_preserves_modularity()
     test_resolution_limit_merges_cliques()
+    test_ring_merge_onset_exact()
     test_gamma_moves_resolution()
     test_sbm_detectable_above_threshold()
     test_sbm_undetectable_below_threshold()
@@ -981,8 +1037,7 @@ def viz_constants() -> None:
     print(f"const GR_EDGES = {_edge_list(A)};   // [i, j, weight]")
     print(f"const GR_LAYOUT = {[[r3(x), r3(y)] for x, y in _spectral_layout(A)]};")
     Q_planted = modularity(A, sector)
-    rng = np.random.default_rng(GR_SEED)
-    Q_random = float(np.mean([modularity(A, rng.permutation(sector)) for _ in range(50)]))
+    Q_random = random_partition_modularity(A, sector)
     print(f"const GR_Q_PLANTED = {r3(Q_planted)};")
     print(f"const GR_Q_RANDOM = {r3(Q_random)};")
     q_by_gamma = []
@@ -1010,14 +1065,17 @@ def viz_constants() -> None:
     print(f"const RING_N_CLIQUES = {RING_LARGE_NC};")
     print(f"const RING_CLIQUE_SIZE = {RING_CLIQUE};")
     print(f"const RING_SQRT_2M = {r3(math.sqrt(m2))};")
+    print(f"const RING_MERGE_ONSET = {ring_merge_onset(RING_CLIQUE)};   // exact test: sqrt(2m) > 2(l+1)")
     print(f"const RING_Q_SINGLES = {r3(modularity(A_ring, true_ring))};")
     print(f"const RING_Q_PAIRS = {r3(modularity(A_ring, paired_clique_labels(RING_LARGE_NC, RING_CLIQUE)))};")
     lab_ring, _ = louvain(A_ring)
     print(f"const RING_LOUVAIN_NCOMM = {relabel_consecutive(lab_ring)[1]};")
     # small ring contrast (drawn as the inset)
-    A_small, true_small = ring_of_cliques(6, RING_CLIQUE)
+    A_small, true_small = ring_of_cliques(RING_SMALL_NC, RING_CLIQUE)
+    print(f"const RING_SMALL_NC = {RING_SMALL_NC};")
+    print(f"const RING_SMALL_SQRT_2M = {r3(math.sqrt(total_weight(A_small)))};")
     print(f"const RING_SMALL_Q_SINGLES = {r3(modularity(A_small, true_small))};")
-    print(f"const RING_SMALL_Q_PAIRS = {r3(modularity(A_small, paired_clique_labels(6, RING_CLIQUE)))};")
+    print(f"const RING_SMALL_Q_PAIRS = {r3(modularity(A_small, paired_clique_labels(RING_SMALL_NC, RING_CLIQUE)))};")
     Aw, stuck = louvain_disconnected_witness()
     conn = community_is_connected(Aw, stuck)
     refined = leiden_refine(Aw, stuck)

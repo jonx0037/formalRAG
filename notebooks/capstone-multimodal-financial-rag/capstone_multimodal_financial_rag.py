@@ -23,14 +23,18 @@ MOVEMENT 1 — cascade recall composition.
   hard for stage 1 is hard for the rerank too), R_true >= prod r_i — the independent product is a
   conservative LOWER bound; negative association reverses it; equality at independence. We RUN both
   signs (a bivariate-normal copula) before writing the direction. Anchor: all r_i = 1 -> R = 1.
+  On the MEASURED pipeline only fusion loses anything (conditional and stand-alone retentions alike are
+  1 / 0.9225 / 1), so the product equals the realized recall exactly (0.9225, over-fetch 1.084): the
+  real stack is a product-law instance, not FKG evidence; the FKG direction lives in the copula sweep.
 
 MOVEMENT 2 — hybrid fusion gain.
   EXACT (set algebra): rho_fused <= |union A_L| / |R| (the coverage ceiling), VACUOUS (= 1) whenever
   one leg already covers R, so it bounds gain from above but does NOT explain the domination flip.
   NOT-A-THEOREM: "rho_fused >= max_leg rho_L" is FALSE — the flip needs the false positive to be
-  CO-ENDORSED by both legs (under RRF c=60 a lone top vote ~1/61 loses to two mid votes ~2/63), built
+  CO-ENDORSED by both legs (under RRF c=60 a lone top vote ~1/61 loses to two mid votes ~1/63 + 1/65), built
   and RUN as `dominated_leg_demo`. DEMONSTRATED: on the complementary multimodal instance the fused
-  recall beats every leg, and the gain grows as the legs de-correlate (lower Kendall-tau) — pinned to
+  recall beats every leg, and in a separate two-leg sweep the gain grows as the legs de-correlate (larger
+  Kendall-tau distance) — endpoints only, not monotone (it dips at a one-eighth blend) — pinned to
   the run, balance/depth-sensitive, not a theorem. Metric is set-coverage recall, not NDCG.
 
 MOVEMENT 3 — end-to-end budget allocation (the capstone theorem).
@@ -42,8 +46,9 @@ MOVEMENT 3 — end-to-end budget allocation (the capstone theorem).
   product, since d R / d c_i = g_i' * (R / g_i) shares the common scalar R that cancels; the log's job
   is separability + concavity => the KKT point is the GLOBAL max, not the existence of equal-marginal.)
   EXACT only under: common cost unit, separable budget, log-concave g_i on the operating grid, interior
-  optimum. DEMONSTRATED (one cloud): water-filling beats uniform and all-in-one. Anchor: full budget
-  everywhere -> every g_i -> 1 -> R -> 1.0, the brute exact pipeline.
+  optimum. DEMONSTRATED (one cloud): water-filling beats uniform and all-in-one. Anchor: as the budget
+  grows every g_i climbs toward 1 (the measured grid tops out at R = 0.905 at 22,080 comps/query);
+  the endpoint R = 1.0 is the brute exact pipeline, computed separately by `collapse_anchor`.
 
 rigorFlag: synthetic vMF token clouds, not a trained multimodal encoder — every number illustrates a
 mechanism, not a benchmark. Multimodality is SYSTEMS-LEVEL (heterogeneous per-modality legs feeding
@@ -276,34 +281,57 @@ def measure_stage_retention(found_ids, relevant: set, k: int = TOPK) -> float:
 def measure_cascade_stages(corpus: dict, nprobe: int = 8, keep: int = 40, k: int = TOPK) -> dict:
     """Run the real published cascade on the shared corpus and MEASURE each stage's retention against
     the shared MaxSim truth: S1 candidate generation (token-IVF `stage1_candidates`), S2 fuse/prune
-    (RRF of the legs cut to `keep`), S3 rerank (exact MaxSim on survivors). Returns the per-stage mean
-    retentions and the measured end-to-end recall, so the product law can be checked on the REAL
-    stack, not toy constants. Re-derives the imported `brute_topk` truth (the shared-baseline rule)."""
+    (RRF of the legs cut to `keep`), S3 rerank (exact MaxSim on survivors). Re-derives the imported
+    `brute_topk` truth (the shared-baseline rule).
+
+    Retentions are CONDITIONAL, as Definition 1 defines them: r1 = |S1 ∩ truth| / k, r2 = the fraction
+    of the truth that REACHED stage 2 which survives it, r3 = the fraction that reached stage 3 which
+    survives it. (Measuring every stage against the full truth instead — |S_i ∩ truth| / k — would
+    re-count the earlier stages' losses inside each later r_i, and their product would double-count.)
+    Per query the conditional retentions telescope, r1 * r2 * r3 = |S3 ∩ truth| / k, the realized recall.
+    Also returns each stage's STAND-ALONE retention (the stage run on the whole corpus, not on its
+    predecessor's output) — the marginal survival probabilities FKG compares the realized recall against."""
     ts = corpus["truth_sets"]
     docs = corpus["docs"]
-    r1s, r2s, r3s, end = [], [], [], []
+    all_docs = list(range(len(docs)))
+    r1s, r2s, r3s, end, tele = [], [], [], [], []
+    a2s, a3s = [], []
     for q in range(corpus["n_queries"]):
         rel = ts[q]
+        denom = min(k, len(rel))
         # S1: token-IVF candidate set.
         cand = stage1_candidates(corpus["queries"][q], corpus["index"], nprobe)
-        r1s.append(measure_stage_retention(cand, rel, k))
+        n1 = len(set(cand) & rel)
         # S2: fuse the three legs (restricted to candidates), keep the top-`keep`.
         rk = leg_rankings(corpus, q)
-        fused = [d for d in rrf_fuse([rk[name] for name in LEGS]) if d in cand][:keep]
-        fused_set = set(fused)
-        r2s.append(measure_stage_retention(fused_set, rel, k))
+        fused_all = rrf_fuse([rk[name] for name in LEGS])
+        fused = [d for d in fused_all if d in cand][:keep]
+        n2 = len(set(fused) & rel)
         # S3: exact-MaxSim rerank of the survivors to top-k.
         if fused:
             S = maxsim_matrix(corpus["queries"][q][None, ...], docs[np.array(fused)])[0]
             reranked = [fused[i] for i in np.argsort(-S, kind="stable")[:k]]
         else:
             reranked = []
-        r3s.append(measure_stage_retention(reranked, rel, k))
+        n3 = len(set(reranked) & rel)
+        r1s.append(n1 / denom)
+        r2s.append(n2 / n1 if n1 else 1.0)          # conditional on reaching stage 2
+        r3s.append(n3 / n2 if n2 else 1.0)          # conditional on reaching stage 3
         end.append(recall_at_k(reranked, rel, k))
+        tele.append(abs(r1s[-1] * r2s[-1] * r3s[-1] - n3 / denom))
+        # stand-alone: stage 2 on the full fused list (no candidate restriction); stage 3 alone on every
+        # document is exact MaxSim over the corpus, i.e. the truth itself.
+        a2s.append(len(set(fused_all[:keep]) & rel) / denom)
+        S_all = maxsim_matrix(corpus["queries"][q][None, ...], docs[np.array(all_docs)])[0]
+        a3s.append(len(set(np.argsort(-S_all, kind="stable")[:k].tolist()) & rel) / denom)
+    r1, r2, r3 = float(np.mean(r1s)), float(np.mean(r2s)), float(np.mean(r3s))
+    a1, a2, a3 = r1, float(np.mean(a2s)), float(np.mean(a3s))
     return {
-        "r1": float(np.mean(r1s)), "r2": float(np.mean(r2s)), "r3": float(np.mean(r3s)),
-        "product": float(np.mean(r1s) * np.mean(r2s) * np.mean(r3s)),
+        "r1": r1, "r2": r2, "r3": r3,
+        "product": r1 * r2 * r3,
         "measured_end": float(np.mean(end)),
+        "telescope_max_err": float(max(tele)),
+        "standalone": (a1, a2, a3), "standalone_product": a1 * a2 * a3,
     }
 
 
@@ -361,7 +389,7 @@ def fusion_gain(corpus: dict, leg_names=tuple(LEGS), k: int = TOPK) -> dict:
 
 def dominated_leg_demo(k: int = 3) -> dict:
     """The headline FLIP, built and RUN: 'fused recall >= best leg' is FALSE. Under RRF c=60 a lone top
-    vote (~1/61) is weaker than two mid votes (~2/63), so a false positive flips the ranking only when
+    vote (~1/61) is weaker than two mid votes (~1/63 + 1/65), so a false positive flips the ranking only when
     it is CO-ENDORSED by both legs. Relevant set {r1, r2, r3}; the strong leg ranks them 1,2,3 (recall
     1.0) but also ranks the false positive x1 at 4; the noisy leg ranks x1, x2 at the top and buries
     r3. The fused top-3 then drops r3 in favor of x1, so fused recall = 2/3 < 1.0."""
@@ -371,15 +399,19 @@ def dominated_leg_demo(k: int = 3) -> dict:
     fused = rrf_fuse([strong, noisy])
     rho_strong = recall_at_k(strong, R, k)
     rho_fused = recall_at_k(fused, R, k)
-    # control: hold the SAME noisy leg, but drop the junk from the strong leg so it is NO LONGER
-    # co-endorsed. The relevant docs stay co-endorsed (two votes) while x1 is single-voted, so r3
-    # survives and recall is 1.0 — co-endorsement is the flip's mechanism, not junk-on-top alone.
+    # control: hold the SAME noisy leg, but drop the junk (BOTH x1 and x2) from the strong leg so
+    # neither is co-endorsed. The relevant docs stay co-endorsed (two votes) while x1, x2 are
+    # single-voted, so r3 survives and recall is 1.0 — co-endorsement is the flip's mechanism, not
+    # junk-on-top alone. Dropping x1 ALONE is not enough: x2 moves up to strong rank 4, is now
+    # co-endorsed (1/64 + 1/62 = 0.03175, tying r2), and still beats r3 (1/63 + 1/65 = 0.03126), so
+    # recall stays 2/3 — `test_dominated_leg_flip` asserts that too.
     strong_clean = ["r1", "r2", "r3"]
     fused_clean = rrf_fuse([strong_clean, noisy])
     return {
         "fused_top3": fused[:k], "rho_strong": rho_strong, "rho_fused": rho_fused,
         "flips": rho_fused < rho_strong,
         "rho_fused_no_coendorse": recall_at_k(fused_clean, R, k),
+        "rho_fused_drop_x1_only": recall_at_k(rrf_fuse([["r1", "r2", "r3", "x2"], noisy]), R, k),
     }
 
 
@@ -500,7 +532,8 @@ def demo_budget(curves: dict) -> float:
 
 def uniform_alloc(curves: dict, B: float) -> dict:
     """Naive baseline: split the budget evenly, then take the richest grid step each stage can afford
-    with its B/S share."""
+    with its B/S share. Every stage still pays its grid floor (the late-interaction leg's 512), so below
+    B = 1,152 the even split overspends its budget; the lab's budget slider starts at 1,200."""
     share = B / len(curves)
     alloc = {}
     for s, grid in curves.items():
@@ -559,7 +592,7 @@ def storage_accounting() -> dict:
     """Representative ColBERT/PLAID-scale storage (the late-interaction lab's d=128, 32 tokens,
     K=2^16): a single-vector index is d*32 bits; raw multi-vector is 32x that; PLAID stores per token a
     centroid id (log2 K bits) plus a PQ residual code (imported `pq_bits`), collapsing ~32x back to
-    ~1x a single-vector index. Bakes Panel D's storage bars."""
+    about 1.1x (4,608 / 4,096 = 1.125) a single-vector index. Bakes Panel D's storage bars."""
     single = COLBERT_DIM * 32
     raw_multi = COLBERT_TOKENS * COLBERT_DIM * 32
     per_token = math.ceil(math.log2(REP_NLIST)) + pq_bits(REP_PQ_M, REP_PQ_KSTAR)
@@ -576,9 +609,10 @@ def viz_constants() -> None:
     corpus = _corpus()
     print("\n=== Panel A — cascade funnel (Movement 1) ===")
     stages = measure_cascade_stages(corpus, nprobe=8, keep=40)
-    print("measured stage retentions:", {kk: round(stages[kk], 3) for kk in ("r1", "r2", "r3")})
-    print("cascade product R =", round(stages["product"], 3),
-          " measured end-to-end recall =", round(stages["measured_end"], 3))
+    print("measured CONDITIONAL stage retentions:", {kk: round(stages[kk], 4) for kk in ("r1", "r2", "r3")})
+    print("stand-alone stage retentions:", tuple(round(v, 4) for v in stages["standalone"]))
+    print("cascade product R =", round(stages["product"], 4),
+          " measured end-to-end recall =", round(stages["measured_end"], 4), " (telescopes: equal)")
     print("over-fetch factor 1/R =", round(over_fetch_factor([stages["r1"], stages["r2"], stages["r3"]]), 2))
     rhos = (-0.6, -0.3, 0.0, 0.3, 0.6, 0.9)
     sweep = dependence_sweep(DEMO_R1, DEMO_R2, rhos)   # illustrative middling r_i so FKG visibly bites
@@ -672,12 +706,16 @@ def test_dependence_direction() -> None:
     assert rows[-1]["gap"] > 0.03, f"FKG lift must be non-trivial at rho=0.9, got {rows[-1]['gap']}"
 
 
-def test_measured_stages_compose_as_lower_bound() -> None:
-    # On the REAL stack stages are positively dependent, so the measured end-to-end recall sits AT or
-    # ABOVE the product (a >= direction test, never ==).
+def test_measured_stages_telescope() -> None:
+    # On the REAL stack, conditional retentions telescope per query (r1 r2 r3 = realized recall, exactly).
+    # Only fusion loses anything here (stand-alone retentions 1 / 0.9225 / 1), so the stand-alone product
+    # also equals the realized recall: the real pipeline has no cross-stage dependence for FKG to act on —
+    # the FKG DIRECTION is demonstrated by the copula sweep (`test_dependence_direction`), not here.
     stages = measure_cascade_stages(_corpus(), nprobe=8, keep=40)
     assert 0.0 < stages["r1"] <= 1.0 and 0.0 < stages["r2"] <= 1.0 and 0.0 < stages["r3"] <= 1.0
-    assert stages["measured_end"] >= stages["product"] - 0.05
+    assert stages["telescope_max_err"] < 1e-12
+    assert abs(stages["product"] - stages["measured_end"]) < 1e-9
+    assert abs(stages["standalone_product"] - stages["measured_end"]) < 1e-9
 
 
 def test_cascade_collapse_anchor() -> None:
@@ -694,6 +732,7 @@ def test_dominated_leg_flip() -> None:
     assert flip["flips"] and abs(flip["rho_fused"] - 2.0 / 3.0) < 1e-9, flip
     assert flip["rho_strong"] == 1.0
     assert abs(flip["rho_fused_no_coendorse"] - 1.0) < 1e-9   # no co-endorsement => no flip
+    assert abs(flip["rho_fused_drop_x1_only"] - 2.0 / 3.0) < 1e-9   # x2 still co-endorsed => still flips
 
 
 def test_decorrelation_endpoints() -> None:
@@ -771,7 +810,7 @@ def test_legs_share_one_corpus_and_truth() -> None:
 def test_storage_collapse() -> None:
     s = storage_accounting()
     assert s["raw_mult"] == 32.0                             # raw multi-vector is 32x a single vector
-    assert s["plaid_mult"] < 2.0                             # PLAID collapses it back to ~1x
+    assert s["plaid_mult"] < 2.0                             # PLAID collapses it back to ~1.1x
 
 
 def _run_all() -> None:
@@ -779,7 +818,7 @@ def _run_all() -> None:
     test_overfetch_is_reciprocal_identity()
     test_independence_recovers_product()
     test_dependence_direction()
-    test_measured_stages_compose_as_lower_bound()
+    test_measured_stages_telescope()
     test_cascade_collapse_anchor()
     test_fusion_gain_under_complementarity()
     test_dominated_leg_flip()

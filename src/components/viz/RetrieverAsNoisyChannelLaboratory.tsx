@@ -4,10 +4,11 @@ import katex from 'katex';
 /**
  * Retriever-as-a-Noisy-Channel Laboratory — four panels for the `retriever-as-noisy-channel` topic:
  *   A. The channel & its capacity. A recall slider erases the retrieved context with probability 1 - recall;
- *      the answer belief flattens toward uniform and the delivered bits fall EXACTLY as I = recall · I_0
- *      (the Binary Erasure Channel capacity).
+ *      a Bayesian reader falls back to its query-only belief p(a|q), so the gold-filing belief slumps back to
+ *      that prior and the delivered bits fall EXACTLY as I = recall · I_0 (the Binary Erasure Channel capacity).
  *   B. The recall floor (Fano). As recall falls the residual entropy H(A|Q,D) rises and Fano's inequality
- *      turns it into a floor on the generator's Bayes error — vacuous while H < 1 bit, then climbing. The
+ *      turns it into a floor on the generator's Bayes error — the loose form vacuous while H < 1 bit, then
+ *      climbing; the tight form already positive (0.122) on the clean channel. The
  *      information ceiling no generator beats. Recall sets the floor.
  *   C. The precision gap (confidently wrong). A substitution slider swaps the relevant filing for a
  *      same-sector distractor with probability eps; the realized error climbs to 1 while H(A|Q,D) stays
@@ -27,15 +28,17 @@ import katex from 'katex';
 const K = 8;                       // companies = answers = documents
 const N_QUERIES = 32;
 const SECTOR = [0, 0, 1, 1, 2, 2, 3, 3];
-const WORKED_Q = 5;                // a representative query whose clean answer belief Panel A erodes
-const WORKED_BELIEF = [0.2272, 0.459, 0.01, 0.0134, 0.0293, 0.0352, 0.173, 0.0529];
+const WORKED_Q = 5;                // a representative query: Panel A erodes its gold-filing belief to its prior
+const WORKED_PRIOR = [0.2272, 0.459, 0.01, 0.0134, 0.0293, 0.0352, 0.173, 0.0529];        // p(a|q), query only
+const WORKED_GOLD_POST = [0.0592, 0.9149, 0.0006, 0.0006, 0.0011, 0.0006, 0.0165, 0.0064]; // p(a|q, gold filing)
 
 const I0 = 1.1832;                 // clean delivered bits I(A;D|Q)
 const H_A_GIVEN_Q = 2.0592;        // marginal answer entropy
 const H_COND0 = 0.876;             // clean residual entropy H(A|Q,D)
 const BAYES0 = 0.1983;             // clean Bayes (MAP) error
-const LOG2K = 3.0;                 // log2(8)
-const UNIF_BAYES = 0.875;          // 1 - 1/K, the uniform-guess error after full erasure
+const LOG2K = 3.0;                 // log2(8), for the Fano floors
+const ERASE_BAYES = 0.5472;        // E_q[1 - max p(a|q)], the query-only prior's MAP error after full erasure
+const ACTIVATE_RECALL = 0.8952;    // recall where H(A|Q,D) crosses 1 bit: (H(A|Q) - 1) / (H(A|Q) - H_cond0)
 
 // Panel C — substitution (precision). Gold read vs same-sector distractor read, averaged over queries.
 const G_ERR = 0.0, D_ERR = 1.0;    // realized error of reading the gold filing vs the distractor
@@ -72,11 +75,12 @@ const fanoTight = (h: number) => {
   }
   return 0.5 * (lo + hi);
 };
-// erasure (recall) channel: convex blends of the clean value and the erased (uniform) value.
-const hCondR = (r: number) => r * H_COND0 + (1 - r) * LOG2K;
-const bayesR = (r: number) => r * BAYES0 + (1 - r) * UNIF_BAYES;
-const bitsR = (r: number) => r * I0;
-const beliefR = (r: number) => WORKED_BELIEF.map((p) => r * p + (1 - r) / K);
+// erasure (recall) channel: convex blends of the clean value and the erased value — the Bayesian reader's
+// erased-branch posterior is the query-only prior p(a|q), so the residual rises toward H(A|Q), not log2 K.
+const hCondR = (r: number) => r * H_COND0 + (1 - r) * H_A_GIVEN_Q;
+const bayesR = (r: number) => r * BAYES0 + (1 - r) * ERASE_BAYES;
+const bitsR = (r: number) => H_A_GIVEN_Q - hCondR(r);   // = r · I0 (Theorem 1)
+const beliefR = (r: number) => WORKED_GOLD_POST.map((p, a) => r * p + (1 - r) * WORKED_PRIOR[a]);
 // substitution (precision) channel.
 const realizedE = (e: number) => (1 - e) * G_ERR + e * D_ERR;
 const subBayesE = (e: number) => (1 - e) * G_BAYES + e * D_BAYES;
@@ -126,15 +130,17 @@ function ChannelPanel({ recall, setRecall }: { recall: number; setRecall: (v: nu
     <div>
       <Slider label="retriever recall (1 − erasure rate)" value={recall} min={0} max={1} step={0.05}
         onChange={setRecall} display={`${fmt(recall, 2)}`} />
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="answer belief eroding toward uniform as recall falls" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="answer belief eroding toward the query-only prior as recall falls" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
         <line x1={padL} y1={H - padB} x2={W - padR} y2={H - padB} stroke="var(--color-border)" strokeWidth={1} />
         <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--color-border)" strokeWidth={1} />
         {[0, 0.5, 1].map((v) => (
           <text key={v} x={padL - 5} y={py(v) + 3} textAnchor="end" fontSize={8} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">{v}</text>
         ))}
-        {/* uniform reference line — what the belief erodes to */}
-        <line x1={padL} y1={py(1 / K)} x2={W - padR} y2={py(1 / K)} stroke={MUTED} strokeWidth={1} strokeDasharray="3 3" />
-        <text x={W - padR} y={py(1 / K) - 3} textAnchor="end" fontSize={8} fill={MUTED} fontFamily="var(--font-sans)">uniform 1/K</text>
+        {/* query-only prior p(a|q) per answer — what the belief erodes to */}
+        {WORKED_PRIOR.map((v, a) => (
+          <line key={`p${a}`} x1={r2(padL + a * gw + gw * 0.1)} y1={r2(py(v))} x2={r2(padL + a * gw + gw * 0.9)} y2={r2(py(v))} stroke={MUTED} strokeWidth={1.2} strokeDasharray="3 2" />
+        ))}
+        <text x={W - padR} y={padT + 2} textAnchor="end" fontSize={8} fill={MUTED} fontFamily="var(--font-sans)">┄ query-only prior p(a | q)</text>
         {belief.map((v, a) => (
           <g key={a}>
             <rect x={r2(padL + a * gw + gw * 0.2)} y={r2(py(v))} width={r2(gw * 0.6)} height={r2((H - padB) - py(v))}
@@ -143,7 +149,7 @@ function ChannelPanel({ recall, setRecall }: { recall: number; setRecall: (v: nu
           </g>
         ))}
         <text x={padL} y={11} fontSize={9} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">
-          answer belief p(a | q) through the channel (worked query {WORKED_Q})
+          answer belief after the gold filing, through the channel (worked query {WORKED_Q})
         </text>
       </svg>
       {/* delivered-bits meter: recall · I_0 out of I_0 */}
@@ -159,17 +165,17 @@ function ChannelPanel({ recall, setRecall }: { recall: number; setRecall: (v: nu
         <Readout label="answer-belief entropy" value={`${fmt(hBelief)} bits`} />
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
-        A retrieval miss <strong>erases</strong> the relevant filing (probability 1 − recall), and the generator falls back
-        to a non-informative belief. Because the erased symbol is independent of the answer, the retriever is a{' '}
-        <strong>Binary Erasure Channel</strong>: the surviving fraction of the relevant bits is exactly the recall, so the
-        delivered information is <span style={{ color: POS }}>I = recall · I₀</span> and the belief flattens toward uniform.
+        A retrieval miss <strong>erases</strong> the relevant filing (probability 1 − recall); the generator sees the erasure
+        and, reading as a Bayesian, falls back to its query-only belief p(a | q). Because the erased symbol is independent of
+        the answer given the query, the retriever is a <strong>Binary Erasure Channel</strong>: the surviving fraction of the
+        relevant bits is exactly the recall, so the delivered information is <span style={{ color: POS }}>I = recall · I₀</span>{' '}
+        and the belief slumps back to the prior. (A reader that guessed uniformly instead would throw away the query's own bits.)
       </p>
     </div>
   );
 }
 
 // ===== Panel B — the recall floor (Fano) ============================================================
-const ACTIVATE_RECALL = 0.9416;   // recall where H(A|Q,D) crosses 1 bit (1 = 0.876r + 3(1−r))
 function RecallFloorPanel({ recall, setRecall }: { recall: number; setRecall: (v: number) => void }) {
   const W = 520, H = 230, padL = 36, padR = 40, padT = 16, padB = 32;
   // x = recall, drawn 1.0 (left) -> 0.0 (right): degradation goes rightward.
@@ -214,9 +220,10 @@ function RecallFloorPanel({ recall, setRecall }: { recall: number; setRecall: (v
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         What recall fails to deliver reappears as residual entropy H(A|Q,D), and <strong>Fano's inequality</strong> turns it
-        into a <span style={{ color: FLOOR }}>floor</span> on the generator's Bayes error: P<sub>e</sub> ≥ (H − 1)/log₂K. The
-        floor is <em>vacuous</em> while H &lt; 1 bit (a well-retrieving channel), then climbs — no generator, however good,
-        reaches into the shaded region. <strong>Recall sets the floor.</strong>
+        into a <span style={{ color: FLOOR }}>floor</span> on the generator's Bayes error: P<sub>e</sub> ≥ (H − 1)/log₂K. That
+        loose floor is <em>vacuous</em> while H &lt; 1 bit, then lifts off at recall ≈ {fmt(ACTIVATE_RECALL)} and climbs to{' '}
+        {fmt(fanoLoose(H_A_GIVEN_Q))} at full erasure; the tight floor is already {fmt(fanoTight(H_COND0))} on the clean channel.
+        No generator, however good, reaches into the shaded region. <strong>Recall sets the floor.</strong>
       </p>
     </div>
   );

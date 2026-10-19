@@ -301,11 +301,14 @@ scales.
 
 </TheoremBlock>
 
-The notebook makes the contrast concrete. On a ring of $30$ cliques of size $5$, where $\sqrt{2m} \approx 25.7$
-dwarfs each clique's internal edge count, the pairs-merged partition scores $Q = 0.888$ against the natural
-partition's $0.876$ — so the optimum **merges**, and Louvain (which maximizes modularity) finds only $15$
-communities, not $30$. On a small ring of $6$ cliques the same comparison flips, $0.742$ against $0.621$: the
-cliques are resolved. **Panel C's** resolution view is exactly these two comparisons. Raising $\gamma$ on the
+The notebook makes the contrast concrete. On a ring of $30$ cliques of size $5$ ($\sqrt{2m} \approx 25.7$), the
+pairs-merged partition scores $Q = 0.888$ against the natural partition's $0.876$ — so the optimum **merges**, and
+Louvain (which maximizes modularity) finds only $15$ communities, not $30$. On a small ring of $6$ cliques
+($\sqrt{2m} \approx 11.5$) the same comparison flips, $0.742$ against $0.621$: the cliques are resolved. The
+$\sqrt{2m}$ scale is an order of magnitude, not a literal cutoff — at $6$ cliques it already exceeds each clique's
+$\ell = 10$ internal edges, yet the cliques survive. On this ring the exact test is that pairs win precisely
+when $\sqrt{2m} > 2(\ell + 1) = 22$, that is, once the ring has more than $22$ cliques (at exactly $22$ the two
+partitions tie). **Panel C's** resolution view is exactly these two comparisons. Raising $\gamma$ on the
 large ring un-merges the cliques — $\gamma$ shrinks the resolvable scale — but at the price of fragmenting
 larger communities elsewhere, which is why **Panel A's** slider, pushed past the plateau, shatters the
 sectors into singletons. There is no canonical $\gamma$; the limit is intrinsic to single-scale modularity.
@@ -405,7 +408,9 @@ aggregating, guaranteeing every community it returns is internally connected.
 The witness is small and exact. Two triangles with no edge between them, labeled one community: it is
 disconnected, yet no single node wants to leave — each triangle is internally cohesive and no node is more
 attracted elsewhere — so it is a Louvain local optimum that local moving cannot break. Leiden's refinement
-splits it into its connected pieces. **Panel C's** connectivity view draws exactly this: the Louvain partition
+splits it into its connected pieces. (The notebook implements only this connectivity-guaranteeing core of the
+refinement — split each community into its connected components; full Leiden also re-merges well-connected
+pieces with randomized moves.) **Panel C's** connectivity view draws exactly this: the Louvain partition
 with its disconnected community flagged, beside the Leiden partition where every community is connected. The
 honest framing matters — run from singletons, Louvain recovers the correct partition on this graph; it is not
 broken generically. The guarantee is what differs, and for a knowledge graph whose communities become

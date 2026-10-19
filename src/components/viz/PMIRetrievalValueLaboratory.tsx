@@ -9,7 +9,9 @@ import katex from 'katex';
  *   B. pmi at the true answer, relevant vs distractor. Two histograms of pmi(a*;d|q): relevant filings
  *      pile up on positive bits, distractors on negative — a distractor COSTS bits at the true answer.
  *   C. Diminishing returns. Belief movement (KL, bits) of a first filing, then a redundant second copy
- *      (adds almost nothing) vs a different second filing (adds a lot) — the chain rule made visible.
+ *      (adds almost nothing) vs a different second filing (moves a lot) — the chain rule made visible. The
+ *      different filing is the same-sector distractor, so its movement is AWAY from a* (p(a*) falls in
+ *      32/32 queries, viz_constants) — novelty guarantees movement, not value.
  *   D. The InfoNCE ceiling + bits != recall. Left: the lower bound log2(m) - L/ln2 rising toward its
  *      log2(m) ceiling as in-batch negatives grow (it saturates). Right: recall is pinned at 1.0 for
  *      every query while the bits added vary widely — presence is not contribution.
@@ -181,7 +183,8 @@ function AnswerModelPanel({ d, setD }: { d: number; setD: (v: number) => void })
         The prior spreads over the sector's companies (uncertain). The <strong>gold filing</strong> (doc {A_STAR}) sharpens
         the posterior onto a* and gives a <span style={{ color: POS_COLOR }}>positive pmi</span>; the same-sector{' '}
         <strong>distractor</strong> (doc {DISTRACTOR}) sharpens onto the <em>wrong</em> company, so pmi at a* turns{' '}
-        <span style={{ color: NEG_COLOR }}>negative</span> — it costs bits. A far-sector filing barely touches a*.
+        <span style={{ color: NEG_COLOR }}>negative</span> — it costs bits. Filings from other sectors drag the posterior
+        toward their own companies and cost bits at a* too (pmi ≈ −1 to −3 bits): only the gold filing adds bits at the truth.
       </p>
     </div>
   );
@@ -241,7 +244,7 @@ function SaturationPanel({ novel, setNovel }: { novel: boolean; setNovel: (v: bo
   const W = 420, H = 200, padL = 40, padR = 16, padT = 18, padB = 30;
   const second = novel ? SAT.novel : SAT.redundant;
   const total = SAT.standalone + second;
-  const secondColor = novel ? POS_COLOR : NEG_COLOR;
+  const secondColor = novel ? NEG_COLOR : MUTED;   // distractor moves belief away from a*; a copy adds ~nothing
   const yMax = SAT.standalone + SAT.novel + 0.1;
   const py = (v: number) => H - padB - (H - padT - padB) * (v / yMax);
   const bw = 90;
@@ -250,7 +253,7 @@ function SaturationPanel({ novel, setNovel }: { novel: boolean; setNovel: (v: bo
     <div>
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <button type="button" style={pill(!novel)} onClick={() => setNovel(false)}>2nd doc: identical (redundant)</button>
-        <button type="button" style={pill(novel)} onClick={() => setNovel(true)}>2nd doc: different (novel)</button>
+        <button type="button" style={pill(novel)} onClick={() => setNovel(true)}>2nd doc: different (same-sector distractor)</button>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="belief movement of a first filing and a redundant versus novel second filing" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
         <line x1={padL} y1={H - padB} x2={W - padR} y2={H - padB} stroke="var(--color-border)" strokeWidth={1} />
@@ -267,18 +270,20 @@ function SaturationPanel({ novel, setNovel }: { novel: boolean; setNovel: (v: bo
         <rect x={xs[1]} y={r2(py(total))} width={bw} height={r2(py(SAT.standalone) - py(total))} fill={secondColor} fillOpacity={0.7} />
         <rect x={xs[1]} y={r2(py(SAT.standalone))} width={bw} height={r2((H - padB) - py(SAT.standalone))} fill={ACCENT} fillOpacity={0.2} />
         <text x={xs[1] + bw / 2} y={r2(py(total)) - 5} textAnchor="middle" fontSize={9} fill={secondColor} fontFamily="var(--font-sans)">+{fmt(second)}</text>
-        <text x={xs[1] + bw / 2} y={H - padB + 13} textAnchor="middle" fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">{novel ? '+ different filing' : '+ identical filing'}</text>
+        <text x={xs[1] + bw / 2} y={H - padB + 13} textAnchor="middle" fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">{novel ? '+ distractor filing' : '+ identical filing'}</text>
       </svg>
       <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
         <Readout label="1st filing moves belief" value={`${fmt(SAT.standalone)} bits`} accent />
-        <Readout label="2nd identical filing adds" value={`${fmt(SAT.redundant)} bits`} color={NEG_COLOR} />
-        <Readout label="2nd different filing adds" value={`${fmt(SAT.novel)} bits`} color={POS_COLOR} />
+        <Readout label="2nd identical filing moves" value={`${fmt(SAT.redundant)} bits`} color={MUTED} />
+        <Readout label="2nd filing (distractor) moves" value={`${fmt(SAT.novel)} bits`} color={NEG_COLOR} />
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Belief movement is KL(new ‖ old). A <strong>redundant</strong> second copy moves the posterior almost nowhere
         ({fmt(SAT.redundant)} bits); a <strong>different</strong> filing moves it far more ({fmt(SAT.novel)} bits). That is
-        the chain rule of mutual information — the marginal value of evidence diminishes with redundancy, which is exactly
-        why selecting a <em>diverse</em> context matters.
+        the chain rule of mutual information — the marginal value of evidence diminishes with redundancy. But the different
+        filing here is the same-sector <span style={{ color: NEG_COLOR }}>distractor</span>: it moves belief <em>away</em> from
+        a*, lowering p(a*) in every query. Novelty guarantees movement, not value — context selection must reward passages
+        that are both new and relevant.
       </p>
     </div>
   );
@@ -333,7 +338,7 @@ function BoundPanel() {
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         <strong>Left:</strong> the dense encoder was trained by minimizing InfoNCE, i.e. maximizing the lower bound
-        log₂(m) − L on the query–document information — but the bound can never exceed its <span style={{ color: MUTED }}>ceiling
+        log₂(m) − L on the information between a query and its positive filing — but the bound can never exceed its <span style={{ color: MUTED }}>ceiling
         log₂(m)</span>, so it <strong>saturates</strong>; more in-batch negatives are needed to certify more bits.{' '}
         <strong>Right:</strong> on this easy corpus recall is pinned at 1.0 for every query, yet the bits retrieval adds
         range from {fmt(BITS_MIN)} to {fmt(BITS_MAX)} — recall sees every query as "perfect" while information gain does not.
@@ -349,7 +354,7 @@ const TEX: Record<Panel, string> = {
   model: '\\mathrm{pmi}(a; d \\mid q) = \\log_2 \\frac{p(a \\mid q, d)}{p(a \\mid q)}, \\qquad p(a\\mid q) = \\sum_d p(d\\mid q)\\,p(a\\mid q,d)',
   sign: 'I(A;D\\mid Q) = H(A\\mid Q) - H(A\\mid Q,D) = \\mathbb{E}\\big[\\mathrm{KL}(p(\\cdot\\mid q,d)\\,\\|\\,p(\\cdot\\mid q))\\big] \\ge 0',
   saturation: 'I(A;D_1,D_2\\mid Q) = I(A;D_1\\mid Q) + I(A;D_2\\mid Q,D_1)',
-  bound: 'I(Q;D) \\;\\ge\\; \\log_2(N+1) - \\mathcal{L}_{\\mathrm{InfoNCE}}',
+  bound: 'I(Q;D^+) \\;\\ge\\; \\log_2(N+1) - \\mathcal{L}_{\\mathrm{InfoNCE}}',
 };
 
 export default memo(function PMIRetrievalValueLaboratory() {
@@ -379,7 +384,8 @@ export default memo(function PMIRetrievalValueLaboratory() {
       <p style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: '0.7rem', lineHeight: 1.45 }}>
         Finance vMF corpus reused from the dense-retrieval topic ({K} companies across {SECTOR[SECTOR.length - 1] + 1} sectors,
         one filing per company), {N_QUERIES} sector-ambiguous queries; the answer model is a synthetic softmax stand-in, not
-        an LLM. I(A;D|Q) = {fmt(I_ADQ)} bits (H(A|Q) = {fmt(H_A_GIVEN_Q)} → H(A|Q,D) = {fmt(H_A_GIVEN_QD)}). Numbers mirror{' '}
+        an LLM. Averaged over the {N_QUERIES} queries, I(A;D|Q) = {fmt(I_ADQ)} bits (H(A|Q) = {fmt(H_A_GIVEN_Q)} → H(A|Q,D) ={' '}
+        {fmt(H_A_GIVEN_QD)}); Panel A's readouts are the worked query's own. Numbers mirror{' '}
         <code>pmi_retrieval_value.py</code>; the lab recomputes entropy, pmi, and histogram bins in closed form.
       </p>
     </div>

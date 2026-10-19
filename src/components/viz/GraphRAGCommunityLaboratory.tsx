@@ -13,7 +13,8 @@ import katex from 'katex';
  *      operating point toggles above/below, with an inset SBM whose blocks are recoverable above the
  *      line and at chance below it — an information-theoretic limit, not an algorithmic one.
  *   C. The resolution limit and Louvain vs Leiden. A large ring of cliques: the modularity-optimal
- *      partition MERGES adjacent cliques (pairs beat singles) once the cliques fall below √(2m),
+ *      partition MERGES adjacent cliques (pairs beat singles) once the ring is large — exactly when
+ *      √(2m) > 2(ℓ+1) = 22 (ℓ = 10 edges per clique; √(2m) is the order of the scale, not a cutoff) —
  *      while a small ring keeps them separate. And a disconnected community that is a Louvain LOCAL
  *      OPTIMUM (local moving cannot repair it) which Leiden's refinement splits into connected pieces.
  *
@@ -63,13 +64,13 @@ const GR_Q_BY_GAMMA: { gamma: number; Q: number; nComm: number; labels: number[]
 // Panel B — the SBM detectability phase diagram
 const SBM_C_GRID = [1.0, 2.5, 4.0, 5.5, 7.0, 8.5, 10.0];
 const SBM_OVERLAP_GRID = [
-  [0.015, 0.077, 0.013, 0.116, 0.76, 0.857, 0.927],
-  [0.003, 0.005, 0.011, 0.031, 0.016, 0.381, 0.659],
-  [0.008, 0.032, 0.029, 0.001, 0.021, 0.004, 0.163],
-  [0.36, 0.004, 0.053, 0.0, 0.017, 0.009, 0.001],
-  [0.725, 0.015, 0.031, 0.004, 0.068, 0.037, 0.072],
-  [0.864, 0.629, 0.023, 0.021, 0.039, 0.035, 0.047],
-  [0.928, 0.765, 0.024, 0.061, 0.007, 0.019, 0.064],
+  [0.015, 0.077, 0.0, 0.115, 0.76, 0.863, 0.927],
+  [0.003, 0.012, 0.011, 0.025, 0.016, 0.381, 0.657],
+  [0.008, 0.039, 0.029, 0.001, 0.021, 0.004, 0.163],
+  [0.356, 0.004, 0.053, 0.005, 0.023, 0.009, 0.0],
+  [0.725, 0.015, 0.031, 0.004, 0.073, 0.041, 0.069],
+  [0.864, 0.62, 0.016, 0.021, 0.039, 0.035, 0.045],
+  [0.925, 0.765, 0.02, 0.061, 0.007, 0.019, 0.064],
 ]; // [c_in index][c_out index]
 const SBM_ABOVE = { cIn: 10.0, cOut: 1.0, snr: 3.682, overlap: 0.929 };
 const SBM_BELOW = { cIn: 6.0, cOut: 4.0, snr: 0.2, overlap: 0.012 };
@@ -81,17 +82,19 @@ const SBM_XY: [number, number][] = [
   [-0.454, -0.891], [-0.309, -0.951], [-0.156, -0.988], [-0.0, -1.0], [0.156, -0.988], [0.309, -0.951],
   [0.454, -0.891], [0.588, -0.809], [0.707, -0.707], [0.809, -0.588], [0.891, -0.454], [0.951, -0.309], [0.988, -0.156],
 ];
-const SBM_REC_ABOVE = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+const SBM_REC_ABOVE = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 const SBM_REC_BELOW = [0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0];
 
 // Panel C — resolution limit + Louvain-vs-Leiden
 const RING_N_CLIQUES = 30;
 const RING_CLIQUE_SIZE = 5;
 const RING_SQRT_2M = 25.69;
+const RING_MERGE_ONSET = 22;   // exact ring test: pairs beat singles iff √(2m) > 2(ℓ+1) = 22
 const RING_Q_SINGLES = 0.876;
 const RING_Q_PAIRS = 0.888;
 const RING_LOUVAIN_NCOMM = 15;
 const RING_SMALL_NC = 6;
+const RING_SMALL_SQRT_2M = 11.489;
 const RING_SMALL_Q_SINGLES = 0.742;
 const RING_SMALL_Q_PAIRS = 0.621;
 const WITNESS_EDGES: [number, number][] = [
@@ -173,7 +176,7 @@ function EntityGraphPanel({ gi, setGi }: { gi: number; setGi: (v: number) => voi
           style={{ flex: 1, accentColor: 'var(--color-accent)' }} />
       </label>
       <div style={{ display: 'flex', gap: '1.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
-        <Readout label="modularity Q (at this γ)" value={fmt(g.Q)} color={ACCENT} />
+        <Readout label="Q_γ at this γ (not comparable across γ)" value={fmt(g.Q)} color={ACCENT} />
         <Readout label="communities found" value={`${g.nComm}`} color={g.nComm === 5 ? DETECT : FAIL} />
         <Readout label="Q(planted sectors), γ=1" value={fmt(GR_Q_PLANTED)} color={DETECT} />
         <Readout label="Q(random partition)" value={fmt(GR_Q_RANDOM)} color={MUTED} />
@@ -322,17 +325,18 @@ function ResolutionView() {
         })}
       </svg>
       <div style={{ display: 'flex', gap: '1.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
-        <Readout label="√(2m), the resolution scale" value={fmt(RING_SQRT_2M, 1)} color={ACCENT} />
-        <Readout label="clique size (well below √(2m))" value={`${RING_CLIQUE_SIZE}`} color={FAIL} />
+        <Readout label="√(2m), large ring" value={fmt(RING_SQRT_2M, 1)} color={ACCENT} />
+        <Readout label="exact merge test 2(ℓ+1)" value={`${RING_MERGE_ONSET}`} color={FAIL} />
         <Readout label={`Louvain communities (of ${RING_N_CLIQUES})`} value={`${RING_LOUVAIN_NCOMM}`} color={FAIL} />
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Each clique of {RING_CLIQUE_SIZE} nodes is a genuine community, but on the{' '}
         <strong>large ring</strong> the modularity-optimal partition <span style={{ color: FAIL }}>merges adjacent
         cliques in pairs</span> ({fmt(RING_Q_PAIRS, 3)} &gt; {fmt(RING_Q_SINGLES, 3)}) — Louvain finds only{' '}
-        {RING_LOUVAIN_NCOMM} communities, not {RING_N_CLIQUES}. The cause is the global √(2m) ≈ {fmt(RING_SQRT_2M, 1)}{' '}
-        normalization: a clique below that scale is invisible against the whole graph. On a{' '}
-        <strong>small ring</strong> the same cliques are <span style={{ color: DETECT }}>resolved</span>{' '}
+        {RING_LOUVAIN_NCOMM} communities, not {RING_N_CLIQUES}. The cause is the global 2m normalization. √(2m) sets the
+        order of the scale, not a literal cutoff: on this ring (ℓ = 10 edges per clique) pairs win exactly when √(2m)
+        &gt; 2(ℓ+1) = {RING_MERGE_ONSET}, i.e. beyond {RING_MERGE_ONSET} cliques; here √(2m) ≈ {fmt(RING_SQRT_2M, 1)}. On a{' '}
+        <strong>small ring</strong> (√(2m) ≈ {fmt(RING_SMALL_SQRT_2M, 1)}) the same cliques are <span style={{ color: DETECT }}>resolved</span>{' '}
         ({fmt(RING_SMALL_Q_SINGLES, 3)} &gt; {fmt(RING_SMALL_Q_PAIRS, 3)}). This is the Fortunato–Barthélemy resolution
         limit — the load-bearing caveat of modularity.
       </p>
