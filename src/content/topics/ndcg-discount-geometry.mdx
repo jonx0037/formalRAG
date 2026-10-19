@@ -237,7 +237,8 @@ loses the most between ranks $1$ and $2$ and flattens with depth, so a demotion 
 expensive move and a demotion deep down barely registers. That single factor,
 $\mathrm{disc}(i) - \mathrm{disc}(i+1)$, is one half of the *swap sensitivity*
 $\Delta = \Delta_{\text{gain}}\cdot\Delta_{\text{disc}}$ that pairwise learning-to-rank methods such as
-LambdaRank weight their gradients by — the gain side of which we will meet in a later topic.
+LambdaRank weight their gradients by — the gain side of which we met with
+[LambdaRank](/topics/lambdarank-lambdamart-listwise).
 
 The geometric discount earns its shape from a model the logarithmic one cannot claim.
 
@@ -280,7 +281,9 @@ We reuse the prerequisite's machinery verbatim — the per-query scores are fed 
 [concentration inequality](https://www.formalml.com/topics/concentration-inequalities), verified
 empirically by resampling. Panel D is the payoff, and it tells two stories. The **clearest** pair —
 lexical versus late interaction, a $0.16$ gap — separates by $n = 15$ queries: you can confidently
-report a winner. The **closest** pair — lexical versus dense, a mere $0.05$ gap — has intervals that
+report a winner. (That is the projected interval, with the forty-query means and spreads held fixed,
+and the margin is thin: the two intervals still touch at $n = 14$ and clear by only $0.005$ at
+$n = 15$.) The **closest** pair — lexical versus dense, a mere $0.05$ gap — has intervals that
 **overlap across all forty queries** and would need roughly $185$ to separate. Below that, the honest
 report is "indistinguishable on this query set," not a leaderboard delta.
 
@@ -289,7 +292,7 @@ The normal-approximation interval is itself an approximation: the per-query NDCG
 and skewed, not Gaussian, and across legs they are *paired* (the same queries), which the
 independent-interval overlap test ignores — so it is conservative. We cross-check the standard error
 with the [bootstrap](https://www.formalstatistics.com/topics/bootstrap), which resamples the per-query
-scores without the normality assumption and agrees to within roughly a sixth. Overlapping intervals are
+scores without the normality assumption and agrees to within about three percent. Overlapping intervals are
 a *crude* read; the proper instrument is a paired
 [significance test](https://www.formalstatistics.com/topics/hypothesis-testing) on the per-query
 differences, the subject of the next topic. This one only establishes that the variance is there.

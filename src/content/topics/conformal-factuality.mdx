@@ -217,8 +217,9 @@ against the target $0.900$) — but the leakage it ignores is the subject of the
 Panel C runs the back-off across the whole $\alpha$ grid and measures both error directions. Under our
 deliberately **lenient** judge — informative but over-endorsing, so its faithful and unsupported
 confidences overlap — the recall guarantee leaves the false-claim rate badly **uncontrolled**: at
-$\alpha = 0.02$, nearly a quarter of retained slots are hallucinations ($0.23$), and even at $\alpha = 0.10$
-the rate is $0.115$. Recall and precision have parted ways, and controlling the false-claim rate needs a
+$\alpha = 0.02$, nearly a quarter of all answer slots hold a retained hallucination ($0.23$ per slot, which
+is $27\%$ of the claims kept), and even at $\alpha = 0.10$ the per-slot rate is $0.115$ ($17\%$ of the claims
+kept). Recall and precision have parted ways, and controlling the false-claim rate needs a
 guarantee on a different quantity — one that decreases as we tighten the cut. That is **conformal risk
 control**, the generalization of split conformal from the $0/1$ miscoverage loss to any bounded, monotone
 loss.
@@ -246,8 +247,8 @@ $$
 L^{\mathrm{frac}}(\lambda) = \frac{\#\{\text{retained and unfaithful}\}}{\#\{\text{retained}\}}
 $$
 is **not** monotone in $\lambda$: raising the cut shrinks the denominator faster than the numerator can
-fall. (Retain one false and nine true claims at fraction $0.10$; raise the cut to drop eight of the true
-claims while the one false claim survives, and the fraction *rises* to $1.0$.) Applying conformal risk
+fall. (Retain one false and nine true claims at fraction $0.10$; raise the cut to drop all nine true
+claims while the one false claim, the most confident, survives, and the fraction *rises* to $1.0$.) Applying conformal risk
 control to $L^{\mathrm{frac}}$ is therefore unsound. The fix is the **fixed-denominator** loss
 $$
 L_i(\lambda) \;=\; \frac{1}{k}\,\#\{\, j : \tilde c_j \ge \lambda \text{ and } Y_j = 0 \,\},
@@ -262,8 +263,10 @@ reintroduces the shrinking denominator.
 
 The notebook reproduces the non-monotonicity numerically before adopting the fixed-denominator loss — the
 discipline of building a counterexample before trusting the construction. With the monotone loss in hand,
-Panel C's green curve holds the false-claim rate at or below the $y = \alpha$ guarantee line while the red
-recall curve runs above it. The one small overshoot, $0.205$ against a target of $0.20$, is not a bug: it
+Panel C's green curve holds the false-claim rate at or below the $y = \alpha$ guarantee line, while the red
+curve — the false-claim rate under the split-conformal recall cut — is uncontrolled: it runs above
+the line at strict levels ($0.23$ at $\alpha = 0.02$, $0.115$ at $\alpha = 0.10$) and falls below it from
+$\alpha = 0.15$ on. The one small overshoot, $0.205$ against a target of $0.20$, is not a bug: it
 is the honest face of the theorem, which controls the **expected** loss over calibration draws, not a single
 realization. The cost is retention — to certify a $2\%$ false-claim rate the controller abstains entirely,
 and only as $\alpha$ loosens does it begin to emit claims.
@@ -324,8 +327,10 @@ the weighted machinery collapses onto split conformal when there is no shift, a 
 </TheoremBlock>
 
 Panel D's green curve is this repair: using the known $w$, weighted conformal holds coverage at or above
-the target across the whole shift range (and over-covers when the weights are skewed, the conservative
-price of reweighting). The repair is only as good as the likelihood ratio is known — in production $w$ must
+the target from $\beta = 1$ on (and over-covers when the weights are skewed, the conservative price of
+reweighting). At the mildest shift, $\beta = 0.5$, it dips to $0.880$ against the $0.900$ target, still
+above split's $0.851$. The guarantee is marginal over calibration draws, and the panel shows one
+calibration set, the same honesty as Panel C's small overshoot. The repair is only as good as the likelihood ratio is known — in production $w$ must
 itself be estimated, and a misestimated $w$ voids the guarantee, the load-bearing caveat. This is the same
 distribution comparison the prerequisite monitored with KS and PSI: there the job was to *detect* the
 shift; here it is to *correct* coverage under it.
@@ -352,8 +357,11 @@ scores each claim's support against the retrieved passages. Without a guarantee,
 a single confidently-stated but unsupported number is the failure an auditor cannot accept. Conformal
 factuality converts the judge confidence into a contract. At a chosen level — say $\alpha = 0.10$ — the
 per-claim back-off emits only the claims that clear the calibrated cut, and conformal risk control
-guarantees that the expected false-claim rate among emitted claims is at most $10\%$, with the system
-abstaining on the rest rather than guessing. The price is retention: the stricter the guarantee, the more
+guarantees that the expected number of emitted false claims per answer slot is at most $10\%$, with the
+system abstaining on the rest rather than guessing. That is the per-slot rate of Proposition 1, not the
+share of emitted claims that are false: on this corpus, at $\alpha = 0.10$, the per-slot rate is $0.085$
+with $0.595$ of slots retained, so about one emitted claim in seven ($0.14$) is unsupported. A desk that
+needs the share itself must set $\alpha$ lower. The price is retention: the stricter the guarantee, the more
 the system declines to answer, exactly the precision–coverage tradeoff Panel C plots. And the guarantee is
 conditional on the filing distribution holding steady — when a new sector or a new disclosure regime shifts
 the query mix, coverage degrades silently until the weighted repair, or a recalibration on fresh labeled

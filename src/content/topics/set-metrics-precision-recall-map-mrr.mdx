@@ -21,7 +21,7 @@ financeCaseStudy: true
 modality:
   - "text"
   - "audio"
-rigorFlag: "Every metric here is an ESTIMATOR, and the honesty is saying so out loud. Precision, recall, AP, MAP, and MRR are sample means over a FINITE, FIXED query set drawn from one synthetic vMF corpus; MAP and MRR carry a standard error std/sqrt(n), and an observed MAP gap smaller than a couple of standard errors is NOT evidence of a better system — on this corpus dense and late interaction differ by 0.139 in MAP yet their 95% confidence intervals overlap until n = 12 queries. The per-query AP are bounded in [0,1], skewed, and (across legs) PAIRED, so the normal-approximation interval is itself approximate — we cross-check it with the bootstrap, and the proper paired significance test is deferred to the next topic; this one only sets up the variance. Two secondary conventions are stated, not laundered: 'AP' is ambiguous until you name a convention — the raw area under the PR sawtooth (which equals the mean of precision-at-the-relevant-ranks, the form MAP averages) versus the interpolated monotone envelope, whose area is always >= the raw AP, an inflation, not a more correct number; and recall here divides by |R| (textbook recall, the form for which recall@N = 1 and AP equals the PR-curve area), which coincides with the cascade-retention recall@k the capstone reported only at its operating point k = |R|. Relevance itself is the top-k of an exact-MaxSim oracle over synthetic tokens — a neutral stand-in for human judgments, not a benchmark."
+rigorFlag: "Every metric here is an ESTIMATOR, and the honesty is saying so out loud. Precision, recall, AP, MAP, and MRR are sample means over a FINITE, FIXED query set drawn from one synthetic vMF corpus; MAP and MRR carry a standard error std/sqrt(n), and an observed MAP gap smaller than a couple of standard errors is NOT evidence of a better system — on this corpus dense and late interaction differ by 0.139 in MAP yet their 95% confidence intervals, projected with the forty-query spreads held fixed, overlap until n = 12 queries (the measured query prefixes overlap through n = 18). The per-query AP are bounded in [0,1], skewed, and (across legs) PAIRED, so the normal-approximation interval is itself approximate — we cross-check it with the bootstrap, and the proper paired significance test is deferred to the significance-testing topic; this one only sets up the variance. Two secondary conventions are stated, not laundered: 'AP' is ambiguous until you name a convention — the raw area under the PR sawtooth (which equals the mean of precision-at-the-relevant-ranks, the form MAP averages) versus the interpolated monotone envelope, whose area is always >= the raw AP, an inflation, not a more correct number; and recall here divides by |R| (textbook recall, the form for which recall@N = 1 and AP equals the PR-curve area), which coincides with the cascade-retention recall@k the capstone reported only at its operating point k = |R|. Relevance itself is the top-k of an exact-MaxSim oracle over synthetic tokens — a neutral stand-in for human judgments, not a benchmark."
 videoId: null
 notebookPath: "notebooks/set-metrics-precision-recall-map-mrr/01_set_metrics_precision_recall_map_mrr.ipynb"
 githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/set-metrics-precision-recall-map-mrr.mdx"
@@ -262,13 +262,21 @@ lexical $<$ dense $<$ late interaction; the MRR ranking is dense $<$ lexical $<$
 
 <TheoremBlock type="proposition" number={3} title="Metric choice can reverse the verdict (demonstrated)">
 On this corpus, **dense beats lexical on MAP** ($0.735$ vs $0.619$) but **lexical beats dense on
-MRR** ($0.522$ vs $0.472$). The verdict between two systems reverses depending on the metric.
+MRR** ($0.522$ vs $0.472$). The verdict between two systems reverses depending on the metric — and
+on the relevance regime each metric is scored in. MAP here is scored on the ten-document sets and MRR
+on the single known item; score both metrics on either one of those sets and the verdict does not flip (on the ten-document sets
+dense also wins on MRR, $0.99$ vs $0.97$; on the single known item lexical also wins on MAP, which
+then equals MRR).
 
 The mechanism is structural: MAP rewards ranking the *whole* relevant set high, and the dense leg does
 that better on average; MRR rewards getting *one* relevant document to the very top, and the lexical
-leg's exact-match behavior more often plants a relevant document at rank 1. This is a demonstrated
-proposition on one corpus, not a theorem — but it is built and run before it is stated, and it makes
-the lesson concrete: "system A is better" is meaningless without naming the metric.
+leg's exact-match behavior more often plants the known item at rank 1. Shrinking the relevant set from
+ten documents to one erodes the dense MAP lead, from $0.116$ at ten documents to a near-tie by six; from about
+four documents down the two legs trade the lead within a few thousandths, and lexical opens a clear
+$0.050$ lead at one. The MRR lead is also small: $0.050$, inside its own paired
+standard error of $0.060$. This is a demonstrated proposition on one corpus, not a theorem — but it is built and run before it is stated, and it makes
+the lesson concrete: "system A is better" is meaningless without naming the metric and the relevance
+regime it is scored in.
 </TheoremBlock>
 
 ## Metrics as estimators
@@ -299,18 +307,21 @@ $\hat\sigma/\sqrt{n}$, and $\widehat{\mathrm{SE}}\cdot\sqrt{n}$ holds essentiall
 
 Panel D is the payoff. It plots two legs — dense and late interaction — with their 95% intervals, and
 a slider for the query count $n$. The gap in MAP is real ($0.139$), but at few queries the intervals
-**overlap**: you cannot tell the systems apart. They separate only at $n = 12$. Below that, the
-honest report is "indistinguishable on this query set," not "late interaction wins."
+**overlap**: you cannot tell the systems apart. Projected forward with the forty-query means and
+spreads held fixed, they separate only at $n = 12$, and only just (a $0.002$ gap between the interval
+ends); the measured intervals on the first $n$ queries overlap through $n = 18$ and first separate,
+by a hair, at $n = 19$. Below that, the honest report is "indistinguishable on this query set," not "late interaction wins."
 
 <RigorFlag>
 The normal-approximation interval is itself an approximation: the per-query AP are bounded and skewed,
 not Gaussian, and across legs they are *paired* (the same queries), which the independent-interval
 overlap test ignores — so it is conservative. We cross-check the standard error with the
 [bootstrap](https://www.formalstatistics.com/topics/bootstrap), which resamples the per-query scores
-without the normality assumption and agrees to within roughly ten percent. Crucially, overlapping
+without the normality assumption and agrees to within about three percent. Crucially, overlapping
 intervals are a *crude* read; the proper instrument is a paired
 [significance test](https://www.formalstatistics.com/topics/hypothesis-testing) on the per-query
-differences, which is tighter and is the subject of the next topic. This one only establishes that the
+differences, which is tighter and is the subject of
+[significance testing and calibration](/topics/significance-testing-calibration), two topics on. This one only establishes that the
 variance is there and must be reckoned with.
 </RigorFlag>
 
@@ -319,9 +330,11 @@ The production system this series tracks retrieves over 10-K and 10-Q filing tex
 transcripts. Suppose an analyst tool needs the *one* passage stating next quarter's guidance — a
 known-item task — and we are choosing between the dense and lexical legs. By MAP, dense is the clear
 winner ($0.735$ vs $0.619$); by MRR, the metric that actually matches the task, lexical wins ($0.522$
-vs $0.472$). Picking the system on the wrong metric ships the worse retriever for the job. And even
-the right comparison is provisional: with only a few dozen evaluation queries, a $0.139$ MAP gap
-between two systems can sit inside the sampling error, so the disciplined report is a confidence
+vs $0.472$). Picking the system on the wrong metric can ship the worse retriever for the job. But
+here even the right comparison is provisional: lexical's $0.050$ MRR lead sits inside its paired
+standard error of $0.060$, and its 95% interval ($0.414$–$0.629$) overlaps dense's ($0.362$–$0.581$)
+heavily. On forty queries, the task-matched metric has not yet picked a winner. So the
+disciplined report is a confidence
 interval, not a bare number — and a decision to switch retrievers waits on a significance test, not a
 leaderboard delta. The corpus here is a synthetic vMF token cloud standing in for those documents;
 every value illustrates the mechanism, not a benchmark.

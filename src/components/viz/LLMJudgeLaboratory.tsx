@@ -47,10 +47,11 @@ const LEG_RG: Record<Leg, { pObs: number; sens: number; spec: number; piCorr: nu
   dense: { pObs: 0.7025, sens: 0.9228, spec: 0.7021, piCorr: 0.6475, piOracle: 0.6475, varInfl: 2.561 },
   late_interaction: { pObs: 0.7875, sens: 0.9167, spec: 0.6705, piCorr: 0.78, piOracle: 0.78, varInfl: 2.901 },
 };
-// the constructed two-system ranking flip (test_correction_flips_ranking).
+// the constructed two-system ranking flip (test_correction_flips_ranking). Each pObs is the expected
+// observed rate its oracle prevalence implies, so Rogan–Gladen returns the oracle values exactly.
 const RANK_FLIP = {
-  A: { pObs: 0.8, sens: 0.95, spec: 0.55, piOracle: 0.5 },
-  B: { pObs: 0.74, sens: 0.9, spec: 0.85, piOracle: 0.66 },
+  A: { pObs: 0.7, sens: 0.95, spec: 0.55, piOracle: 0.5 },
+  B: { pObs: 0.645, sens: 0.9, spec: 0.85, piOracle: 0.66 },
 };
 
 // Panel B — the kappa paradox: two tables with identical observed agreement, divergent kappa.
@@ -205,8 +206,8 @@ function InstrumentPanel({ se, sp, n, pi, setSe, setSp, setN, setPi }: {
       <rect x={x0} y={fy(vA)} width={18} height={FH - 20 - fy(vA)} fill={NEG_COLOR} fillOpacity={0.85} />
       <rect x={x0 + 22} y={fy(vB)} width={18} height={FH - 20 - fy(vB)} fill={POS_COLOR} fillOpacity={0.85} />
       <text x={x0 + 20} y={FH - 8} textAnchor="middle" fontSize={8} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">{label}</text>
-      <text x={x0 + 9} y={fy(vA) - 2} textAnchor="middle" fontSize={7.5} fill={NEG_COLOR} fontFamily="var(--font-sans)">{fmt(vA, 2)}</text>
-      <text x={x0 + 31} y={fy(vB) - 2} textAnchor="middle" fontSize={7.5} fill={POS_COLOR} fontFamily="var(--font-sans)">{fmt(vB, 2)}</text>
+      <text x={x0 + 9} y={fy(vA) - 2} textAnchor="middle" fontSize={7.5} fill={NEG_COLOR} fontFamily="var(--font-sans)">{fmt(vA, 3)}</text>
+      <text x={x0 + 31} y={fy(vB) - 2} textAnchor="middle" fontSize={7.5} fill={POS_COLOR} fontFamily="var(--font-sans)">{fmt(vB, 3)}</text>
     </g>
   );
   return (
@@ -259,9 +260,9 @@ function InstrumentPanel({ se, sp, n, pi, setSe, setSp, setN, setPi }: {
           <text x={FW - 4} y={23} textAnchor="end" fontSize={8} fill={POS_COLOR} fontFamily="var(--font-sans)">■ system B</text>
         </svg>
         <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: '0.3rem', lineHeight: 1.45 }}>
-          Raw faithfulness ranks <strong>A &gt; B</strong> ({fmt(RANK_FLIP.A.pObs, 2)} vs {fmt(RANK_FLIP.B.pObs, 2)}); the
+          Raw faithfulness ranks <strong>A &gt; B</strong> ({fmt(RANK_FLIP.A.pObs, 3)} vs {fmt(RANK_FLIP.B.pObs, 3)}); the
           judge's low specificity on A's documents inflates it. Rogan–Gladen restores the truth:{' '}
-          <strong>B &gt; A</strong> ({fmt(fB, 2)} vs {fmt(fA, 2)}), matching the oracle.
+          <strong>B &gt; A</strong> ({fmt(fB, 2)} vs {fmt(fA, 2)}), the oracle values exactly.
         </p>
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
@@ -269,8 +270,9 @@ function InstrumentPanel({ se, sp, n, pi, setSe, setSp, setN, setPi }: {
         <strong>biased</strong> estimate of the true grounded fraction π. Rogan–Gladen inverts the error model to
         recover π, but its variance is inflated by <strong>1/J²</strong> — as the judge approaches a coin flip
         (J → 0) the correction is amplified to uselessness, and below the Youden line it is undefined. On the corpus the
-        same lenient judge inflates dense faithfulness to <strong>{fmt(LEG_RG.dense.pObs, 3)}</strong> over a true{' '}
-        <strong>{fmt(LEG_RG.dense.piOracle, 3)}</strong>; the audited correction recovers it.
+        same lenient judge inflates dense faithfulness to <strong>{fmt(LEG_RG.dense.pObs, 4)}</strong> over a true{' '}
+        <strong>{fmt(LEG_RG.dense.piOracle, 4)}</strong>; the audited correction recovers it (by construction here:
+        the audit rates are measured on these same pairs).
       </p>
     </div>
   );
@@ -406,8 +408,9 @@ function CalibrationPanel({ judge, cond, setJudge, setCond }: {
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         The judge's stated confidence ranks claims almost perfectly (AUC ≈ {fmt(meta.aucRaw, 2)}) yet is badly{' '}
-        <strong>over-confident</strong> raw (ECE {fmt(meta.eceRaw, 2)}): high-confidence verdicts are right more often
-        than the confidence claims. <strong>Platt</strong> and <strong>isotonic</strong> pull the dots onto the diagonal,
+        <strong>miscalibrated</strong> raw (ECE {fmt(meta.eceRaw, 2)}) — and not over-confident: its stated
+        probabilities are squeezed toward the middle, so low-confidence claims are supported less often than stated
+        and high-confidence ones more often (Platt's steep slope sharpens them). <strong>Platt</strong> and <strong>isotonic</strong> pull the dots onto the diagonal,
         lowering ECE without moving a single ranking ({N_PAIRS} verdicts, base rate {fmt(BASE_RATE, 2)}) — calibration is
         orthogonal to ranking. The paired swap test separately detects the judge's position bias.
       </p>
@@ -502,8 +505,8 @@ function DawidSkenePanel() {
         <text x={(padL + W - padR) / 2} y={H - 4} textAnchor="middle" fontSize={8} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">sensitivity & specificity per judge</text>
       </svg>
       <div style={{ display: 'flex', gap: '1.3rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-        <Readout label="EM label accuracy" value={fmt(DS.emAcc, 3)} accent />
-        <Readout label="majority-vote accuracy" value={fmt(DS.majAcc, 3)} />
+        <Readout label="EM label accuracy" value={fmt(DS.emAcc, 4)} accent />
+        <Readout label="majority-vote accuracy" value={fmt(DS.majAcc, 4)} />
         <Readout label="EM iterations" value={`${DS.nIter}`} />
         <Readout label="gold labels used" value="none" accent />
       </div>
@@ -511,7 +514,7 @@ function DawidSkenePanel() {
         Rogan–Gladen needed the judge's sensitivity and specificity. When there is no gold label, the Dawid–Skene
         latent-class EM recovers each judge's confusion matrix and the hidden true labels from the{' '}
         <strong>agreement structure alone</strong> — here matching every planted rate within ≈0.06 and beating
-        majority vote on label accuracy ({fmt(DS.emAcc, 3)} vs {fmt(DS.majAcc, 3)}). It is identifiable only up to a
+        majority vote on label accuracy ({fmt(DS.emAcc, 4)} vs {fmt(DS.majAcc, 4)}, one item in 400). It is identifiable only up to a
         label permutation and its likelihood is non-convex, so it is initialized at the majority vote. This closes the
         loop: EM supplies the error rates the instrument correction in Panel A assumes.
       </p>
