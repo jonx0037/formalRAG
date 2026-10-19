@@ -119,7 +119,7 @@ export default function QueryExpansionFeedbackLab() {
           })}
         </ol>
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.6rem', marginBottom: 0 }}>
-          A little feedback (1–2 docs) adds <em>outlook</em>/<em>forecast</em> and surfaces the synonym filings — recall climbs to 1.0. Push the slider higher and off-topic feedback adds <em>budget</em>/<em>costs</em>, the query drifts, and a relevant document drops out.
+          A little feedback (1–2 docs) adds <em>outlook</em>/<em>forecast</em> and surfaces the synonym filings — recall climbs to 1.0. Push the slider higher and off-topic feedback adds <em>budget</em>/<em>costs</em>, the query drifts, and the synonym filings drop back out — one at 3 docs, both at 4 (recall back to 0.5).
         </p>
       </div>
     </div>

@@ -206,21 +206,41 @@ So smoothed inverse document frequency is not a weighting trick bolted onto term
 
 The BIM uses only presence/absence and throws away term frequency. But intuitively, a document mentioning "interest" five times is more about interest than one mentioning it once — though not five times as much. The **2-Poisson eliteness model** formalizes this: a term is either *elite* (the document is genuinely about its concept) or not, and within-document counts follow a mixture of two Poisson distributions with different rates.
 
-<TheoremBlock type="proposition" number={1} title="Saturating shape of the eliteness log-odds">
+<TheoremBlock type="proposition" number={1} title="Saturating shape of the eliteness-mediated term weight">
 
-Under the 2-Poisson model, the log-odds that a term is elite given its observed frequency $\text{tf}$ is increasing and concave in $\text{tf}$, approaching a finite asymptote. BM25 approximates this curve with the rational saturation function
+Under the 2-Poisson model, a term's within-document count is $\text{Poisson}(\lambda_1)$ if the document is elite for it ($E = 1$) and $\text{Poisson}(\lambda_0)$ if not, with $\lambda_1 > \lambda_0$. Let $\pi = P(E=1)$, and let $p' = P(E=1 \mid R=1) > u' = P(E=1 \mid R=0)$. The log-odds of eliteness given the observed frequency,
+
+$$
+\log\frac{P(E=1 \mid \text{tf})}{P(E=0 \mid \text{tf})} = \log\frac{\pi}{1-\pi} - (\lambda_1 - \lambda_0) + \text{tf}\,\log\frac{\lambda_1}{\lambda_0},
+$$
+
+is linear and unbounded in $\text{tf}$. What saturates is what it feeds: the posterior probability of eliteness rises toward $1$, and the eliteness-mediated relevance weight of Robertson and Walker,
+
+$$
+w(\text{tf}) = \log\frac{P(\text{tf} \mid R=1)\,P(0 \mid R=0)}{P(\text{tf} \mid R=0)\,P(0 \mid R=1)},
+$$
+
+is $0$ at $\text{tf}=0$, increasing in $\text{tf}$, and bounded, approaching the finite asymptote
+
+$$
+w_\infty = \log\frac{p'\,\bigl(u' e^{-(\lambda_1-\lambda_0)} + 1 - u'\bigr)}{u'\,\bigl(p' e^{-(\lambda_1-\lambda_0)} + 1 - p'\bigr)} \;\approx\; \log\frac{p'\,(1-u')}{u'\,(1-p')} \quad (\lambda_1 - \lambda_0 \text{ large}),
+$$
+
+the RSJ weight of eliteness itself. BM25 approximates this curve with the rational saturation function
 
 $$
 \frac{\text{tf}}{\text{tf} + k_1},
 $$
 
-which is $0$ at $\text{tf}=0$, increasing, concave, and $\to 1$ as $\text{tf}\to\infty$.
+which is $0$ at $\text{tf}=0$, increasing, concave, and $\to 1$ as $\text{tf}\to\infty$ — rescaled by $(k_1+1)$ and with $k_1$ stretched by document length, it becomes the term-frequency factor $\text{tf}\,(k_1+1)/(\text{tf} + k_1 B)$ of Definition 2 below.
 
 </TheoremBlock>
 
+The log-odds line is Bayes' rule with the $\text{tf}!$ cancelling: $\log\frac{\pi}{1-\pi} + \log\frac{e^{-\lambda_1}\lambda_1^{\text{tf}}}{e^{-\lambda_0}\lambda_0^{\text{tf}}}$. The weight $w$ behaves differently because a count reaches relevance only *through* eliteness. Each class-conditional count distribution is itself a mixture, $P(\text{tf} \mid R=1) = p'\,\text{Pois}(\text{tf};\lambda_1) + (1-p')\,\text{Pois}(\text{tf};\lambda_0)$ and likewise with $u'$, and as $\text{tf}$ grows the elite component dominates both, so $P(\text{tf} \mid R=1)/P(\text{tf} \mid R=0) \to p'/u'$; the $P(0 \mid \cdot)$ ratio is a fixed constant, which gives $w_\infty$. Once a count has made eliteness all but certain, further occurrences buy no more relevance than eliteness itself is worth. One honest qualification: $w$ need not be concave — at small $\text{tf}$ it can rise sigmoidally before leveling off — so the concave rational function is a deliberately simple approximation that keeps the three features that matter: a zero start, monotonicity, and a ceiling.
+
 This connects to the [statistics of discrete distributions](https://formalstatistics.com/topics/discrete-distributions) — the Poisson mixture is the generative story.
 
-Why a *mixture*, and not a single Poisson? Picture the histogram of how many times one content word — say *interest* — appears across every document in a collection. It has two features at once: a tall spike at zero and very small counts, because the vast majority of documents are not about interest at all, and a long right tail of documents that use the word many times because they genuinely are. A single Poisson cannot draw both shapes. Its mean and variance are forced to be equal, $\mathbb{E}[X] = \mathrm{Var}(X) = \lambda$, and its tail decays factorially fast, like $\lambda^k / k!$; tuned low enough to reproduce the pile of zeros, it makes high counts astronomically unlikely, and tuned high enough to admit the tail, it loses the zeros. Real term counts are *overdispersed* — their variance exceeds their mean — which a one-parameter Poisson structurally cannot be. The 2-Poisson model resolves this by positing a hidden binary cause: a document is either **elite** for the term, about its concept and drawing counts from a high-rate Poisson, or not, a low rate that is mostly zeros. The resulting mixture is overdispersed and bimodal by construction, and the quantity BM25 actually needs — the log-odds that a document is elite given the count it shows — is precisely the increasing, concave, saturating curve of Proposition 1. Eliteness is the latent variable the saturation transform is quietly estimating.
+Why a *mixture*, and not a single Poisson? Picture the histogram of how many times one content word — say *interest* — appears across every document in a collection. It has two features at once: a tall spike at zero and very small counts, because the vast majority of documents are not about interest at all, and a long right tail of documents that use the word many times because they genuinely are. A single Poisson cannot draw both shapes. Its mean and variance are forced to be equal, $\mathbb{E}[X] = \mathrm{Var}(X) = \lambda$, and its tail decays factorially fast, like $\lambda^k / k!$; tuned low enough to reproduce the pile of zeros, it makes high counts astronomically unlikely, and tuned high enough to admit the tail, it loses the zeros. Real term counts are *overdispersed* — their variance exceeds their mean — which a one-parameter Poisson structurally cannot be. The 2-Poisson model resolves this by positing a hidden binary cause: a document is either **elite** for the term, about its concept and drawing counts from a high-rate Poisson, or not, a low rate that is mostly zeros. The resulting mixture is overdispersed and bimodal by construction, and the quantity BM25 actually needs — the relevance weight a count earns once it is routed through eliteness — is the increasing, bounded, saturating curve of Proposition 1. The evidence *for* eliteness grows without limit, but no count can be worth more than eliteness itself: that ceiling is what the saturation transform is quietly encoding.
 
 ---
 
