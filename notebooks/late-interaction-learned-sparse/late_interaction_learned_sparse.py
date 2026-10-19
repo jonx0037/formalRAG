@@ -15,7 +15,10 @@ ESCAPE that ceiling, by different mechanisms. Every pedagogical claim below is a
   MOVEMENT 2 — MULTI-VECTOR ESCAPES THE SINGLE-VECTOR WALL (demonstrated, not proved). Reusing the
     all-pairs qrel and the single-vector free-embedding wall from the embedding-dimension topic, a
     MaxSim model with m >= 2 vectors per document realizes the pattern at a corpus size PAST the
-    single-vector critical n, at the same per-vector dimension. The loss is the IMPORTED qrel row loss
+    single-vector critical n, at the same per-vector dimension. (The single-vector baseline is THIS
+    MaxSim optimizer at m = 1, whose critical n at d = 4 is 8; the prerequisite's own free-embedding fit
+    puts it at 6 — critical n is optimizer-dependent, which is why both models here share one optimizer.)
+    The loss is the IMPORTED qrel row loss
     (`_qrel_loss_grad`); only the MaxSim forward/backward (subgradient through each query token's
     argmax document token) is new. rigorFlag: this is a best-case DEMONSTRATION (free embeddings, the
     LIMIT methodology), not a matching lower bound — the general multi-vector expressivity theorem is
@@ -283,6 +286,21 @@ def splade_rank(query: str, corpus: dict[str, str], vocab: dict[str, int] = None
     return sorted(scored, key=lambda kv: kv[1], reverse=True)
 
 
+def onpoint_top_status(ranked: list[tuple[str, float]], target: str = "filing-onpoint",
+                       tol: float = 1e-9) -> tuple[bool, int]:
+    """(strict, n_tied) for a ranked list: `strict` is True only if `target` is the STRICT #1 on a
+    positive score; `n_tied` counts the documents sharing the top score when `target` is among them
+    and the top score is positive (1 = a strict #1, 0 = target not on top or every score is 0). A
+    stable sort puts tied documents in corpus order, so `ranked[0] == target` alone is a tie artifact."""
+    if not ranked or ranked[0][1] <= tol:
+        return False, 0
+    top = ranked[0][1]
+    tied = [d for d, s in ranked if abs(s - top) <= tol]
+    if target not in tied:
+        return False, 0
+    return len(tied) == 1, len(tied)
+
+
 def splade_doc_matrix(corpus: dict[str, str], vocab: dict[str, int] = None,
                       assoc: dict = None, tau: float = 0.0) -> np.ndarray:
     """The document-by-vocabulary SPLADE weight matrix (for the FLOPS regularizer and sparsity)."""
@@ -415,18 +433,21 @@ def test_flops_controls_sparsity() -> None:
     lowers the FLOPS value, but eventually prunes the bridging expansion and breaks the mismatch fix —
     the sparsity-versus-quality trade-off."""
     vocab = _vocab_of(BM25_CORPUS)
-    l0s, flops, fixed = [], [], []
+    l0s, flops, fixed, tied = [], [], [], []
     for tau in TAU_GRID:
         W = splade_doc_matrix(BM25_CORPUS, vocab, tau=tau)
         l0s.append(int((W > 0).sum()))
         flops.append(flops_term(W))
-        top_id, top_score = splade_rank(SPLADE_QUERY, BM25_CORPUS, vocab, tau=tau)[0]
-        fixed.append(top_id == "filing-onpoint" and top_score > 0.0)  # retrieved on merit, not a 0-tie
+        strict, n_tied = onpoint_top_status(splade_rank(SPLADE_QUERY, BM25_CORPUS, vocab, tau=tau))
+        fixed.append(strict)                          # a STRICT #1 on merit, not a stable-sort tie
+        tied.append(n_tied)
     assert all(l0s[i] >= l0s[i + 1] for i in range(len(l0s) - 1)), f"L0 should not rise with tau: {l0s}"
     assert all(flops[i] >= flops[i + 1] - 1e-9 for i in range(len(flops) - 1)), f"FLOPS should fall: {flops}"
     assert fixed[0] and not fixed[-1], "the mismatch fix should hold at low tau and break at high tau"
-    print(f"  [ok] Movement 3: sparsity trade-off — L0 {l0s} (down with tau), mismatch fixed {fixed} "
-          f"(breaks once expansion is pruned)")
+    # The on-point filing's strict lead rides on its weakest expansion term: the first prune ties it.
+    assert not fixed[1] and tied[1] > 1, f"the first prune should leave filing-onpoint tied: {tied}"
+    print(f"  [ok] Movement 3: sparsity trade-off — L0 {l0s} (down with tau), on-point strict #1 {fixed}, "
+          f"tied-at-top count {tied} (the first prune already ties it; every score 0 at the top tau)")
 
 
 # --------------------------------------------------------------------------- #
@@ -473,6 +494,12 @@ def viz_constants() -> None:
     print(f"    SIM_GRID = {grid.tolist()}   # per query-token max is the MaxSim contribution")
     print(f"    MAXSIM = {round(float(grid.max(axis=1).sum()), 3)}, "
           f"POOLED = {round(maxsim_score(Qtok, Dtok.mean(axis=0, keepdims=True)), 3)}")
+    # The symmetric doc tokens average to the ZERO vector, so POOLED = 0 is degenerate. The
+    # non-degenerate fact: the best ANY unit pooled vector p can score is max_p <sum_i q_i, p> =
+    # ||sum_i q_i||, still far below MaxSim.
+    qsum = Qtok.sum(axis=0)
+    print(f"    POOLED_BEST = {round(float(np.linalg.norm(qsum)), 3)}   # best unit pooled vector, "
+          f"at {round(float(np.degrees(np.arctan2(qsum[1], qsum[0]))), 1)} deg")
 
     print("  PANEL B — the single-vector wall vs the MaxSim escape:")
     curve = maxsim_escape_curve(ESCAPE_D, ESCAPE_N_GRID, N_DOC_VECS)
@@ -494,10 +521,9 @@ def viz_constants() -> None:
     trade = []
     for tau in TAU_GRID:
         W = splade_doc_matrix(BM25_CORPUS, vocab, tau=tau)
-        top_id, top_score = splade_rank(SPLADE_QUERY, BM25_CORPUS, vocab, tau=tau)[0]
+        strict, n_tied = onpoint_top_status(splade_rank(SPLADE_QUERY, BM25_CORPUS, vocab, tau=tau))
         trade.append({"tau": round(float(tau), 2), "l0": int((W > 0).sum()),
-                      "flops": round(flops_term(W), 4),
-                      "fixed": top_id == "filing-onpoint" and top_score > 0.0})
+                      "flops": round(flops_term(W), 4), "fixed": strict, "tied": n_tied})
     print(f"    TRADE = {trade}")
 
 

@@ -22,7 +22,7 @@ modality:
   - "text"
   - "pdf"
   - "news"
-rigorFlag: "Two results here are theorems and the rest is honest modeling. The MarginMSE reduction is EXACT: the all-pairs margin loss equals the centered Frobenius distance 2 n_d ||SC - TC||^2 (a variance identity), from which translation-invariance — that any per-query offset T -> T + b 1^T is invisible to the loss because 1^T C = 0 — is immediate, and the closed-form optima follow by Eckart-Young-Mirsky: the pointwise-MSE-optimal rank-d student is best_rank_d(T) and the MARGIN-optimal one is best_rank_d(TC). Those are proved. The softer seams: the teacher is the deterministic random-ReLU-feature cross-encoder reused from the cross-encoders topic — a seeded stand-in for a trained transformer that realizes the relevance (an expressivity-not-generalization surrogate), not a real BERT reranker, and its width is tuned so it is a GOOD teacher (recall@1 = 1.0) whose scores are still graded. The per-query offset is a MODEL of the documented cross-encoder per-query miscalibration; its magnitude is tuned so the margin-over-pointwise recall gap is seed-robust, not derived (the teacher's own scores already carry a large constant baseline the centering removes, so the gap exists without the offset but is not seed-robust without it). MarginMSE itself is a HEURISTIC loss: the reduction we prove characterizes its optimum, but the loss was chosen empirically (Hofstätter et al., 2020), not derived from a ranking objective. The rank ceiling binds the student no matter how accurate the teacher — a rank-d dual encoder can never exceed the teacher's recall, only approach it. And the dark-knowledge result runs the OTHER way on this toy: the teacher's margins on the mined hard pairs are genuinely graded, but on a clean, block-structured, IN-SAMPLE corpus the binary ground-truth target compresses to low rank at least as well as the soft teacher — the classic soft-beats-hard advantage is a generalization phenomenon a closed-form in-sample fit cannot show, which we state rather than fake. The whole laboratory is the synthetic von Mises-Fisher finance cloud reused from the InfoNCE, DPR, and cross-encoders topics; every number is owned by the companion notebook."
+rigorFlag: "Two results here are theorems and the rest is honest modeling. The MarginMSE reduction is EXACT: the all-pairs margin loss equals the centered Frobenius distance 2 n_d ||SC - TC||^2 (a variance identity), from which translation-invariance — that any per-query offset T -> T + b 1^T is invisible to the loss because 1^T C = 0 — is immediate, and the closed-form optima follow by Eckart-Young-Mirsky: the pointwise-MSE-optimal rank-d student is best_rank_d(T) and the MARGIN-optimal one is best_rank_d(TC). Those are proved. The softer seams: the teacher is the deterministic random-ReLU-feature cross-encoder reused from the cross-encoders topic — a seeded stand-in for a trained transformer that realizes the relevance (an expressivity-not-generalization surrogate), not a real BERT reranker, and its width is tuned so it is a GOOD teacher (recall@1 = 1.0) whose scores are still graded. The per-query offset is a MODEL of the documented cross-encoder per-query miscalibration; its magnitude is tuned so the margin-over-pointwise recall gap is seed-robust, not derived (the teacher's own scores already carry a large constant baseline the centering removes, so the gap exists without the offset but is not seed-robust without it). MarginMSE itself is a HEURISTIC loss: the reduction we prove characterizes its optimum, but the loss was chosen empirically (Hofstätter et al., 2020), not derived from a ranking objective. The rank ceiling binds the student no matter how accurate the teacher — a rank-d dual encoder can never exceed the teacher's recall, only approach it. And the dark-knowledge result runs the OTHER way on this toy: the teacher's margins on the mined hard pairs are genuinely graded, but on a clean, block-structured, IN-SAMPLE corpus the binary ground-truth target does at least as well as the soft teacher on average — its centered spectrum is perfectly flat, so its low-rank truncation is not unique and we report recall averaged over every optimal truncation rather than one arbitrary SVD basis — and the classic soft-beats-hard advantage is a generalization phenomenon a closed-form in-sample fit cannot show, which we state rather than fake. The whole laboratory is the synthetic von Mises-Fisher finance cloud reused from the InfoNCE, DPR, and cross-encoders topics; every number is owned by the companion notebook."
 videoId: null
 notebookPath: "notebooks/retrieval-distillation/01_retrieval_distillation.ipynb"
 githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/retrieval-distillation.mdx"
@@ -267,9 +267,9 @@ the teacher's recall from below; it cannot exceed it.
 Theorem 2 predicts a recall gap at restricted rank, and the laboratory confirms it. The teacher's score
 matrix carries a single dominant singular value — its per-query level, magnified by the miscalibration
 offset — so the pointwise student best_rank_d(T) burns a whole dimension reproducing a constant that
-does nothing for ranking. The centered teacher $TC$ has a flat spectrum: every direction is ranking
-signal. At the restricted rank $d = 3$ the margin student's recall@1 ($0.69$) leads the pointwise
-student's ($0.50$), the gap is positive at every rank tested and seed-robust, and both rise to the
+does nothing for ranking. The centered teacher $TC$ has no dominant singular value: every direction is
+ranking signal. At the restricted rank $d = 3$ the margin student's recall@1 ($0.69$) leads the pointwise
+student's ($0.50$), the gap is positive at every rank below full ($d = 1$ through $7$; at $d = 8$ both reach $1.0$) and seed-robust, and both rise to the
 teacher's $1.0$ only as $d$ approaches full rank — the ceiling of Corollary 1. Panel B plots the two
 recall curves against the rank slider, with the two spectra beside them so the wasted dimension is
 visible as the teacher's lone tall singular value.
@@ -301,12 +301,19 @@ off the teacher's margin on those pairs gives a *graded* spread (mean $\approx 0
 $0.12$ to $1.29$), where a binary label's margin is the constant $1$. Some hard negatives are far more
 confusable than others, and the teacher knows it.
 
-<TheoremBlock type="remark" title="On this in-sample toy, binary compresses at least as well">
+<TheoremBlock type="remark" title="On this in-sample toy, binary labels do at least as well on average">
 
 Yet build-and-run delivers an honest surprise: distilling the *soft* teacher's centered scores does not
-beat distilling the *hard* binary labels at restricted rank. The binary relevance matrix is perfectly
-block-structured — four queries per company share one gold document — so its centered SVD compresses to
-low rank cleanly, recovering recall@1 $= 0.875$ at $d = 3$ against the soft teacher's $0.69$. The
+beat distilling the *hard* binary labels at restricted rank — and stating the hard side honestly takes
+care. The binary relevance matrix is block-structured — four queries per company share one gold
+document — and once centered its spectrum is perfectly *flat*: all seven nonzero singular values equal
+$2$. That is the least compressible spectrum there is (a rank-$3$ truncation keeps $3/7 \approx 43\%$ of
+its energy, against $65\%$ for the soft teacher), and it makes the rank-$3$ truncation *non-unique*: every
+three-dimensional slice of the tied block is equally Frobenius-optimal, and a single SVD call returns
+one of them by an arbitrary tie-break. Across those optimal students the hard student's recall@1 at
+$d = 3$ ranges from $0.50$ to $1.0$; averaged uniformly over all of them it is $\approx 0.76$, against the
+soft teacher's unique $0.69$. So the one-hot target does at least as well on average — recall@1 reads
+only each row's argmax, and the one-hot target spends all of its energy exactly there. The
 soft-beats-hard advantage of dark knowledge is a *generalization* phenomenon: it helps when labels are
 scarce and the student must extrapolate to unseen queries, which a closed-form *in-sample* fit cannot
 exhibit. The reason to distill the teacher is not that its soft targets compress better here — it is
@@ -351,8 +358,9 @@ without the offset but is not seed-robust without it). MarginMSE itself is a heu
 reduction characterizes its optimum, but the loss was chosen empirically, not derived from a ranking
 objective. The rank ceiling binds the student no matter how accurate the teacher. And the dark-knowledge
 result runs the other way on this toy: the teacher's margins on the mined hard pairs are genuinely
-graded, but on a clean, block-structured, in-sample corpus the binary target compresses to low rank at
-least as well — the classic soft-beats-hard advantage is a generalization phenomenon a closed-form
+graded, but on a clean, block-structured, in-sample corpus the binary target does at least as well on
+average (its flat centered spectrum makes the low-rank binary student non-unique, so we average recall
+over every optimal truncation) — the classic soft-beats-hard advantage is a generalization phenomenon a closed-form
 in-sample fit cannot show, which we state rather than fake. The whole laboratory is the synthetic von
 Mises–Fisher finance cloud reused from the InfoNCE, DPR, and cross-encoders topics; the companion
 notebook owns every number.

@@ -16,8 +16,10 @@ import katex from 'katex';
  *      is recomputed LIVE from the singular values as the rank slider moves.
  *   C. Dark knowledge and the cost payoff. The teacher's margins on the mined hard-negative pairs are
  *      GRADED (a real spread) where a binary label's margin is the constant 1 — yet on this clean
- *      in-sample toy the binary target compresses to low rank at least as well (the soft-beats-hard
- *      advantage is a generalization phenomenon). The corpus slider recomputes the student-vs-teacher
+ *      in-sample toy the binary target does at least as well on average (the soft-beats-hard advantage is
+ *      a generalization phenomenon). Y C's spectrum is flat, so its rank-d truncation is not unique: the
+ *      hard bar is the mean over ALL optimal truncations, its whisker their min-max range (a single SVD
+ *      call would land anywhere in it). The corpus slider recomputes the student-vs-teacher
  *      inference cost and the speedup LIVE.
  *
  * VIZ <-> PYTHON INVARIANT (CLAUDE.md): PW_LOSS_BASE, PW_LOSS_LIN, PW_LOSS_QUAD, MARGIN_LOSS, HEAT_T,
@@ -82,12 +84,19 @@ const RANK_RECALL = [
 
 // Panel C: dark knowledge (soft vs hard recall by rank) + the teacher's graded margins on the mined hard
 // pairs (binary margin = 1) + the inference cost constants.
+// hard = mean (min-max) over ALL Frobenius-optimal rank-d binary students (Y C's spectrum is flat, so the
+// truncation is not unique); ENERGY_KEPT is the basis-independent share each target keeps at D_STAGE.
 const SOFT_VS_HARD = [
-  { d: 1, soft_r1: 0.25, hard_r1: 0.25 }, { d: 2, soft_r1: 0.4375, hard_r1: 0.625 },
-  { d: 3, soft_r1: 0.6875, hard_r1: 0.875 }, { d: 4, soft_r1: 0.7188, hard_r1: 0.875 },
-  { d: 5, soft_r1: 0.8438, hard_r1: 0.875 }, { d: 6, soft_r1: 0.9062, hard_r1: 1.0 },
-  { d: 7, soft_r1: 1.0, hard_r1: 1.0 }, { d: 8, soft_r1: 1.0, hard_r1: 1.0 },
+  { d: 1, soft_r1: 0.25, hard_r1: 0.25, hard_min: 0.25, hard_max: 0.25 },
+  { d: 2, soft_r1: 0.4375, hard_r1: 0.5387, hard_min: 0.375, hard_max: 1.0 },
+  { d: 3, soft_r1: 0.6875, hard_r1: 0.7634, hard_min: 0.5, hard_max: 1.0 },
+  { d: 4, soft_r1: 0.7188, hard_r1: 0.9011, hard_min: 0.625, hard_max: 1.0 },
+  { d: 5, soft_r1: 0.8438, hard_r1: 0.9688, hard_min: 0.75, hard_max: 1.0 },
+  { d: 6, soft_r1: 0.9062, hard_r1: 0.9946, hard_min: 0.875, hard_max: 1.0 },
+  { d: 7, soft_r1: 1.0, hard_r1: 1.0, hard_min: 1.0, hard_max: 1.0 },
+  { d: 8, soft_r1: 1.0, hard_r1: 1.0, hard_min: 1.0, hard_max: 1.0 },
 ];
+const ENERGY_KEPT = { soft: 0.648, hard: 0.429 };
 const HARD_PAIR_MARGINS = [
   0.775, 0.748, 0.886, 1.292, 0.537, 0.569, 0.843, 0.542, 0.715, 0.667, 0.776, 0.728, 0.651, 0.262,
   0.741, 0.781, 0.975, 0.897, 0.466, 0.85, 0.992, 0.642, 0.989, 0.78, 0.295, 0.192, 0.301, 0.116,
@@ -270,7 +279,7 @@ function SpectrumBars() {
         );
       })}
       <text x={padL} y={padT + 2} fontSize={9} fill={POINT_COLOR} fontFamily="var(--font-sans)">σ(T): σ₁ = {SINGULAR_VALUES_T[0].toFixed(0)} (the level)</text>
-      <text x={padL} y={padT + 13} fontSize={9} fill={MARGIN_COLOR} fontFamily="var(--font-sans)">σ(TC): flat — all ranking</text>
+      <text x={padL} y={padT + 13} fontSize={9} fill={MARGIN_COLOR} fontFamily="var(--font-sans)">σ(TC): no level — all ranking</text>
     </svg>
   );
 }
@@ -296,6 +305,9 @@ function SoftHardBars() {
           <g key={row.d}>
             <rect x={r2(x)} y={r2(fy(row.soft_r1))} width={r2(bw)} height={r2(ph - padB - fy(row.soft_r1))} fill={MARGIN_COLOR} opacity={0.9} rx={1} />
             <rect x={r2(x + bw + 1.5)} y={r2(fy(row.hard_r1))} width={r2(bw)} height={r2(ph - padB - fy(row.hard_r1))} fill={POINT_COLOR} opacity={0.75} rx={1} />
+            {row.hard_max > row.hard_min && (
+              <line x1={r2(x + 1.5 * bw + 1.5)} y1={r2(fy(row.hard_min))} x2={r2(x + 1.5 * bw + 1.5)} y2={r2(fy(row.hard_max))} stroke="var(--color-text)" strokeWidth={1} opacity={0.6} />
+            )}
             <text x={r2(x + bw)} y={ph - padB + 11} textAnchor="middle" fontSize={8.5} fill={MUTED} fontFamily="var(--font-sans)">{row.d}</text>
           </g>
         );
@@ -304,7 +316,7 @@ function SoftHardBars() {
         <rect x={pw - padR - 150} y={padT} width={11} height={11} fill={MARGIN_COLOR} opacity={0.9} rx={1.5} />
         <text x={pw - padR - 135} y={padT + 9} fill={MUTED}>soft teacher (graded)</text>
         <rect x={pw - padR - 150} y={padT + 15} width={11} height={11} fill={POINT_COLOR} opacity={0.75} rx={1.5} />
-        <text x={pw - padR - 135} y={padT + 24} fill={MUTED}>hard binary labels</text>
+        <text x={pw - padR - 135} y={padT + 24} fill={MUTED}>hard labels (mean; range)</text>
       </g>
     </svg>
   );
@@ -444,9 +456,13 @@ export default memo(function RetrievalDistillationLaboratory() {
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             The teacher's margins on the mined hard-negative pairs are <em>graded</em> (mean ≈ 0.66, a real spread) where a
-            one-hot label's margin is the constant 1 — that is the dark knowledge. Yet on this clean, in-sample, block-structured
-            toy the binary ground-truth target compresses to low rank at least as well as the soft teacher (the soft-beats-hard
-            advantage is a generalization phenomenon a closed-form in-sample fit cannot show). The real payoff is cost: at a
+            one-hot label's margin is the constant 1 — that is the dark knowledge. Yet on this clean, in-sample toy the binary
+            target does at least as well on average. Its centered spectrum is perfectly flat, so it compresses <em>worse</em> (rank{' '}
+            {D_STAGE} keeps {(ENERGY_KEPT.hard * 100).toFixed(0)}% of its energy vs the teacher's {(ENERGY_KEPT.soft * 100).toFixed(0)}%) and
+            its rank-{D_STAGE} truncation is not unique — recall@1 runs from {SOFT_VS_HARD[D_STAGE - 1].hard_min.toFixed(2)} to{' '}
+            {SOFT_VS_HARD[D_STAGE - 1].hard_max.toFixed(2)} depending on which optimal truncation you take, averaging{' '}
+            {SOFT_VS_HARD[D_STAGE - 1].hard_r1.toFixed(2)} against the soft student's {SOFT_VS_HARD[D_STAGE - 1].soft_r1.toFixed(2)}. The
+            soft-beats-hard advantage is a generalization phenomenon a closed-form in-sample fit cannot show. The real payoff is cost: at a
             corpus of {corpus.toLocaleString()} the cross-encoder teacher costs {teacherCost.toLocaleString()} per query while
             the precomputable student costs {studentCost.toLocaleString()} — a {speedup.toFixed(0)}× speedup, cross-encoder
             ranking at dual-encoder inference cost.

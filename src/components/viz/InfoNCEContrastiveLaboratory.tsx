@@ -46,7 +46,7 @@ const MI_BOUND = [
 const CONVERGE = [
   { label: 'init', alignment: 1.8921, uniformity: -2.0646, mean_resultant: 0.1637 },
   { label: 'align+unif', alignment: 0.0, uniformity: -2.2377, mean_resultant: 0.0013 },
-  { label: 'infonce', alignment: 0.0, uniformity: -2.2388, mean_resultant: 0.0018 },
+  { label: 'infonce', alignment: 0.0, uniformity: -2.2391, mean_resultant: 0.0015 },   // same seed-5 init
 ];
 const ALIGN_UNIF = [
   { tau: 0.01, kappa_equiv: 100.0, alignment: 1.0687, uniformity: -2.1641 },
@@ -280,11 +280,12 @@ export default memo(function InfoNCEContrastiveLaboratory() {
             <WeightBars weights={weights} />
           </div>
           <div style={{ display: 'flex', gap: '2rem', marginTop: '0.5rem' }}>
-            <Readout label="hardest-negative weight max pᵢ" value={top1.toFixed(3)} accent />
+            <Readout label="hardest negative's share of the push" value={top1.toFixed(3)} accent />
             <Readout label="weight entropy H(p)" value={`${H.toFixed(3)} / ${Math.log(NEG_COS.length).toFixed(3)}`} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
-            Each negative repels the query with a force equal to its softmax weight pᵢ = e<sup>sᵢ/τ</sup> / Σ. As τ → 0 the mass
+            Each negative repels the query in proportion to its share of the negative push, e<sup>sᵢ/τ</sup> / Σ<sub>neg</sub> — the
+            softmax over the negatives alone, pᵢ / (1 − p⁺) in Theorem 3's notation. As τ → 0 the mass
             collapses onto the single hardest negative — the one nearest the query — and the weight entropy falls toward 0; as τ
             grows the push spreads to all negatives and the entropy rises toward log N = {Math.log(NEG_COS.length).toFixed(2)}. The
             gradient structure is exact; which τ is <em>right</em> is empirical.

@@ -12,7 +12,7 @@ import katex from 'katex';
  *   C. SPLADE. The learned-sparse expansion of a vocabulary-mismatch query into terms it never
  *      mentioned, and the sparsity-versus-quality trade-off the FLOPS regularizer controls.
  *
- * VIZ <-> PYTHON INVARIANT (CLAUDE.md): SIM_GRID, MAXSIM, POOLED, ESCAPE_CURVE, CRIT_SINGLE,
+ * VIZ <-> PYTHON INVARIANT (CLAUDE.md): SIM_GRID, MAXSIM, POOLED, POOLED_BEST, ESCAPE_CURVE, CRIT_SINGLE,
  * CRIT_MAXSIM, STORAGE, QUERY_WEIGHTS, and TRADE are mirrored TO THE DECIMAL from
  * notebooks/late-interaction-learned-sparse/late_interaction_learned_sparse.py (viz_constants()).
  * test_maxsim_reduces_to_dot_at_m1 / test_multivector_escapes_wall / test_maxsim_critical_n_exceeds_single
@@ -30,7 +30,8 @@ const SIM_GRID = [
   [-0.94, -0.342, 0.94, 0.342],
 ];
 const MAXSIM = 2.913;   // sum of per-query-token maxima
-const POOLED = 0.0;     // a single pooled document vector (the token average) cannot match all three
+const POOLED = 0.0;     // the token average: the four symmetric doc tokens average to the ZERO vector
+const POOLED_BEST = 0.873;   // the best ANY unit pooled vector can score: ||q1 + q2 + q3|| (non-degenerate)
 
 // Panel B: the single-vector wall vs the MaxSim escape on the all-pairs qrel at per-vector dim 4.
 const ESCAPE_D = 4;
@@ -56,11 +57,12 @@ const QUERY_WEIGHTS: [string, number][] = [
 ];
 const ONPOINT_BM25 = 0.0;   // BM25 score of the on-point filing for the mismatch query (no overlap)
 const TRADE = [
-  { tau: 0.0, l0: 100, flops: 16.1417, fixed: true },
-  { tau: 0.7, l0: 95, flops: 15.2864, fixed: true },
-  { tau: 0.95, l0: 83, flops: 13.1372, fixed: true },
-  { tau: 1.2, l0: 79, flops: 12.0161, fixed: true },
-  { tau: 1.45, l0: 79, flops: 12.0161, fixed: false },
+  // fixed = filing-onpoint is the STRICT #1; tied = documents sharing the top score (0 = all scores 0)
+  { tau: 0.0, l0: 100, flops: 16.1417, fixed: true, tied: 1 },
+  { tau: 0.7, l0: 95, flops: 15.2864, fixed: false, tied: 3 },
+  { tau: 0.95, l0: 83, flops: 13.1372, fixed: false, tied: 5 },
+  { tau: 1.2, l0: 79, flops: 12.0161, fixed: false, tied: 5 },
+  { tau: 1.45, l0: 79, flops: 12.0161, fixed: false, tied: 0 },
 ];
 
 const POS_COLOR = '#5fa873';
@@ -248,7 +250,9 @@ export default memo(function LateInteractionLaboratory() {
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             Each query token (row) matches its <strong>best</strong> document token (the green-bordered cell), and MaxSim sums those
             maxima. Three query tokens land on three <em>distinct</em> document tokens — a many-to-many match. A single pooled
-            document vector (the token average) cannot point at three things at once, so it scores {POOLED.toFixed(2)}. With one
+            document vector — the token average — is the zero vector here (the four tokens are symmetric about the origin), so it
+            scores {POOLED.toFixed(2)}; and that is not just the symmetry: the best <em>any</em> unit pooled vector can score is
+            ‖q₁ + q₂ + q₃‖ = {POOLED_BEST.toFixed(2)}, because one direction cannot point at three things at once. With one
             vector per item the max is over a singleton and MaxSim is exactly the dual-encoder dot product — the provable anchor.
           </p>
         </div>
@@ -261,7 +265,7 @@ export default memo(function LateInteractionLaboratory() {
           <div style={{ display: 'flex', gap: '1.6rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
             <Readout label={`single vector at n = ${nRow.n}`} value={nRow.single.toFixed(3)} />
             <Readout label={`MaxSim (m=${N_DOC_VECS}) at n = ${nRow.n}`} value={nRow.maxsim.toFixed(3)} accent />
-            <Readout label="critical n: single vs MaxSim" value={`${CRIT_SINGLE} → ${CRIT_MAXSIM}`} />
+            <Readout label="critical n: single vs MaxSim" value={`${CRIT_SINGLE} → ≥ ${CRIT_MAXSIM}`} />
             <Readout label="storage cost of late interaction" value={`${STORAGE.multiplier}× the floats`} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
@@ -281,15 +285,17 @@ export default memo(function LateInteractionLaboratory() {
           <div style={{ display: 'flex', gap: '1.6rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
             <Readout label="active terms ‖w‖₀ (corpus)" value={`${trade.l0}`} />
             <Readout label="FLOPS value" value={trade.flops.toFixed(2)} />
-            <Readout label="mismatch fixed?" value={trade.fixed ? 'yes — filing-onpoint #1' : 'no — expansion pruned'} accent={trade.fixed} />
+            <Readout label="mismatch fixed?" value={trade.fixed ? 'yes — filing-onpoint strict #1' : trade.tied > 1 ? `no — #1 tied ${trade.tied} ways` : 'no — every score 0'} accent={trade.fixed} />
             <Readout label="BM25 score (no lexical overlap)" value={ONPOINT_BM25.toFixed(1)} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
             The query <strong>"{SPLADE_QUERY}"</strong> shares no term with the on-point filing, so BM25 scores it {ONPOINT_BM25.toFixed(1)}.
             SPLADE expands it into the filing's vocabulary — <em>interest, rate, exposure, margin</em>, every weight learned, none a
             literal query term — and retrieves it. Raising τ prunes low-weight terms, lowering the active-term count
-            ({TRADE[0].l0} → {TRADE[TRADE.length - 1].l0}) and the FLOPS cost — but once the bridging expansion is pruned, the
-            mismatch fix breaks. Expand enough to bridge, stay sparse enough to keep the inverted index fast.
+            ({TRADE[0].l0} → {TRADE[TRADE.length - 1].l0}) and the FLOPS cost — but the on-point filing's strict lead rides on its
+            weakest expansion term (<em>margin</em>): the first prune already leaves it tied with {TRADE[1].tied - 1} distractors at the
+            top, and once the bridging expansion is gone every score is 0. Expand enough to bridge, stay sparse enough to keep the
+            inverted index fast.
           </p>
         </div>
       )}

@@ -350,6 +350,9 @@ def critical_n_curve(d_grid, n_grid, **kw):
 # --------------------------------------------------------------------------- #
 
 GAP_N = 4                                  # the signed-identity demonstration size
+EY_SCALE = (1.0, 2.0, 2.0, 2.0)            # graded scores D M D with M's sign pattern (Eckart-Young
+                                           #   demo): the bare signed identity has ALL singular values
+                                           #   equal (M/2 is orthogonal), so its truncation is not unique
 HADAMARD_KS = (1, 2, 3, 4)                 # Hadamard sizes N = 2, 4, 8, 16
 MARGIN_DIMS = (1, 2, 3, 4, 5, 6)           # dimension sweep for the margin curve
 CRIT_D_GRID = (2, 3, 4, 5, 6)              # embedding dimensions for the wall
@@ -474,24 +477,40 @@ def test_eckart_young_is_wrong_norm() -> None:
     """Movements 1-2 bridge: the Frobenius-optimal low-rank approximation (Eckart-Young) is not the
     sign-optimal one. The dimension to drive Frobenius error to zero is the full rank, but the sign
     pattern is recoverable strictly below it; and at an intermediate rank the truncated SVD leaves
-    sign errors that a sign objective at the SAME rank fixes."""
+    sign errors that a sign objective at the SAME rank fixes.
+
+    The demonstration needs a target whose rank-3 truncation is UNIQUE. The bare signed identity is
+    degenerate — M/2 is orthogonal, so all four singular values equal 2 and every rank-3 subspace is
+    equally optimal (one SVD basis flips signs, M + J/2 is equally optimal and flips none). So we use
+    graded scores with the same sign pattern, A = D M D, D = diag(EY_SCALE): one query/document pair
+    on a smaller scale. sigma_3 > sigma_4 strictly, the truncation is unique, and it flips the sign of
+    the smallest positive entry (that small item's own relevant score), while a sign-built rank-3
+    realization of the same pattern gets every sign."""
     M = signed_identity(GAP_N)
-    full_rank = int(np.linalg.matrix_rank(M))
+    D = np.diag(EY_SCALE)
+    A = D @ M @ D                                         # graded scores, sign pattern M
+    assert np.array_equal(np.sign(A), np.sign(M)), "the graded target must keep M's sign pattern"
+    full_rank = int(np.linalg.matrix_rank(A))
     # Frobenius error is zero only at full rank, but the signs are all correct strictly below it.
-    err_below = relative_frobenius_error(M, best_rank_d(M, full_rank - 1))
+    err_below = relative_frobenius_error(A, best_rank_d(A, full_rank - 1))
     assert err_below > 1e-6, "truncated SVD below full rank should have nonzero Frobenius error"
-    # At rank 3 the Frobenius-optimal approximation need not match all signs...
-    frob3 = best_rank_d(M, 3)
+    # The rank-3 Frobenius optimum is UNIQUE here (sigma_3 > sigma_4)...
+    sv = np.linalg.svd(A, compute_uv=False)
+    assert sv[2] - sv[3] > 1.0, f"rank-3 truncation should be unique (sigma_3 > sigma_4): {sv}"
+    # ...and it flips at least one sign of the pattern.
+    frob3 = best_rank_d(A, 3)
     frob_agree = sign_agreement(frob3, M)
-    # ...but a sign-objective realization at the same rank does.
+    assert frob_agree < 1.0, f"the unique rank-3 truncation should flip a sign: {frob_agree}"
+    # A sign-objective realization at the same rank matches every sign.
     realized3, _, B3 = realize_sign_rank(M, 3)
     sign_agree = sign_agreement(B3, M)
     assert realized3 and sign_agree >= 1.0, "sign objective should match all signs at rank 3"
-    assert sign_agree >= frob_agree, \
-        f"sign-optimal agreement {sign_agree} should be >= Frobenius {frob_agree} at rank 3"
-    print(f"  [ok] Eckart-Young is the wrong norm: full rank {full_rank} for zero Frobenius error, "
-          f"but signs recover at rank 3 (sign-opt agreement {sign_agree:.2f} >= "
-          f"Frobenius {frob_agree:.2f})")
+    flipped = np.argwhere(np.sign(frob3) != np.sign(M))
+    print(f"  [ok] Eckart-Young is the wrong norm: on graded scores D M D (sigma = {np.round(sv, 3)}, "
+          f"unique rank-3 truncation) the Frobenius optimum flips {len(flipped)} sign(s) "
+          f"(entry {tuple(int(v) for v in flipped[0])}: {A[tuple(flipped[0])]:.0f} -> "
+          f"{frob3[tuple(flipped[0])]:.2f}; agreement {frob_agree:.4f}), a sign-built rank-3 "
+          f"realization gets all of them ({sign_agree:.2f}); zero Frobenius error needs rank {full_rank}")
 
 
 def test_margin_grows_with_dimension() -> None:
