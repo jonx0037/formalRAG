@@ -1,18 +1,18 @@
 """Navigable small-world graphs and the mathematics of greedy routing — the reference
 implementation for the formalRAG `navigable-small-world-graphs` topic.
 
-The inverted file partitioned the space into cells; this topic replaces the flat partition with a
-GRAPH, and search becomes a walk. The mathematics has two movements, and this module establishes,
+Where a partition index (the inverted file, the next topic) cuts the space into cells, this topic
+builds a GRAPH, and search becomes a walk. The mathematics has two movements, and this module establishes,
 and verifies, both plus the honest caveats they rest on:
 
   MOVEMENT 1 — THE MATHEMATICS OF GREEDY ROUTING (Kleinberg).
-  1. NAVIGABILITY REQUIRES A DIMENSION-MATCHED LINK DISTRIBUTION. On a 2-D lattice where each node
-     has its four grid neighbors plus ONE long-range link drawn with probability proportional to
-     r^{-alpha} (r the lattice distance), decentralized greedy routing — always step to the neighbor
-     nearest the target — is fast ONLY when alpha equals the lattice dimension (alpha = 2). Too
-     uniform (alpha = 0) or too local (alpha large) and routing is far slower. We simulate the
-     U-shaped delivery-time curve and confirm its minimum sits at alpha = 2. (`kleinberg_curve`,
-     `test_kleinberg_navigability`)
+  1. NAVIGABILITY REQUIRES A DIMENSION-MATCHED LINK DISTRIBUTION. On a 1-D ring where each node
+     has its two ring neighbors plus ONE long-range link drawn with probability proportional to
+     r^{-alpha} (r the ring distance), decentralized greedy routing — always step to the neighbor
+     nearest the target — is fast ONLY near alpha = the ring's dimension (alpha = 1). Too uniform
+     (alpha = 0) or too local (alpha = 2) and routing is far slower. We simulate the U-shaped
+     delivery-time curve and confirm alpha = 1 beats both extremes; at finite n the grid minimum
+     falls just below, at alpha = 0.75. (`kleinberg_curve`, `test_kleinberg_navigability`)
 
   MOVEMENT 2 — THE NAVIGABLE SMALL-WORLD GRAPH FOR ANN.
   2. THE GRAPH IS BUILT BY INCREMENTAL INSERTION. Each point, as it is inserted, links to its M
@@ -20,9 +20,11 @@ and verifies, both plus the honest caveats they rest on:
      long-range hubs, so the small-world structure emerges from the construction order, with no
      lattice. (`build_nsw`)
   3. GREEDY HILL-CLIMBING GETS STUCK; A BEAM ESCAPES (the honest catch). Pure greedy search (beam
-     width ef = 1) stops at a LOCAL minimum, so its recall is below 1; widening the beam recovers
-     the true neighbors monotonically. (`greedy_walk`, `greedy_search`, `test_greedy_local_minimum`,
-     `test_recall_monotone_in_ef`)
+     width ef = 1) stops at a LOCAL minimum, so its terminus is sometimes not the true nearest
+     neighbor (recall@1 below 1); a beam escapes those minima, and recall@10 is non-decreasing in ef.
+     The frontier sweeps ef from topk upward, because a k-NN search keeps ef_eff = max(ef, k)
+     results (a list shorter than k would cap recall@k at ef/k). (`greedy_walk`, `greedy_search`,
+     `test_greedy_local_minimum`, `test_recall_monotone_in_ef`)
   4. THE SEARCH IS SUBLINEAR, AND THE GRAPH IS SMALL-WORLD. A query touches far fewer than n
      vectors, and the constructed graph has a short average path length — the long-range hubs make
      the diameter grow slowly, not linearly. (`test_nsw_sublinear_work`, `test_small_world_paths`)
@@ -111,7 +113,7 @@ def expected_delivery_time(n: int, alpha: float, trials: int = 400, seed: int = 
 
 def kleinberg_curve(n: int, alphas, trials: int = 400, seed: int = 0):
     """Mean greedy delivery time as a function of the long-range exponent alpha — the U-curve whose
-    minimum sits at alpha = the ring's dimension (1). Returns a list of row dicts."""
+    trough sits near alpha = the ring's dimension (1). Returns a list of row dicts."""
     return [{"alpha": a, "hops": expected_delivery_time(n, a, trials=trials, seed=seed)} for a in alphas]
 
 
@@ -140,10 +142,15 @@ def nsw_dataset(n: int = 500, nq: int = 40, d: int = 20, k: int = 5, seed: int =
 def greedy_search(X: np.ndarray, adj, q: np.ndarray, entry: int, ef: int, topk=None):
     """The NSW/HNSW beam search. Maintain a candidate min-heap and a result max-heap of size ef;
     from the entry node, expand the nearest unexplored candidate until it is farther than the worst
-    kept result. Returns (result indices nearest-first, n_distance_computations). ef = 1 is pure
-    greedy hill-climbing. GUARD: ef >= 1."""
+    kept result. Returns (result indices nearest-first, n_distance_computations). With topk set, the
+    result list holds ef_eff = max(ef, topk) entries — the standard rule (Malkov-Yashunin; hnswlib's
+    searchKnn) — since a list of ef < topk entries cannot hold k neighbors and would cap recall@k at
+    ef/k. Without topk (construction) the list holds exactly ef; ef = 1 is pure greedy hill-climbing.
+    GUARD: ef >= 1."""
     if ef < 1:
         raise ValueError(f"ef must be >= 1, got {ef}")
+    if topk:
+        ef = max(ef, topk)
     de = _sqd(q, X[entry])
     visited = {entry}
     candidates = [(de, entry)]          # min-heap by distance to q
@@ -210,8 +217,8 @@ def greedy_walk(X: np.ndarray, adj, q: np.ndarray, entry: int):
 
 
 def nsw_recall(X, queries, adj, entry, ef, topk: int = 10, truth=None):
-    """Mean recall@topk and mean distance computations per query under greedy beam search. GUARD:
-    non-empty queries, topk >= 1."""
+    """Mean recall@topk and mean distance computations per query under greedy beam search (result
+    list ef_eff = max(ef, topk), see greedy_search). GUARD: non-empty queries, topk >= 1."""
     if len(queries) == 0:
         raise ValueError("queries must be non-empty")
     if topk < 1:
@@ -228,13 +235,21 @@ def nsw_recall(X, queries, adj, entry, ef, topk: int = 10, truth=None):
 
 def recall_vs_ef(X, queries, adj, entry, ef_grid, topk: int = 10):
     """For each beam width ef: recall@topk and mean distance computations — the search's speed/
-    recall frontier. Returns a list of row dicts."""
+    recall frontier. Any ef < topk runs as ef_eff = topk, so grids start at topk. Returns a list of
+    row dicts."""
     truth = _true_topk(queries, X, topk)
     rows = []
     for ef in ef_grid:
         recall, work = nsw_recall(X, queries, adj, entry, ef, topk, truth=truth)
         rows.append({"ef": ef, "recall": recall, "work": work})
     return rows
+
+
+def greedy_nn_hit_rate(X, queries, adj, entry) -> float:
+    """Fraction of queries whose pure greedy walk (ef = 1) terminates AT the true nearest neighbor —
+    greedy recall@1. One minus it is the local-minimum rate."""
+    nn = cdist(queries, X, "sqeuclidean").argmin(axis=1)
+    return float(np.mean([greedy_walk(X, adj, queries[i], entry)[-1] == nn[i] for i in range(len(queries))]))
 
 
 def average_path_length(adj, sample: int = 60, seed: int = 0) -> float:
@@ -268,7 +283,7 @@ def average_path_length(adj, sample: int = 60, seed: int = 0) -> float:
 # --------------------------------------------------------------------------- #
 
 RING_N, ALPHA_GRID = 20000, (0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
-NSW_M, NSW_EFC, EF_GRID = 8, 16, (1, 2, 4, 8, 16, 32, 64)
+NSW_M, NSW_EFC, EF_GRID = 8, 16, (10, 12, 16, 24, 32, 64)   # ef starts at topk = 10 (ef_eff rule)
 
 
 def test_kleinberg_navigability() -> None:
@@ -284,13 +299,21 @@ def test_kleinberg_navigability() -> None:
 
 
 def test_greedy_local_minimum() -> None:
-    """Pure greedy search (ef = 1) gets stuck in local minima, so its recall is below 1; a wider
-    beam recovers the neighbors. The honest catch of graph search."""
+    """Pure greedy search (ef = 1) gets stuck in local minima: for some queries the walk's terminus is
+    NOT the true nearest neighbor (greedy recall@1 < 1), and a beam (ef = 16) finds the true NN for
+    every query the walk missed. The honest catch of graph search, measured on the walk itself."""
     X, queries = nsw_dataset()
     adj, entry = build_nsw(X, NSW_M, NSW_EFC, seed=0)
-    r1, _ = nsw_recall(X, queries, adj, entry, ef=1, topk=10)
-    assert r1 < 1.0 - 1e-6, f"recall@ef=1 {r1:.4f} is not below 1 — no local-minimum effect to show"
-    print(f"  [ok] greedy local minimum: recall@ef=1 = {r1:.3f} < 1 (hill-climbing gets stuck)")
+    nn = cdist(queries, X, "sqeuclidean").argmin(axis=1)
+    missed = [i for i in range(len(queries)) if greedy_walk(X, adj, queries[i], entry)[-1] != nn[i]]
+    assert missed, "every greedy walk ends at the true NN — no local-minimum effect to show"
+    assert len(missed) < len(queries), "greedy never finds the true NN — the graph is not navigable"
+    for i in missed:
+        found = greedy_search(X, adj, queries[i], entry, ef=16, topk=1)[0][0]
+        assert found == nn[i], f"query {i}: the ef=16 beam also misses the true NN"
+    hit = greedy_nn_hit_rate(X, queries, adj, entry)
+    print(f"  [ok] greedy local minimum: the walk ends at the true NN for {hit:.3f} of queries "
+          f"({len(missed)}/{len(queries)} stuck); the ef=16 beam recovers all {len(missed)}")
 
 
 def test_recall_monotone_in_ef() -> None:
@@ -328,10 +351,10 @@ def validate_nsw_high_ef() -> None:
     is exact in the limit, so the only loss is the greedy approximation that ef controls."""
     X, queries = nsw_dataset()
     adj, entry = build_nsw(X, NSW_M, NSW_EFC, seed=0)
-    r1, _ = nsw_recall(X, queries, adj, entry, ef=1, topk=10)
+    r10, _ = nsw_recall(X, queries, adj, entry, ef=10, topk=10)
     rbig, _ = nsw_recall(X, queries, adj, entry, ef=128, topk=10)
-    assert rbig > 0.9 and rbig > r1, f"recall@ef=128 {rbig:.3f} not near-exact / not above ef=1 {r1:.3f}"
-    print(f"  [ok] cross-check: recall climbs {r1:.3f} (ef=1) -> {rbig:.3f} (ef=128, near-exact)")
+    assert rbig > 0.9 and rbig >= r10, f"recall@ef=128 {rbig:.3f} not near-exact / below ef=10 {r10:.3f}"
+    print(f"  [ok] cross-check: recall {r10:.4f} (ef=10) -> {rbig:.4f} (ef=128, near-exact)")
 
 
 # --------------------------------------------------------------------------- #
@@ -379,7 +402,8 @@ def viz_constants() -> None:
 
     X, queries = nsw_dataset()
     adjf, entryf = build_nsw(X, NSW_M, NSW_EFC, seed=0)
-    print(f"  PANEL C — recall / work frontier (n={X.shape[0]}, M={NSW_M}):")
+    print(f"  PANEL C — recall / work frontier (n={X.shape[0]}, M={NSW_M}; ef_eff = max(ef, 10)):")
+    print(f"    GREEDY_NN_HIT (ef=1 walk ends at the true NN) = {greedy_nn_hit_rate(X, queries, adjf, entryf):.4f}")
     for r in recall_vs_ef(X, queries, adjf, entryf, EF_GRID):
         print(f"    ef={r['ef']:>3}: recall={r['recall']:.4f}  dist_comps={r['work']:.1f}")
 

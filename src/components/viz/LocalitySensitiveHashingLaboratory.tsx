@@ -54,10 +54,11 @@ const H2H_IVF = [
   { nprobe: 1, recall: 0.6, cost: 44.9 }, { nprobe: 2, recall: 0.8225, cost: 68.8 }, { nprobe: 4, recall: 0.965, cost: 113.0 },
   { nprobe: 8, recall: 1.0, cost: 207.9 }, { nprobe: 16, recall: 1.0, cost: 392.6 }, { nprobe: 22, recall: 1.0, cost: 522.0 },
 ];
+// HNSW sweeps ef from 10 up: a 10-NN search keeps ef_eff = max(ef, 10) results.
 const H2H_HNSW = [
-  { ef: 1, recall: 0.1, cost: 33.4 }, { ef: 2, recall: 0.2, cost: 38.4 }, { ef: 4, recall: 0.4, cost: 46.2 },
-  { ef: 8, recall: 0.8, cost: 58.3 }, { ef: 16, recall: 0.9975, cost: 82.2 }, { ef: 32, recall: 1.0, cost: 123.1 },
-  { ef: 64, recall: 1.0, cost: 183.9 }, { ef: 128, recall: 1.0, cost: 278.9 },
+  { ef: 10, recall: 0.99, cost: 63.5 }, { ef: 12, recall: 0.995, cost: 69.9 }, { ef: 16, recall: 0.9975, cost: 82.2 },
+  { ef: 24, recall: 1.0, cost: 104.1 }, { ef: 32, recall: 1.0, cost: 123.1 }, { ef: 64, recall: 1.0, cost: 183.9 },
+  { ef: 128, recall: 1.0, cost: 278.9 },
 ];
 
 const LSH_COLOR = 'var(--color-accent)';
@@ -313,8 +314,8 @@ export default memo(function LocalitySensitiveHashingLaboratory() {
             <Readout label="angle θ" value={`${(thetaFrac * 180).toFixed(0)}°`} />
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
-            One bit per random hyperplane. A plane separates <strong>x</strong> and <strong>y</strong> exactly when its normal
-            lands in the wedge between them — angular measure θ/π — so the two collide with probability 1 − θ/π. The measured
+            One bit per random hyperplane. A plane separates <strong>x</strong> and <strong>y</strong> exactly when it passes
+            between them — its normal lands in the x–y wedge turned a quarter turn, or its antipode, total angular measure θ/π — so the two collide with probability 1 − θ/π. The measured
             points sit on the line because the law is exact, not fitted.
           </p>
         </div>
@@ -356,7 +357,7 @@ export default memo(function LocalitySensitiveHashingLaboratory() {
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.6rem', lineHeight: 1.5 }}>
             Left: the exponent ρ = ln(1/p₁)/ln(1/p₂) falls below 1 — query time O(n<sup>ρ</sup>) is sublinear — and shrinks as the
-            near/far gap c widens. Right: all four indexes on one normalized {H2H_N}-vector cloud and one shared ground truth, by
+            near/far gap c widens. Right: all three indexes on one normalized {H2H_N}-vector cloud and one shared ground truth, by
             distance computations per query (LSH's cost includes its L·k = up to {64 * H2H_LSH_K} hashing projections). On this
             low-rank cloud the data-aware indexes dominate the data-oblivious hash — LSH's promise is its distribution-free
             worst-case guarantee, not its constant factors here.

@@ -153,11 +153,11 @@ At a fixed product-quantization budget of $m \log_2 k^\*$ bits, encoding the res
 
 </TheoremBlock>
 
-On the finance cloud at $64$-bit codes, flat product quantization reaches $75.3\%$ recall@10 and IVFADC reaches $77.1\%$ — the same bits, a smaller signal, more recall. The gain is a measured direction, not a universal constant; its size depends on the cloud, the cell count, and the budget.
+On the finance cloud at $64$-bit codes, flat product quantization reaches $75.25\%$ recall@10 and IVFADC reaches $77.1\%$ — the same bits, a smaller signal, more recall. The gain is a measured direction, not a universal constant; its size depends on the cloud, the cell count, and the budget.
 
 <FinanceCaseStudy modality={["text"]}>
 
-A production financial-retrieval index does not scan its corpus. The inverted file is what makes a query against millions of multimodal embeddings touch only the few thousand vectors in the nearest cells, and IVFADC — the `IndexIVFPQ` of Faiss — is the standard realization: a coarse k-means quantizer over the corpus, inverted lists of product-quantized residuals, and an `nprobe` knob that trades latency for recall. On the synthetic finance cloud the two halves compose exactly as the production index does: probing eight of thirty-two cells scans under a third of the database for $98\%$ recall, and residual encoding lifts the $64$-bit recall from $75.3\%$ to $77.1\%$. The boundary effect is the operational reality — raise `nprobe` when recall matters, lower it when latency does — and the cell imbalance is why a real deployment monitors list-length skew rather than assuming the clean $\sqrt{n}$ arithmetic.
+A production financial-retrieval index does not scan its corpus. The inverted file is what makes a query against millions of multimodal embeddings touch only the few thousand vectors in the nearest cells, and IVFADC — the `IndexIVFPQ` of Faiss — is the standard realization: a coarse k-means quantizer over the corpus, inverted lists of product-quantized residuals, and an `nprobe` knob that trades latency for recall. On the synthetic finance cloud the two halves compose exactly as the production index does: probing eight of thirty-two cells scans under a third of the database for $98\%$ recall, and residual encoding lifts the $64$-bit recall from $75.25\%$ to $77.1\%$. The boundary effect is the operational reality — raise `nprobe` when recall matters, lower it when latency does — and the cell imbalance is why a real deployment monitors list-length skew rather than assuming the clean $\sqrt{n}$ arithmetic.
 
 </FinanceCaseStudy>
 
@@ -169,4 +169,4 @@ The inverted file trades recall for speed, and the trade is governed by assumpti
 
 </RigorFlag>
 
-The inverted file is the first index here that gives up exactness for speed, and it does so with a single coarse partition. The next index structures keep the goal — touch few vectors, miss few neighbors — but replace the flat partition with a navigable graph, where search is a walk rather than a cell lookup. That is where the small-world topics go.
+The inverted file gives up exactness for speed with a single coarse partition. The navigable small-world graph of the previous topic pursued the same goal — touch few vectors, miss few neighbors — with a graph, where search is a walk rather than a cell lookup. The next topic layers that graph into a hierarchy and runs the two families head to head on one cloud.

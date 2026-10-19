@@ -193,7 +193,7 @@ a sharp **binomial cliff** in the selectivity.
 
 </TheoremBlock>
 
-This is the deletion law again, read in the other direction, and the simulation confirms both halves. The post-filter scan to collect $k=10$ passing results, at $s = (0.05,\,0.1,\,0.2,\,0.4,\,0.8)$, is $(197.9,\,94.0,\,50.8,\,24.9,\,12.5)$ against the predicted $k/s = (200,\,100,\,50,\,25,\,12.5)$. And at a *fixed* beam width, post-filter recall@10 falls off the cliff as selectivity drops — $(0.25,\,0.52,\,0.99,\,1.0,\,1.0)$ across those same selectivities — while pre-filtering (brute-force the passing subset) stays exact throughout. The cliff is why post-filtering alone cannot serve a selective predicate, and it sets up the real decision.
+This is the deletion law again, read in the other direction, and the simulation confirms both halves. The post-filter scan to collect $k=10$ passing results, at $s = (0.05,\,0.1,\,0.2,\,0.4,\,0.8)$, is $(197.9,\,94.0,\,50.8,\,24.9,\,12.5)$ against the predicted $k/s = (200,\,100,\,50,\,25,\,12.5)$. And at a *fixed* beam width, post-filter recall@10 falls off the cliff as selectivity drops — $(0.25,\,0.52,\,0.99,\,1.0,\,1.0)$ at the realized selectivities $s \approx (0.04,\,0.08,\,0.22,\,0.46,\,0.79)$ of one random predicate draw — while pre-filtering (brute-force the passing subset) stays exact throughout. The cliff is why post-filtering alone cannot serve a selective predicate, and it sets up the real decision.
 
 <TheoremBlock type="proposition" number={2} title="The pre/post/in-filter crossover, on one cloud">
 

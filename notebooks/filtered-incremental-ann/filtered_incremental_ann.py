@@ -393,8 +393,8 @@ def postfilter_search(layers, X, q, entry, top_level, ef: int, live, topk: int =
 
 def infilter_search(layers, X, q, entry, top_level, ef: int, live, topk: int = 10):
     """Predicate-aware traversal: beam-1 descent through the upper layers (predicate-agnostic routing),
-    then `search_layer_filtered` at layer 0. Returns (topk live ids, ndist). GUARD: empty index ->
-    ([], 0)."""
+    then `search_layer_filtered` at layer 0 with HNSW's ef_eff = max(ef, topk) result list. Returns
+    (topk live ids, ndist). GUARD: empty index -> ([], 0)."""
     if not layers:
         return [], 0
     ep = int(entry)
@@ -403,7 +403,7 @@ def infilter_search(layers, X, q, entry, top_level, ef: int, live, topk: int = 1
         ids, nd = search_layer(X, layers[lev], q, {ep}, ef=1)
         ndist += nd
         ep = ids[0]
-    ids, nd = search_layer_filtered(X, layers[0], q, {ep}, ef, live)
+    ids, nd = search_layer_filtered(X, layers[0], q, {ep}, max(ef, topk), live)
     ndist += nd
     return ids[:topk], ndist
 
@@ -711,12 +711,12 @@ def viz_constants() -> None:
     reg_stats = degree_stats(reg)
     p_grid = [round(0.04 * i, 3) for i in range(0, 13)]
     reg_sweep = percolation_sweep(reg, p_grid, trials=10, seed=1)
-    print(f"    REG_PC = {round(reg_stats['pc'], 4)}  REG_KAPPA = {round(reg_stats['kappa'], 3)}  REG_DEG = {REG_DEG}")
+    print(f"    REG_PC = {round(reg_stats['pc'], 3)}  REG_KAPPA = {round(reg_stats['kappa'], 3)}  REG_DEG = {REG_DEG}")
     print(f"    PERCOLATION_REGULAR = {[{'p': r['p'], 'giant_frac': round(r['giant_frac'], 4)} for r in reg_sweep]}")
     layers_full, _, _ = build_hnsw(X, M=M_DEF, ef_construction=EFC_DEF, seed=0)
     hnsw_stats = degree_stats(layers_full[0])
     hnsw_sweep = percolation_sweep(layers_full[0], p_grid, trials=20, seed=1)
-    print(f"    HNSW_PC = {round(hnsw_stats['pc'], 4)}  HNSW_KAPPA = {round(hnsw_stats['kappa'], 3)}  HNSW_MEAN_DEG = {round(hnsw_stats['mean_deg'], 2)}")
+    print(f"    HNSW_PC = {round(hnsw_stats['pc'], 3)}  HNSW_KAPPA = {round(hnsw_stats['kappa'], 3)}  HNSW_MEAN_DEG = {round(hnsw_stats['mean_deg'], 2)}")
     print(f"    PERCOLATION_HNSW = {[{'p': r['p'], 'giant_frac': round(r['giant_frac'], 4)} for r in hnsw_sweep]}")
     cvm = connectivity_vs_M((4, 8, 16, 32), X, retain_p=0.15, trials=10, seed=0)
     print(f"    CONNECTIVITY_VS_M = {[{'M': r['M'], 'mean_deg': r['mean_deg'], 'giant_frac': round(r['giant_frac'], 4)} for r in cvm]}")

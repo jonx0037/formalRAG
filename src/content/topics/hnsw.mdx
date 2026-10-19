@@ -119,7 +119,7 @@ The event $L \ge \ell$ is $-\ln(U)\,m_L \ge \ell$, i.e. $\ln U \le -\ell/m_L = -
 
 </TheoremBlock>
 
-The companion code draws three hundred thousand levels and confirms the tail law to the place where it matters: $P(L \ge 1,2,3) = (0.1257,\, 0.0155,\, 0.0021)$ against the theoretical $(0.125,\, 0.0156,\, 0.00195) = M^{-\ell}$ for $M = 8$. In a graph actually built on $500$ vectors the layer occupancies are $500 \to 49 \to 10$ — each layer about an eighth of the one below, exactly the geometric decay — and the realized top layer holds about $n/M^{\,\text{top}}$ nodes, with the genuine $O(1)$ apex sitting at the $\log_M n$ level. The scaling is the headline:
+The companion code draws three hundred thousand levels and confirms the tail law to the place where it matters: $P(L \ge 1,2,3) = (0.1257,\, 0.0155,\, 0.0021)$ against the theoretical $(0.125,\, 0.0156,\, 0.00195) = M^{-\ell}$ for $M = 8$. In a graph actually built on $500$ vectors the layer occupancies are $500 \to 49 \to 10$ — each layer roughly an eighth of the one below (ratios $0.098$ and $0.204$ against $1/M = 0.125$), the geometric decay up to sampling noise at this size — and the realized top layer holds about $n/M^{\,\text{top}}$ nodes, with the genuine $O(1)$ apex sitting at the $\log_M n$ level. The scaling is the headline:
 
 <TheoremBlock type="proposition" number={1} title="The descent depth grows logarithmically">
 
@@ -141,7 +141,7 @@ $$
 d(c, r) \ge d(c, \text{base}).
 $$
 
-In words: admit $c$ unless some neighbor we already kept is closer to $c$ than $c$ is to the base — in which case that neighbor already "covers" $c$'s direction, and a link to $c$ would be redundant. Stop at $M$ kept neighbors.
+In words: admit $c$ unless some neighbor we already kept is closer to $c$ than $c$ is to the base — in which case that neighbor already "covers" $c$'s direction, and a link to $c$ would be redundant. Stop once $M$ neighbors are kept or the candidates run out — so the rule can keep fewer than $M$.
 
 </TheoremBlock>
 
@@ -171,7 +171,7 @@ What the hierarchy buys is a cheaper entry, and the payoff is robust because it 
 
 <TheoremBlock type="proposition" number={3} title="The hierarchy reaches a given recall at lower cost">
 
-On the synthetic cloud of $500$ vectors, HNSW reaches recall@10 of $0.9$ at about $92$ distance computations per query, while the flat navigable small-world graph needs about $134$ for the same recall — and at that $92$-computation budget HNSW is in fact already exact, where the flat graph still sits at $0.9975$ and does not reach a full $1.0$ until roughly $184$. Sweeping the beam width $\mathrm{ef}$, the HNSW frontier sits at or below the flat-graph frontier at every recall level: the upper layers replace a long beam search from a fixed hub with a short descent to a query-adapted entry. Recall is non-decreasing in $\mathrm{ef}$, and at a wide beam both reach the exact answer.
+On the synthetic cloud of $500$ vectors, a top-$10$ search keeps at least ten results ($\mathrm{ef}_{\text{eff}} = \max(\mathrm{ef}, 10)$), and on this cloud even that minimal beam is past recall@10 of $0.9$ — so the cost of recall $0.9$ is the minimal beam's cost: about $72$ distance computations per query for HNSW (recall $0.9825$) against about $112$ for the flat navigable small-world graph (recall $0.9975$), roughly a third less work. HNSW is exact by $\mathrm{ef} = 16$, at about $92$ computations, while the flat graph does not reach a full $1.0$ until roughly $184$. Sweeping the beam width $\mathrm{ef}$, the HNSW frontier sits at or below the flat-graph frontier at every recall level: the upper layers replace a long beam search from a fixed hub with a short descent to a query-adapted entry. Recall is non-decreasing in $\mathrm{ef}$, and at a wide beam both reach the exact answer.
 
 </TheoremBlock>
 
@@ -179,13 +179,13 @@ Finally the arc closes. The inverted file and HNSW are the two families of subli
 
 <TheoremBlock type="proposition" number={4} title="Graph versus partition, on one cloud">
 
-On the shared cloud, sweeping HNSW's beam width against the inverted file's number of probed cells, both indexes reach the exact answer at full cost — HNSW's recall climbs to $1.0$, and the inverted file is exact once it probes every cell. At a matched budget the graph is ahead *here*: at the $92$ distance computations where HNSW reaches recall $1.0$, the inverted file reaches about $77\%$. This is a property of one synthetic low-rank cloud with a shared ground truth, not a universal ranking — on data whose geometry suits Voronoi partitioning the order can reverse.
+On the shared cloud, sweeping HNSW's beam width against the inverted file's number of probed cells, both indexes reach the exact answer at full cost — HNSW's recall climbs to $1.0$, and the inverted file is exact once it probes every cell. At a matched budget the graph is ahead *here*: at the roughly $72$ distance computations where HNSW's minimal beam already reaches recall $0.98$, the inverted file reaches about $77\%$ — and it is still at $77\%$ at the $92$ computations where HNSW is exact. This is a property of one synthetic low-rank cloud with a shared ground truth, not a universal ranking — on data whose geometry suits Voronoi partitioning the order can reverse.
 
 </TheoremBlock>
 
 <FinanceCaseStudy modality={["text"]}>
 
-HNSW is the index a production vector database most likely runs — the `hnswlib` and FAISS-HNSW implementations are the default behind a great many retrieval systems, including the one this series draws its finance case study from. For a corpus of millions of financial-document embeddings, the hierarchy is what makes the entry into the graph cost a logarithmic descent rather than a long walk from a fixed hub, and the three construction-and-search parameters are the operator's real dials: $M$ sets the degree and the memory, $\mathrm{ef}_{\text{construction}}$ trades build time for graph quality, and $\mathrm{ef}_{\text{search}}$ is the latency-versus-recall knob turned per query — the graph-search counterpart of the inverted file's number of probes. The mathematics names the honest operational facts. The level law is exact, so the logarithmic descent depth is real and the memory is predictable; but per-layer navigability on real embeddings is empirical, the neighbor heuristic is a heuristic, and recall is monitored rather than promised. On the synthetic cloud the whole trade is visible in miniature — a beam of sixteen recovers the full recall at under a fifth of the database, and the hierarchy reaches it at a third less work than the flat graph — and the graph-versus-partition comparison is exactly the choice the capstone's retrieval layer has to make.
+HNSW is the index a production vector database most likely runs — the `hnswlib` and FAISS-HNSW implementations are the default behind a great many retrieval systems, including the one this series draws its finance case study from. For a corpus of millions of financial-document embeddings, the hierarchy is what makes the entry into the graph cost a logarithmic descent rather than a long walk from a fixed hub, and the three construction-and-search parameters are the operator's real dials: $M$ sets the degree and the memory, $\mathrm{ef}_{\text{construction}}$ trades build time for graph quality, and $\mathrm{ef}_{\text{search}}$ is the latency-versus-recall knob turned per query — the graph-search counterpart of the inverted file's number of probes. The mathematics names the honest operational facts. The level law is exact, so the logarithmic descent depth is real and the memory is predictable; but per-layer navigability on real embeddings is empirical, the neighbor heuristic is a heuristic, and recall is monitored rather than promised. On the synthetic cloud the whole trade is visible in miniature — a beam of sixteen recovers the full recall at under a fifth of the database, and at recall $0.9$ the hierarchy needs about a third less work than the flat graph ($72$ versus $112$ distance computations) — and the graph-versus-partition comparison is exactly the choice the capstone's retrieval layer has to make.
 
 </FinanceCaseStudy>
 
