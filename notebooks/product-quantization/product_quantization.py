@@ -330,8 +330,9 @@ def random_rotation(d: int, seed: int = 0):
 
 def rotation_distortion_study(X, m, k_star, seed=0):
     """PQ distortion on the cloud under: raw / a random rotation / PCA-align alone / the
-    balanced rotation. The point: a NAIVE rotation (PCA-align alone) can HURT by concentrating
-    variance into one subspace, while the balanced rotation HELPS — OPQ optimizes this. Returns
+    balanced rotation. The point: a NAIVE rotation (PCA-align alone) does nothing about the
+    imbalance — on an axis-aligned cloud it is nearly the identity, so it barely helps — while the
+    balanced rotation, pairing strong axes with weak ones, HELPS — OPQ optimizes this. Returns
     a dict of distortions. *** RUN-DEPENDENT: directions confirmed empirically below. ***"""
     R_rand = random_rotation(X.shape[1], seed)
     R_pca, mu = pca_align(X)
@@ -443,7 +444,7 @@ def test_adc_error_below_sdc_error() -> None:
     query exact removes the query-quantization term. Direction asserted, magnitude not baked."""
     X, _, queries = finance_dataset()
     cb = train_pq(X, 8, 256, seed=7)
-    mse_adc, mse_sdc = adc_sdc_estimation_error(X, queries[:40], cb)
+    mse_adc, mse_sdc = adc_sdc_estimation_error(X, queries, cb)   # all 120, as recall uses
     assert mse_adc < mse_sdc, f"ADC mean error {mse_adc:.3f} not below SDC {mse_sdc:.3f}"
     print(f"  [ok] ADC mean sq-error {mse_adc:.2f} < SDC {mse_sdc:.2f} (query kept exact)")
 
@@ -485,7 +486,8 @@ def test_pq_recall_beats_flat_at_pq_budget() -> None:
 
 def test_rotation_lowers_distortion() -> None:
     """A variance-balancing rotation lowers PQ distortion on a variance-imbalanced cloud, and a
-    NAIVE PCA-align-only rotation can do worse — the gap OPQ optimizes. Direction only."""
+    NAIVE PCA-align-only rotation barely helps (the cloud is already axis-aligned) — the gap OPQ
+    optimizes. Direction only."""
     X = variance_imbalanced_cloud(n=600, d=8, seed=1)
     study = rotation_distortion_study(X, 4, 16, seed=1)
     assert study["balanced"] < study["raw"] * (1 - 1e-6), \

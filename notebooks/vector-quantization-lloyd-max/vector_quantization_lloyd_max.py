@@ -498,7 +498,9 @@ def test_zador_scaling() -> None:
 
 def test_rate_distortion_monotone() -> None:
     """The finance codebook distortion is non-increasing in the rate log2(k): a larger
-    codebook never raises distortion (refinement), and recall@10 is non-decreasing."""
+    codebook never raises distortion (refinement), and recall@10 rises from the smallest to
+    the largest codebook. Recall is NOT monotone step by step (it dips 0.167 -> 0.151 at k=64),
+    so only the endpoints are asserted."""
     rows, _ = finance_rate_distortion()
     dist = np.array([r["distortion"] for r in rows])
     rec = np.array([r["recall10"] for r in rows])

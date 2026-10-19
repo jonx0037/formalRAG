@@ -511,7 +511,9 @@ def viz_constants() -> None:
                     ("balanced", R_bal), ("opq", R_opq)]:
         var = apply_rotation(X, R, X.mean(axis=0)).var(axis=0)
         bars = [float(np.round(var[a:b].sum(), 4)) for a, b in subspace_slices(8, m)]
+        logp = [float(np.round(np.log(var[a:b]).sum(), 4)) for a, b in subspace_slices(8, m)]
         print(f"    SUBSPACE_VAR[{name}] = {bars}")
+        print(f"    SUBSPACE_LOGPROD[{name}] = {logp}  (log of the variance product OPQ balances)")
 
     # Panel B: the monotone convergence trajectory.
     print("  PANEL B — alternating-optimization distortion trajectory:")

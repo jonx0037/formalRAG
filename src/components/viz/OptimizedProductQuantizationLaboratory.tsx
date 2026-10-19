@@ -6,7 +6,8 @@ import katex from 'katex';
  * `optimized-product-quantization` topic:
  *   A. The rotation. Switch raw / PCA-only / balanced-heuristic / learned-OPQ on the SAME
  *      variance-imbalanced cloud: the PQ distortion readout drops 85.6 → 83.3 → 15.4 → 14.4 and
- *      the four per-subspace variance bars go from wildly imbalanced (raw) to product-balanced.
+ *      the four per-subspace variance-sum bars go from wildly imbalanced (raw) to a strong-with-weak
+ *      pairing whose variance PRODUCTS (the baked log-products readout) match across subspaces.
  *   B. Alternating-optimization convergence. The non-parametric OPQ distortion trajectory,
  *      monotone non-increasing, starting at the balanced heuristic and descending below it.
  *   C. Score-aware (anisotropic) quantization. A datapoint x and candidate codewords; the residual
@@ -29,12 +30,13 @@ type Pt2 = [number, number];
 
 // --- baked from viz_constants() -------------------------------------------------------
 // Panel A: rotation_distortion_study + nonparametric_opq on variance_imbalanced_cloud(n=600,d=8),
-// m=4, k*=16. `dist` = total PQ reconstruction distortion; `vars` = the m per-subspace variance sums.
+// m=4, k*=16. `dist` = total PQ reconstruction distortion; `vars` = the m per-subspace variance sums;
+// `logp` = the m per-subspace log variance PRODUCTS (SUBSPACE_LOGPROD) — the quantity OPQ balances.
 const ROT = [
-  { key: 'raw', label: 'raw (native axes)', dist: 85.5826, vars: [1.3543, 0.1658, 0.0227, 0.0031] },
-  { key: 'pca_only', label: 'PCA-only (naive)', dist: 83.2735, vars: [1.3557, 0.1645, 0.0226, 0.0031] },
-  { key: 'balanced', label: 'balanced heuristic', dist: 15.3538, vars: [0.9845, 0.3743, 0.1223, 0.0648] },
-  { key: 'opq', label: 'learned OPQ', dist: 14.4016, vars: [0.9844, 0.3743, 0.1223, 0.0649] },
+  { key: 'raw', label: 'raw (native axes)', dist: 85.5826, vars: [1.3543, 0.1658, 0.0227, 0.0031], logp: [-1.0083, -5.1605, -9.2537, -13.2101] },
+  { key: 'pca_only', label: 'PCA-only (naive)', dist: 83.2735, vars: [1.3557, 0.1645, 0.0226, 0.0031], logp: [-1.0054, -5.1882, -9.2651, -13.2243] },
+  { key: 'balanced', label: 'balanced heuristic', dist: 15.3538, vars: [0.9845, 0.3743, 0.1223, 0.0648], logp: [-7.1848, -7.0449, -7.3391, -7.1142] },
+  { key: 'opq', label: 'learned OPQ', dist: 14.4016, vars: [0.9844, 0.3743, 0.1223, 0.0649], logp: [-7.1819, -7.0454, -7.3259, -7.111] },
 ] as const;
 const VAR_MAX = 1.4; // common scale for the variance bars (just above pca_only's lead subspace)
 const DIST_MAX = 88; // common scale for the distortion comparison bars
@@ -184,13 +186,16 @@ export default function OptimizedProductQuantizationLaboratory() {
           </div>
           <div style={{ display: 'grid', gap: '1.25rem', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             <div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginBottom: '0.35rem' }}>per-subspace variance (m = 4) — OPQ balances the <em>product</em></div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginBottom: '0.35rem' }}>per-subspace variance <em>sum</em> (m = 4)</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontFamily: 'var(--font-sans)', fontSize: '0.78rem' }}>
                 {rot.vars.map((v, j) => (
                   <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ minWidth: '5.5rem' }}>subspace {j + 1}</span>{bar(v, VAR_MAX, COLORS[j])}<span style={{ minWidth: '2.6rem', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{v.toFixed(2)}</span>
                   </div>
                 ))}
+              </div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.74rem', color: 'var(--color-text-secondary)', marginTop: '0.45rem', fontVariantNumeric: 'tabular-nums' }}>
+                log variance <em>product</em> per subspace (what OPQ balances): {rot.logp.map((v) => v.toFixed(2)).join(' · ')}
               </div>
             </div>
             <div>
@@ -205,10 +210,11 @@ export default function OptimizedProductQuantizationLaboratory() {
             </div>
           </div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.75rem 0 0' }}>
-            A naive PCA-alignment barely helps (85.6 → 83.3): it concentrates variance into subspace 1 and starves the rest.
-            Balancing variance across subspaces collapses the distortion (→ 15.4), and the learned OPQ rotation refines it
-            further (→ 14.4) via the alternating optimization in the next panel. The balanced and OPQ variance bars look alike
-            because OPQ's extra gain is a within-block rotation, not a different split.
+            A naive PCA-alignment barely helps (85.6 → 83.3): this cloud is already axis-aligned, so PCA is nearly the identity
+            and subspace 1 keeps its lion's share. Pairing each strong axis with a weak one collapses the distortion (→ 15.4) even
+            though the variance sums stay unequal — what evens out is the product (the log-products all sit near −7.2) — and the
+            learned OPQ rotation refines it further (→ 14.4) via the alternating optimization in the next panel. The balanced and
+            OPQ bars look alike because OPQ's extra gain is a within-block rotation, not a different split.
           </div>
         </>
       )}
@@ -269,7 +275,8 @@ export default function OptimizedProductQuantizationLaboratory() {
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.72rem', color: 'var(--color-text-secondary)', margin: '0.6rem 0 0' }}>
             For an aligned (high-scoring) query, the inner-product error is dominated by the residual's component <em>parallel</em>
             to x. Weighting it by η &gt; 1 makes the quantizer prefer codewords that preserve that component — here the choice
-            swaps from the Euclidean-closest c0 to c1, which lies exactly on x's direction (zero parallel residual). DIRECTION
+            swaps from the Euclidean-closest c0 to c1, whose projection onto x's direction matches x exactly (zero parallel
+            residual; all of its error is orthogonal). DIRECTION
             only: η and the score threshold are tuned, and the gain depends on the query distribution.
           </div>
         </>
