@@ -10,7 +10,8 @@ import katex from 'katex';
  *     order (Proposition 1, scale invariance).
  *   - A live NDCG readout shows the hybrid (RRF) strictly beating either leg.
  *   - A consensus panel reports Kendall-tau from the fused list to each leg and
- *     to the Kemeny-optimal consensus.
+ *     their sum, the fused list's Kemeny cost, against the brute-force optimum
+ *     (3, a six-way tie that includes RRF's order and both legs).
  *
  * Fully deterministic. The corpus scores below are mirrored TO THE DECIMAL from
  * notebooks/rank-fusion-rrf/rank_fusion_rrf.py — its finance_demo() prints these
@@ -32,8 +33,9 @@ const CORPUS: Doc[] = [
   { id: 'transcript-ops',  label: 'Call · operations update',                kind: 'transcript', bm25: 0.4274, cos: 0.2857, qrel: 0 },
 ];
 const N = CORPUS.length;
-// Kemeny-optimal consensus (brute force in the notebook): lifts the agreed #2.
-const KEMENY = ['filing-hedging', 'filing-onpoint', 'transcript-rate', 'filing-fx', 'news-macro', 'transcript-ops'];
+// Kemeny optimum cost (brute force in the notebook): a six-way tie at total Kendall
+// distance 3 — RRF's order, both legs, and the hedging-first orderings all attain it.
+const KEMENY_OPT_COST = 3;
 const byId = Object.fromEntries(CORPUS.map((d) => [d.id, d]));
 
 // order(best first), ties broken by id ascending — matches the notebook's order_of.
@@ -155,7 +157,7 @@ export default function FusionLaboratory() {
   const metrics = useMemo(() => ({
     ndcgLex: ndcg(lexOrder), ndcgDen: ndcg(denOrder), ndcgFused: ndcg(fusedOrder),
     tauLex: kendallTau(fusedOrder, lexOrder), tauDen: kendallTau(fusedOrder, denOrder),
-    tauKem: kendallTau(fusedOrder, KEMENY),
+    kemCost: kendallTau(fusedOrder, lexOrder) + kendallTau(fusedOrder, denOrder),
   }), [lexOrder, denOrder, fusedOrder]);
 
   const hovered = hover ? byId[hover] : null;
@@ -226,7 +228,7 @@ export default function FusionLaboratory() {
         </div>
         <div>
           <div style={{ color: 'var(--color-text-secondary)', marginBottom: '0.2rem' }}>Kendall-τ of fused to…</div>
-          <div>lexical <strong>{metrics.tauLex}</strong> · dense <strong>{metrics.tauDen}</strong> · Kemeny consensus <strong>{metrics.tauKem}</strong></div>
+          <div>lexical <strong>{metrics.tauLex}</strong> · dense <strong>{metrics.tauDen}</strong> · Kemeny cost (sum) <strong>{metrics.kemCost}</strong> vs optimum {KEMENY_OPT_COST}</div>
         </div>
       </div>
     </div>

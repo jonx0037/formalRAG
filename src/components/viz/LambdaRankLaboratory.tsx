@@ -196,12 +196,12 @@ function ForcesPanel({ rule, setRule }: { rule: 'ranknet' | 'lambdarank'; setRul
         })}
       </svg>
       <div style={{ display: 'flex', gap: '1.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-        <Readout label="top-3 ranks' share of gradient mass" value={fmt(share, 3)} accent={rule === 'lambdarank'} />
+        <Readout label="top-3 ranks' share of the top-10 gradient mass" value={fmt(share, 3)} accent={rule === 'lambdarank'} />
         <Readout label="|ΔNDCG| weight: head (1,2) vs tail (9,10)" value={`${fmt(WEIGHT_HEAD_1_2)} vs ${fmt(WEIGHT_TAIL_9_10)}`} />
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Toggle the rule. <span style={{ color: RN_COLOR }}><strong>RankNet</strong></span> weights every preference
-        pair equally, so its force is spread down the list (top-3 share {fmt(TOP3_SHARE.ranknet, 2)}).
+        pair equally, so its force is spread down the list (top-3 share of the top-ten mass {fmt(TOP3_SHARE.ranknet, 2)}).
         <span style={{ color: LR_COLOR }}><strong> LambdaRank</strong></span> multiplies each pair by the
         |ΔNDCG| a swap would cause; because the discount marginal is steep at the head ({fmt(WEIGHT_HEAD_1_2)}) and
         flat in the tail ({fmt(WEIGHT_TAIL_9_10)}), the gradient mass <strong>concentrates at the top</strong> (share

@@ -189,13 +189,15 @@ a given grade gap near the top of the list carries far more weight than the same
 For a fixed grade gap, the LambdaRank-to-RankNet weight ratio $|\Delta\mathrm{NDCG}_{ij}| / 1$ is
 *strictly decreasing* in the ranks of the pair, because $|D(r_i) - D(r_j)|$ shrinks as both ranks grow.
 The adjacent-rank weight at the head, $|D(1) - D(2)| = 0.369$, exceeds the tail weight
-$|D(9) - D(10)| = 0.012$ by an order of magnitude. Consequently LambdaRank's gradient mass concentrates
+$|D(9) - D(10)| = 0.012$ by a factor of about thirty ($30.8\times$). Consequently LambdaRank's gradient mass concentrates
 at the top of the list, while RankNet's is governed only by pair counts.
 </TheoremBlock>
 
 Panel A makes this visible: on the worked query, RankNet's force is spread down the list (its top-3 ranks
-hold only $16\%$ of the gradient mass) while LambdaRank's is front-loaded ($40\%$). Same documents, same
-scores — only the weighting moves. This is the **seed-free, provable** statement of LambdaRank's
+hold only $16\%$ of the gradient mass that lands in the top ten) while LambdaRank's is front-loaded
+($40\%$). Measured against the whole $120$-document list the contrast is starker still: only $36\%$ of
+RankNet's mass reaches the top ten at all, against $76\%$ of LambdaRank's, so the top three hold $6\%$ and
+$31\%$ of the respective totals. Same documents, same scores — only the weighting moves. This is the **seed-free, provable** statement of LambdaRank's
 advantage; as we will see, its *aggregate* NDCG win over RankNet on this corpus is real but small enough
 to sit inside the confidence interval.
 
@@ -332,7 +334,9 @@ LambdaMART reaches NDCG $1.0$ against a best-linear ceiling of $0.89$.
 The XOR result is a *constructed* instance, where the gap is provable: the linear ceiling is below 1 by
 an impossibility argument, and the trees reach 1 by realizing the partition. On the real three-leg
 features — near-linear and standardized — the trees do *not* meaningfully beat the linear models; the
-boosting curve plateaus near the linear NDCG and the gain is within sampling noise. The headline "trees
+boosting curve climbs to the linear models' level ($0.743$ at $10$ rounds, $0.763$ at $15$, a dip to
+$0.754$ at $20$, $0.772$ at $30$, against $0.767$–$0.773$ for the linear methods) without pulling past
+them, and the gain is within sampling noise. The headline "trees
 beat linear" holds where there is a nonlinear interaction to capture, which a synthetic standardized
 leg-score cloud does not supply. We report the real-corpus result honestly and pin the escape to the
 constructed witness.

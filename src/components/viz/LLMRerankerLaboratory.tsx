@@ -342,10 +342,11 @@ function FrontierPanel({ logCost, setLogCost }: { logCost: boolean; setLogCost: 
       </div>
       <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         All six methods on one shared pool; cost is <strong>LLM calls per query</strong> (the cross-encoder is the unit the
-        call is priced against, not a method). The <strong style={{ color: ACCENT }}>sliding window</strong> reaches near the
-        all-pairs ceiling at {callCount(POOL, WINDOW, STEP, N_PASSES)} calls vs {ALLPAIRS_CALLS}; the
+        call is priced against, not a method). The <strong style={{ color: ACCENT }}>sliding window</strong> pays {callCount(POOL, WINDOW, STEP, N_PASSES)} calls
+        vs {ALLPAIRS_CALLS} for all-pairs, and gives up real quality for it (the two intervals do not overlap); the
         {' '}<strong style={{ color: GOLD }}>distilled student</strong> answers at <strong>zero</strong> inference calls. The seed-free
-        wins are structural (the call-count law, the {SPEEDUP.toLocaleString()}× distillation speedup) — the NDCG deltas sit inside the CI.
+        wins are structural (the call-count law, the {SPEEDUP.toLocaleString()}× distillation speedup). The zero-call intervals overlap; where
+        intervals separate, the gap comes from a simulated oracle, not a real model.
       </p>
     </div>
   );
