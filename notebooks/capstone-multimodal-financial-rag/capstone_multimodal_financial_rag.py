@@ -23,6 +23,9 @@ MOVEMENT 1 — cascade recall composition.
   hard for stage 1 is hard for the rerank too), R_true >= prod r_i — the independent product is a
   conservative LOWER bound; negative association reverses it; equality at independence. We RUN both
   signs (a bivariate-normal copula) before writing the direction. Anchor: all r_i = 1 -> R = 1.
+  On the MEASURED pipeline only fusion loses anything (conditional and stand-alone retentions alike are
+  1 / 0.9225 / 1), so the product equals the realized recall exactly (0.9225, over-fetch 1.084): the
+  real stack is a product-law instance, not FKG evidence; the FKG direction lives in the copula sweep.
 
 MOVEMENT 2 — hybrid fusion gain.
   EXACT (set algebra): rho_fused <= |union A_L| / |R| (the coverage ceiling), VACUOUS (= 1) whenever
@@ -278,34 +281,57 @@ def measure_stage_retention(found_ids, relevant: set, k: int = TOPK) -> float:
 def measure_cascade_stages(corpus: dict, nprobe: int = 8, keep: int = 40, k: int = TOPK) -> dict:
     """Run the real published cascade on the shared corpus and MEASURE each stage's retention against
     the shared MaxSim truth: S1 candidate generation (token-IVF `stage1_candidates`), S2 fuse/prune
-    (RRF of the legs cut to `keep`), S3 rerank (exact MaxSim on survivors). Returns the per-stage mean
-    retentions and the measured end-to-end recall, so the product law can be checked on the REAL
-    stack, not toy constants. Re-derives the imported `brute_topk` truth (the shared-baseline rule)."""
+    (RRF of the legs cut to `keep`), S3 rerank (exact MaxSim on survivors). Re-derives the imported
+    `brute_topk` truth (the shared-baseline rule).
+
+    Retentions are CONDITIONAL, as Definition 1 defines them: r1 = |S1 ∩ truth| / k, r2 = the fraction
+    of the truth that REACHED stage 2 which survives it, r3 = the fraction that reached stage 3 which
+    survives it. (Measuring every stage against the full truth instead — |S_i ∩ truth| / k — would
+    re-count the earlier stages' losses inside each later r_i, and their product would double-count.)
+    Per query the conditional retentions telescope, r1 * r2 * r3 = |S3 ∩ truth| / k, the realized recall.
+    Also returns each stage's STAND-ALONE retention (the stage run on the whole corpus, not on its
+    predecessor's output) — the marginal survival probabilities FKG compares the realized recall against."""
     ts = corpus["truth_sets"]
     docs = corpus["docs"]
-    r1s, r2s, r3s, end = [], [], [], []
+    all_docs = list(range(len(docs)))
+    r1s, r2s, r3s, end, tele = [], [], [], [], []
+    a2s, a3s = [], []
     for q in range(corpus["n_queries"]):
         rel = ts[q]
+        denom = min(k, len(rel))
         # S1: token-IVF candidate set.
         cand = stage1_candidates(corpus["queries"][q], corpus["index"], nprobe)
-        r1s.append(measure_stage_retention(cand, rel, k))
+        n1 = len(set(cand) & rel)
         # S2: fuse the three legs (restricted to candidates), keep the top-`keep`.
         rk = leg_rankings(corpus, q)
-        fused = [d for d in rrf_fuse([rk[name] for name in LEGS]) if d in cand][:keep]
-        fused_set = set(fused)
-        r2s.append(measure_stage_retention(fused_set, rel, k))
+        fused_all = rrf_fuse([rk[name] for name in LEGS])
+        fused = [d for d in fused_all if d in cand][:keep]
+        n2 = len(set(fused) & rel)
         # S3: exact-MaxSim rerank of the survivors to top-k.
         if fused:
             S = maxsim_matrix(corpus["queries"][q][None, ...], docs[np.array(fused)])[0]
             reranked = [fused[i] for i in np.argsort(-S, kind="stable")[:k]]
         else:
             reranked = []
-        r3s.append(measure_stage_retention(reranked, rel, k))
+        n3 = len(set(reranked) & rel)
+        r1s.append(n1 / denom)
+        r2s.append(n2 / n1 if n1 else 1.0)          # conditional on reaching stage 2
+        r3s.append(n3 / n2 if n2 else 1.0)          # conditional on reaching stage 3
         end.append(recall_at_k(reranked, rel, k))
+        tele.append(abs(r1s[-1] * r2s[-1] * r3s[-1] - n3 / denom))
+        # stand-alone: stage 2 on the full fused list (no candidate restriction); stage 3 alone on every
+        # document is exact MaxSim over the corpus, i.e. the truth itself.
+        a2s.append(len(set(fused_all[:keep]) & rel) / denom)
+        S_all = maxsim_matrix(corpus["queries"][q][None, ...], docs[np.array(all_docs)])[0]
+        a3s.append(len(set(np.argsort(-S_all, kind="stable")[:k].tolist()) & rel) / denom)
+    r1, r2, r3 = float(np.mean(r1s)), float(np.mean(r2s)), float(np.mean(r3s))
+    a1, a2, a3 = r1, float(np.mean(a2s)), float(np.mean(a3s))
     return {
-        "r1": float(np.mean(r1s)), "r2": float(np.mean(r2s)), "r3": float(np.mean(r3s)),
-        "product": float(np.mean(r1s) * np.mean(r2s) * np.mean(r3s)),
+        "r1": r1, "r2": r2, "r3": r3,
+        "product": r1 * r2 * r3,
         "measured_end": float(np.mean(end)),
+        "telescope_max_err": float(max(tele)),
+        "standalone": (a1, a2, a3), "standalone_product": a1 * a2 * a3,
     }
 
 
@@ -583,9 +609,10 @@ def viz_constants() -> None:
     corpus = _corpus()
     print("\n=== Panel A — cascade funnel (Movement 1) ===")
     stages = measure_cascade_stages(corpus, nprobe=8, keep=40)
-    print("measured stage retentions:", {kk: round(stages[kk], 3) for kk in ("r1", "r2", "r3")})
-    print("cascade product R =", round(stages["product"], 3),
-          " measured end-to-end recall =", round(stages["measured_end"], 3))
+    print("measured CONDITIONAL stage retentions:", {kk: round(stages[kk], 4) for kk in ("r1", "r2", "r3")})
+    print("stand-alone stage retentions:", tuple(round(v, 4) for v in stages["standalone"]))
+    print("cascade product R =", round(stages["product"], 4),
+          " measured end-to-end recall =", round(stages["measured_end"], 4), " (telescopes: equal)")
     print("over-fetch factor 1/R =", round(over_fetch_factor([stages["r1"], stages["r2"], stages["r3"]]), 2))
     rhos = (-0.6, -0.3, 0.0, 0.3, 0.6, 0.9)
     sweep = dependence_sweep(DEMO_R1, DEMO_R2, rhos)   # illustrative middling r_i so FKG visibly bites
@@ -679,12 +706,16 @@ def test_dependence_direction() -> None:
     assert rows[-1]["gap"] > 0.03, f"FKG lift must be non-trivial at rho=0.9, got {rows[-1]['gap']}"
 
 
-def test_measured_stages_compose_as_lower_bound() -> None:
-    # On the REAL stack stages are positively dependent, so the measured end-to-end recall sits AT or
-    # ABOVE the product (a >= direction test, never ==).
+def test_measured_stages_telescope() -> None:
+    # On the REAL stack, conditional retentions telescope per query (r1 r2 r3 = realized recall, exactly).
+    # Only fusion loses anything here (stand-alone retentions 1 / 0.9225 / 1), so the stand-alone product
+    # also equals the realized recall: the real pipeline has no cross-stage dependence for FKG to act on —
+    # the FKG DIRECTION is demonstrated by the copula sweep (`test_dependence_direction`), not here.
     stages = measure_cascade_stages(_corpus(), nprobe=8, keep=40)
     assert 0.0 < stages["r1"] <= 1.0 and 0.0 < stages["r2"] <= 1.0 and 0.0 < stages["r3"] <= 1.0
-    assert stages["measured_end"] >= stages["product"] - 0.05
+    assert stages["telescope_max_err"] < 1e-12
+    assert abs(stages["product"] - stages["measured_end"]) < 1e-9
+    assert abs(stages["standalone_product"] - stages["measured_end"]) < 1e-9
 
 
 def test_cascade_collapse_anchor() -> None:
@@ -787,7 +818,7 @@ def _run_all() -> None:
     test_overfetch_is_reciprocal_identity()
     test_independence_recovers_product()
     test_dependence_direction()
-    test_measured_stages_compose_as_lower_bound()
+    test_measured_stages_telescope()
     test_cascade_collapse_anchor()
     test_fusion_gain_under_complementarity()
     test_dominated_leg_flip()

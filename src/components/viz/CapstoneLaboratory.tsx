@@ -28,8 +28,8 @@ import katex from 'katex';
 
 // --- baked from viz_constants() -------------------------------------------------------
 // Panel A — the measured 3-stage cascade (nprobe=8, keep=40) and the FKG dependence copula demo.
-const STAGE_RET = [1.0, 0.9225, 0.9225];     // candidate-gen, fuse/prune, rerank retentions
-const CASCADE_PRODUCT = 0.851;               // ∏ rᵢ (lower bound); measured end-to-end recall 0.9225
+const STAGE_RET = [1.0, 0.9225, 1.0];        // CONDITIONAL retentions: candidate-gen, fuse/prune, rerank
+const CASCADE_PRODUCT = 0.9225;              // ∏ rᵢ — telescopes to the measured end-to-end recall exactly
 const MEASURED_END = 0.9225;
 const R_INDEP = 0.3;     // r₁·r₂ for the illustrative copula demo (DEMO_R1 = 0.6, DEMO_R2 = 0.5)
 // rows: [rho, R_true, R_indep, gap] from the bivariate-normal survival copula
@@ -207,17 +207,19 @@ function CascadePanel({ rhoIdx, setRhoIdx }: { rhoIdx: number; setRhoIdx: (v: nu
         })}
       </svg>
       <div style={{ display: 'flex', gap: '1.4rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-        <Readout label="cascade product ∏rᵢ (lower bound)" value={fmt(CASCADE_PRODUCT)} />
-        <Readout label="measured end-to-end recall" value={fmt(MEASURED_END)} accent />
+        <Readout label="cascade product ∏rᵢ" value={fmt(CASCADE_PRODUCT, 4)} />
+        <Readout label="measured end-to-end recall" value={fmt(MEASURED_END, 4)} accent />
         <Readout label="over-fetch 1/∏rᵢ" value={`${(1 / CASCADE_PRODUCT).toFixed(2)}×`} />
         <Readout label={`R_true at ρ=${rho.toFixed(1)}  (gap ${gap >= 0 ? '+' : ''}${gap.toFixed(3)})`} value={fmt(rTrue)} accent />
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
-        End-to-end retention is the <strong>product</strong> of the per-stage retentions ({STAGE_RET.map((r) => r.toFixed(2)).join(' · ')} = {CASCADE_PRODUCT}),
-        and to deliver k survivors the front end over-fetches by 1/∏rᵢ ≈ {(1 / CASCADE_PRODUCT).toFixed(2)}×. That product is <em>exact</em> only
-        under independent per-stage survival; under the positive dependence real queries exhibit, FKG/Harris makes it a conservative
-        <strong> lower bound</strong> — drag ρ above 0 and the true recall lifts <span style={{ color: POS_COLOR }}>above</span> the dashed product line, below 0 it
-        falls <span style={{ color: NEG_COLOR }}>under</span> it, with equality at ρ = 0. The measured pipeline (recall {MEASURED_END}) sits above its product {CASCADE_PRODUCT}, as the bound predicts.
+        End-to-end retention is the <strong>product</strong> of the per-stage retentions, each measured on the neighbors that reached that stage
+        ({STAGE_RET.map((r) => r.toFixed(4)).join(' · ')} = {CASCADE_PRODUCT}), and to deliver k survivors the front end over-fetches by
+        1/∏rᵢ ≈ {(1 / CASCADE_PRODUCT).toFixed(3)}×. On this pipeline only fusion loses anything, so the product equals the measured recall
+        exactly — the real stack is a product-law instance, not evidence about dependence. Where stage survivals are dependent, the stand-alone product
+        is exact only under independence, and under positive dependence FKG/Harris makes it a conservative <strong>lower bound</strong>; the copula
+        sweep shows the direction — drag ρ above 0 and the true recall lifts <span style={{ color: POS_COLOR }}>above</span> the dashed product line, below 0 it
+        falls <span style={{ color: NEG_COLOR }}>under</span> it, with equality at ρ = 0.
       </p>
     </div>
   );
