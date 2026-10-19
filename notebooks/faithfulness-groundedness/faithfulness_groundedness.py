@@ -11,7 +11,7 @@ generated answer:
     of what was SAID is supported), and
   * groundedness / coverage = RECALL of the supportable facts (what fraction of the context was USED).
 
-They diverge (terse vs verbose); a noisy LLM judge measures both with a bias we debias (Rogan-Gladen)
+They diverge (a terse answer is faithful but thin, a verbose one complete but invented); a noisy LLM judge measures both with a bias we debias (Rogan-Gladen)
 and a confidence we calibrate (ECE / Platt / isotonic); trading coverage for a guaranteed faithfulness
 under a distribution-free conformal back-off is the abstention frontier; and a supported claim is one
 whose pointwise mutual information with the context is positive (bits-of-grounding).
@@ -75,7 +75,7 @@ from pmi_retrieval_value import (                                               
     answer_prior, answer_posterior, pmi_pointwise,
 )
 from set_metrics_precision_recall_map_mrr import (                               # noqa: E402
-    precision_at_k, recall_at_k, f1_at_k,
+    precision_at_k, recall_at_k,
 )
 from llm_as_judge_ragas import (                                                  # noqa: E402
     _logit, rogan_gladen, rogan_gladen_variance, confusion_rates,
@@ -289,9 +289,15 @@ def answer_coverage(answer: dict) -> float:
 
 
 def answer_f1(answer: dict) -> float:
-    """F1 = harmonic mean of faithfulness (precision) and coverage (recall), via the imported `f1_at_k`
-    over the FACT space (the natural single-number summary of the two-sided quality)."""
-    return f1_at_k(list(answer["attribution"]), set(answer["context_facts"]), answer["n_claims"])
+    """F1 = the harmonic mean 2PR/(P+R) of faithfulness (precision over CLAIMS) and coverage (recall over
+    FACTS) — the natural single-number summary of the two-sided quality.
+
+    NOT `f1_at_k` over the fact space: that routine's precision is |set(attribution) ∩ facts| / n, which
+    DEDUPLICATES the attributed facts, so it counts DISTINCT facts grounded per claim (it falls as 3/n once
+    coverage saturates) rather than the supported fraction of claims. Using it made F1 peak at an
+    artifactual interior length; the true harmonic mean of the two defined quantities is computed here."""
+    p, r = answer_faithfulness(answer), answer_coverage(answer)
+    return 0.0 if (p + r) <= 0.0 else 2.0 * p * r / (p + r)
 
 
 # =========================================================================== #
@@ -370,9 +376,10 @@ def _oracle_separation(corpus: dict, seed: int = 1):
 
 def verbosity_curve(corpus: dict, r: float = PANEL_R, g_cov: float = PANEL_GCOV,
                     nclaim_grid=NCLAIM_GRID, seed: int = 2) -> list[dict]:
-    """For each answer length, the mean faithfulness (precision), coverage (recall) and F1 over the queries.
-    Coverage rises then saturates; precision is roughly flat; F1 peaks at an INTERIOR length — the
-    F1-optimal answer is neither terse nor exhaustive."""
+    """For each answer length, the mean faithfulness (precision), coverage (recall) and F1 over the queries,
+    at a FIXED per-claim faithfulness rate r. Coverage rises then saturates; precision is roughly flat
+    (the hallucination rate 1 - r sets it, not the length); so F1 rises with coverage and PLATEAUS once
+    coverage saturates — at a fixed rate, length is nearly free (max at n = 10 by 0.003 over n = 12)."""
     rows = []
     for n in nclaim_grid:
         ps, cs, fs = [], [], []
@@ -385,16 +392,21 @@ def verbosity_curve(corpus: dict, r: float = PANEL_R, g_cov: float = PANEL_GCOV,
 
 
 def divergence_pair(corpus: dict, seed: int = 4) -> dict:
-    """A terse answer (one supported claim) and a verbose answer (many claims, half hallucinated): the
-    terse one is faithful but thin, the verbose one covers everything but invents figures — precision and
-    coverage move in OPPOSITE directions, the reason a single factuality score hides the trade."""
+    """A terse answer (one supported claim, r = 1) and a verbose answer (12 claims at r = 0.5, half
+    hallucinated): the terse one is faithful but thin, the verbose one covers everything but invents
+    figures — the two fail in OPPOSITE ways. These are two SEPARATE answers generated at different
+    hallucination rates, not two points of the fixed-rate verbosity sweep (where precision is flat) nor of
+    the confidence-cut frontier. A single score hides which failure it is scoring: F1 rates the verbose
+    answer HIGHER (about 0.69 vs 0.50) despite its inventions."""
     terse = [generate_answer(corpus, q, 1, 1.0, 1.0, seed) for q in range(corpus["n_queries"])]
     verbose = [generate_answer(corpus, q, 12, 1.0, 0.5, seed) for q in range(corpus["n_queries"])]
     return {
         "terse": {"faithfulness": float(np.mean([answer_faithfulness(a) for a in terse])),
-                  "coverage": float(np.mean([answer_coverage(a) for a in terse]))},
+                  "coverage": float(np.mean([answer_coverage(a) for a in terse])),
+                  "f1": float(np.mean([answer_f1(a) for a in terse]))},
         "verbose": {"faithfulness": float(np.mean([answer_faithfulness(a) for a in verbose])),
-                    "coverage": float(np.mean([answer_coverage(a) for a in verbose]))},
+                    "coverage": float(np.mean([answer_coverage(a) for a in verbose])),
+                    "f1": float(np.mean([answer_f1(a) for a in verbose]))},
     }
 
 
@@ -463,8 +475,9 @@ def panel_corrected_faithfulness(panel: dict, conf: np.ndarray, seed: int = 5) -
 
 def panel_calibration(panel: dict, conf: np.ndarray, n_bins: int = 10) -> dict:
     """The judge's calibration over the pooled panel claims: raw / Platt / isotonic ECE and AUC, plus the
-    reliability bins for each (the IMPORTED suite). Platt and isotonic are fit on the whole pool here; the
-    held-out split is the conformal pillar's job. Returns a dict the calibration panel mirrors."""
+    reliability bins for each (the IMPORTED suite). Platt and isotonic are fit AND scored on the whole pool
+    here — IN-SAMPLE (isotonic's ~0 ECE is a fit identity, not a held-out result); see
+    `heldout_calibration` for the out-of-sample read. Returns a dict the calibration panel mirrors."""
     c = conf.ravel(); y = panel["Y"].ravel().astype(float)
     a, b = platt_scale(c, y); c_platt = apply_platt(c, a, b)
     iso = isotonic_calibrate(c, y); c_iso = apply_isotonic(c, iso)
@@ -478,6 +491,22 @@ def panel_calibration(panel: dict, conf: np.ndarray, n_bins: int = 10) -> dict:
         "rel_platt": reliability_diagram(c_platt, y, n_bins),
         "rel_iso": reliability_diagram(c_iso, y, n_bins),
     }
+
+
+def heldout_calibration(panel: dict, conf: np.ndarray, n_bins: int = 10,
+                        calib_frac: float = CALIB_FRAC) -> dict:
+    """The OUT-OF-SAMPLE calibration read: fit Platt / isotonic on the calibration answers' claims and score
+    ECE on the held-out test answers' claims. On this 128-claim half neither recalibrator beats the raw
+    judge (raw 0.167, Platt 0.187, isotonic 0.182) — the in-sample drop does not survive held-out data."""
+    calib, _, _ = split_panel(panel["Y"].shape[0], calib_frac)
+    cm = np.repeat(calib, panel["n_claims"])
+    c = conf.ravel(); y = panel["Y"].ravel().astype(float)
+    a, b = platt_scale(c[cm], y[cm]); iso = isotonic_calibrate(c[cm], y[cm])
+    ct, yt = c[~cm], y[~cm]
+    return {"ece_raw": expected_calibration_error(ct, yt, n_bins),
+            "ece_platt": expected_calibration_error(apply_platt(ct, a, b), yt, n_bins),
+            "ece_iso": expected_calibration_error(apply_isotonic(ct, iso), yt, n_bins),
+            "n_test_claims": int(yt.size)}
 
 
 # =========================================================================== #
@@ -544,8 +573,22 @@ def crc_backoff(panel: dict, conf: np.ndarray, alpha: float = ALPHA,
     lam = conformal_risk_control_threshold(L, LAMBDA_GRID, alpha)
     test_loss = float(np.mean([false_claim_loss(Pt[i], Yt[i], lam, k=panel["n_claims"])
                                for i in range(Pt.shape[0])]))
+    # the TEST-half retained faithfulness / coverage at lambda_hat (over the non-abstaining answers) — the
+    # operating point the realized rate belongs to (the whole-panel frontier at the same cut differs).
+    test_ids = np.flatnonzero(test)
+    fa, co = [], []
+    for qi in test_ids:
+        ans = panel["answers"][qi]; keep = conf[qi] >= lam
+        if keep.sum() == 0:
+            continue
+        fa.append(float(ans["y"][keep].mean()))
+        attr = [ans["attribution"][i] for i in range(ans["n_claims"]) if keep[i]]
+        co.append(recall_at_k(attr, set(ans["context_facts"]), int(keep.sum())))
     return {"lambda_hat": float(lam), "alpha": float(alpha),
-            "test_false_claim_rate": test_loss, "retention": float((Pt >= lam).mean())}
+            "test_false_claim_rate": test_loss, "retention": float((Pt >= lam).mean()),
+            "test_faithfulness": float(np.mean(fa)) if fa else 1.0,
+            "test_coverage": float(np.mean(co)) if co else 0.0,
+            "test_answers": int(test_ids.size), "test_abstain": int(test_ids.size - len(fa))}
 
 
 # =========================================================================== #
@@ -632,18 +675,23 @@ def faithfulness_demo() -> dict:
     crc = crc_backoff(panel, cc)
     bits = panel_bits(corpus, panel)
     curve = verbosity_curve(corpus)
-    f1s = [r["f1"] for r in curve]
+    ho = heldout_calibration(panel, conf)
     print(f"finance geometry: {corpus['n_docs']} filings (one vMF company prototype each), "
           f"{corpus['n_queries']} queries, context = top-{corpus['ctx_k']}")
     print(f"MOVEMENT 1-3: faithfulness=precision, coverage=recall DIVERGE — "
-          f"terse ({div['terse']['faithfulness']:.2f} faith, {div['terse']['coverage']:.2f} cov) vs "
-          f"verbose ({div['verbose']['faithfulness']:.2f} faith, {div['verbose']['coverage']:.2f} cov); "
-          f"F1-optimal length = {curve[int(np.argmax(f1s))]['n_claims']} claims (interior)")
+          f"terse ({div['terse']['faithfulness']:.2f} faith, {div['terse']['coverage']:.2f} cov, "
+          f"F1 {div['terse']['f1']:.2f}) vs verbose ({div['verbose']['faithfulness']:.2f} faith, "
+          f"{div['verbose']['coverage']:.2f} cov, F1 {div['verbose']['f1']:.2f}); fixed-rate sweep: "
+          f"faithfulness flat {min(r['faithfulness'] for r in curve):.2f}-{max(r['faithfulness'] for r in curve):.2f}, "
+          f"F1 {curve[0]['f1']:.2f} -> plateau {curve[-1]['f1']:.2f}")
     print(f"MOVEMENT 4: the lenient judge is biased (naive faithfulness {rg['p_obs']:.3f} vs oracle "
           f"{rg['oracle']:.3f}); Rogan-Gladen corrects to {rg['corrected']:.3f}; raw ECE {cal['ece_raw']:.3f} "
-          f"-> Platt {cal['ece_platt']:.3f} -> isotonic {cal['ece_iso']:.3f} (AUC {cal['auc_raw']:.3f})")
+          f"-> Platt {cal['ece_platt']:.3f} -> isotonic {cal['ece_iso']:.3f} in-sample (AUC {cal['auc_raw']:.3f}); "
+          f"held-out raw {ho['ece_raw']:.3f} / Platt {ho['ece_platt']:.3f} / isotonic {ho['ece_iso']:.3f}")
     print(f"MOVEMENT 5: conformal back-off controls the false-claim rate at alpha={crc['alpha']} — "
-          f"realized {crc['test_false_claim_rate']:.3f}, retaining {crc['retention']:.2f} of claims")
+          f"realized {crc['test_false_claim_rate']:.3f}, retaining {crc['retention']:.2f} of claims; test-half "
+          f"faithfulness {crc['test_faithfulness']:.3f}, coverage {crc['test_coverage']:.3f}, "
+          f"{crc['test_abstain']} of {crc['test_answers']} abstain")
     print(f"MOVEMENT 6: bits-of-grounding sign split — supported {bits['mean_sup']:.3f} bits > 0 > "
           f"hallucinated {bits['mean_hal']:.3f} bits ({bits['frac_hal_nonpos']:.2f} of hallucinations <= 0)")
     return {"divergence": div, "rg": rg, "calibration": cal, "crc": crc, "bits": bits}
@@ -717,8 +765,13 @@ def viz_constants() -> None:
     print(f"const FRONTIER = {fr};")
     crc = crc_backoff(panel, cc)
     print(f"const CRC = {{'lambda': {_r(crc['lambda_hat'], 3)}, 'alpha': {crc['alpha']}, "
-          f"'realized': {_r(crc['test_false_claim_rate'], 3)}, 'retention': {_r(crc['retention'], 3)}}};")
-    print(f"const DIVERGENCE = {divergence_pair(corpus)};")
+          f"'realized': {_r(crc['test_false_claim_rate'], 3)}, 'retention': {_r(crc['retention'], 3)}, "
+          f"'p_test': {_r(crc['test_faithfulness'], 3)}, 'r_test': {_r(crc['test_coverage'], 3)}, "
+          f"'abstain': {crc['test_abstain']}, 'n_test': {crc['test_answers']}}};")
+    div = divergence_pair(corpus)
+    parts = [f"{k}: {{ p: {_r(v['faithfulness'], 3)}, r: {_r(v['coverage'], 3)}, f1: {_r(v['f1'], 3)} }}"
+             for k, v in div.items()]
+    print(f"const DIVERGENCE = {{ {', '.join(parts)} }};   // two SEPARATE answers, not frontier points")
 
     print("// ----- Panel C: judge calibration (reliability bins, ECE, AUC) -----")
     cal = panel_calibration(panel, conf)
@@ -728,6 +781,9 @@ def viz_constants() -> None:
     print(f"const ECE = {{'raw': {_r(cal['ece_raw'], 3)}, 'platt': {_r(cal['ece_platt'], 3)}, "
           f"'iso': {_r(cal['ece_iso'], 3)}}};")
     print(f"const AUC = {{'raw': {_r(cal['auc_raw'], 3)}, 'platt': {_r(cal['auc_platt'], 3)}}};")
+    ho = heldout_calibration(panel, conf)
+    print(f"const ECE_HELDOUT = {{'raw': {_r(ho['ece_raw'], 3)}, 'platt': {_r(ho['ece_platt'], 3)}, "
+          f"'iso': {_r(ho['ece_iso'], 3)}}};   // fit on the calibration half, scored on the test half")
     rg = panel_corrected_faithfulness(panel, conf)
     print(f"const RG = {{'naive': {_r(rg['p_obs'], 3)}, 'corrected': {_r(rg['corrected'], 3)}, "
           f"'oracle': {_r(rg['oracle'], 3)}, 'sens': {_r(rg['sens'], 3)}, 'spec': {_r(rg['spec'], 3)}}};")
@@ -792,21 +848,30 @@ def test_faithfulness_coverage_diverge() -> None:
     d = divergence_pair(corpus)
     assert d["terse"]["faithfulness"] > d["verbose"]["faithfulness"] + 0.2, f"precision should drop: {d}"
     assert d["terse"]["coverage"] < d["verbose"]["coverage"] - 0.3, f"recall should rise: {d}"
+    assert d["verbose"]["f1"] > d["terse"]["f1"], f"one score should hide the inventions (verbose wins F1): {d}"
     print(f"[ok] divergence: terse ({d['terse']['faithfulness']:.2f}/{d['terse']['coverage']:.2f}) vs "
           f"verbose ({d['verbose']['faithfulness']:.2f}/{d['verbose']['coverage']:.2f}) faith/cov")
 
 
-def test_interior_f1_optimum() -> None:
-    """Coverage saturates while precision is flat, so F1 (their harmonic mean) peaks at an INTERIOR answer
-    length — the F1-optimal answer is neither a single claim nor exhaustive."""
+def test_f1_plateaus_at_fixed_rate() -> None:
+    """At a FIXED hallucination rate, length does not erode precision: faithfulness stays flat across the
+    verbosity sweep while coverage rises and saturates, so F1 (the TRUE harmonic mean of the two) climbs
+    with coverage and plateaus — no early interior optimum. And F1 is the true harmonic mean (not the
+    fact-deduplicating `f1_at_k`)."""
     corpus = _corpus()
     curve = verbosity_curve(corpus)
     f1 = [r["f1"] for r in curve]
     cov = [r["coverage"] for r in curve]
-    arg = int(np.argmax(f1))
-    assert 0 < arg < len(f1) - 1, f"F1 optimum should be interior, got index {arg}: {f1}"
+    faith = [r["faithfulness"] for r in curve]
+    assert max(faith) - min(faith) < 0.1, f"faithfulness should be roughly flat at a fixed rate: {faith}"
     assert cov[-1] >= cov[0] and cov[-1] - cov[-3] < 0.1, f"coverage should rise then saturate: {cov}"
-    print(f"[ok] interior F1 optimum at n={curve[arg]['n_claims']} (F1 {f1[arg]:.3f}); coverage saturates")
+    assert all(b >= a - 0.01 for a, b in zip(f1, f1[1:])), f"F1 should not fall with length: {f1}"
+    assert f1[-1] - f1[4] > 0.05, f"F1 should keep rising past five claims, not peak there: {f1}"
+    a = generate_answer(corpus, 0, 9, 1.0, PANEL_R, seed=2)
+    p, r = answer_faithfulness(a), answer_coverage(a)
+    assert abs(answer_f1(a) - (0.0 if p + r == 0 else 2 * p * r / (p + r))) < 1e-12
+    print(f"[ok] fixed-rate sweep: faithfulness flat {min(faith):.3f}-{max(faith):.3f}; F1 {f1[0]:.3f} -> "
+          f"plateau {f1[-1]:.3f} (max at n={curve[int(np.argmax(f1))]['n_claims']})")
 
 
 def test_judge_overlaps_not_vacuous() -> None:
@@ -841,8 +906,9 @@ def test_naive_faithfulness_biased_rogan_gladen_corrects() -> None:
 
 
 def test_raw_judge_overconfident_recalibration_lowers_ece() -> None:
-    """The raw judge confidence is over-confident (high ECE); Platt and isotonic both lower it, and Platt
-    preserves the ranking exactly (AUC unchanged) — calibration buys efficiency, not validity."""
+    """The raw judge confidence is over-confident (high ECE); Platt and isotonic both lower it IN-SAMPLE, and
+    Platt preserves the ranking exactly (AUC unchanged) — calibration buys efficiency, not validity. Held out
+    (fit on the calibration half, scored on the test half) neither beats raw on this small panel."""
     corpus = _corpus()
     panel = build_panel(corpus)
     conf = panel_confidence(panel)
@@ -850,6 +916,9 @@ def test_raw_judge_overconfident_recalibration_lowers_ece() -> None:
     assert cal["ece_raw"] > 0.1, f"raw judge should be over-confident: ECE {cal['ece_raw']}"
     assert cal["ece_platt"] < cal["ece_raw"] and cal["ece_iso"] < cal["ece_raw"], "recalibration should lower ECE"
     assert abs(cal["auc_platt"] - cal["auc_raw"]) < 1e-9, "Platt must preserve the ranking (AUC) exactly"
+    ho = heldout_calibration(panel, conf)
+    assert ho["ece_platt"] >= ho["ece_raw"] - 1e-9 and ho["ece_iso"] >= ho["ece_raw"] - 1e-9, \
+        f"the in-sample drop should NOT be claimed held-out on this panel: {ho}"
     print(f"[ok] calibration: raw ECE {cal['ece_raw']:.3f} -> Platt {cal['ece_platt']:.3f} / "
           f"isotonic {cal['ece_iso']:.3f}; AUC preserved")
 
@@ -950,7 +1019,7 @@ def _run_all() -> None:
     test_faithfulness_is_precision_coverage_is_recall()
     test_oracle_separation()
     test_faithfulness_coverage_diverge()
-    test_interior_f1_optimum()
+    test_f1_plateaus_at_fixed_rate()
     test_judge_overlaps_not_vacuous()
     test_naive_faithfulness_biased_rogan_gladen_corrects()
     test_raw_judge_overconfident_recalibration_lowers_ece()

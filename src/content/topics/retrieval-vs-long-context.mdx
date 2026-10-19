@@ -217,15 +217,20 @@ grows. Two mechanisms drive the decline:
    precision falls, the budget landing on the answer drops, and the answer entropy $H(A \mid \mathcal{C}_k)$
    rises toward the prior. Quality declines.
 
-The notebook asserts the curve is non-increasing, that the peak is at $k^\star = 1$, that stuffing the
-window costs a real amount of quality, and that the answer entropy rises in lockstep.
+The notebook asserts, on the canonical seed, that the curve is non-increasing, that the peak is at
+$k^\star = 1$, that stuffing the window costs a real amount of quality, and that the answer entropy rises
+in lockstep.
 
 </TheoremBlock>
 
 This is a *demonstrated proposition*, not a theorem: it holds for this attention-budget answer model on
 this synthetic geometry, and the notebook *runs* it rather than assuming it. What is robust about it is the
 mechanism — redundancy plus dilution, both of which we can point to in imported, independently established
-results — and the fact that it survives across random seeds. What is model-dependent is the exact shape.
+results — and the fact that its shape survives across random seeds: over ten seeds the curve is flat over
+the relevant set and then declines, and stuffing all sixteen passages costs between $0.16$ and $0.21$ of
+quality every time. What is model-dependent is the exact shape: the strictly monotone peak at $k = 1$ is the
+canonical seed's, and on three of the ten seeds a near-tie at $k = 2$ or $k = 4$ edges it by less than
+$0.01$.
 
 ## Why recall is the wrong target
 
@@ -267,9 +272,13 @@ Model the positional bias as a multiplier $u(\text{pos})$ on each passage's atte
 ends, depressed in the middle (Panel D draws it). Then a relevant passage placed at position $\text{pos}$
 contributes its evidence scaled by $u(\text{pos})$: at the center its effective weight is the smallest, so
 the answer belief sharpens least. A buried relevant passage behaves like a **partial erasure** — exactly
-the binary erasure channel of the previous topic, but graded: the surviving fraction of its bits is
-$u(\text{pos})$ rather than a hard $0$ or $1$. Answer quality is therefore U-shaped in the gold's position:
-worst when buried, best at the edges. The notebook asserts the middle is strictly worse than either end.
+the binary erasure channel of the previous topic, but graded: its attention weight is scaled by
+$u(\text{pos})$ — about $0.95$ at the ends and $0.45$ at the center, before the unit budget renormalizes —
+rather than kept or erased outright. Answer quality is therefore U-shaped in the gold's position: worst
+when buried, best at the edges. The notebook asserts the middle is strictly worse than either end. On the
+worked corpus the dip is small — $Q$ falls from about $0.53$ at the first position to $0.52$ at the
+center — because three other relevant passages stay in the context; the soft erasure hits one passage,
+not the answer's whole support.
 
 </TheoremBlock>
 

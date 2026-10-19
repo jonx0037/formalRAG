@@ -371,7 +371,9 @@ def expected_selective_cost(scores: np.ndarray, correct: np.ndarray, t: float,
 
 def cost_curve(scores: np.ndarray, correct: np.ndarray, c_err: float, c_abs: float,
                thresholds=THRESH_GRID) -> list[dict]:
-    """The expected cost as a function of the emit threshold — the U-curve marked at the Chow minimum."""
+    """The expected cost as a function of the emit threshold — the U-curve. With a calibrated score its
+    minimum would sit at the Chow cutoff; here (ECE 0.22) the grid minimum 0.656 sits at t = 0.77-0.78, just
+    below t* = 0.80, where the cost is 0.688 — the drift is the calibration gap."""
     return [{"t": float(t), "cost": expected_selective_cost(scores, correct, t, c_err, c_abs)}
             for t in thresholds]
 
@@ -518,12 +520,14 @@ def viz_constants() -> None:
     print(f"const AURC = {{'achievable': {_r(gap['aurc_achievable'], 3)}, 'oracle': {_r(gap['aurc_oracle'], 3)}, "
           f"'gap': {_r(gap['gap'], 3)}, 'auc': {_r(gap['auc'], 3)}}};")
 
-    print("// ----- Panel B: the Chow cost curve (U-shaped, minimum at the cutoff) -----")
+    print("// ----- Panel B: the Chow cost curve (U-shaped; its minimum drifts just below the cutoff) -----")
     cc = cost_curve(scores, correct, C_ERR, C_ABS)
     cc_pts = [{"t": _r(r["t"], 3), "cost": _r(r["cost"], 3)} for r in cc[::2]]
     costs = [r["cost"] for r in cc]
     print(f"const COST_CURVE = {cc_pts};")
-    print(f"const COST = {{'at_chow': {_r(min(costs), 3)}, "
+    t_min = cc[int(np.argmin(costs))]["t"]
+    at_chow = expected_selective_cost(scores, correct, emit_cutoff, C_ERR, C_ABS)
+    print(f"const COST = {{'at_chow': {_r(at_chow, 3)}, 'min': {_r(min(costs), 3)}, 't_min': {_r(t_min, 3)}, "
           f"'always_emit': {_r(expected_selective_cost(scores, correct, 0.0, C_ERR, C_ABS), 3)}, "
           f"'always_abstain': {_r(C_ABS, 3)}}};")
 
@@ -602,11 +606,14 @@ def test_chow_interior_beats_baselines() -> None:
     assert 0.0 < cutoff < 1.0, f"the Chow cutoff should be interior: {cutoff}"
     costs = [expected_selective_cost(scores, correct, r["t"], C_ERR, C_ABS) for r in cost_curve(scores, correct, C_ERR, C_ABS)]
     best = min(costs)
+    at_chow = expected_selective_cost(scores, correct, cutoff, C_ERR, C_ABS)
     always_emit = expected_selective_cost(scores, correct, 0.0, C_ERR, C_ABS)
-    assert best < always_emit - 1e-9, f"selective cost should beat always-emit: {best} vs {always_emit}"
-    assert best < C_ABS - 1e-9, f"selective cost should beat always-abstain: {best} vs {C_ABS}"
-    print(f"[ok] Chow interior: cutoff {cutoff:.2f}; cost {best:.3f} < always-emit {always_emit:.3f} / "
-          f"always-abstain {C_ABS:.3f}")
+    for c in (best, at_chow):
+        assert c < always_emit - 1e-9, f"selective cost should beat always-emit: {c} vs {always_emit}"
+        assert c < C_ABS - 1e-9, f"selective cost should beat always-abstain: {c} vs {C_ABS}"
+    assert best <= at_chow, "the grid minimum is at most the cost at the Chow cutoff"
+    print(f"[ok] Chow interior: cutoff {cutoff:.2f} costs {at_chow:.3f}; grid minimum {best:.3f}; both < "
+          f"always-emit {always_emit:.3f} / always-abstain {C_ABS:.3f}")
 
 
 def test_aurc_is_riemann_area() -> None:

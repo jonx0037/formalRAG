@@ -6,13 +6,15 @@ import katex from 'katex';
  *   A. The query–document gap. A bare query for company c is tilted off its answer direction toward
  *      the generic "document-ness" axis g by a distribution-shift angle θ; as θ grows the bare query
  *      loses company specificity and recall@1 collapses, while HyDE — which retrieves with a generated
- *      hypothetical document — recovers the answer at every θ. A 2-D projection shows the bare query
+ *      hypothetical document — recovers the answer at every θ (with enough hypotheticals averaged: the flat
+ *      line is k = 60; a single hypothetical gets 0.602). A 2-D projection shows the bare query
  *      off-manifold and the HyDE centroid landing back inside the document cloud near the gold.
  *   B. HyDE as a Monte-Carlo estimator: bias vs variance. Averaging k hypotheticals denoises the
  *      estimate, so a FAITHFUL generator's recall RISES with k toward 1.0 and the angular deficit
  *      1−⟨ĥ_k,μ⟩ falls toward the 1/k rate. But a generator that HALLUCINATES on a fraction p of
- *      queries is consistent for the WRONG center: recall plateaus at a ceiling near 1−p — averaging
- *      cannot fix bias.
+ *      queries is consistent for the WRONG center: its recall rises, peaks at intermediate k, then sags
+ *      toward ≈ 1−p as averaging removes the lucky hits of noisy hallucinated hypotheticals — a large-k
+ *      limit, not a bound (recall exceeds 1−p at intermediate k). Averaging cannot fix bias.
  *   C. HyDE as the neural generalization of pseudo-relevance feedback. The Rocchio update
  *      q'=(1−α)q+α·centroid, lifted into embedding space: HyDE's GENERATED centroid lifts recall toward
  *      1.0 while real pseudo-relevance feedback's RETRIEVED centroid is polluted by the bad query and
@@ -23,7 +25,7 @@ import katex from 'katex';
  * Matching asserts: test_gap_exists / test_bare_degrades_with_shift / test_hyde_shift_robust /
  * test_mc_recall_rises_with_k / test_mc_variance_falls_one_over_k / test_hallucination_bias_floor /
  * test_hyde_beats_prf_real / test_prf_ancestor_imported. TS recomputes ONLY closed forms: the 1−p
- * ceiling lines, the 1/k reference, and pixel/scale maps.
+ * large-k reference lines, the 1/k reference, and pixel/scale maps.
  */
 
 // --- baked from viz_constants() -------------------------------------------------------
@@ -33,7 +35,7 @@ const HYDE_SECTOR = [0, 0, 1, 1, 2, 2, 3, 3];
 // Panel A — the query–document gap
 const SHIFT_GRID = [0, 30, 45, 60, 70, 75, 80, 85];                 // θ in degrees
 const BARE_RECALL = [1.0, 1.0, 1.0, 0.906, 0.516, 0.375, 0.203, 0.188];
-const HYDE_RECALL_FLAT = 1.0;                                       // θ-independent
+const HYDE_RECALL_FLAT = 1.0;                                       // θ-independent; k = 60 averaged (K_INF)
 const GEO: {
   docs: [number, number][]; query: [number, number]; hyde: [number, number];
   hyps: [number, number][]; worked: number; goldSector: number;
@@ -185,7 +187,7 @@ function GapPanel({ ti, setTi }: { ti: number; setTi: (v: number) => void }) {
           onChange={(e) => setTi(Number(e.target.value))} style={sliderStyle} aria-label="distribution-shift angle" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginTop: '0.4rem' }}>
           <Readout label="bare-query recall@1" value={fmt(bare, 3)} color={BAREC} />
-          <Readout label="HyDE recall@1" value={fmt(HYDE_RECALL_FLAT, 3)} color={ACCENT} />
+          <Readout label="HyDE recall@1 (k = 60 averaged)" value={fmt(HYDE_RECALL_FLAT, 3)} color={ACCENT} />
         </div>
       </div>
     </div>
@@ -221,7 +223,7 @@ function MonteCarloPanel({ ki, pi, setKi, setPi }: { ki: number; pi: number; set
             <text x={mL - 5} y={sy(v) + 3} fontSize={9} fill={MUTED} textAnchor="end">{v}</text>
           </g>
         ))}
-        {/* 1−p ceiling reference lines */}
+        {/* 1−p reference lines: the large-k limit, not a bound at every k */}
         {HALLU_GRID.map((pv, i) => (
           <line key={`c${i}`} x1={mL} y1={sy(1 - pv)} x2={W - mR} y2={sy(1 - pv)}
             stroke={P_COLORS[i]} strokeWidth={1} strokeDasharray="2 4" opacity={0.6} />
@@ -252,7 +254,7 @@ function MonteCarloPanel({ ki, pi, setKi, setPi }: { ki: number; pi: number; set
           onChange={(e) => setKi(Number(e.target.value))} style={sliderStyle} aria-label="number of hypotheticals averaged" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', marginTop: '0.4rem' }}>
           <Readout label={`recall@1 (p=${p}, k=${k})`} value={fmt(recall, 3)} color={P_COLORS[pi]} />
-          <Readout label="bias ceiling 1 − p" value={fmt(ceiling, 2)} color={MUTED} />
+          <Readout label="large-k limit ≈ 1 − p" value={fmt(ceiling, 2)} color={MUTED} />
           <Readout label={`est. deficit 1−⟨ĥ,μ⟩ (k=${k})`} value={fmt(VAR_DEFICIT[ki], 3)} />
         </div>
       </div>
@@ -344,7 +346,7 @@ function NeuralPRFPanel({ ai, setAi }: { ai: number; setAi: (v: number) => void 
 type Panel = 'gap' | 'mc' | 'prf';
 const TEX: Record<Panel, string> = {
   gap: 'q_c(\\theta) = \\operatorname{normalize}\\!\\big(\\cos\\theta\\,u_c + \\sin\\theta\\,g\\big)',
-  mc: '\\hat h_k = \\operatorname{normalize}\\!\\Big(\\tfrac{1}{k}\\textstyle\\sum_{i=1}^{k} h_i\\Big), \\qquad \\text{recall} \\le 1 - p',
+  mc: '\\hat h_k = \\operatorname{normalize}\\!\\Big(\\tfrac{1}{k}\\textstyle\\sum_{i=1}^{k} h_i\\Big), \\qquad \\lim_{k\\to\\infty} \\text{recall} \\approx 1 - p',
   prf: "q'(\\alpha) = (1-\\alpha)\\,q + \\alpha\\,\\operatorname{centroid}(\\text{hypotheticals})",
 };
 
