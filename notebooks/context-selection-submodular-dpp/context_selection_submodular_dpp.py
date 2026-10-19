@@ -563,7 +563,8 @@ def nwf_worst_case() -> dict:
     so the (1 - 1/e) guarantee is a visible gap rather than a formality (on the smooth finance pool greedy
     happens to reach OPT). Three candidate sets over 12 facets:
         A = {0..5},  B = {0,1,2,6,7,8},  C = {3,4,5,9,10,11}.
-    Greedy grabs the biggest set A (covers 6), then B or C for 9; OPT = B u C = 12. At k = 2 greedy/OPT =
+    All three sets cover 6, so greedy's first pick is a three-way tie broken by index (A); B and C then tie
+    again (each adds 3), so greedy reaches 9 whichever it takes; OPT = B u C = 12. At k = 2 greedy/OPT =
     9/12 = 0.75 -- below OPT, above the 0.632 floor, and EXACTLY on Theorem 2's k-dependent bound
     1 - (1 - 1/2)^2 = 0.75 (the instance is tight at k = 2). Returns greedy/opt/floor/ratio over k = 1..3."""
     u = 12

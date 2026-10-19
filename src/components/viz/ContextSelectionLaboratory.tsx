@@ -245,7 +245,7 @@ function GuaranteePanel({ k, setK }: { k: number; setK: (v: number) => void }) {
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         Greedy maximization of a monotone submodular objective is guaranteed to return at least{' '}
         <span style={{ color: DPPC }}>(1−1/e) ≈ 0.632</span> of the optimum (Nemhauser–Wolsey–Fisher). At{' '}
-        <strong>k = 2</strong> here greedy grabs the biggest set first and falls to <span style={{ color: ACCENT }}>9</span> of
+        <strong>k = 2</strong> here the three sets are the same size (6 facets each), greedy takes one of them first (ties go to A), and it falls to <span style={{ color: ACCENT }}>9</span> of
         the optimal <span style={{ color: FACL }}>12</span> — a real gap, above the 0.632 floor and exactly on the sharper k = 2
         bound 1 − (1 − ½)² = 0.75, so the instance is tight. The bound is a{' '}
         worst-case promise; on the smooth finance pool greedy actually <em>reaches</em> OPT.
