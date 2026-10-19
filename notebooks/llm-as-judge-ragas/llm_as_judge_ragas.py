@@ -599,10 +599,14 @@ def correction_flips_ranking(corpus: dict, params: dict = JUDGE_LENIENT, seed: i
 def _constructed_correction_flip() -> dict:
     """A hand-built two-system toy guaranteeing the raw-vs-corrected ranking flip (mirrors NDCG's
     constructed flips). System A: lower true faithfulness but a judge that over-endorses it (high p_obs);
-    System B: higher true faithfulness, less inflated. Corrected order matches the truth; raw does not."""
-    # (p_obs, sens, spec, pi_oracle) chosen so raw favours A but RG-corrected favours B (= oracle).
-    A = {"p_obs": 0.80, "sens_hat": 0.95, "spec_hat": 0.55, "pi_oracle": 0.50}
-    B = {"p_obs": 0.74, "sens_hat": 0.90, "spec_hat": 0.85, "pi_oracle": 0.66}
+    System B: higher true faithfulness, less inflated. Each p_obs is the EXPECTED observed rate its
+    oracle prevalence implies, se*pi + (1 - sp)*(1 - pi), so (Theorem 1) the correction returns the
+    oracle values exactly, not only the oracle order. Raw order disagrees."""
+    # (sens, spec, pi_oracle) chosen so raw favors A but RG-corrected favors B (= oracle, exactly).
+    A = {"sens_hat": 0.95, "spec_hat": 0.55, "pi_oracle": 0.50}
+    B = {"sens_hat": 0.90, "spec_hat": 0.85, "pi_oracle": 0.66}
+    for s in (A, B):   # p_obs = 0.700 (A) and 0.645 (B)
+        s["p_obs"] = round(s["sens_hat"] * s["pi_oracle"] + (1 - s["spec_hat"]) * (1 - s["pi_oracle"]), 4)
     A["pi_corrected"] = rogan_gladen(A["p_obs"], A["sens_hat"], A["spec_hat"])
     B["pi_corrected"] = rogan_gladen(B["p_obs"], B["sens_hat"], B["spec_hat"])
     return {"pair": ("system_A", "system_B"), "raw_gap": A["p_obs"] - B["p_obs"],

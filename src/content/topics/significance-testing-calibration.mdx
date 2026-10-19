@@ -235,7 +235,9 @@ each query, so each difference is equally likely to be $+d_q$ or $-d_q$. Enumera
 $2^Q$ sign vectors $s \in \{\pm 1\}^Q$ gives the null distribution of $\overline{s \odot d}$, and the
 two-sided p-value is the tail mass beyond $|\overline{d}|$. The **paired bootstrap test** resamples
 the $Q$ differences with replacement, recenters to impose $H_0$, and reads the same tail. Neither
-assumes normality; the permutation test is *exact* under exchangeability.
+assumes normality; the permutation test is *exact* under exchangeability when all $2^Q$ sign vectors
+are enumerated. At $Q = 40$ that is about $10^{12}$, so the notebook samples $20{,}000$ of them (Monte
+Carlo), and its p-value carries a small simulation error of its own.
 </TheoremBlock>
 
 On the worked MAP pair all three agree — $t$-test $p = 4.0\times10^{-4}$, permutation
@@ -283,7 +285,7 @@ relevance; it means whatever the query's own scale makes it mean, and the
 [concentration of cosine similarities](/topics/high-dimensional-geometry) in high dimensions is why a
 fixed threshold is incomparable across queries. Lexical BM25 is the interesting exception: its huge
 mass of exact-zero scores sits at confidence near zero and *is* well-calibrated in bulk (ECE $0.05$),
-but its tail is badly off (MCE $0.19$).
+but above that pile it is badly off (MCE $0.19$, in an upper-middle score bin).
 
 This is precisely the property [rank fusion](/topics/rank-fusion-rrf) routed around. Reciprocal-rank
 fusion combines $1/(c + \mathrm{rank})$ — it uses only ranks, never scores — because raw scores are
@@ -354,7 +356,7 @@ and the continuous divergence it approximates is the integral of the log
 [Radon–Nikodym derivative](https://www.formalcalculus.com/topics/radon-nikodym),
 $\int \log(dP/dQ)\,dP$; the binned PSI is its Darboux sum, exactly as Average Precision was the area
 under a curve. Panel D drives an embedding-degradation knob: as the dense leg's vectors are perturbed,
-the per-query NDCG distribution shifts left, the KS sup-gap grows from $0$ to $0.93$, and PSI crosses
+the per-query NDCG distribution shifts left, the KS sup-gap grows from $0$ to $0.925$, and PSI crosses
 into the red. Under the matched-n null (the same distribution resampled) the detector is silent — mean
 PSI $0.06$, KS $p = 0.92$.
 
@@ -362,20 +364,23 @@ Two subtler facts are the real lessons. First, a drift the *aggregate mean canno
 catchable — and the catcher is, once again, the paired test.
 
 <TheoremBlock type="proposition" number={2} title="Drift monitoring, like system comparison, must be paired">
-A small uniform degradation drops each query's score slightly but consistently. Comparing the two
+A small degradation drops most queries' scores slightly (on the notebook's windows, thirty of forty
+fall, nine rise, one is unchanged). Comparing the two
 windows by their **independent** mean intervals declares them indistinguishable — the intervals
 overlap. The **paired** test on the per-query (now $-$ then) differences rejects, because pairing
 cancels the shared per-query difficulty, exactly as in the system-comparison case.
 </TheoremBlock>
 
-At a degradation that moves the mean by under $2$ standard errors — overlapping intervals, a dashboard
-staying green, and even the marginal KS test missing it ($p = 0.17$) — the paired test fires at
-$p = 0.002$. The same pairing that resolved the significance cliffhanger is the right drift monitor.
+At a degradation that moves the mean by under $2$ standard errors — overlapping intervals, a
+mean-interval dashboard staying green, and even the marginal KS test missing it ($p = 0.16$) — the
+paired test fires at $p = 0.002$. (Not every monitor is fooled: PSI on the same two windows is
+$0.26$, already past the red line. The mean-interval read is the one that misses.) The same pairing that resolved the significance cliffhanger is the right drift monitor.
 
 Second, **input drift and quality decay are different things**. A pure *covariate shift* — the query
 mix moves from easy to hard, the retriever unchanged — fires the input-distribution alarm (the top-1
 score PSI is $0.43$, observable without any labels) while the model's quality on a fixed query set is
-*exactly* unchanged (the paired outcome difference is zero). A genuine model decay, by contrast, drops
+*exactly* unchanged (the paired outcome difference is zero by construction: the same queries, the
+same retriever). A genuine model decay, by contrast, drops
 the paired outcome ($-0.60$, $p \approx 10^{-21}$). So an input-drift alarm cannot diagnose decay on
 its own; you also need a labeled, paired *outcome* test. Monitor both, and read them together: input
 moved with outcome flat is data drift; outcome moved is decay.
@@ -388,8 +393,9 @@ no canonical academic derivation, and on forty queries its value is noisy). The 
 [anytime-valid inference](https://www.formalml.com/topics/always-valid-inference) — confidence
 sequences and e-processes that stay valid no matter when you stop — the sequential successor this
 topic points to. And the recalibrated, drift-monitored retrieval confidence is itself the input to the
-distribution-free correctness guarantees of conformal factuality and to a selective-generation gate,
-the upper layer this evaluation track opens onto.
+distribution-free correctness guarantees of [conformal factuality](/topics/conformal-factuality), two
+topics on in this same evaluation track, and, one layer up in generation, to a selective-generation
+gate.
 </RigorFlag>
 
 <FinanceCaseStudy title="Deciding to switch retrievers, and watching the one in production" modality={["text", "audio"]}>

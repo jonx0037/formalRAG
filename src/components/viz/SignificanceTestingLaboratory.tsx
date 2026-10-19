@@ -47,23 +47,27 @@ const LEG_COLOR: Record<Leg, string> = {
 type Metric = 'map' | 'ndcg';
 const METRIC_LABEL: Record<Metric, string> = { map: 'MAP', ndcg: 'NDCG' };
 
-// Panel A — the worked pair (lexical − dense), per metric. std_unpaired makes the unpaired SE at n=40
-// equal se_unpaired; the lab recomputes both half-widths as 1.96·σ/√n.
+// Panel A — the worked pair (lexical − dense), per metric. std_unpaired = √(varA + varB) from the
+// notebook's per-query samples (se_unpaired = std_unpaired/√40); the lab recomputes both half-widths as
+// 1.96·σ/√n. Two "unpaired" counts are kept apart: unpairedSingleN is where ONE unpaired interval on
+// the difference (the grey bar) first excludes 0; unpairedOverlapN is where the two legs' SEPARATE
+// intervals stop overlapping (the prerequisites' read). So 185 → 57 is two effects: two-interval
+// conservatism (185 → 96) and pairing (96 → 57).
 type PairedStat = {
   meanD: number; stdD: number; stdUnpaired: number; sePaired: number; seUnpaired: number;
-  t: number; p: number; dz: number; pairedSepN: number; unpairedOverlapN: number; powerN: number;
+  t: number; p: number; dz: number; pairedSepN: number; unpairedSingleN: number; unpairedOverlapN: number; powerN: number;
   corr: number; varRatio: number; perQDiff: number[];
 };
 const PAIRED: Record<Metric, PairedStat> = {
   map: {
-    meanD: -0.1161, stdD: 0.1898, stdUnpaired: 0.2296, sePaired: 0.03, seUnpaired: 0.0363,
-    t: -3.87, p: 4.03e-4, dz: -0.6119, pairedSepN: 11, unpairedOverlapN: 30, powerN: 21,
+    meanD: -0.1161, stdD: 0.1898, stdUnpaired: 0.2293, sePaired: 0.03, seUnpaired: 0.0363,
+    t: -3.87, p: 4.03e-4, dz: -0.6119, pairedSepN: 11, unpairedSingleN: 15, unpairedOverlapN: 30, powerN: 21,
     corr: 0.323, varRatio: 0.685,
     perQDiff: [-0.43, -0.375, -0.513, 0.058, -0.336, 0.026, -0.184, -0.004, -0.114, 0.029, 0.075, -0.371, -0.096, -0.076, -0.051, -0.106, -0.099, -0.209, -0.125, -0.114, 0.085, 0.184, -0.24, -0.417, -0.033, -0.353, -0.291, -0.435, -0.147, -0.173, 0.127, 0.084, 0.056, 0.036, -0.133, -0.088, -0.125, -0.197, 0.293, 0.136],
   },
   ndcg: {
-    meanD: -0.0491, stdD: 0.1885, stdUnpaired: 0.2454, sePaired: 0.0298, seUnpaired: 0.0388,
-    t: -1.649, p: 0.1071, dz: -0.2608, pairedSepN: 57, unpairedOverlapN: 185, powerN: 116,
+    meanD: -0.0491, stdD: 0.1885, stdUnpaired: 0.2456, sePaired: 0.0298, seUnpaired: 0.0388,
+    t: -1.649, p: 0.1071, dz: -0.2608, pairedSepN: 57, unpairedSingleN: 96, unpairedOverlapN: 185, powerN: 116,
     corr: 0.445, varRatio: 0.589,
     perQDiff: [-0.329, -0.083, -0.222, 0.11, -0.133, 0.005, -0.271, -0.078, 0.054, 0.198, 0.085, -0.096, -0.058, -0.048, -0.01, -0.02, -0.118, -0.173, -0.006, -0.012, 0.175, 0.257, -0.149, -0.715, 0.121, -0.27, -0.178, -0.255, -0.151, -0.069, 0.03, 0.215, 0.172, 0.088, -0.018, 0.026, -0.152, -0.174, 0.341, -0.055],
   },
@@ -260,12 +264,13 @@ function PairedPanel({ metric, setMetric, n, setN }: {
         <line x1={cx(0)} y1={cPadT - 8} x2={cx(0)} y2={CH - 6} stroke="var(--color-border)" strokeWidth={1.4} />
         <text x={cx(0)} y={CH - 1} textAnchor="middle" fontSize={8.5} fill="var(--color-text-secondary)" fontFamily="var(--font-sans)">0 (no difference)</text>
         {ciBar(cPadT + 14, pairedHalf, ACCENT, pairedExcl, 'paired')}
-        {ciBar(cPadT + 48, unpairedHalf, MUTED, unpairedExcl, 'unpaired (two-CI)')}
+        {ciBar(cPadT + 48, unpairedHalf, MUTED, unpairedExcl, 'unpaired (one interval on d)')}
       </svg>
       <div style={{ display: 'flex', gap: '1.3rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
         <Readout label="paired t · p" value={`${fmt(s.t, 2)} · ${fmtP(s.p)}`} accent={s.p < 0.05} />
         <Readout label="paired separates at n" value={`${s.pairedSepN}`} accent />
-        <Readout label="unpaired needs n" value={`${s.unpairedOverlapN}`} />
+        <Readout label="unpaired interval excludes 0 at n" value={`${s.unpairedSingleN}`} />
+        <Readout label="two separate CIs part at n" value={`${s.unpairedOverlapN}`} />
         <Readout label="80%-power n" value={`${s.powerN}`} />
         <Readout label="var(d)/(varA+varB)" value={fmt(s.varRatio, 2)} />
       </div>
@@ -273,9 +278,10 @@ function PairedPanel({ metric, setMetric, n, setN }: {
         Pairing cancels the shared per-query difficulty (the legs correlate {fmt(s.corr, 2)} across queries), so
         var(d) is only <strong>{fmt(s.varRatio, 2)}×</strong> the unpaired variance and the{' '}
         <span style={{ color: ACCENT }}>paired</span> interval excludes 0 at <strong>n = {s.pairedSepN}</strong> where the{' '}
-        <span style={{ color: MUTED }}>unpaired</span> two-CI read needs <strong>{s.unpairedOverlapN}</strong>.
+        <span style={{ color: MUTED }}>unpaired</span> interval on the same difference needs <strong>{s.unpairedSingleN}</strong>,
+        and the prerequisites' read — two separate intervals that stop overlapping — needs <strong>{s.unpairedOverlapN}</strong>.
         {metric === 'ndcg'
-          ? <> This closes the NDCG cliffhanger: <strong>185 → 116</strong> (rigorous 80%-power) versus <strong>57</strong> (a single interval clearing 0); at all {N_QUERIES} queries the gap is <strong>not yet</strong> significant (p = {fmt(s.p, 3)}).</>
+          ? <> This closes the NDCG cliffhanger: <strong>185 → 116</strong> (rigorous 80%-power) versus <strong>57</strong> (a single paired interval clearing 0). The drop from 185 to 57 is two effects: reading one interval on the difference instead of two overlapping ones (185 → 96), then pairing (96 → 57). At all {N_QUERIES} queries the gap is <strong>not yet</strong> significant (p = {fmt(s.p, 3)}).</>
           : <> The MAP gap <em>is</em> significant at {N_QUERIES} queries (p = {fmtP(s.p)}) — pairing tightens the test without manufacturing significance.</>}
       </p>
     </div>

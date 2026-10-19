@@ -39,7 +39,7 @@ connections:
   - topic: "ndcg-discount-geometry"
     relationship: "that topic measured graded relevance against a fixed ideal ranking; faithfulness here is the analogous graded quantity for generation, but with the grader itself uncertain — the per-claim support verdict plays the role NDCG's relevance grade played, except that where NDCG's grades were a fixed oracle, the judge's grades carry a sensitivity and specificity that must be corrected for before the mean can be read"
   - topic: "rank-fusion-rrf"
-    relationship: "that topic fused rankings by reciprocal RANK rather than by score because raw retrieval scores are miscalibrated and incomparable; the calibration pillar here makes the same point about a judge's stated confidence — it ranks claims almost perfectly yet is wildly over-confident as a probability, so any pipeline that thresholds or averages judge confidences directly, rather than ranking by them, inherits that miscalibration"
+    relationship: "that topic fused rankings by reciprocal RANK rather than by score because raw retrieval scores are miscalibrated and incomparable; the calibration pillar here makes the same point about a judge's stated confidence — it ranks claims almost perfectly yet is badly miscalibrated as a probability, so any pipeline that thresholds or averages judge confidences directly, rather than ranking by them, inherits that miscalibration"
 references:
   - type: "paper"
     title: "RAGAS: Automated Evaluation of Retrieval Augmented Generation"
@@ -196,8 +196,8 @@ claims gives $\mathbb{E}[\hat F] = p_{\mathrm{obs}}$; subtracting $\pi$ and coll
 </TheoremBlock>
 
 A lenient judge — one that over-endorses, with high sensitivity but mediocre specificity — inflates faithfulness.
-On the corpus, such a judge reports faithfulness $p_{\mathrm{obs}} = 0.703$ for the dense leg whose true grounded
-fraction is $\pi = 0.648$. The fix is to invert the error model.
+On the corpus, such a judge reports faithfulness $p_{\mathrm{obs}} = 0.7025$ for the dense leg whose true grounded
+fraction is $\pi = 0.6475$ (281 and 259 of 400 claims). The fix is to invert the error model.
 
 <TheoremBlock type="definition" number={2} title="The Rogan–Gladen corrected estimator">
 Solving the prevalence identity for $\pi$ gives the **Rogan–Gladen** estimator
@@ -229,7 +229,8 @@ For the variance, $g'(p) = 1/J$, so $\operatorname{Var}(g(p_{\mathrm{obs}})) = (
 completes it. $\square$
 </TheoremBlock>
 
-On the dense leg, the audited correction recovers $\hat\pi_{\mathrm{RG}} = 0.648$ — exactly the oracle prevalence —
+On the dense leg, the audited correction recovers $\hat\pi_{\mathrm{RG}} = 0.6475$ — exactly the oracle prevalence,
+by construction, since the audit rates are measured on these same pairs —
 at the cost of a variance inflated $2.6\times$. Panel A drives this with sensitivity and specificity sliders: the
 truth $\pi$, the inflated observation $p_{\mathrm{obs}}$, and the corrected $\hat\pi_{\mathrm{RG}}$ sit on one
 axis, and the $1/J^2$ curve climbs without bound as the sliders approach a coin flip.
@@ -246,8 +247,9 @@ not debiasable — its noise is amplified, not removed.
 The consequence is a decision, not just a number. Two answer-generation systems judged by the *same* lenient
 judge can be **ranked in the wrong order** by raw faithfulness: a system whose documents the judge over-endorses
 (low effective specificity) is inflated above a genuinely better one. Panel A's lower chart shows the constructed
-case — raw faithfulness favors system A ($0.80$ over $0.74$), but Rogan–Gladen with each system's audited rates
-restores the truth, favoring system B ($0.79$ over $0.70$), matching the oracle. The instrument was masking the
+case — raw faithfulness favors system A ($0.700$ over $0.645$), but Rogan–Gladen with each system's audited rates
+restores the truth, favoring system B ($0.66$ over $0.50$), the oracle values exactly. (Each observed rate is the one
+its oracle prevalence implies, so by Theorem 1 the correction lands on the truth, not just on its order.) The instrument was masking the
 ranking; correcting for it flips the verdict back.
 
 ## Agreement is not accuracy: chance-corrected reliability and the variance floor
@@ -374,8 +376,12 @@ monotone-recalibration theorem of the [calibration prerequisite](/topics/signifi
 applied to judge confidence — the proof is there.
 </TheoremBlock>
 
-The judge confidence ranks claims almost perfectly (AUC $\approx 0.998$ for the lenient judge) yet is wildly
-**over-confident** as a probability (ECE $0.154$): Panel C shows the raw dots bowed far off the diagonal. Platt
+The judge confidence ranks claims almost perfectly (AUC $\approx 0.998$ for the lenient judge) yet is badly
+**miscalibrated** as a probability (ECE $0.154$): Panel C shows the raw dots bowed far off the diagonal. The
+miscalibration is not over-confidence. The stated probabilities are squeezed toward the middle: about three
+quarters of the ECE comes from the low- and mid-confidence bins, where stated support runs above the truth (a bin
+at confidence $0.49$ holds no supported claims at all), while the top bins are *under*-confident. Platt's fitted
+slope of about $36$ sharpens the scores rather than shrinking them. Platt
 scaling pulls the ECE to $0.003$ and isotonic to $0$, both leaving the AUC untouched at $0.998$ — calibration is
 orthogonal to ranking, the same reason [rank fusion](/topics/rank-fusion-rrf) fuses ranks rather than scores. A
 pipeline that thresholds or averages a judge's raw confidences inherits the miscalibration; one that ranks by them
@@ -395,7 +401,7 @@ $\theta^{(j)}_{11}$ and specificity $\theta^{(j)}_{00}$ from the **agreement str
 </TheoremBlock>
 
 Panel E runs it: with no gold labels, EM recovers every planted per-judge sensitivity and specificity within
-$\approx 0.06$ and labels items more accurately than majority vote ($0.975$ versus $0.972$). This closes the loop —
+$\approx 0.06$ and labels items more accurately than majority vote ($0.975$ versus $0.9725$, a margin of one item in four hundred). This closes the loop —
 the error rates the instrument correction assumed are exactly what EM supplies. The result is identifiable only up
 to a label permutation (we anchor to the majority vote), and the likelihood is non-convex, so EM finds a local
 optimum from a sensible start; correlated judges, who violate the conditional-independence assumption, break the
@@ -406,12 +412,12 @@ A retrieval-augmented system answers an analyst's question about a 10-K with "Q3
 LLM judge decomposes the answer into atomic claims and checks each against the retrieved filing context — exactly
 the RAGAS faithfulness pipeline. A hallucinated figure the judge fails to flag is a **false negative with
 regulatory and trading consequences**, so the quantity that matters is the judge's *specificity on numeric
-claims*, and the high-confidence bin of its reliability diagram is precisely where a confident-but-wrong
-"supported" verdict reaches the desk.
+claims*, and its reliability diagram shows where a wrong "supported" verdict can hide — in any bin whose stated
+confidence runs above the rate at which its claims are actually supported.
 
-Every correction in this topic is load-bearing here. A raw faithfulness of $0.92$ from a judge with sensitivity
-$0.85$ and specificity $0.80$ overstates grounding; the Rogan–Gladen number is the honest figure to report to
-risk. Before trusting the judge at all, the desk audits it against a human reviewer on a labeled sample — and
+Every correction in this topic is load-bearing here. A raw faithfulness of $0.80$ from a lenient judge with
+sensitivity $0.95$ and specificity $0.60$ overstates grounding: the Rogan–Gladen number,
+$(0.80 + 0.60 - 1)/(0.95 + 0.60 - 1) \approx 0.73$, is the honest figure to report to risk. Before trusting the judge at all, the desk audits it against a human reviewer on a labeled sample — and
 because "most claims are supported" makes the marginals extreme, kappa misleads and Gwet's AC1 is the coefficient
 to report. And a high-stakes sign-off cannot be bought with more evaluation queries: the judge-variance floor means
 a confident verdict needs multiple judges or a sharper protocol. The corpus here is a synthetic claim-support

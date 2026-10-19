@@ -12,7 +12,7 @@ import katex from 'katex';
  *      the retained/removed split — colored by truth, exposing the high-confidence hallucination the
  *      lenient judge endorsed and that a recall guarantee cannot see.
  *   C. The risk–coverage frontier. split-conformal recall lets the false-claim rate run UNCONTROLLED (red,
- *      above the y = α line); Conformal Risk Control holds it ≤ α (green, on/under the line), at the cost
+ *      above the y = α line through α = 0.10, below it from 0.15); Conformal Risk Control holds it ≤ α (green, on/under the line), at the cost
  *      of retention.
  *   D. Covariate shift. Coverage vs shift strength β: the unweighted (split) threshold collapses below
  *      1 − α as exchangeability breaks; weighted conformal (known likelihood ratio) restores it.
@@ -273,7 +273,7 @@ function FrontierPanel({ ai }: { ai: number }) {
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="risk-coverage frontier: split versus conformal risk control" style={{ width: '100%', maxWidth: W, height: 'auto', display: 'block' }}>
         <line x1={padL} y1={H - padB} x2={W - padR} y2={H - padB} stroke="var(--color-border)" />
         <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--color-border)" />
-        {/* the guarantee line y = α (the diagonal); CRC stays on/under it, split runs above */}
+        {/* the guarantee line y = α (the diagonal); CRC stays on/under it, split is uncontrolled (above it through α = 0.10) */}
         <line x1={ax(0)} y1={ay(0)} x2={ax(0.4)} y2={ay(0.4)} stroke={ACCENT} strokeWidth={1.2} strokeDasharray="4 3" />
         <text x={ax(0.4)} y={ay(0.4) - 4} textAnchor="end" fontSize={8.5} fill={ACCENT} fontFamily="var(--font-sans)">guarantee y = α</text>
         <path d={splitPath} fill="none" stroke={NEG_COLOR} strokeWidth={2} />
@@ -302,7 +302,7 @@ function FrontierPanel({ ai }: { ai: number }) {
       </Row>
       <p style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.45 }}>
         The split-conformal recall guarantee says nothing about hallucination leakage — its false-claim rate
-        (red) sits above the y = α line. Conformal risk control (green) holds the false-claim rate at or below
+        (red) is uncontrolled: above the y = α line at strict α (through 0.10), below it from 0.15 on. Conformal risk control (green) holds the false-claim rate at or below
         α, paying in retention. The small overshoot near α = 0.2 is honest: CRC controls the <em>expected</em>
         risk over calibration draws, not a single realization.
       </p>

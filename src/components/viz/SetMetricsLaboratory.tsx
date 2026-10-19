@@ -304,9 +304,11 @@ function AggregatePanel({ leg, setLeg, knownItem, setKnownItem }: {
           <>MAP is the <strong>mean</strong> of a noisy per-query AP sample (spread {fmt(stdev(samples), 3)}). A single
           query says little; the average is the estimate. Switch to known-item to see MAP collapse onto MRR.</>
         )}
-        {' '}<strong>The verdict can reverse by metric:</strong> {LEG_LABEL[FLIP.mapWinner]} outranks{' '}
+        {' '}<strong>The verdict can reverse by metric and relevance regime:</strong> {LEG_LABEL[FLIP.mapWinner]} outranks{' '}
         {LEG_LABEL[FLIP.mrrWinner]} by MAP ({fmt(MAP[FLIP.mapWinner], 3)} &gt; {fmt(MAP[FLIP.mrrWinner], 3)}), yet{' '}
-        {LEG_LABEL[FLIP.mrrWinner]} wins on MRR ({fmt(MRR[FLIP.mrrWinner], 3)} &gt; {fmt(MRR[FLIP.mapWinner], 3)}).
+        {LEG_LABEL[FLIP.mrrWinner]} wins on MRR ({fmt(MRR[FLIP.mrrWinner], 3)} &gt; {fmt(MRR[FLIP.mapWinner], 3)}). MAP is
+        scored on the ten-document sets and MRR on the single known item; score both on either one of those sets
+        and the verdict does not flip. The MRR lead is also inside its paired standard error.
       </p>
     </div>
   );
@@ -370,8 +372,9 @@ function EstimatorPanel({ n, setN }: { n: number; setN: (v: number) => void }) {
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         A reported MAP is a <strong>sample mean</strong>, with standard error σ̂/√n that shrinks as 1/√n (inset). At few
-        queries the two systems' 95% CIs <strong>overlap</strong> — you cannot tell them apart; they separate only at
-        <strong> n = {SEP_N}</strong>. An observed MAP gap is not a real one until it clears sampling error — which is exactly
+        queries the two systems' 95% CIs <strong>overlap</strong> — you cannot tell them apart; projected with the
+        forty-query means and spreads held fixed, they separate only at <strong>n = {SEP_N}</strong> (the measured
+        intervals on the first n queries overlap through n = 18). An observed MAP gap is not a real one until it clears sampling error — which is exactly
         what a significance test decides.
       </p>
     </div>
