@@ -349,10 +349,10 @@ function FusionPanel({ metric, setMetric, ntr, setNtr }: {
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', lineHeight: 1.5 }}>
         On the {N_TEST} held-out queries the <span style={{ color: LEG_COLOR.learned }}><strong>learned RankNet</strong></span>
-        beats every single leg (+{fmt(gapLeg, 3)} recall over the best) and edges out
-        <span style={{ color: LEG_COLOR.rrf }}> RRF</span> (+{fmt(gapRrf, 3)}). The margin over RRF is within the
+        scores above every single leg (+{fmt(gapLeg, 3)} recall over the best, dense) and edges out
+        <span style={{ color: LEG_COLOR.rrf }}> RRF</span> (+{fmt(gapRrf, 3)}). Both margins are within the
         confidence interval ({fmt(LEARNED_CI.mean, 3)} ± {fmt(1.96 * LEARNED_CI.se, 3)}), so the robust claim is
-        "matches RRF, clearly beats any single leg." With one labeled query the ranker is shaky (below RRF); by two
+        "matches RRF, edges the dense leg, clearly beats lexical and late interaction." With one labeled query the ranker is shaky (below RRF); by two
         it has overtaken RRF and then plateaus — a three-feature linear ranker is data-efficient.
       </p>
     </div>

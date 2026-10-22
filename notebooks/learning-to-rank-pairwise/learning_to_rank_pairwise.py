@@ -509,10 +509,18 @@ def learned_vs_baselines(corpus: dict) -> dict:
     train = _methods(tr)
     per_q_recall = np.array([recall_at_k(ranking_from_w(corpus, q, w), corpus["truth_sets"][q], TOPK)
                              for q in te])
+    # The PAIRED per-query gap (learned minus baseline, same test queries): the right SE for "does the
+    # learned ranker beat this baseline", tighter than the unpaired CI on the learned mean alone.
+    ts = corpus["truth_sets"]
+    base_per_q = {leg: np.array([recall_at_k(leg_ranking(corpus, q, leg), ts[q], TOPK) for q in te])
+                  for leg in LEG_ORDER}
+    base_per_q["rrf"] = np.array([recall_at_k(rrf_ranking(corpus, q), ts[q], TOPK) for q in te])
+    paired_gap = {k: metric_summary(per_q_recall - v) for k, v in base_per_q.items()}
     baselines = {k: test[k]["recall"] for k in (*LEG_ORDER, "rrf")}
     winner = max(test, key=lambda k: test[k]["recall"])
     return {"train": train, "test": test, "w_learned": w.tolist(),
             "learned_recall_ci": metric_summary(per_q_recall),
+            "paired_gap_recall": paired_gap,
             "best_baseline_recall": max(baselines.values()),
             "winner": winner,
             "learned_gain_over_rrf": test["learned"]["recall"] - test["rrf"]["recall"]}
@@ -685,6 +693,19 @@ def test_learned_vs_baselines_runs() -> None:
     assert res["winner"] in (*LEG_ORDER, "rrf", "pointwise", "learned")
 
 
+def test_paired_gap_honesty() -> None:
+    """The honest size of each win, on PAIRED per-query recall gaps (pinned to the run): the learned
+    ranker beats the lexical and late-interaction legs decisively (gap > 3 paired SE), but its margins
+    over the dense leg and over RRF are NOT decisive (gap < 2.5 paired SE) — so the prose may say it
+    matches RRF and edges the dense leg, never that it clearly beats every single leg."""
+    res = learned_vs_baselines(_corpus())
+    g = res["paired_gap_recall"]
+    for k in ("lexical", "late_interaction"):
+        assert g[k]["mean"] > 3 * g[k]["se"], (k, g[k])
+    for k in ("dense", "rrf"):
+        assert 0 < g[k]["mean"] < 2.5 * g[k]["se"], (k, g[k])
+
+
 def test_no_pairs_guard() -> None:
     """An all-equal-grade query yields zero preference pairs and is handled cleanly (empty -> no pairs,
     fit returns zero weights)."""
@@ -739,6 +760,8 @@ def viz_constants() -> None:
     ci = res["learned_recall_ci"]
     print("LEARNED_RECALL_CI n,mean,se,lo,hi",
           ci["n"], r4(ci["mean"]), r4(ci["se"]), r4(ci["ci_lo"]), r4(ci["ci_hi"]))
+    print("PAIRED_GAP_RECALL (learned - baseline) mean,se",
+          {k: (r4(v["mean"]), r4(v["se"])) for k, v in res["paired_gap_recall"].items()})
 
     print("=== H1 constructed witness ===")
     h1 = constructed_ranking_vs_regression()
