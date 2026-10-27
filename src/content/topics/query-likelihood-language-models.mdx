@@ -78,6 +78,17 @@ formalstatisticsPrereqs:
   - topic: "bayesian-foundations-and-prior-selection"
     site: "formalstatistics"
     relationship: "Dirichlet smoothing is the Bayesian posterior mean of the multinomial parameter under a conjugate Dirichlet prior whose concentration is set by the collection model and a strength parameter μ"
+formalnlpPrereqs:
+  - topic: "linear-text-classifiers"
+    site: "formalnlp"
+    relationship: "Query likelihood scores a document with a smoothed multinomial, exactly naive Bayes's class-conditional model; the Dirichlet smoothing proved here is the background-smoothing alternative to that topic's add-α."
+  - topic: "topic-models-lda"
+    site: "formalnlp"
+    relationship: "The Dirichlet smoothing here is a posterior mean, and LDA's topic and proportion estimates in that topic are the same posterior mean, computed given one sample of the topic assignments."
+formalnlpConnections:
+  - topic: "n-gram-models-smoothing"
+    site: "formalnlp"
+    relationship: "Dirichlet smoothing as a posterior mean and Jelinek–Mercer interpolation, proved here for document language models, become the conditional next-word model in that topic's account of n-gram smoothing."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

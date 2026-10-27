@@ -104,6 +104,13 @@ formalstatisticsConnections:
   - topic: "exponential-families"
     site: "formalstatistics"
     relationship: "the synthetic answer model p(a | q, context) is a softmax over von Mises–Fisher similarities — an exponential family in its natural parameters that topic develops — so the attention-weighted sum of passage evidences is a natural-parameter combination and the posterior sharpening onto the truth or diluting toward the prior is movement within that family"
+formalnlpPrereqs:
+  - topic: "attention-as-kernel-smoothing"
+    site: "formalnlp"
+    relationship: "This page prices attention's quadratic cost in long contexts; that topic factors the attention kernel with random features to make it linear and measures what the factorization loses."
+  - topic: "positional-encodings-geometry"
+    site: "formalnlp"
+    relationship: "This page models a passage buried in a long context as softly erased; ALiBi's distance penalty, analyzed there, is one mechanism for that burial, a recency kernel under which far tokens weigh less than near ones."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

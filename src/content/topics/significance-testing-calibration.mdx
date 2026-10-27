@@ -122,6 +122,17 @@ formalcalculusPrereqs:
   - topic: "radon-nikodym"
     site: "formalcalculus"
     relationship: "the measure-theoretic definition of drift is the KL integral of the log Radon–Nikodym derivative, ∫ log(dP/dQ) dP, where dP/dQ is the density ratio that topic constructs; the binned population stability index this topic computes is the histogram approximation of that integral, the discrete-to-continuous bridge — exactly as Average Precision was the Riemann sum of a continuous area"
+formalnlpPrereqs:
+  - topic: "language-model-calibration"
+    site: "formalnlp"
+    relationship: "The theorem here that a monotone recalibration preserves every ranking meets its limit there: temperature scaling is not monotone in the confidence, so the order of confidences across contexts can change."
+  - topic: "overlap-metrics-bleu-rouge"
+    site: "formalnlp"
+    relationship: "The paired tests and bootstrap intervals here supply the uncertainty that topic withholds: its Kendall-τ values and the system gaps it reports from BLEU and ROUGE are descriptive only."
+formalnlpConnections:
+  - topic: "significance-testing-for-nlp"
+    site: "formalnlp"
+    relationship: "The paired t-test, the proof that pairing cancels shared difficulty, and the power-based query count here cover per-query means; that topic takes up non-mean metrics, 0/1 outcomes, clusters, and training variance."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

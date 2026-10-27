@@ -4,10 +4,12 @@ import { z } from 'astro/zod';
 
 // formalRAG links UP into formalML (its deepest prerequisite layer) as well as
 // DOWN into the calculus/statistics foundations — hence 'formalml' joins the
-// sibling enum, unlike formalML's own schema which only links down.
+// sibling enum, unlike formalML's own schema which only links down. formalNLP
+// is a peer: its language-modeling topics share retrieval's embedding and
+// evaluation machinery, so links run both ways.
 const crossSiteRef = z.object({
   topic: z.string(),
-  site: z.enum(['formalml', 'formalcalculus', 'formalstatistics']),
+  site: z.enum(['formalml', 'formalcalculus', 'formalstatistics', 'formalnlp']),
   relationship: z.string().min(40),
 });
 
@@ -93,6 +95,8 @@ const topics = defineCollection({
     formalstatisticsPrereqs: z.array(crossSiteRef).optional(),
     formalcalculusConnections: z.array(crossSiteRef).optional(),
     formalstatisticsConnections: z.array(crossSiteRef).optional(),
+    formalnlpPrereqs: z.array(crossSiteRef).optional(),
+    formalnlpConnections: z.array(crossSiteRef).optional(),
   }),
 });
 

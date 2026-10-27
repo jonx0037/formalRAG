@@ -108,6 +108,17 @@ formalcalculusPrereqs:
   - topic: "surface-integrals"
     site: "formalcalculus"
     relationship: "the uniform measure on the sphere and the vMF normalizing constant C_d(kappa) are surface integrals over S^{d-1}; the surface-area element and its spherical parameterization are exactly the objects integrated to obtain the Bessel-function normalizer"
+formalnlpPrereqs:
+  - topic: "contextual-embeddings-masked-lm"
+    site: "formalnlp"
+    relationship: "The anisotropic cone of contextual embeddings, named here as the first way real data break von Mises–Fisher isotropy, is measured layer by layer in that topic's geometry section."
+  - topic: "glove-embedding-geometry"
+    site: "formalnlp"
+    relationship: "Word-analogy answers and similarity benchmarks are cosine comparisons of unit vectors, the spherical geometry developed here; that topic applies it to GloVe vectors, anisotropy included."
+formalnlpConnections:
+  - topic: "attention-as-kernel-smoothing"
+    site: "formalnlp"
+    relationship: "Attention between unit vectors is a von Mises–Fisher kernel, so the Bessel normalizer and mean resultant length developed here become the gains in that topic's circle theorem for attention as kernel smoothing."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

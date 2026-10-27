@@ -1,9 +1,9 @@
 import type { DAGEdge, DAGNode } from '../components/viz/shared/types';
 
-// formalRAG links UP into formalML (its deepest prerequisites) and DOWN into the
-// calculus/statistics foundations — three sister sites, unlike formalML which
-// only links to two.
-type CrossSiteSite = 'formalml' | 'formalcalculus' | 'formalstatistics';
+// formalRAG links UP into formalML (its deepest prerequisites), DOWN into the
+// calculus/statistics foundations, and across to its peer formalNLP — four
+// sister sites.
+type CrossSiteSite = 'formalml' | 'formalcalculus' | 'formalstatistics' | 'formalnlp';
 
 interface CrossSiteRef {
   topic: string;
@@ -17,6 +17,7 @@ interface PublishedTopic {
     formalmlPrereqs?: CrossSiteRef[];
     formalcalculusPrereqs?: CrossSiteRef[];
     formalstatisticsPrereqs?: CrossSiteRef[];
+    formalnlpPrereqs?: CrossSiteRef[];
   };
 }
 
@@ -31,16 +32,18 @@ const SITE_DOMAINS: Record<CrossSiteSite, string> = {
   formalml: 'https://formalml.com',
   formalcalculus: 'https://formalcalculus.com',
   formalstatistics: 'https://formalstatistics.com',
+  formalnlp: 'https://www.formalnlp.com',
 };
 
 // Lowercase tokens preserved as uppercase when humanizing a slug — common
 // IR / retrieval / ML acronyms that appear in cross-site slugs.
 const ACRONYMS = new Set([
-  'ab', 'ann', 'anova', 'bim', 'bm25', 'cdf', 'colbert', 'dpp', 'dpr', 'em',
-  'fft', 'glm', 'gp', 'hmc', 'hnsw', 'hyde', 'idf', 'iid', 'ivf', 'kl', 'ks',
-  'lsh', 'map', 'mcmc', 'mips', 'ml', 'mle', 'mmr', 'mrr', 'ndcg', 'ode', 'opq',
-  'pac', 'pca', 'pde', 'pdf', 'pmi', 'pq', 'prp', 'ragas', 'rm3', 'rrf', 'rsj',
-  'sgd', 'splade', 'svd', 'tda', 'tf', 'vc', 'vmf', 'wand',
+  'ab', 'ann', 'anova', 'bim', 'bleu', 'bm25', 'cdf', 'colbert', 'dpp', 'dpr',
+  'em', 'fft', 'glm', 'gp', 'hmc', 'hnsw', 'hyde', 'idf', 'iid', 'ivf', 'kl',
+  'ks', 'lda', 'lm', 'lsh', 'map', 'mcmc', 'mips', 'ml', 'mle', 'mmr', 'mrr',
+  'ndcg', 'nlp', 'ode', 'opq', 'pac', 'pca', 'pde', 'pdf', 'pmi', 'ppmi', 'pq',
+  'prp', 'ragas', 'rm3', 'rouge', 'rrf', 'rsj', 'sgd', 'splade', 'svd', 'tda',
+  'tf', 'vc', 'vmf', 'wand',
 ]);
 
 export function humanReadableFromSlug(slug: string): string {
@@ -75,6 +78,7 @@ export function synthesizeCrossSiteNodes(
       { refs: topic.data.formalmlPrereqs, site: 'formalml' },
       { refs: topic.data.formalcalculusPrereqs, site: 'formalcalculus' },
       { refs: topic.data.formalstatisticsPrereqs, site: 'formalstatistics' },
+      { refs: topic.data.formalnlpPrereqs, site: 'formalnlp' },
     ];
 
     for (const { refs: list, site } of refs) {

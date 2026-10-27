@@ -12,8 +12,8 @@ const publishedTopics = allTopics.filter((t) => t.data.status === 'published');
 
 // Build-time synthesis of cross-site prereq nodes from MDX frontmatter.
 // Internal-only edges live in curriculum-graph.json; cross-site edges are
-// derived from formalcalculusPrereqs / formalstatisticsPrereqs and merged
-// here without ever touching the JSON.
+// derived from the formalml/formalcalculus/formalstatistics/formalnlp Prereqs
+// arrays and merged here without ever touching the JSON.
 const crossSite = synthesizeCrossSiteNodes(publishedTopics);
 const mergedNodes = [...graphData.nodes, ...crossSite.nodes];
 const mergedEdges = [...graphData.edges, ...crossSite.edges];
@@ -172,7 +172,16 @@ const difficultyOrder = { foundational: 0, intermediate: 1, advanced: 2 };
         >
           formalstatistics.com
         </a>{' '}
-        (estimation, testing, calibration) — all with the same geometric-first approach.
+        (estimation, testing, calibration). The language-model side of the same embedding and
+        evaluation machinery is on{' '}
+        <a
+          href="https://www.formalnlp.com"
+          class="text-[var(--color-accent)] hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          formalnlp.com
+        </a>. All of them take the same geometric-first approach.
       </p>
     </div>
   </section>

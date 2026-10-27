@@ -107,6 +107,13 @@ formalcalculusPrereqs:
   - topic: "convex-optimization"
     site: "formalcalculus"
     relationship: "the variance-maximization and reconstruction-error-minimization formulations are a constrained quadratic program over orthonormal frames, and the equivalence of the two objectives is read cleanly through the trace-maximization lens developed there"
+formalnlpPrereqs:
+  - topic: "distributional-semantics-ppmi-svd"
+    site: "formalnlp"
+    relationship: "Latent semantic analysis is the truncated SVD of a term-document matrix; that topic's document-level co-occurrence matrix is its Gram matrix, reweighted by pointwise mutual information before factorization."
+  - topic: "topic-models-lda"
+    site: "formalnlp"
+    relationship: "Latent semantic analysis projects documents onto a low-rank subspace in Euclidean norm with coordinates of both signs; LDA, developed there, projects them in KL divergence onto a polytope inside the word simplex."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';
