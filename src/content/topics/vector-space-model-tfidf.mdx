@@ -75,6 +75,19 @@ formalstatisticsPrereqs:
   - topic: "discrete-distributions"
     site: "formalstatistics"
     relationship: "the within-document term counts that term frequency tallies, and the document-frequency counting that underlies IDF, are the count-data mechanisms treated there — the same generative story BM25 later sharpens into the 2-Poisson eliteness model"
+formalnlpPrereqs:
+  - topic: "collocations-keyword-extraction"
+    site: "formalnlp"
+    relationship: "The document-frequency weighting here scores a term inside one collection; keyness instead tests a word's rate in one corpus against another, a different question that topic separates from IDF."
+  - topic: "distributional-semantics-ppmi-svd"
+    site: "formalnlp"
+    relationship: "The cosine defined here compares that topic's word vectors, and PMI reweights a word's co-occurrence row as IDF reweights a document's term vector, both against a background rate."
+  - topic: "lexicon-sentiment-loughran-mcdonald"
+    site: "formalnlp"
+    relationship: "Loughran and McDonald weight their dictionary words by the tf–idf scheme derived here; that topic cites the variant for financial sentiment rather than re-deriving or testing it."
+  - topic: "zipf-heaps-vocabulary-statistics"
+    site: "formalnlp"
+    relationship: "Zipf's law shapes the weighting derived here: the Zipfian head is the stopword list, and the long tail is where IDF weights are largest, so TF-IDF inherits that topic's distribution."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

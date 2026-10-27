@@ -2,15 +2,17 @@
 /**
  * audit-cross-site-links.mjs — Cross-repo reciprocity validator.
  *
- * Walks src/content/topics/ in each of the three formal* sibling repos,
+ * Walks src/content/topics/ in formalRAG and each of its four formal* siblings,
  * extracts cross-site frontmatter entries, builds a unified edge map, then
  * checks every edge has a reciprocal with opposite direction (Prereqs ↔
  * Connections) on the target side.
  *
  * Inputs (read-only):
- *   $REPO_ROOT/src/content/topics/*.mdx                  — formalml (script's own checkout)
+ *   $REPO_ROOT/src/content/topics/*.mdx                  — formalrag (script's own checkout)
+ *   $FORMAL_ML_PATH or ../formalML/...                   — formalml
  *   $FORMAL_CALCULUS_PATH or ../formalCalculus/...       — formalcalculus
  *   $FORMAL_STATISTICS_PATH or ../formalStatistics/...   — formalstatistics
+ *   $FORMAL_NLP_PATH or ../formalNLP/...                 — formalnlp
  *
  * Outputs (written under the script's own checkout):
  *   docs/plans/audit-output/<site>-references.json     — per-site edge dump
@@ -29,18 +31,25 @@ import matter from 'gray-matter';
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = dirname(SCRIPT_DIR);
 
+// This script was copied from formalML, where the self slot is `formalml`.
+// Here the self slot is `formalrag`, so siblings' formalrag* fields resolve to
+// this checkout and this checkout's formalml* fields resolve to formalML.
 const REPOS = {
   formalcalculus:
     process.env.FORMAL_CALCULUS_PATH ?? join(REPO_ROOT, '../formalCalculus'),
   formalstatistics:
     process.env.FORMAL_STATISTICS_PATH ?? join(REPO_ROOT, '../formalStatistics'),
-  formalml: REPO_ROOT,
+  formalml: process.env.FORMAL_ML_PATH ?? join(REPO_ROOT, '../formalML'),
+  formalnlp: process.env.FORMAL_NLP_PATH ?? join(REPO_ROOT, '../formalNLP'),
+  formalrag: REPO_ROOT,
 };
 
 const SITE_LABELS = {
   formalcalculus: 'formalCalculus',
   formalstatistics: 'formalStatistics',
   formalml: 'formalML',
+  formalnlp: 'formalNLP',
+  formalrag: 'formalRAG',
 };
 
 const CROSS_SITE_FIELDS = [
@@ -50,13 +59,17 @@ const CROSS_SITE_FIELDS = [
   'formalstatisticsConnections',
   'formalmlPrereqs',
   'formalmlConnections',
+  'formalnlpPrereqs',
+  'formalnlpConnections',
+  'formalragPrereqs',
+  'formalragConnections',
 ];
 
 const OUTPUT_DIR = join(REPO_ROOT, 'docs/plans/audit-output');
 const REPORT_PATH = join(REPO_ROOT, 'docs/plans/cross-site-audit-report.md');
 const DEFERRED_PATH = join(REPO_ROOT, 'docs/plans/deferred-reciprocals.md');
 
-const FIELD_RE = /^(formalcalculus|formalstatistics|formalml)(Prereqs|Connections)$/;
+const FIELD_RE = /^(formalcalculus|formalstatistics|formalml|formalnlp|formalrag)(Prereqs|Connections)$/;
 
 function parseField(field) {
   const m = field.match(FIELD_RE);

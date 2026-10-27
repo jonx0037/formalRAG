@@ -126,6 +126,10 @@ formalcalculusConnections:
   - topic: "convex-optimization"
     site: "formalcalculus"
     relationship: "Choosing the emit threshold to minimize expected cost is a one-dimensional optimization whose objective is the cost curve; Chow's closed-form cutoff is its stationary point under a calibrated score, the kind of cost-minimization-over-an-operating-point that topic formalizes, with the calibration gap measuring how far the empirical minimum drifts from the closed form."
+formalnlpPrereqs:
+  - topic: "language-model-calibration"
+    site: "formalnlp"
+    relationship: "Chow's rule, the risk–coverage curve, and conformal control of the wrong-answer rate here all take a calibrated confidence as input; that topic stops at measuring and repairing a language model's confidence."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

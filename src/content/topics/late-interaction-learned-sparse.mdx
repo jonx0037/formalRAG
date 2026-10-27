@@ -85,6 +85,13 @@ formalmlPrereqs:
   - topic: "svd"
     site: "formalml"
     relationship: "both escapes leave the rank world that topic defines: the single-vector ceiling is a statement about the rank and sign-rank of a bilinear score matrix, proved with the truncated-SVD machinery of Eckart-Young; MaxSim escapes precisely by not being a bilinear form (a max of inner products has no such rank), so the SVD topic is the rank framing this topic departs from to characterize what late interaction buys"
+formalnlpPrereqs:
+  - topic: "attention-as-kernel-smoothing"
+    site: "formalnlp"
+    relationship: "ColBERT's MaxSim keeps each query token's best-matching document token, the zero-temperature limit of the attention lookup that topic analyzes as kernel smoothing."
+  - topic: "contextual-embeddings-masked-lm"
+    site: "formalnlp"
+    relationship: "SPLADE's term weights here are log(1 + ReLU) of masked-LM logits, the same vocabulary head that topic trains with the masked-LM objective and whose optimum it computes."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

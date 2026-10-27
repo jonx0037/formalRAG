@@ -80,6 +80,10 @@ formalmlConnections:
   - topic: "rate-distortion"
     site: "formalml"
     relationship: "the parametric optimum is derived from a high-rate rate-distortion lower bound on quantization distortion, and the bit-allocation question of how the determinant should be split across subspaces is the operational form of the rate-distortion trade-off developed there"
+formalnlpPrereqs:
+  - topic: "positional-encodings-geometry"
+    site: "formalnlp"
+    relationship: "A rotation applied to both query and key preserves their inner product, which OPQ relies on here; RoPE instead rotates the two differently, so what survives the inner product is the rotation by their positional offset."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

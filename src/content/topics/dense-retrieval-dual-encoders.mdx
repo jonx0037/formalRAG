@@ -81,6 +81,19 @@ formalmlConnections:
   - topic: "pca-low-rank"
     site: "formalml"
     relationship: "PCA reads Eckart-Young as the optimal linear projection that maximizes retained variance, the dual view of the optimal-approximation statement this topic uses; the same truncated-SVD object that gives PCA its best k-dimensional projection gives the dual encoder its best rank-d relevance matrix, so the two topics apply one theorem to the data matrix and to the relevance matrix respectively"
+formalnlpPrereqs:
+  - topic: "contextual-embeddings-masked-lm"
+    site: "formalnlp"
+    relationship: "A dual encoder takes a pretrained encoder as given and trains it contrastively; that topic is where the encoder's token vectors come from, through the masked-LM objective, and what anisotropic geometry they have."
+  - topic: "fine-tuning-low-rank-adaptation"
+    site: "formalnlp"
+    relationship: "The rank ceiling on a dual encoder's score matrix here has a twin there: low-rank adaptation bounds the rank of a weight update rather than a score matrix, a different object with the same low-rank arithmetic."
+  - topic: "glove-embedding-geometry"
+    site: "formalnlp"
+    relationship: "A dual encoder scores by an inner product of two embeddings, so it shares GloVe's gauge freedom: the loss fixes the scores, not the geometry of either tower, which that topic works out for word vectors."
+  - topic: "word2vec-implicit-factorization"
+    site: "formalnlp"
+    relationship: "A dual encoder's score is an inner product of a query and a document embedding, the same factorized form as word2vec's word and context vectors, with the same rank ceiling and the same gauge freedom."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

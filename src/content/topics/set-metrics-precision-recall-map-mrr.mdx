@@ -91,6 +91,20 @@ formalmlPrereqs:
   - topic: "concentration-inequalities"
     site: "formalml"
     relationship: "the claim that a sample mean of bounded per-query scores concentrates around its expectation at a rate controlled by the query count is a concentration inequality — Chebyshev gives the 1/sqrt(n) confidence interval from the variance alone, and the sub-Gaussian (Hoeffding) bound sharpens it for the bounded AP, which is what makes the shrinking interval a guarantee rather than a heuristic"
+formalnlpPrereqs:
+  - topic: "collocations-keyword-extraction"
+    site: "formalnlp"
+    relationship: "Precision at a cutoff, defined here, is how that topic's finance case study scores every ranking of bigrams and keywords against the generator's answer key."
+formalnlpConnections:
+  - topic: "knowledge-graph-embeddings"
+    site: "formalnlp"
+    relationship: "The reciprocal rank and MRR defined here are the standard link-prediction metrics: that topic ranks every entity for a query with one held-out answer, after filtering the other known answers."
+  - topic: "named-entity-recognition"
+    site: "formalnlp"
+    relationship: "Precision and recall, defined here as properties of a retrieved set, carry over to sets of predicted entity spans, which that topic scores under four different span-matching criteria."
+  - topic: "relation-extraction-distant-supervision"
+    site: "formalnlp"
+    relationship: "Precision and recall of a returned set, defined here, score that topic's sets of extracted facts and triples the same way, at a threshold on their aggregated scores."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

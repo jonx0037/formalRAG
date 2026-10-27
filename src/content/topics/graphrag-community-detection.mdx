@@ -154,6 +154,13 @@ references:
     year: 2006
     url: "https://doi.org/10.1002/047174882X"
     note: "The mutual-information and entropy framing behind the detectability threshold as an information limit, carried from the PMI and noisy-channel topics; 2nd edition, Wiley"
+formalnlpPrereqs:
+  - topic: "knowledge-graph-embeddings"
+    site: "formalnlp"
+    relationship: "The entity graph here has untyped, weighted edges built for community detection; a knowledge-graph embedding works with typed, directed edges and learns a separate map for each relation type."
+  - topic: "relation-extraction-distant-supervision"
+    site: "formalnlp"
+    relationship: "The entity graph here is built from co-occurrence and embedding similarity; relation extraction supplies the alternative, typed and directed edges read from text, with distant supervision as its training signal."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

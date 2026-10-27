@@ -108,6 +108,10 @@ formalstatisticsConnections:
   - topic: "exponential-families"
     site: "formalstatistics"
     relationship: "the softmax over candidate similarities is the categorical exponential family with natural parameters the scaled cosine logits, so the temperature is an inverse natural-parameter scale and the InfoNCE gradient — the positive's indicator minus the softmax-weighted average of the candidates — is the exponential-family score, the mean-parameter-minus-expected-feature form that topic develops"
+formalnlpPrereqs:
+  - topic: "word2vec-implicit-factorization"
+    site: "formalnlp"
+    relationship: "InfoNCE is the softmax counterpart of word2vec's negative sampling: its optimal critic is PMI up to a per-query constant, while skip-gram's binary loss pins the logit to PMI minus log k."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

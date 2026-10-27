@@ -88,6 +88,16 @@ formalstatisticsConnections:
   - topic: "hypothesis-testing"
     site: "formalstatistics"
     relationship: "deciding whether a mined candidate is a true negative or an accidental positive is a detection problem with a false-negative rate τ⁺, exactly the type-II-error vocabulary that topic formalizes, and tightening the mining radius is moving the decision threshold — trading more power to find hard negatives against a higher false-negative contamination rate, the operating-point tradeoff of Movement 2"
+formalnlpPrereqs:
+  - topic: "knowledge-graph-embeddings"
+    site: "formalnlp"
+    relationship: "The false negatives that mined negatives carry are unavoidable in link prediction: every hidden true fact is a training negative, and that topic shows a model able to represent antisymmetry still learns it from them."
+  - topic: "relation-extraction-distant-supervision"
+    site: "formalnlp"
+    relationship: "The false negatives and unknown class prior treated here have a cousin in distant supervision, where a fact the knowledge base forgot is labeled as an unrelated pair and becomes a training negative."
+  - topic: "word2vec-implicit-factorization"
+    site: "formalnlp"
+    relationship: "Both pages draw negatives from a noise distribution: here the question is which negatives to mine for retrieval, while that topic asks what word2vec's unigram-to-the-0.75 noise makes the optimum factorize."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

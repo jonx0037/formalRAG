@@ -101,6 +101,10 @@ formalcalculusPrereqs:
   - topic: "probability-and-union-bound"
     site: "formalcalculus"
     relationship: "the step from preserving one vector's norm to preserving all C(n,2) pairwise distances at once is precisely Boole's inequality: the union bound developed there is what lets us add up the per-pair failure probabilities and conclude that a single random map works for the whole point set with positive probability"
+formalnlpPrereqs:
+  - topic: "transformer-block-residual-stream"
+    site: "formalnlp"
+    relationship: "Many nearly orthogonal directions fit in few dimensions, which is why that topic's 32-dimensional residual stream can carry 256 random token embeddings that an induction head still copies correctly."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

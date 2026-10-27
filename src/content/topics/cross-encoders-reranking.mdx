@@ -108,6 +108,16 @@ formalcalculusConnections:
   - topic: "mean-value-taylor"
     site: "formalcalculus"
     relationship: "backpropagation through the cross-encoder's fused layers is the chain rule applied to a deep composition, and the first-order Taylor and mean-value machinery of that topic is the local-linearization foundation that makes the gradient of the joint score well-defined and the optimization step analyzable — the calculus under the reranker's training loop"
+formalnlpPrereqs:
+  - topic: "aspect-based-sentiment"
+    site: "formalnlp"
+    relationship: "An aspect-blind sentiment reader encodes the sentence without the aspect, as a dual encoder scores a document without the query; letting the aspect attend to the words is the cross-encoder's move, and that topic prices not making it."
+  - topic: "capstone-earnings-call-nlp"
+    site: "formalnlp"
+    relationship: "The recall pinch here, that an oracle reranker recovers only what the first-stage pool holds, is a one-stage ceiling; that capstone generalizes it to every order of every stage in a multi-stage NLP pipeline."
+  - topic: "knowledge-graph-embeddings"
+    site: "formalnlp"
+    relationship: "The rank bound on a learned bilinear scorer proved here applies to DistMult and ComplEx, which score a triple with one diagonal bilinear matrix per relation."
 ---
 
 import TheoremBlock from '../../components/ui/TheoremBlock.astro';

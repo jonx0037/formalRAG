@@ -28,6 +28,8 @@
   --color-badge-red-text: #991B1B;
   --color-badge-blue-bg: #DBEAFE;
   --color-badge-blue-text: #1D4ED8;
+  --color-badge-oxblood-bg: #FFF1F2;
+  --color-badge-oxblood-text: #9F1D35;
   --color-disabled-text: #9CA3AF;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -59,6 +61,8 @@
   --color-badge-red-text: #FCA5A5;
   --color-badge-blue-bg: #1E3A8A;
   --color-badge-blue-text: #93C5FD;
+  --color-badge-oxblood-bg: #2A1418;
+  --color-badge-oxblood-text: #EA8595;
   --color-disabled-text: #6B7280;
 }
 
@@ -160,11 +164,14 @@ code {
 }
 
 /* === Sister-site badges (used by ExternalLink component) ===
-   formalRAG links UP into formalML (green) and DOWN into the calculus (amber)
-   and statistics (blue) foundations. */
+   formalRAG links UP into formalML (green), DOWN into the calculus (amber)
+   and statistics (blue) foundations, and across to its peer formalNLP
+   (oxblood). Oxblood clears WCAG AA at the 0.85 resting opacity in both
+   themes: 5.3:1 light, 5.3:1 dark. */
 .formalml-badge,
 .formalcalculus-badge,
-.formalstatistics-badge {
+.formalstatistics-badge,
+.formalnlp-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -179,14 +186,16 @@ code {
 
 .formalml-badge:hover,
 .formalcalculus-badge:hover,
-.formalstatistics-badge:hover {
+.formalstatistics-badge:hover,
+.formalnlp-badge:hover {
   opacity: 1;
   text-decoration: none;
 }
 
 .formalml-badge::before,
 .formalcalculus-badge::before,
-.formalstatistics-badge::before {
+.formalstatistics-badge::before,
+.formalnlp-badge::before {
   content: '\2197'; /* ↗ — these point OUT to a sister site */
 }
 
@@ -206,6 +215,12 @@ code {
   color: var(--color-badge-blue-text);
   background-color: var(--color-badge-blue-bg);
   border: 1px solid var(--color-badge-blue-text);
+}
+
+.formalnlp-badge {
+  color: var(--color-badge-oxblood-text);
+  background-color: var(--color-badge-oxblood-bg);
+  border: 1px solid var(--color-badge-oxblood-text);
 }
 
 /* === D3 visualization text/axis theming === */
