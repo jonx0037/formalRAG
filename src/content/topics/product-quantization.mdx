@@ -32,7 +32,7 @@ connections:
   - topic: "high-dimensional-geometry"
     relationship: "the curse of dimensionality is exactly what a single codebook cannot scale against — Zador's distortion falls only as k^(-2/d) — and product quantization beats it by factoring the d-dimensional problem into m low-dimensional ones whose product codebook is exponentially large at linear storage, the structured escape the concentration results there motivate"
   - topic: "mips-hardness-and-sublinearity-limits"
-    relationship: "exact maximum-inner-product search is the scan to avoid, and asymmetric distance computation is the table-lookup escape this topic builds: replacing each database vector by a short code turns an O(d) distance into m table lookups, trading the proven hardness of exact search for the controlled approximation error PQ quantifies"
+    relationship: "exact maximum-inner-product search is the scan to avoid, and asymmetric distance computation is the table-lookup escape this topic builds: replacing each database vector by a short code turns an O(d) distance into m table lookups, trading the conditional hardness of exact search for the controlled approximation error PQ quantifies"
   - topic: "pca-dimensionality-reduction"
     relationship: "PCA rotates and truncates to decorrelate and shrink the vector, and the rotation that makes product quantization optimal is the same kind of object: the residual loss PQ pays is cross-subspace correlation, which a PCA-like rotation reduces, so the eigenstructure developed there is exactly what optimized product quantization learns to balance variance across subspaces"
 references:

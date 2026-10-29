@@ -1,6 +1,6 @@
 ---
 title: "MIPS Hardness and the Limits of Exact Nearest-Neighbor Search"
-subtitle: "Why maximum inner-product search is not a metric problem, why exact high-dimensional search has no truly-sublinear algorithm, and why we approximate"
+subtitle: "Why maximum inner-product search is not a metric problem, why exact high-dimensional search has no known truly-sublinear algorithm, and why we approximate"
 status: "published"
 difficulty: "advanced"
 prerequisites:
@@ -13,6 +13,7 @@ tags:
   - "fine-grained-complexity"
   - "strong-exponential-time-hypothesis"
   - "orthogonal-vectors"
+  - "orthogonal-vectors-conjecture"
   - "asymmetric-lsh"
 domain: "retrieval-foundations"
 pipelineStage: "retrieve"
@@ -21,13 +22,13 @@ modality:
   - "text"
   - "pdf"
   - "audio"
-rigorFlag: "The headline that exact high-dimensional search is hopeless is conditional, and the conditionality matters. The n^(2-o(1)) lower bound for exact closest/farthest pair rests on the Strong Exponential Time Hypothesis, via the Orthogonal Vectors problem (Williams 2005; Alman-Williams 2015; Rubinstein 2018 for the approximate case). SETH is a hypothesis, not a theorem, so this is 'no known truly-subquadratic exact algorithm,' not 'proven impossible.' We prove the load-bearing OV-to-farthest-pair separation gap in full and verify it in the harness, but cite the SAT-to-OV reduction and the SETH conditionality rather than reprove them. Second, the asymmetric lifting transforms preserve the exact argmax — which we prove and assert — but they do not preserve approximation ratios: a c-approximate Euclidean neighbor in the lifted space is not a c-approximate inner product, a subtlety the harness demonstrates with an explicit counterexample. Third, the whole hardness story is for the d = omega(log n) regime; in genuinely low intrinsic dimension exact and approximate search are tractable — the escape hatch the high-dimensional-geometry and Johnson-Lindenstrauss topics develop. Finally, the trade-off triangle is a faithful summary of the landscape, not a single proven theorem, and the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in, not a trained encoder; the cost figures are measured on that synthetic cloud."
+rigorFlag: "The headline that exact high-dimensional search is hopeless is conditional, and the conditionality matters. The n^(2-o(1)) lower bound for exact closest/farthest pair rests on the Orthogonal Vectors Conjecture (OVC) (Williams 2005; Rubinstein 2018, whose approximate-case bound holds under OVC and so covers the exact case too). OVC is a hypothesis, not a theorem, so this is 'no known truly-subquadratic exact algorithm,' not 'proven impossible.' The bound was first stated under the Strong Exponential Time Hypothesis (SETH), which implies OVC. In October 2026, OpenAI and Anthropic each announced a sub-exponential algorithm for k-SAT that would refute both ETH and SETH, if it survives expert review (it had not been peer-reviewed at the time of this revision). Neither announcement addresses OVC, and the known reduction runs from SAT to OV, not back, so a fast SAT algorithm yields no known OV speedup. The bound now rests on the weaker hypothesis, which stands whether or not the refutation does. We prove the load-bearing OV-to-farthest-pair separation gap in full and verify it in the harness, but cite the SAT-to-OV reduction and the conditionality rather than reprove them. Second, the asymmetric lifting transforms preserve the exact argmax — which we prove and assert — but they do not preserve approximation ratios: a c-approximate Euclidean neighbor in the lifted space is not a c-approximate inner product, a subtlety the harness demonstrates with an explicit counterexample. Third, the whole hardness story is for the d = omega(log n) regime; in genuinely low intrinsic dimension exact and approximate search are tractable — the escape hatch the high-dimensional-geometry and Johnson-Lindenstrauss topics develop. Finally, the trade-off triangle is a faithful summary of the landscape, not a single proven theorem, and the finance embeddings in the companion code are a synthetic low-rank-plus-noise stand-in, not a trained encoder; the cost figures are measured on that synthetic cloud."
 videoId: null
 notebookPath: "notebooks/mips-hardness-and-sublinearity-limits/01_mips_hardness_and_sublinearity_limits.ipynb"
 githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/mips-hardness-and-sublinearity-limits.mdx"
 datePublished: 2026-06-19
 estimatedReadTime: 38
-abstract: "Retrieval ranks documents by maximum inner product: return the document maximizing <q, d>. We first show why this is not the metric nearest-neighbor problem it is often mistaken for — the inner product has no triangle inequality, and a vector need not be its own best match — so the space-partitioning intuition that organizes metric search does not transfer. We then give the asymmetric lifting transforms (Bachrach et al.; Shrivastava-Li; Neyshabur-Srebro) that turn MIPS into Euclidean nearest-neighbor search on a lifted sphere, prove the transform preserves the argmax exactly, and flag honestly that it does not preserve approximation ratios. With the problems reduced to one another, we reach the hardness: exact high-dimensional nearest-neighbor and closest-pair search have no known algorithm that is simultaneously exact, truly sublinear per query, and near-linear in space. We present the Orthogonal Vectors problem and its reduction to closest/farthest pair, state the Strong Exponential Time Hypothesis precisely, and derive the conditional n^(2-o(1)) lower bound — emphasizing that this is conditional hardness, not a proven impossibility. The payoff is the trade-off triangle that motivates the rest of the curriculum: in high ambient dimension you cannot have exactness, sublinear time, and near-linear space at once, so you relax one — give up exactness for approximate indexes, or exploit the low intrinsic dimension that the concentration topic showed real embeddings actually have. An interactive laboratory and a tested notebook accompany the derivation, with a finance example on why exact MIPS over a multimodal corpus is hopeless at query time."
+abstract: "Retrieval ranks documents by maximum inner product: return the document maximizing <q, d>. We first show why this is not the metric nearest-neighbor problem it is often mistaken for — the inner product has no triangle inequality, and a vector need not be its own best match — so the space-partitioning intuition that organizes metric search does not transfer. We then give the asymmetric lifting transforms (Bachrach et al.; Shrivastava-Li; Neyshabur-Srebro) that turn MIPS into Euclidean nearest-neighbor search on a lifted sphere, prove the transform preserves the argmax exactly, and flag honestly that it does not preserve approximation ratios. With the problems reduced to one another, we reach the hardness: exact high-dimensional nearest-neighbor and closest-pair search have no known algorithm that is simultaneously exact, truly sublinear per query, and near-linear in space. We present the Orthogonal Vectors problem and its reduction to closest/farthest pair, state the Orthogonal Vectors Conjecture alongside the stronger Strong Exponential Time Hypothesis it descends from (now claimed refuted), and derive the conditional n^(2-o(1)) lower bound under the conjecture that survives — emphasizing that this is conditional hardness, not a proven impossibility. The payoff is the trade-off triangle that motivates the rest of the curriculum: in high ambient dimension no known index gives you exactness, sublinear time, and near-linear space at once, so you relax one — give up exactness for approximate indexes, or exploit the low intrinsic dimension that the concentration topic showed real embeddings actually have. An interactive laboratory and a tested notebook accompany the derivation, with a finance example on why exact MIPS over a multimodal corpus is hopeless at query time."
 connections:
   - topic: "high-dimensional-geometry"
     relationship: "the curse of dimensionality proved there — vanishing relative contrast as the ambient dimension grows — is the reason space-partitioning pruning collapses and exact search degenerates to a linear scan; this topic turns that geometric fact into a complexity-theoretic lower bound and shows the intrinsic-dimension escape is the only way out"
@@ -65,19 +66,31 @@ references:
     authors: "Williams"
     year: 2005
     url: "https://doi.org/10.1016/j.tcs.2005.09.023"
-    note: "Introduces the Orthogonal Vectors problem and its SETH-conditional n^(2-o(1)) hardness"
+    note: "Introduces the Orthogonal Vectors problem and shows SETH implies its n^(2-o(1)) hardness — the Orthogonal Vectors Conjecture (OVC) this topic's lower bound rests on"
   - type: "paper"
     title: "Probabilistic Polynomials and Hamming Nearest Neighbors"
     authors: "Alman & Williams"
     year: 2015
     url: "https://doi.org/10.1109/FOCS.2015.18"
-    note: "Fine-grained hardness of batch / Hamming nearest neighbor in d = omega(log n) dimensions"
+    note: "The first subquadratic exact algorithm for batch Hamming nearest neighbor in superlogarithmic dimension — randomized and only barely subquadratic, n^(2 - 1/O(c log^2 c)) in dimension c log n, with the savings vanishing as c grows: the upper-bound side of the hardness"
   - type: "paper"
     title: "Hardness of Approximate Nearest Neighbor Search"
     authors: "Rubinstein"
     year: 2018
     url: "https://doi.org/10.1145/3188745.3188916"
-    note: "Extends SETH-conditional hardness to the approximate regime — even (1+eps)-NN is hard"
+    note: "Extends the hardness to the approximate regime — even (1+eps)-approximate bichromatic closest pair needs n^(2-o(1)) time, a bound stated to hold unless both SETH and OVC fail, which covers the exact case a fortiori"
+  - type: "paper"
+    title: "The Exponential Time Hypothesis Is False"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://www.alphaxiv.org/abs/2610.exponential-time-hypothesis-refutation"
+    note: "Claimed and not yet peer-reviewed as of October 2026: deterministic counting of k-CNF solutions in 2^(n/(log n)^(1/2+o(1))) time for every fixed k, which refutes ETH and therefore SETH; under examination by Impagliazzo, Paturi, and Williams"
+  - type: "paper"
+    title: "A 2^o(n) Time Algorithm for 3-SAT"
+    authors: "Claude (Anthropic)"
+    year: 2026
+    url: "https://github.com/anthropics/formal-math/tree/main/eth"
+    note: "An independent claimed refutation of ETH released the same week: a deterministic 3-SAT algorithm in 2^(O(n log log n / sqrt(log n))) time, with its two headline theorems machine-checked in Lean 4 (whether the Lean statements match the paper is checked by reading, not by machine)"
   - type: "course"
     title: "Nearest Neighbors in High-Dimensional Spaces (Handbook of Discrete and Computational Geometry, ch. 43)"
     authors: "Andoni & Indyk"
@@ -104,7 +117,7 @@ import MIPSHardnessLaboratory from '../../components/viz/MIPSHardnessLaboratory.
 
 [The Retrieval Problem](/topics/the-retrieval-problem) left us ranking documents by a similarity score, and for dense retrieval that score is the inner product: return the document $d$ that maximizes $\langle q, d\rangle$. Computing that maximum exactly is trivial — scan the corpus, take the largest. The trouble is the scan. A single query costs $O(nd)$ time over $n$ documents in $d$ dimensions, and a production corpus has $n$ in the millions and $d$ in the thousands. The entire downstream half of this curriculum — inverted indexes, IVF, LSH, HNSW, product quantization — exists to avoid that scan. This topic is the honest accounting of *why* the scan is hard to avoid, and it has a sharper answer than "the constant is large."
 
-We will make three claims, in increasing order of depth. First, **maximum inner-product search is not metric nearest-neighbor search**, so the geometric intuition that organizes fast metric indexes does not transfer to it directly. Second, MIPS *can* be reduced to Euclidean nearest-neighbor search by a clever lifting, but the reduction **preserves the exact answer while distorting approximation ratios** — a celebrated and subtle fact. Third, even Euclidean nearest neighbor has **no known truly-sublinear exact algorithm in high dimension**, and under a standard complexity hypothesis it cannot have one: you cannot be exact, sublinear in query time, and near-linear in space all at once. That impossibility is the hinge the rest of the site turns on. Before the complexity theory, drag the dimension slider and watch exact search degenerate into a scan:
+We will make three claims, in increasing order of depth. First, **maximum inner-product search is not metric nearest-neighbor search**, so the geometric intuition that organizes fast metric indexes does not transfer to it directly. Second, MIPS *can* be reduced to Euclidean nearest-neighbor search by a clever lifting, but the reduction **preserves the exact answer while distorting approximation ratios** — a celebrated and subtle fact. Third, even Euclidean nearest neighbor has **no known truly-sublinear exact algorithm in high dimension**, and under the Orthogonal Vectors Conjecture, a standard fine-grained complexity hypothesis, it cannot have one: you cannot be exact, sublinear in query time, and near-linear in space all at once. That conditional impossibility is the hinge the rest of the site turns on. Before the complexity theory, drag the dimension slider and watch exact search degenerate into a scan:
 
 <MIPSHardnessLaboratory client:visible />
 
@@ -114,7 +127,7 @@ In the pruning panel, a metric index's ability to skip candidates evaporates as 
 
 1. Why MIPS is not a metric problem, and why self-similarity can fail.
 2. The asymmetric lifting transform, and the exact-argmax-but-distorted-ratio subtlety.
-3. The hardness core: Orthogonal Vectors, SETH, and the $n^{2-o(1)}$ lower bound.
+3. The hardness core: Orthogonal Vectors, the conjecture it rests on (and the stronger one now claimed refuted), and the $n^{2-o(1)}$ lower bound.
 4. The trade-off triangle: exactness, sublinear time, near-linear space — pick two.
 5. The empirical curse: how distance concentration collapses pruning in practice.
 6. A finance case study, the honest caveats, and the tested implementation.
@@ -193,7 +206,7 @@ So MIPS reduces to Euclidean nearest-neighbor search, and any exact metric index
 
 ---
 
-## The hardness core: Orthogonal Vectors and SETH
+## The hardness core: Orthogonal Vectors, SETH, and OVC
 
 The lift buys us a metric, but it does not buy us speed: Euclidean nearest neighbor is itself hard in high dimension. The modern statement of that hardness comes from fine-grained complexity, and it routes through one deceptively simple problem.
 
@@ -203,7 +216,7 @@ Given two sets $A, B$ of $n$ Boolean vectors in $\{0, 1\}^d$, decide whether the
 
 </TheoremBlock>
 
-The brute-force algorithm checks all $n^2$ pairs in $O(n^2 d)$ time. No algorithm is known that is truly subquadratic — $O(n^{2-\varepsilon})$ for a constant $\varepsilon > 0$ — when $d$ grows even mildly with $n$, and the reason is a hypothesis about satisfiability.
+The brute-force algorithm checks all $n^2$ pairs in $O(n^2 d)$ time. No algorithm is known that is truly subquadratic — $O(n^{2-\varepsilon})$ for a constant $\varepsilon > 0$ — when $d$ grows even mildly with $n$. The algorithms that do beat $n^2$ beat it only barely. For batch Hamming nearest neighbor in dimension $d = c \log n$, the first subquadratic exact algorithm (Alman and Williams, 2015) is randomized and runs in $n^{2 - 1/O(c \log^2 c)}$ time, with the savings vanishing as $c$ grows. The classical explanation for that wall is a hypothesis about satisfiability.
 
 <TheoremBlock type="definition" number={4} title="The Strong Exponential Time Hypothesis (SETH)">
 
@@ -211,13 +224,15 @@ For every $\varepsilon > 0$ there is a $k$ such that $k$-SAT on $n$ variables ca
 
 </TheoremBlock>
 
-SETH is a *conjecture*, not a theorem — but a load-bearing one, and a large web of conditional lower bounds hangs from it.
+SETH is a *conjecture*, not a theorem, and for two decades a large web of conditional lower bounds hung from it. In October 2026, OpenAI and Anthropic each announced a deterministic sub-exponential algorithm for $k$-SAT at every fixed clause width $k$. Anthropic's has its headline theorems machine-checked in Lean. If either survives expert review, it refutes the Exponential Time Hypothesis (ETH), SETH's weaker cousin, which says 3-SAT needs $2^{\Omega(n)}$ time. SETH implies ETH, so SETH falls with it. The hardness this topic needs does not fall, because it never needed all of SETH.
 
-<TheoremBlock type="theorem" number={2} title="OV is SETH-hard (Williams, 2005)">
+<TheoremBlock type="theorem" number={2} title="OV hardness and the Orthogonal Vectors Conjecture (Williams, 2005)">
 
-Under SETH, for every $\varepsilon > 0$, Orthogonal Vectors on $n$ vectors in dimension $d = \omega(\log n)$ cannot be solved in $O(n^{2-\varepsilon})$ time. We cite this reduction (a split-and-list argument from CNF-SAT) rather than reprove it.
+SETH implies the **Orthogonal Vectors Conjecture (OVC)**: for every $\varepsilon > 0$ there is a $c$ such that Orthogonal Vectors on $n$ vectors in dimension $d = c \log n$ cannot be solved in $O(n^{2-\varepsilon})$ time. Padding with zero coordinates preserves orthogonality, so under OVC (and, a fortiori, under SETH), Orthogonal Vectors in any dimension $d = \omega(\log n)$ has no $O(n^{2-\varepsilon})$ algorithm. We cite the implication (a split-and-list argument from CNF-SAT) rather than reprove it.
 
 </TheoremBlock>
+
+The direction of that reduction is what protects the result. Williams's argument turns a fast OV algorithm into a fast SAT algorithm; nothing known runs the other way, so a fast SAT algorithm, even a sub-exponential one, yields no fast OV algorithm. OVC is the weaker hypothesis, and it is where this topic's lower bound rests. Everything below holds under OVC, whether or not the new SAT algorithms survive review.
 
 The bridge from OV to *geometry* is the part we can prove outright, and it is short. The trick is to fix the number of ones so that orthogonality becomes a statement about distance.
 
@@ -233,15 +248,15 @@ Hence $\langle a, b\rangle = 0$ if and only if $\lVert a - b\rVert^2 = 2w$, its 
 
 <TheoremBlock type="proof">
 
-The displayed identity is the [cosine-distance identity](/topics/the-retrieval-problem) specialized to $0/1$ vectors, where $\lVert a\rVert^2$ equals the number of ones, here $w$. Since $\langle a, b\rangle$ is a non-negative integer (a count of shared ones), it is either $0$ — giving squared distance exactly $2w$ — or at least $1$ — giving squared distance at most $2w - 2$. The two cases are disjoint and separated by $2$, so the maximum pairwise squared distance equals $2w$ precisely when an orthogonal pair exists. A subquadratic exact farthest-pair algorithm would thus solve OV in subquadratic time, contradicting Theorem 2 under SETH. The companion harness builds an explicit weight-$2$ instance in $\{0,1\}^6$ and verifies the gap: the planted orthogonal pair sits at squared distance $4 = 2w$, every non-orthogonal cross pair at $2 = 2w - 2$. $\blacksquare$
+The displayed identity is the [cosine-distance identity](/topics/the-retrieval-problem) specialized to $0/1$ vectors, where $\lVert a\rVert^2$ equals the number of ones, here $w$. Since $\langle a, b\rangle$ is a non-negative integer (a count of shared ones), it is either $0$ — giving squared distance exactly $2w$ — or at least $1$ — giving squared distance at most $2w - 2$. The two cases are disjoint and separated by $2$, so the maximum pairwise squared distance equals $2w$ precisely when an orthogonal pair exists. A subquadratic exact farthest-pair algorithm would thus solve OV in subquadratic time, contradicting Theorem 2 under OVC. The companion harness builds an explicit weight-$2$ instance in $\{0,1\}^6$ and verifies the gap: the planted orthogonal pair sits at squared distance $4 = 2w$, every non-orthogonal cross pair at $2 = 2w - 2$. $\blacksquare$
 
 </TheoremBlock>
 
-A symmetric construction reduces OV to the *closest* pair, and through it to exact nearest-neighbor search, so the conclusion stands for the problem we actually care about: under SETH, exact nearest-neighbor and closest-pair search on $n$ points in dimension $d = \omega(\log n)$ require $n^{2-o(1)}$ time (Alman and Williams, 2015). There is no truly-subquadratic exact algorithm.
+A symmetric construction reduces OV to the *closest* pair, and through it to exact nearest-neighbor search, so the conclusion stands for the problem we actually care about: under OVC, exact nearest-neighbor and closest-pair search on $n$ points in dimension $d = \omega(\log n)$ require $n^{2-o(1)}$ time. It is also the exact case of Rubinstein's approximate bound below, which is stated to hold unless both SETH and OVC fail. No truly-subquadratic exact algorithm is known, and under OVC none exists.
 
 <TheoremBlock type="remark" title="The approximate regime is hard too">
 
-One might hope that *approximation* dissolves the hardness. It does not, entirely: Rubinstein (2018) showed that under SETH, even $(1+\varepsilon)$-approximate nearest neighbor inherits conditional hardness for small enough $\varepsilon$. So approximation alone is not a free pass; the genuine escape, developed below and in the [concentration topic](/topics/high-dimensional-geometry), is that real data has low *intrinsic* dimension.
+One might hope that *approximation* dissolves the hardness. It does not, entirely: Rubinstein (2018) showed that under OVC (and so under SETH), even $(1+\varepsilon)$-approximate nearest neighbor inherits conditional hardness for small enough $\varepsilon$. So approximation alone is not a free pass; the genuine escape, developed below and in the [concentration topic](/topics/high-dimensional-geometry), is that real data has low *intrinsic* dimension.
 
 </TheoremBlock>
 
@@ -289,7 +304,7 @@ A candid note on the companion code: the embeddings are a synthetic low-rank-plu
 
 Four qualifications keep the hardness honest:
 
-1. **"No known" is not "proven impossible."** The $n^{2-o(1)}$ lower bound (Theorem 2, Algorithm 1) is conditional on SETH, which is a hypothesis. A truly-subquadratic exact algorithm is not ruled out by a theorem — it would instead refute SETH and collapse a large structure of conditional results.
+1. **"No known" is not "proven impossible."** The $n^{2-o(1)}$ lower bound (Theorem 2, Algorithm 1) is conditional on OVC, which is a hypothesis. A truly-subquadratic exact algorithm is not ruled out by a theorem. It would instead refute OVC and collapse the large structure of fine-grained lower bounds built on it. This conditionality is not academic: SETH, the hypothesis the bound was first stated under, is now claimed refuted (October 2026). The bound survives only because it rests on the weaker OVC.
 2. **Argmax-preservation is not ratio-preservation.** The lifting transform (Theorem 1) is exact for the top-1 but distorts approximation ratios (the rigor flag above, with the explicit $1.06$-versus-$1.73$ counterexample). Asymmetric LSH for *approximate* MIPS must be analyzed with that distortion in mind.
 3. **The hardness is for $d = \omega(\log n)$.** In genuinely low dimension — or low *intrinsic* dimension — exact and approximate search are tractable. This is not a loophole but the main escape, the one the [high-dimensional-geometry](/topics/high-dimensional-geometry) and [Johnson–Lindenstrauss](/topics/johnson-lindenstrauss) topics develop.
 4. **The trade-off triangle is a summary, not a single theorem,** and the finance figures are measured on a synthetic stand-in, not a trained encoder on real hardware.

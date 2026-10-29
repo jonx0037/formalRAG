@@ -34,7 +34,7 @@ connections:
   - topic: "product-quantization"
     relationship: "IVFADC product-quantizes the coarse-quantization residual, so it imports the additive distortion decomposition, the asymmetric-distance lookup table, and the train/encode routines of that topic and applies them per probed cell — the inverted file supplies the non-exhaustive candidate set, product quantization supplies the cheap distance, and IndexIVFPQ is the composition"
   - topic: "mips-hardness-and-sublinearity-limits"
-    relationship: "exact maximum-inner-product and nearest-neighbor search is the provably hard scan that topic characterizes, and the inverted file is the practical sublinear escape: it gives up the exactness guarantee for a tunable recall-versus-speed trade, scanning a small fraction of the database at the cost of the boundary-effect misses quantified here"
+    relationship: "exact maximum-inner-product and nearest-neighbor search is the conditionally hard scan that topic characterizes (no known truly-sublinear exact algorithm, and none under the Orthogonal Vectors Conjecture), and the inverted file is the practical sublinear escape: it gives up the exactness guarantee for a tunable recall-versus-speed trade, scanning a small fraction of the database at the cost of the boundary-effect misses quantified here"
   - topic: "high-dimensional-geometry"
     relationship: "the boundary effect is a high-dimensional phenomenon — as dimension grows, a Voronoi cell has ever more neighboring cells and a query's true nearest neighbor is ever more likely to fall just across a boundary, so the concentration and neighbor-count results developed there explain why nprobe must grow with dimension to hold recall"
 references:
