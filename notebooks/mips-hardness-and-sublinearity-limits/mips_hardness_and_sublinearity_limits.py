@@ -7,7 +7,8 @@ lifting transform reduces maximum inner-product search to Euclidean nearest-
 neighbor search and preserves the argmax exactly, but distorts approximation
 ratios (an explicit straddling counterexample); the Orthogonal Vectors -> farthest-
 pair reduction separates orthogonal from non-orthogonal pairs by a fixed gap in
-squared distance (so a truly-subquadratic exact algorithm would refute SETH); and,
+squared distance (so a truly-subquadratic exact algorithm would refute the
+Orthogonal Vectors Conjecture, OVC); and,
 as the ambient dimension grows, distance concentration collapses a metric index's
 pruning power so the inspected fraction climbs toward 1. finance_demo() owns the
 brute-force MIPS cost figure; grid_table() and the lifting counterexample own the
@@ -144,7 +145,8 @@ def test_ov_distance_gap() -> dict[str, float]:
     """OV -> farthest pair: with fixed Hamming weight w, ||a-b||^2 = 2w - 2<a,b>, so
     an orthogonal pair attains the maximal squared distance 2w and every non-
     orthogonal cross pair is at most 2w - 2. A subquadratic exact farthest-pair
-    algorithm would therefore decide Orthogonal Vectors, refuting SETH."""
+    algorithm would therefore decide Orthogonal Vectors, refuting the Orthogonal
+    Vectors Conjecture (OVC)."""
     A, B, w, (pi, pj) = _ov_corpus()
     ortho_d2, nonortho_max_d2 = None, -1.0
     found_ortho = False
