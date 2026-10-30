@@ -224,7 +224,7 @@ For every $\varepsilon > 0$ there is a $k$ such that $k$-SAT on $n$ variables ca
 
 </TheoremBlock>
 
-SETH is a *conjecture*, not a theorem, and for two decades a large web of conditional lower bounds hung from it. In October 2026, OpenAI and Anthropic each announced a deterministic sub-exponential algorithm for $k$-SAT at every fixed clause width $k$. Anthropic's has its headline theorems machine-checked in Lean. If either survives expert review, it refutes the Exponential Time Hypothesis (ETH), SETH's weaker cousin, which says 3-SAT needs $2^{\Omega(n)}$ time. SETH implies ETH, so SETH falls with it. The hardness this topic needs does not fall, because it never needed all of SETH.
+SETH is a *conjecture*, not a theorem, and for two decades a large web of conditional lower bounds hung from it. In October 2026, OpenAI and Anthropic each announced a deterministic sub-exponential algorithm for $k$-SAT at every fixed clause width $k$. Anthropic's has its headline theorems machine-checked in Lean. If either survives expert review, it refutes the Exponential Time Hypothesis (ETH), SETH's weaker cousin, which says 3-SAT needs $2^{\Omega(n)}$ time. SETH implies ETH, so SETH would fall with it. The hardness this topic needs would not, because it never needed all of SETH.
 
 <TheoremBlock type="theorem" number={2} title="OV hardness and the Orthogonal Vectors Conjecture (Williams, 2005)">
 
@@ -248,7 +248,7 @@ Hence $\langle a, b\rangle = 0$ if and only if $\lVert a - b\rVert^2 = 2w$, its 
 
 <TheoremBlock type="proof">
 
-The displayed identity is the [cosine-distance identity](/topics/the-retrieval-problem) specialized to $0/1$ vectors, where $\lVert a\rVert^2$ equals the number of ones, here $w$. Since $\langle a, b\rangle$ is a non-negative integer (a count of shared ones), it is either $0$ — giving squared distance exactly $2w$ — or at least $1$ — giving squared distance at most $2w - 2$. The two cases are disjoint and separated by $2$, so the maximum pairwise squared distance equals $2w$ precisely when an orthogonal pair exists. A subquadratic exact farthest-pair algorithm would thus solve OV in subquadratic time, contradicting Theorem 2 under OVC. The companion harness builds an explicit weight-$2$ instance in $\{0,1\}^6$ and verifies the gap: the planted orthogonal pair sits at squared distance $4 = 2w$, every non-orthogonal cross pair at $2 = 2w - 2$. $\blacksquare$
+The displayed identity is the [cosine-distance identity](/topics/the-retrieval-problem) specialized to $0/1$ vectors, where $\lVert a\rVert^2$ equals the number of ones, here $w$. Since $\langle a, b\rangle$ is a non-negative integer (a count of shared ones), it is either $0$ — giving squared distance exactly $2w$ — or at least $1$ — giving squared distance at most $2w - 2$. The two cases are disjoint and separated by $2$, so the maximum pairwise squared distance equals $2w$ precisely when an orthogonal pair exists. A subquadratic exact farthest-pair algorithm would thus solve OV in subquadratic time, refuting OVC, the conjecture in Theorem 2. The companion harness builds an explicit weight-$2$ instance in $\{0,1\}^6$ and verifies the gap: the planted orthogonal pair sits at squared distance $4 = 2w$, every non-orthogonal cross pair at $2 = 2w - 2$. $\blacksquare$
 
 </TheoremBlock>
 
@@ -304,7 +304,7 @@ A candid note on the companion code: the embeddings are a synthetic low-rank-plu
 
 Four qualifications keep the hardness honest:
 
-1. **"No known" is not "proven impossible."** The $n^{2-o(1)}$ lower bound (Theorem 2, Algorithm 1) is conditional on OVC, which is a hypothesis. A truly-subquadratic exact algorithm is not ruled out by a theorem. It would instead refute OVC and collapse the large structure of fine-grained lower bounds built on it. This conditionality is not academic: SETH, the hypothesis the bound was first stated under, is now claimed refuted (October 2026). The bound survives only because it rests on the weaker OVC.
+1. **"No known" is not "proven impossible."** The $n^{2-o(1)}$ lower bound (Theorem 2, Algorithm 1) is conditional on OVC, which is a hypothesis. A truly-subquadratic exact algorithm is not ruled out by a theorem. It would instead refute OVC and collapse the large structure of fine-grained lower bounds built on it. This conditionality is not academic: SETH, the hypothesis the bound was first stated under, is now claimed refuted (October 2026). If that claim holds, the bound still stands, because it rests on the weaker OVC; it stands either way.
 2. **Argmax-preservation is not ratio-preservation.** The lifting transform (Theorem 1) is exact for the top-1 but distorts approximation ratios (the rigor flag above, with the explicit $1.06$-versus-$1.73$ counterexample). Asymmetric LSH for *approximate* MIPS must be analyzed with that distortion in mind.
 3. **The hardness is for $d = \omega(\log n)$.** In genuinely low dimension — or low *intrinsic* dimension — exact and approximate search are tractable. This is not a loophole but the main escape, the one the [high-dimensional-geometry](/topics/high-dimensional-geometry) and [Johnson–Lindenstrauss](/topics/johnson-lindenstrauss) topics develop.
 4. **The trade-off triangle is a summary, not a single theorem,** and the finance figures are measured on a synthetic stand-in, not a trained encoder on real hardware.
