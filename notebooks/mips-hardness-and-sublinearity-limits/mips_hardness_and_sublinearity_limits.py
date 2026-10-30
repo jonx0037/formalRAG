@@ -135,7 +135,7 @@ def _ov_corpus() -> tuple[np.ndarray, np.ndarray, int, tuple[int, int]]:
     ], dtype=float)
     B = np.array([
         [0, 1, 0, 1, 0, 0],   # support {1,3}: disjoint from A[1]={0,2} (the planted orthogonal pair)
-        [0, 0, 1, 1, 0, 0],   # support {2,3}: shares coordinate 2 with A[1]
+        [1, 0, 0, 1, 0, 0],   # support {0,3}: shares coordinate 0 with both A rows
     ], dtype=float)
     # Planted orthogonal pair: A[1] support {0,2} and B[0] support {1,3} are disjoint.
     return A, B, w, (1, 0)
@@ -149,7 +149,7 @@ def test_ov_distance_gap() -> dict[str, float]:
     Vectors Conjecture (OVC)."""
     A, B, w, (pi, pj) = _ov_corpus()
     ortho_d2, nonortho_max_d2 = None, -1.0
-    found_ortho = False
+    ortho_pairs = []
     for i in range(len(A)):
         for j in range(len(B)):
             ip = float(np.dot(A[i], B[j]))
@@ -157,12 +157,12 @@ def test_ov_distance_gap() -> dict[str, float]:
             assert abs(d2 - (2 * w - 2 * ip)) < 1e-9          # the identity, on 0/1 vectors
             if ip == 0.0:
                 ortho_d2 = d2
-                found_ortho = (i, j) == (pi, pj) or found_ortho
+                ortho_pairs.append((i, j))
             else:
                 nonortho_max_d2 = max(nonortho_max_d2, d2)
     assert ortho_d2 == 2 * w                                   # orthogonal pair is maximally far
     assert nonortho_max_d2 <= 2 * w - 2                        # a clean gap of >= 2 separates them
-    assert found_ortho
+    assert ortho_pairs == [(pi, pj)]                          # exactly one, the planted pair
     print(f"  [ok] OV->farthest-pair gap: orthogonal d^2 = {ortho_d2:.0f} = 2w, "
           f"non-orthogonal d^2 <= {nonortho_max_d2:.0f} = 2w-2")
     return {"w": float(w), "ortho_d2": ortho_d2, "nonortho_max_d2": nonortho_max_d2}
