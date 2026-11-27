@@ -23,7 +23,7 @@ modality:
   - "text"
   - "pdf"
 rigorFlag: "One result is proved; the headline is honestly empirical, and the gap matters. MaxSim reducing to the dual-encoder dot product at one vector per item is proved exactly, and MaxSim being a max of linear forms (not a bilinear form, so not bound by the rank ceiling) is immediate — but that the escape happens at a SMALL number of vectors is a best-case DEMONSTRATION by free-embedding optimization, not a theorem: there is no known multi-vector sign-rank lower bound, and the LIMIT paper that proved the single-vector ceiling explicitly defers the multi-vector case. The single-vector baseline here is re-derived with the SAME optimizer as the MaxSim model (one cloud), so the gap is the multi-vector effect and not a difference between optimizers, but the absolute critical-n values are optimizer-dependent best cases, not the true capacities. SPLADE's FLOPS regularizer is an empirically effective heuristic, not derived, and its relation to BM25 is conceptual — a learned re-weighting and expansion in the same lexical space — not a formal generalization. The token embeddings and the MLM logits driving SPLADE expansion are synthetic stand-ins reused from / built on the InfoNCE, DPR, and BM25 topics, not trained transformers. Late interaction's expressivity is bought with storage: one vector per token, here 32 times a single-vector index; PLAID's centroid pruning (a downstream topic) mitigates but does not erase it."
-videoId: null
+videoId: "EM29XffXkcU"
 notebookPath: "notebooks/late-interaction-learned-sparse/01_late_interaction_learned_sparse.ipynb"
 githubUrl: "https://github.com/jonx0037/formalRAG/blob/main/src/content/topics/late-interaction-learned-sparse.mdx"
 datePublished: 2026-06-22
